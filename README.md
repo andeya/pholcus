@@ -14,7 +14,24 @@ Pholcus（幽灵蛛）是一款Go语言编写的爬虫软件框架（含GUI界�
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow.jpg)
 
 
-**安装幽灵蛛**
+**安装Pholcus（幽灵蛛）**
 ```
 go get github.com/henrylee2cn/pholcus
 ```
+
+
+
+**编译Pholcus（幽灵蛛）**
+```
+go install -ldflags="-H windowsgui"
+```
+或者
+```
+go build -ldflags="-H windowsgui"
+```
+
+
+
+**Pholcus（幽灵蛛）加ICON**
+
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/addicon.jpg)

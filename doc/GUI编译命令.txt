@@ -1,7 +1,9 @@
-go get github.com/akavel/rsrc
-rsrc -manifest test.manifest -o rsrc.syso
+#go get github.com/akavel/rsrc
+#rsrc -manifest test.manifest -o rsrc.syso
 
-go build
+#go build
 
-
+编译方法：
 go build -ldflags="-H windowsgui"
+或者：
+go install -ldflags="-H windowsgui"
