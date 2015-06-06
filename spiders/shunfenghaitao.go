@@ -105,12 +105,12 @@ var Shunfenghaitao = &Spider{
 					from2 := query.Find("#detailattributes li").Eq(1).Text()
 
 					// 结果存入Response中转
-					resp.AddItem(map[string]string{
+					resp.AddItem(map[string]interface{}{
 						self.GetOutFeild(resp, 0): title,
 						self.GetOutFeild(resp, 1): brand,
 						self.GetOutFeild(resp, 2): from1,
 						self.GetOutFeild(resp, 3): from2,
-						self.GetOutFeild(resp, 4): resp.GetTemp("goodsType").(string),
+						self.GetOutFeild(resp, 4): resp.GetTemp("goodsType"),
 					})
 				},
 			},

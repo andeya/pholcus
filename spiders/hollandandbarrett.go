@@ -171,13 +171,13 @@ var Hollandandbarrett = &Spider{
 							}
 
 							// 结果存入Response中转
-							resp.AddItem(map[string]string{
+							resp.AddItem(map[string]interface{}{
 								self.GetOutFeild(resp, 0): n,
 								self.GetOutFeild(resp, 1): price1,
 								self.GetOutFeild(resp, 2): price2,
 								self.GetOutFeild(resp, 3): prm,
 								self.GetOutFeild(resp, 4): level,
-								self.GetOutFeild(resp, 5): resp.GetTemp("type").(string),
+								self.GetOutFeild(resp, 5): resp.GetTemp("type"),
 							})
 						}
 					}

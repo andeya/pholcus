@@ -103,13 +103,13 @@ var Kaola = &Spider{
 					discussNum := query.Find("#commentCounts").Text()
 
 					// 结果存入Response中转
-					resp.AddItem(map[string]string{
+					resp.AddItem(map[string]interface{}{
 						self.GetOutFeild(resp, 0): title,
 						self.GetOutFeild(resp, 1): price,
 						self.GetOutFeild(resp, 2): brand,
 						self.GetOutFeild(resp, 3): from,
 						self.GetOutFeild(resp, 4): discussNum,
-						self.GetOutFeild(resp, 5): resp.GetTemp("goodsType").(string),
+						self.GetOutFeild(resp, 5): resp.GetTemp("goodsType"),
 					})
 				},
 			},

@@ -140,11 +140,11 @@ var Wangyi = &Spider{
 					release = strings.Trim(release, " \t\n")
 
 					// 结果存入Response中转
-					resp.AddItem(map[string]string{
+					resp.AddItem(map[string]interface{}{
 						self.GetOutFeild(resp, 0): title,
 						self.GetOutFeild(resp, 1): content,
-						self.GetOutFeild(resp, 2): resp.GetTemp("top").(string),
-						self.GetOutFeild(resp, 3): resp.GetTemp("newsType").(string),
+						self.GetOutFeild(resp, 2): resp.GetTemp("top"),
+						self.GetOutFeild(resp, 3): resp.GetTemp("newsType"),
 						self.GetOutFeild(resp, 4): release,
 					})
 				},

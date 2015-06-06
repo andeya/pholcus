@@ -121,7 +121,7 @@ var JDSearch = &Spider{
 						url, _ := a.Attr("href")
 
 						// 结果存入Response中转
-						resp.AddItem(map[string]string{
+						resp.AddItem(map[string]interface{}{
 							self.GetOutFeild(resp, 0): title,
 							self.GetOutFeild(resp, 1): price,
 							self.GetOutFeild(resp, 2): discuss,

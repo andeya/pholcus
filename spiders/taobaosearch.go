@@ -123,12 +123,12 @@ var TaobaoSearch = &Spider{
 						for _, info := range infos {
 
 							// 结果存入Response中转
-							resp.AddItem(map[string]string{
-								self.GetOutFeild(resp, 0): info["raw_title"].(string),
-								self.GetOutFeild(resp, 1): info["view_price"].(string),
-								self.GetOutFeild(resp, 2): info["view_sales"].(string),
-								self.GetOutFeild(resp, 3): info["nick"].(string),
-								self.GetOutFeild(resp, 4): info["detail_url"].(string),
+							resp.AddItem(map[string]interface{}{
+								self.GetOutFeild(resp, 0): info["raw_title"],
+								self.GetOutFeild(resp, 1): info["view_price"],
+								self.GetOutFeild(resp, 2): info["view_sales"],
+								self.GetOutFeild(resp, 3): info["nick"],
+								self.GetOutFeild(resp, 4): info["detail_url"],
 							})
 						}
 					}

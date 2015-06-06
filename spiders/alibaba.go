@@ -117,7 +117,7 @@ var AlibabaProduct = &Spider{
 						level := s.Find("span.sm-offer-companyTag > a.sw-ui-flaticon-cxt16x16").First().Text()
 
 						// 结果存入Response中转
-						resp.AddItem(map[string]string{
+						resp.AddItem(map[string]interface{}{
 							self.GetOutFeild(resp, 0): company,
 							self.GetOutFeild(resp, 1): title,
 							self.GetOutFeild(resp, 2): price,

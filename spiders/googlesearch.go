@@ -135,7 +135,7 @@ var GoogleSearch = &Spider{
 						href = strings.TrimLeft(href, "/url?q=")
 						title := t.Text()
 						content := s.Find(".st").Text()
-						resp.AddItem(map[string]string{
+						resp.AddItem(map[string]interface{}{
 							self.GetOutFeild(resp, 0): title,
 							self.GetOutFeild(resp, 1): content,
 							self.GetOutFeild(resp, 2): href,

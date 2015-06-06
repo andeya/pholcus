@@ -31,12 +31,12 @@ type Response struct {
 	jsonMap *simplejson.Json
 
 	// The items is the container of parsed result.
-	items []map[string]string
+	items []map[string]interface{}
 }
 
 // NewResponse returns initialized Response object.
 func NewResponse(req *Request) *Response {
-	return &Response{Request: req, items: []map[string]string{}}
+	return &Response{Request: req, items: []map[string]interface{}{}}
 }
 
 // SetHeader save the header of http responce
@@ -76,15 +76,15 @@ func (self *Response) SetStatus(isfail bool, errormsg string) {
 }
 
 // AddField saves KV string pair to ResponseItems preparing for Pipeline
-func (self *Response) AddItem(data map[string]string) {
+func (self *Response) AddItem(data map[string]interface{}) {
 	self.items = append(self.items, data)
 }
 
-func (self *Response) GetItem(idx int) map[string]string {
+func (self *Response) GetItem(idx int) map[string]interface{} {
 	return self.items[idx]
 }
 
-func (self *Response) GetItems() []map[string]string {
+func (self *Response) GetItems() []map[string]interface{} {
 	return self.items
 }
 

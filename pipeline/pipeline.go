@@ -15,7 +15,7 @@ type Pipeline interface {
 	//发送控制通知
 	CtrlS()
 	// 收集数据单元
-	Collect(ruleName string, data map[string]string, url string, parentUrl string, downloadTime string)
+	Collect(ruleName string, data map[string]interface{}, url string, parentUrl string, downloadTime string)
 	// 对比Url的fingerprint，返回是否有重复
 	Deduplicate(string) bool
 	// 重置
@@ -34,7 +34,7 @@ func New() Pipeline {
 	}
 }
 
-func (self *pipeline) Collect(ruleName string, data map[string]string, url string, parentUrl string, downloadTime string) {
+func (self *pipeline) Collect(ruleName string, data map[string]interface{}, url string, parentUrl string, downloadTime string) {
 	dataCell := collector.NewDataCell(ruleName, data, url, parentUrl, downloadTime)
 	self.Collector.Collect(dataCell)
 }

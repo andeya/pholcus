@@ -185,15 +185,14 @@ var BaiduNews = &Spider{
 					infoStr = CleanHtml(infoStr, 5)
 
 					// 结果存入Response中转
-					result := map[string]string{
+					resp.AddItem(map[string]interface{}{
 						self.GetOutFeild(resp, 0): title,
-						self.GetOutFeild(resp, 1): resp.GetTemp("description").(string),
+						self.GetOutFeild(resp, 1): resp.GetTemp("description"),
 						self.GetOutFeild(resp, 2): infoStr,
-						self.GetOutFeild(resp, 3): resp.GetTemp("releaseTime").(string),
-						self.GetOutFeild(resp, 4): resp.GetTemp("src").(string),
-						self.GetOutFeild(resp, 5): resp.GetTemp("author").(string),
-					}
-					resp.AddItem(result)
+						self.GetOutFeild(resp, 3): resp.GetTemp("releaseTime"),
+						self.GetOutFeild(resp, 4): resp.GetTemp("src"),
+						self.GetOutFeild(resp, 5): resp.GetTemp("author"),
+					})
 				},
 			},
 		},

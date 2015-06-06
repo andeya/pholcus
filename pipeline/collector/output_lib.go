@@ -6,6 +6,7 @@ import (
 	"gopkg.in/mgo.v2"
 	// "gopkg.in/mgo.v2/bson"
 	"encoding/csv"
+	"encoding/json"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/reporter"
 	"os"
@@ -62,7 +63,13 @@ func (self *Collector) excel(dataIndex int) {
 				row = sheet.AddRow()
 				for _, title := range Rule.GetOutFeild() {
 					cell = row.AddCell()
-					cell.Value = datacell["Data"].(map[string]string)[title]
+					vd := datacell["Data"].(map[string]interface{})
+					if v, ok := vd[title].(string); ok {
+						cell.Value = v
+					} else {
+						j, _ := json.Marshal(vd[title])
+						cell.Value = string(j)
+					}
 				}
 				cell = row.AddCell()
 				cell.Value = datacell["Url"].(string)
@@ -79,16 +86,6 @@ func (self *Collector) excel(dataIndex int) {
 	}
 
 	// 创建/打开目录
-	// f1, err := os.Stat(folder1)
-	// if err != nil || !f1.IsDir() {
-	// 	os.Mkdir(folder1, 0)
-	// }
-
-	// f2, err := os.Stat(folder2)
-	// if err != nil || !f2.IsDir() {
-	// 	os.Mkdir(folder2, 0)
-	// }
-
 	f2, err := os.Stat(folder2)
 	if err != nil || !f2.IsDir() {
 		if err := os.MkdirAll(folder2, 0777); err != nil {
@@ -141,7 +138,7 @@ func (self *Collector) csv(dataIndex int) {
 			continue
 		}
 
-		// file.WriteString("\xEF\xBB\xBF") // 写入UTF-8 BOM
+		file.WriteString("\xEF\xBB\xBF") // 写入UTF-8 BOM
 		w := csv.NewWriter(file)
 		th := Rule.GetOutFeild()
 		th = append(th, []string{"当前链接", "上级链接", "下载时间"}...)
@@ -152,7 +149,13 @@ func (self *Collector) csv(dataIndex int) {
 			if datacell["RuleName"].(string) == Name {
 				row := []string{}
 				for _, title := range Rule.GetOutFeild() {
-					row = append(row, datacell["Data"].(map[string]string)[title])
+					vd := datacell["Data"].(map[string]interface{})
+					if v, ok := vd[title].(string); ok {
+						row = append(row, v)
+					} else {
+						j, _ := json.Marshal(vd[title])
+						row = append(row, string(j))
+					}
 				}
 
 				row = append(row, datacell["Url"].(string))

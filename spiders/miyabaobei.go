@@ -130,7 +130,7 @@ var Miyabaobei = &Spider{
 						price := s.Find(".f20").Text()
 
 						// 结果存入Response中转
-						resp.AddItem(map[string]string{
+						resp.AddItem(map[string]interface{}{
 							self.GetOutFeild(resp, 0): title,
 							self.GetOutFeild(resp, 1): price,
 							self.GetOutFeild(resp, 2): goodsType,
