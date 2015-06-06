@@ -84,7 +84,6 @@ var BaiduSearch = &Spider{
 					"内容",
 					"不完整URL",
 					"百度跳转",
-					"jsonText",
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
 					query := resp.GetHtmlParser()
@@ -108,7 +107,6 @@ var BaiduSearch = &Spider{
 							self.GetOutFeild(resp, 1): strings.Trim(content, " \t\n"),
 							self.GetOutFeild(resp, 2): tar,
 							self.GetOutFeild(resp, 3): href,
-							"jsonText":                map[string]interface{}{"k": "v", "key": 123, "slice": []int{4, 5, 6}, "maptest": map[string]bool{"t": true, "f": false}},
 						})
 					})
 				},
