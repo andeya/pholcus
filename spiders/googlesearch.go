@@ -79,13 +79,13 @@ var GoogleSearch = &Spider{
 		Nodes: map[string]*Rule{
 
 			"获取总页数": &Rule{
-				AidFunc: func(self *Spider, aid []interface{}) interface{} {
+				AidFunc: func(self *Spider, aid map[string]interface{}) interface{} {
 					self.LoopAddQueue(
-						aid[0].([2]int),
+						aid["loop"].([2]int),
 						func(i int) []string {
-							return []string{aid[1].(string) + strconv.Itoa(10*i)}
+							return []string{aid["urlBase"].(string) + strconv.Itoa(10*i)}
 						},
-						aid[2].(map[string]interface{}),
+						aid["req"].(map[string]interface{}),
 					)
 					return nil
 				},
@@ -107,14 +107,13 @@ var GoogleSearch = &Spider{
 						return
 					}
 					// 调用指定规则下辅助函数
-					self.AidRule("获取总页数",
-						[]interface{}{
-							[2]int{1, total},
-							resp.GetTemp("baseUrl"),
-							map[string]interface{}{
-								"rule": "搜索结果",
-							},
-						})
+					self.AidRule("获取总页数", map[string]interface{}{
+						"loop":    [2]int{1, total},
+						"urlBase": resp.GetTemp("baseUrl"),
+						"req": map[string]interface{}{
+							"rule": "搜索结果",
+						},
+					})
 					// 用指定规则解析响应流
 					self.CallRule("搜索结果", resp)
 				},

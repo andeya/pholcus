@@ -72,14 +72,14 @@ var BaiduNews = &Spider{
 		// Spread: []string{},
 		Root: func(self *Spider) {
 			for k, _ := range rss_BaiduNews.Src {
-				self.AidRule("LOOP", []interface{}{k})
+				self.AidRule("LOOP", map[string]interface{}{"loop": k})
 			}
 		},
 
 		Nodes: map[string]*Rule{
 			"LOOP": &Rule{
-				AidFunc: func(self *Spider, aid []interface{}) interface{} {
-					k := aid[0].(string)
+				AidFunc: func(self *Spider, aid map[string]interface{}) interface{} {
+					k := aid["loop"].(string)
 					v := rss_BaiduNews.Src[k]
 
 					self.AddQueue(map[string]interface{}{
@@ -124,7 +124,7 @@ var BaiduNews = &Spider{
 
 					// 循环请求
 					rss_BaiduNews.Wait(src)
-					self.AidRule("LOOP", []interface{}{src})
+					self.AidRule("LOOP", map[string]interface{}{"loop": src})
 				},
 			},
 

@@ -39,20 +39,20 @@ var TaobaoSearch = &Spider{
 	RuleTree: &RuleTree{
 		// Spread: []string{},
 		Root: func(self *Spider) {
-			self.AidRule("生成请求", []interface{}{[2]int{0, 1}, "生成请求"})
+			self.AidRule("生成请求", map[string]interface{}{"loop": [2]int{0, 1}, "rule": "生成请求"})
 		},
 
 		Nodes: map[string]*Rule{
 
 			"生成请求": &Rule{
-				AidFunc: func(self *Spider, aid []interface{}) interface{} {
+				AidFunc: func(self *Spider, aid map[string]interface{}) interface{} {
 					self.LoopAddQueue(
-						aid[0].([2]int),
+						aid["loop"].([2]int),
 						func(i int) []string {
 							return []string{"http://s.taobao.com/search?_input_charset=utf-8&q=" + self.GetKeyword() + "&s=" + strconv.Itoa(i*44)}
 						},
 						map[string]interface{}{
-							"rule": aid[1].(string),
+							"rule": aid["rule"].(string),
 						},
 					)
 					return nil
@@ -78,7 +78,7 @@ var TaobaoSearch = &Spider{
 						return
 					}
 					// 调用指定规则下辅助函数
-					self.AidRule("生成请求", []interface{}{[2]int{1, totalPage}, "搜索结果"})
+					self.AidRule("生成请求", map[string]interface{}{"loop": [2]int{1, totalPage}, "rule": "搜索结果"})
 					// 用指定规则解析响应流
 					self.CallRule("搜索结果", resp)
 				},
@@ -91,6 +91,7 @@ var TaobaoSearch = &Spider{
 					"价格",
 					"销量",
 					"店铺",
+					"发货地",
 					"链接",
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
@@ -128,7 +129,8 @@ var TaobaoSearch = &Spider{
 								self.GetOutFeild(resp, 1): info["view_price"],
 								self.GetOutFeild(resp, 2): info["view_sales"],
 								self.GetOutFeild(resp, 3): info["nick"],
-								self.GetOutFeild(resp, 4): info["detail_url"],
+								self.GetOutFeild(resp, 4): info["item_loc"],
+								self.GetOutFeild(resp, 5): info["detail_url"],
 							})
 						}
 					}

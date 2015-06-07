@@ -47,7 +47,7 @@ func (self *Spider) GetRules() map[string]*Rule {
 	return self.RuleTree.Nodes
 }
 
-// 根据响应流运行指定解析规则
+// 根据响应流运行指定解析规则，不推荐在规则中使用
 func (self *Spider) GoRule(resp *context.Response) {
 	self.RuleTree.Nodes[resp.GetRuleName()].ParseFunc(self, resp)
 }
@@ -59,7 +59,7 @@ func (self *Spider) CallRule(ruleName string, resp *context.Response) {
 }
 
 // 调用指定规则下辅助函数
-func (self *Spider) AidRule(ruleName string, aid []interface{}) interface{} {
+func (self *Spider) AidRule(ruleName string, aid map[string]interface{}) interface{} {
 	rule := self.RuleTree.Nodes[ruleName]
 	return rule.AidFunc(self, aid)
 }
@@ -131,7 +131,7 @@ type Rule struct {
 	// 内容解析函数
 	ParseFunc func(*Spider, *context.Response)
 	// 通用辅助函数
-	AidFunc func(*Spider, []interface{}) interface{}
+	AidFunc func(*Spider, map[string]interface{}) interface{}
 }
 
 func (self *Rule) GetOutFeild() []string {

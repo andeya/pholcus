@@ -19,7 +19,7 @@ type Inputor struct {
 var Input = &Inputor{
 	// 默认值
 	ThreadNum:         20,
-	OutType:           "excel",
+	OutType:           "csv",
 	BaseSleeptime:     1000,
 	RandomSleepPeriod: 3000,
 	MaxPage:           100,
@@ -47,7 +47,7 @@ var (
 		},
 		&GUISpiderCore{
 			Spider:      TaobaoSearch,
-			Description: "淘宝宝贝搜索结果 [s.taobao.com]",
+			Description: "淘宝天猫搜索结果 [s.taobao.com]",
 		},
 		&GUISpiderCore{
 			Spider:      JDSearch,
@@ -89,8 +89,8 @@ var (
 		SleepTime []*KV
 	}{
 		OutType: []*KV{
-			{Key: "excel", String: "excel"},
 			{Key: "csv", String: "csv"},
+			{Key: "excel", String: "excel"},
 			{Key: "mongoDB", String: "mongoDB"},
 		},
 		SleepTime: []*KV{

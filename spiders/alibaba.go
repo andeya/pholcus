@@ -39,21 +39,21 @@ var AlibabaProduct = &Spider{
 	RuleTree: &RuleTree{
 		// Spread: []string{},
 		Root: func(self *Spider) {
-			self.AidRule("生成请求", []interface{}{[2]int{0, 1}, "生成请求"})
+			self.AidRule("生成请求", map[string]interface{}{"loop": [2]int{0, 1}, "rule": "生成请求"})
 		},
 
 		Nodes: map[string]*Rule{
 
 			"生成请求": &Rule{
-				AidFunc: func(self *Spider, aid []interface{}) interface{} {
+				AidFunc: func(self *Spider, aid map[string]interface{}) interface{} {
 					keyword := EncodeString(self.GetKeyword(), "GBK")
 					self.LoopAddQueue(
-						aid[0].([2]int),
+						aid["loop"].([2]int),
 						func(i int) []string {
 							return []string{"http://s.1688.com/selloffer/offer_search.htm?enableAsync=false&earseDirect=false&button_click=top&pageSize=60&n=y&offset=3&fromSycm=y&uniqfield=pic_tag_id&keywords=" + keyword + "&beginPage=" + strconv.Itoa(i+1)}
 						},
 						map[string]interface{}{
-							"rule":   aid[1].(string),
+							"rule":   aid["rule"].(string),
 							"header": http.Header{"Content-Type": []string{"text/html", "charset=GBK"}},
 						},
 					)
@@ -72,7 +72,7 @@ var AlibabaProduct = &Spider{
 					}
 
 					// 调用指定规则下辅助函数
-					self.AidRule("生成请求", []interface{}{[2]int{1, total}, "搜索结果"})
+					self.AidRule("生成请求", map[string]interface{}{"loop": [2]int{1, total}, "rule": "搜索结果"})
 					// 用指定规则解析响应流
 					self.CallRule("搜索结果", resp)
 				},

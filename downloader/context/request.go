@@ -196,6 +196,10 @@ func (self *Request) GetParent() string {
 	return self.parent
 }
 
+func (self *Request) SetParent(parent string) {
+	self.parent = parent
+}
+
 func (self *Request) GetRuleName() string {
 	return self.rule
 }
@@ -241,12 +245,16 @@ func (self *Request) GetTemp(key string) interface{} {
 	return self.temp[key]
 }
 
-func (self *Request) GetTemps() interface{} {
+func (self *Request) GetTemps() map[string]interface{} {
 	return self.temp
 }
 
 func (self *Request) SetTemp(key string, value interface{}) {
 	self.temp[key] = value
+}
+
+func (self *Request) SetAllTemps(temp map[string]interface{}) {
+	self.temp = temp
 }
 
 func (self *Request) GetSpiderId() (int, bool) {

@@ -54,10 +54,10 @@ var Miyabaobei = &Spider{
 								if !strings.Contains(url, "http://www.miyabaobei.com") {
 									url = "http://www.miyabaobei.com" + url
 								}
-								self.AidRule("生成请求", []interface{}{
-									[2]int{0, 1},
-									url,
-									map[string]interface{}{
+								self.AidRule("生成请求", map[string]interface{}{
+									"loop":    [2]int{0, 1},
+									"urlBase": url,
+									"req": map[string]interface{}{
 										"rule": "生成请求",
 										"temp": map[string]interface{}{"baseUrl": url},
 									},
@@ -69,13 +69,13 @@ var Miyabaobei = &Spider{
 			},
 
 			"生成请求": &Rule{
-				AidFunc: func(self *Spider, aid []interface{}) interface{} {
+				AidFunc: func(self *Spider, aid map[string]interface{}) interface{} {
 					self.LoopAddQueue(
-						aid[0].([2]int),
+						aid["loop"].([2]int),
 						func(i int) []string {
-							return []string{aid[1].(string) + "&per_page=" + strconv.Itoa(i*40)}
+							return []string{aid["urlBase"].(string) + "&per_page=" + strconv.Itoa(i*40)}
 						},
-						aid[2].(map[string]interface{}),
+						aid["req"].(map[string]interface{}),
 					)
 					return nil
 				},
@@ -95,10 +95,10 @@ var Miyabaobei = &Spider{
 					total, _ := strconv.Atoi(totalPage)
 
 					// 调用指定规则下辅助函数
-					self.AidRule("生成请求", []interface{}{
-						[2]int{1, total},
-						resp.GetTemp("baseUrl").(string),
-						map[string]interface{}{
+					self.AidRule("生成请求", map[string]interface{}{
+						"loop":     [2]int{1, total},
+						"ruleBase": resp.GetTemp("baseUrl").(string),
+						"rep": map[string]interface{}{
 							"rule": "商品列表",
 						},
 					})

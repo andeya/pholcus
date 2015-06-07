@@ -64,7 +64,7 @@ func (self *Collector) excel(dataIndex int) {
 				for _, title := range Rule.GetOutFeild() {
 					cell = row.AddCell()
 					vd := datacell["Data"].(map[string]interface{})
-					if v, ok := vd[title].(string); ok {
+					if v, ok := vd[title].(string); ok || vd[title] == nil {
 						cell.Value = v
 					} else {
 						j, _ := json.Marshal(vd[title])
@@ -150,7 +150,7 @@ func (self *Collector) csv(dataIndex int) {
 				row := []string{}
 				for _, title := range Rule.GetOutFeild() {
 					vd := datacell["Data"].(map[string]interface{})
-					if v, ok := vd[title].(string); ok {
+					if v, ok := vd[title].(string); ok || vd[title] == nil {
 						row = append(row, v)
 					} else {
 						j, _ := json.Marshal(vd[title])

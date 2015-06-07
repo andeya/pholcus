@@ -8,6 +8,7 @@ import (
 	// "io/ioutil"
 	// "github.com/henrylee2cn/pholcus/downloader/context"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -74,4 +75,19 @@ func ConvertToString(src string, srcCode string, tagCode string) string {
 
 func GBKToUTF8(src string) string {
 	return DecodeString(EncodeString(src, "ISO-8859-1"), "GBK")
+}
+
+//将"&#21654;&#21857;&#33394;&#124;&#32511;&#33394;"转为"咖啡色|绿色"
+func UnicodeToUTF8(str string) string {
+	str = strings.TrimLeft(str, "&#")
+	str = strings.TrimRight(str, ";")
+	strSlice := strings.Split(str, ";&#")
+
+	for k, s := range strSlice {
+		if i, err := strconv.Atoi(s); err == nil {
+			// r := rune(i)
+			strSlice[k] = string(i)
+		}
+	}
+	return strings.Join(strSlice, "")
 }
