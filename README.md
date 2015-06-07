@@ -53,7 +53,7 @@ go build -ldflags="-H windowsgui"
 未来计划支持动态加载外部规则的模式……
 
 
-#### Pholcus（幽灵蛛）依赖第三方包
+#### Pholcus（幽灵蛛）第三方依赖包
 
 ```
 go get "github.com/lxn/walk"
