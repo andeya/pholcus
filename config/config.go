@@ -7,7 +7,7 @@ import (
 
 const (
 	//软件名
-	APP_NAME = "幽灵蛛数据采集 V0.1 (by Henry)"
+	APP_NAME = "幽灵蛛数据采集 V0.1 (by henrylee2cn)"
 	// 蜘蛛池容量
 	CRAWLER_CAP = 50
 
