@@ -51,7 +51,7 @@ var Hollandandbarrett = &Spider{
 
 			"获取版块URL": &Rule{
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 					lis := query.Find(".footer-links nav.l-one-half a")
 
 					lis.Each(func(i int, s *goquery.Selection) {
@@ -75,7 +75,7 @@ var Hollandandbarrett = &Spider{
 			"获取总数": &Rule{
 				ParseFunc: func(self *Spider, resp *context.Response) {
 
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 
 					re, _ := regexp.Compile(`(?U)"totalNumRecs":[\d]+,`)
 					total := re.FindString(query.Text())
@@ -112,7 +112,7 @@ var Hollandandbarrett = &Spider{
 					"分类",
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 
 					src := query.Text()
 

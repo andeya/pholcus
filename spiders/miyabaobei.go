@@ -46,7 +46,7 @@ var Miyabaobei = &Spider{
 
 			"获取版块URL": &Rule{
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 					lis := query.Find(".ccon")
 					lis.Each(func(i int, s *goquery.Selection) {
 						s.Find("a").Each(func(n int, ss *goquery.Selection) {
@@ -80,7 +80,7 @@ var Miyabaobei = &Spider{
 					return nil
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 					totalPage := "1"
 
 					urls := query.Find(".Lpage.page p a")
@@ -115,7 +115,7 @@ var Miyabaobei = &Spider{
 					"类别",
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 					//获取品类
 					goodsType := query.Find(".crumbs").Text()
 					re, _ := regexp.Compile("\\s")

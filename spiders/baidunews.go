@@ -83,18 +83,18 @@ var BaiduNews = &Spider{
 					v := rss_BaiduNews.Src[k]
 
 					self.AddQueue(map[string]interface{}{
-						"url":      v + "#" + time.Now().String(),
-						"rule":     "XML",
-						"header":   http.Header{"Content-Type": []string{"text/html", "charset=GB2312"}},
-						"respType": "text",
-						"temp":     map[string]interface{}{"src": k},
+						"url":    v + "#" + time.Now().String(),
+						"rule":   "XML",
+						"header": http.Header{"Content-Type": []string{"text/html", "charset=GB2312"}},
+						"temp":   map[string]interface{}{"src": k},
 					})
 					return nil
 				},
 			},
 			"XML": &Rule{
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					page := GBKToUTF8(resp.GetBodyStr())
+					page := GBKToUTF8(resp.GetText())
+					// page := resp.GetText()
 					page = strings.TrimLeft(page, `<?xml version="1.0" encoding="gb2312"?>`)
 					re, _ := regexp.Compile(`\<[\/]?rss\>`)
 					page = re.ReplaceAllString(page, "")
@@ -142,7 +142,7 @@ var BaiduNews = &Spider{
 					// RSS标记更新
 					rss_BaiduNews.Updata(resp.GetTemp("src").(string))
 
-					query1 := resp.GetHtmlParser()
+					query1 := resp.GetDom()
 
 					query := query1.Find("body")
 

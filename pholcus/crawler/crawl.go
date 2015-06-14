@@ -24,7 +24,7 @@ type crawler struct {
 func New() Crawler {
 	return &crawler{
 		Pipeline:   pipeline.New(),
-		Downloader: downloader.NewHttpDownloader(),
+		Downloader: downloader.NewSurfer(0),
 		srcManage:  [2]uint{},
 	}
 }
@@ -32,7 +32,10 @@ func New() Crawler {
 func (self *crawler) Init(sp *spider.Spider) Crawler {
 	self.Pipeline.Init(sp)
 	self.Spider = sp
-	self.Downloader = downloader.NewHttpDownloader()
+	self.Downloader = downloader.NewSurfer(
+		time.Duration((self.Spider.Pausetime[1]+self.Spider.Pausetime[0])/2)*time.Millisecond,
+		self.Spider.Proxy,
+	)
 	self.srcManage = [2]uint{}
 	return self
 }
@@ -86,8 +89,6 @@ func (self *crawler) Run() {
 
 // core processer
 func (self *crawler) Process(req *context.Request) {
-	// 声明response
-	var resp *context.Response
 
 	defer func() {
 		if err := recover(); err != nil { // do not affect other
@@ -100,17 +101,14 @@ func (self *crawler) Process(req *context.Request) {
 	}()
 	// reporter.Log.Println("**************断点 1 ***********")
 	// download page
-	for i := 0; i < 3; i++ {
-		self.sleep()
-		resp = self.Downloader.Download(req)
-		if resp.IsSucc() { // if fail retry 3 times
-			break
-		}
-	}
+	resp := self.Downloader.Download(req)
+
 	// reporter.Log.Println("**************断点 2 ***********")
 	if !resp.IsSucc() { // if fail do not need process
+		reporter.Log.Println(resp.Errormsg())
 		return
 	}
+
 	// reporter.Log.Println("**************断点 3 ***********")
 	// 过程处理，提炼数据
 	self.Spider.GoRule(resp)
@@ -122,7 +120,7 @@ func (self *crawler) Process(req *context.Request) {
 			resp.GetRuleName(), //DataCell.RuleName
 			datas[i],           //DataCell.Data
 			resp.GetUrl(),      //DataCell.Url
-			resp.GetParent(),   //DataCell.ParentUrl
+			resp.GetReferer(),  //DataCell.ParentUrl
 			time.Now().Format("2006-01-02 15:04:05"),
 		)
 	}

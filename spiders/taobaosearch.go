@@ -58,7 +58,7 @@ var TaobaoSearch = &Spider{
 					return nil
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 					src := query.Find("script").Text()
 					if strings.Contains(src, "抱歉！没有找到与") {
 						reporter.Log.Println("搜索结果为 0 ！")
@@ -95,7 +95,7 @@ var TaobaoSearch = &Spider{
 					"链接",
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 					re, _ := regexp.Compile(`"auctions".*,"recommendAuctions"`)
 					src := query.Find("script").Text()
 

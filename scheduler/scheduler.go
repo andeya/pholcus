@@ -36,7 +36,7 @@ func New(capacity uint) Scheduler {
 }
 
 func (self *scheduler) Push(req *context.Request) {
-	is := self.Compare(req.GetUrl())
+	is := self.Compare(req.GetUrl() + req.GetMethod())
 	// 有重复则返回
 	if is {
 		return

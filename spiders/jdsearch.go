@@ -61,7 +61,7 @@ var JDSearch = &Spider{
 					return nil
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 
 					total1 := query.Find("#top_pagi span.text").Text()
 
@@ -92,7 +92,7 @@ var JDSearch = &Spider{
 					"链接",
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 
 					query.Find("#plist .list-h:nth-child(1) > li").Each(func(i int, s *goquery.Selection) {
 						// 获取标题

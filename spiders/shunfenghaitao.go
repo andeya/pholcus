@@ -47,7 +47,7 @@ var Shunfenghaitao = &Spider{
 
 			"获取版块URL": &Rule{
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 
 					lis := query.Find(".nav-c1").First().Find("li a")
 
@@ -64,7 +64,7 @@ var Shunfenghaitao = &Spider{
 
 			"商品列表": &Rule{
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 
 					query.Find(".cms-src-item").Each(func(i int, s *goquery.Selection) {
 						if url, ok := s.Find("a").Attr("href"); ok {
@@ -88,7 +88,7 @@ var Shunfenghaitao = &Spider{
 					"类别",
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 
 					// 获取标题
 					title := query.Find("#titleInfo h1").Text()

@@ -81,6 +81,10 @@ var (
 			Spider:      Hollandandbarrett,
 			Description: "Hollandand&Barrett商品数据 [Auto Page] [www.Hollandandbarrett.com]",
 		},
+		&GUISpiderCore{
+			Spider:      Lewa,
+			Description: "乐蛙登录测试 [Auto Page] [http://accounts.lewaos.com]",
+		},
 	})
 
 	// 暂停时间选项及输出类型选项

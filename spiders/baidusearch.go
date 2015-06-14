@@ -58,7 +58,7 @@ var BaiduSearch = &Spider{
 					return nil
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 					total1 := query.Find(".nums").Text()
 					re, _ := regexp.Compile(`[\D]*`)
 					total1 = re.ReplaceAllString(total1, "")
@@ -86,7 +86,7 @@ var BaiduSearch = &Spider{
 					"百度跳转",
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 					query.Find("#content_left .c-container").Each(func(i int, s *goquery.Selection) {
 
 						title := s.Find(".t").Text()

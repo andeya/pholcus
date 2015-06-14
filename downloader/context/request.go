@@ -5,25 +5,25 @@ import (
 	"github.com/henrylee2cn/pholcus/reporter"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 )
 
 // Request represents object waiting for being crawled.
 type Request struct {
-	url    string
-	parent string
-	rule   string
-	spider string
-	// Responce type: html json jsonp text
-	respType string
-	// GET POST
+	url     string
+	referer string
+	rule    string
+	spider  string
+	// GET POST POST-M HEAD
 	method string
 	// http header
 	header http.Header
 	// http cookies
 	cookies []*http.Cookie
-	// POST data
-	postdata string
+	// POST values
+	postData url.Values
 	//在Spider中生成时，根据ruleTree.Outsource确定
 	canOutsource bool
 	//当经过Pholcus时，被指定是否外包
@@ -33,14 +33,12 @@ type Request struct {
 	// method returns both the previous Response.
 	// If CheckRedirect returns error.New("normal"), the error process after client.Do will ignore the error.
 	checkRedirect func(req *http.Request, via []*http.Request) error
-	//proxy host   example='localhost:80'
-	proxyHost string
+
 	// 标记临时数据，通过temp[x]==nil判断是否有值存入，所以请存入带类型的值，如[]int(nil)等
 	temp map[string]interface{}
 }
 
 // NewRequest returns initialized Request object.
-// The respType is json, jsonp, html, text
 
 func NewRequest(param map[string]interface{}) *Request {
 	req := &Request{
@@ -50,18 +48,11 @@ func NewRequest(param map[string]interface{}) *Request {
 	}
 
 	// 若有必填
-	switch v := param["parent"].(type) {
+	switch v := param["referer"].(type) {
 	case string:
-		req.parent = v
+		req.referer = v
 	default:
-		req.parent = ""
-	}
-
-	switch v := param["respType"].(type) {
-	case string:
-		req.respType = v
-	default:
-		req.respType = "html"
+		req.referer = ""
 	}
 
 	switch v := param["method"].(type) {
@@ -78,11 +69,11 @@ func NewRequest(param map[string]interface{}) *Request {
 		req.cookies = nil
 	}
 
-	switch v := param["postdata"].(type) {
-	case string:
-		req.postdata = v
+	switch v := param["postData"].(type) {
+	case url.Values:
+		req.postData = v
 	default:
-		req.postdata = ""
+		req.postData = nil
 	}
 
 	switch v := param["canOutsource"].(type) {
@@ -97,13 +88,6 @@ func NewRequest(param map[string]interface{}) *Request {
 		req.checkRedirect = v
 	default:
 		req.checkRedirect = nil
-	}
-
-	switch v := param["proxyHost"].(type) {
-	case string:
-		req.proxyHost = v
-	default:
-		req.proxyHost = ""
 	}
 
 	switch v := param["temp"].(type) {
@@ -166,18 +150,8 @@ func (self *Request) AddHeaderFile(headerFile string) *Request {
 	return self
 }
 
-// @host  http://localhost:8765/
-func (self *Request) AddProxyHost(host string) *Request {
-	self.proxyHost = host
-	return self
-}
-
 func (self *Request) GetHeader() http.Header {
 	return self.header
-}
-
-func (self *Request) GetProxyHost() string {
-	return self.proxyHost
 }
 
 func (self *Request) GetRedirectFunc() func(req *http.Request, via []*http.Request) error {
@@ -192,12 +166,12 @@ func (self *Request) SetUrl(url string) {
 	self.url = url
 }
 
-func (self *Request) GetParent() string {
-	return self.parent
+func (self *Request) GetReferer() string {
+	return self.referer
 }
 
-func (self *Request) SetParent(parent string) {
-	self.parent = parent
+func (self *Request) SetReferer(referer string) {
+	self.referer = referer
 }
 
 func (self *Request) GetRuleName() string {
@@ -212,16 +186,12 @@ func (self *Request) GetSpiderName() string {
 	return self.spider
 }
 
-func (self *Request) GetRespType() string {
-	return self.respType
-}
-
 func (self *Request) GetMethod() string {
-	return self.method
+	return strings.ToUpper(self.method)
 }
 
-func (self *Request) GetPostdata() string {
-	return self.postdata
+func (self *Request) GetPostData() url.Values {
+	return self.postData
 }
 
 func (self *Request) GetCookies() []*http.Cookie {

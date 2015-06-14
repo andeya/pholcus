@@ -90,7 +90,7 @@ var GoogleSearch = &Spider{
 					return nil
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 					txt := query.Find("#resultStats").Text()
 					reporter.Log.Println("总页数txt：", txt)
 					re, _ := regexp.Compile(`,+`)
@@ -127,7 +127,7 @@ var GoogleSearch = &Spider{
 					"链接",
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 					query.Find("#ires li.g").Each(func(i int, s *goquery.Selection) {
 						t := s.Find(".r > a")
 						href, _ := t.Attr("href")

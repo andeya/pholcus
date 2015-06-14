@@ -60,7 +60,7 @@ var AlibabaProduct = &Spider{
 					return nil
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 					total1, _ := query.Find("#sm-pagination div[data-total-page]").First().Attr("data-total-page")
 					total1 = strings.Trim(total1, " \t\n")
 					total, _ := strconv.Atoi(total1)
@@ -90,7 +90,7 @@ var AlibabaProduct = &Spider{
 					"链接",
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 
 					query.Find("#sm-offer-list > li").Each(func(i int, s *goquery.Selection) {
 

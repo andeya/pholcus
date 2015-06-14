@@ -16,7 +16,8 @@ type Spider struct {
 	MaxPage int
 	Keyword string
 	Depth   int
-	Id      int //所在SpiderList的下标编号
+	Id      int    //所在SpiderList的下标编号
+	Proxy   string //代理服务器 example='localhost:80'
 }
 
 // func NewSpider() *Spider {
@@ -97,17 +98,15 @@ func (self *Spider) AddQueue(param map[string]interface{}) {
 // param全部参数列表
 // req := &Request{
 // 	url:           param["url"].(string),     //必填
-// 	parent:        "",                        //若有必填
+// 	referer:        "",                        //若有必填
 // 	rule:          param["rule"].(string),    //必填
 // 	spider:        param["spider"].(string),  //自动填写
-// 	respType:      param["respType"].(string),//可默认
 // 	method:        param["method"].(string),  //可默认
 // 	header:        param["header"],//可默认
 // 	cookies:       param["cookies"].([]*http.Cookie),//可默认
-// 	postdata:      param["postdata"].(string),//可默认
+// 	postData:      param["postData"].(url.Values),//可默认
 // 	canOutsource:  param["canOutsource"].(bool),//可默认
 // 	checkRedirect: param["checkRedirect"].(func(req *http.Request, via []*http.Request) error),//可默认
-// 	proxyHost:     param["proxyHost"].(string),//可默认
 // 	temp:          param["temp"].(map[string]interface{}),//可默认
 // }
 

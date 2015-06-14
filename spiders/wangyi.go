@@ -46,7 +46,7 @@ var Wangyi = &Spider{
 
 			"排行榜主页": &Rule{
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 					query.Find(".subNav a").Each(func(i int, s *goquery.Selection) {
 						if url, ok := s.Attr("href"); ok {
 							self.AddQueue(map[string]interface{}{"url": url, "rule": "新闻排行榜"})
@@ -65,7 +65,7 @@ var Wangyi = &Spider{
 						"本周跟帖排行",
 						"本月跟贴排行",
 					}
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 					// 获取新闻分类
 					newsType := query.Find(".titleBar h2").Text()
 
@@ -111,7 +111,7 @@ var Wangyi = &Spider{
 					"ReleaseTime",
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					query := resp.GetHtmlParser()
+					query := resp.GetDom()
 
 					// 若有多页内容，则获取阅读全文的链接并获取内容
 					if pageAll := query.Find(".ep-pages-all"); len(pageAll.Nodes) != 0 {
@@ -191,7 +191,7 @@ var Wangyi = &Spider{
 // 			p.AddField(map[string]string{self.GetRuleSemantic(name, 1): p.GetUrlTag()["newsUrl"]})
 
 // 			// 获取该页面数据
-// 			query := p.GetHtmlParser()
+// 			query := p.GetDom()
 
 // 			self.SetRuleTotalPage(name, 0)
 

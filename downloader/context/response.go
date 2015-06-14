@@ -2,7 +2,6 @@ package context
 
 import (
 	"github.com/PuerkitoBio/goquery"
-	"github.com/bitly/go-simplejson"
 	"github.com/henrylee2cn/pholcus/reporter"
 	"net/http"
 	"strings"
@@ -24,11 +23,8 @@ type Response struct {
 	header  http.Header
 	cookies []*http.Cookie
 
-	// The docParser is a pointer of goquery boject that contains html result.
-	docParser *goquery.Document
-
-	// The jsonMap is the json result.
-	jsonMap *simplejson.Json
+	// The dom is a pointer of goquery boject that contains html result.
+	dom *goquery.Document
 
 	// The items is the container of parsed result.
 	items []map[string]interface{}
@@ -100,46 +96,32 @@ func (self *Response) GetRequest() *Request {
 }
 
 // SetBodyStr saves plain string crawled in Response.
-func (self *Response) SetBodyStr(body string) *Response {
+func (self *Response) SetText(body string) *Response {
 	self.body = body
 	return self
 }
 
 // GetBodyStr returns plain string crawled.
-func (self *Response) GetBodyStr() string {
+func (self *Response) GetText() string {
 	return self.body
 }
 
-// SetHtmlParser saves goquery object binded to target crawl result.
-func (self *Response) SetHtmlParser(doc *goquery.Document) *Response {
-	self.docParser = doc
-	return self
+// GetHtmlParser returns goquery object binded to target crawl result.
+func (self *Response) GetDom() *goquery.Document {
+	if self.dom == nil {
+		self.InitDom()
+	}
+	return self.dom
 }
 
 // GetHtmlParser returns goquery object binded to target crawl result.
-func (self *Response) GetHtmlParser() *goquery.Document {
-	return self.docParser
-}
-
-// GetHtmlParser returns goquery object binded to target crawl result.
-func (self *Response) ResetHtmlParser() *goquery.Document {
+func (self *Response) InitDom() *goquery.Document {
 	r := strings.NewReader(self.body)
 	var err error
-	self.docParser, err = goquery.NewDocumentFromReader(r)
+	self.dom, err = goquery.NewDocumentFromReader(r)
 	if err != nil {
 		reporter.Log.Println(err.Error())
 		panic(err.Error())
 	}
-	return self.docParser
-}
-
-// SetJson saves json result.
-func (self *Response) SetJson(js *simplejson.Json) *Response {
-	self.jsonMap = js
-	return self
-}
-
-// SetJson returns json result.
-func (self *Response) GetJson() *simplejson.Json {
-	return self.jsonMap
+	return self.dom
 }
