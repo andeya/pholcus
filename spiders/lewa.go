@@ -63,8 +63,8 @@ var Lewa = &Spider{
 						"http://accounts.lewaos.com",
 						resp.GetDom().Find(".userlogin.lw-pl40"),
 					).Inputs(map[string]string{
-						"username": "lyc731",
-						"password": "271218",
+						"username": "",
+						"password": "",
 					}).Submit()
 				},
 			},
