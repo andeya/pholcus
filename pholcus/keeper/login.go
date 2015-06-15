@@ -85,16 +85,3 @@ func getResponse(client *http.Client, req *http.Request, url string) *http.Respo
 	}
 	return resp
 }
-
-// cookies字符串转[]*http.Cookie，（如"mt=ci%3D-1_0; thw=cn; sec=5572dc7c40ce07d4e8c67e4879a; v=0;"）
-func SplitCookies(cookieStr string) (cookies []*http.Cookie) {
-	slice := strings.Split(cookieStr, ";")
-	for _, v := range slice {
-		oneCookie := &http.Cookie{}
-		s := strings.Split(v, "=")
-		oneCookie.Name = strings.Trim(s[0], " ")
-		oneCookie.Value = strings.Trim(s[1], " ")
-		cookies = append(cookies, oneCookie)
-	}
-	return
-}

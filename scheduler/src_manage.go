@@ -1,8 +1,14 @@
+// 支持优先级的矩阵型队列
 package scheduler
 
 import (
 	"github.com/henrylee2cn/pholcus/downloader/context"
 	// "github.com/henrylee2cn/pholcus/reporter"
+)
+
+const (
+	// 允许的最高优先级
+	MAX_PRIORITY = 5
 )
 
 // SrcManage is an interface that who want implement an management object can realize these functions.
@@ -16,55 +22,81 @@ type SrcManager interface {
 	// 资源队列是否闲置
 	IsEmpty(int) bool
 	IsAllEmpty() bool
+
+	// 情况全部队列
+	ClearAll()
 }
 
 type SrcManage struct {
 	count chan bool
-	queue map[int][]*context.Request
+	// 蜘蛛编号spiderId----->请求优先级priority队列
+	queue map[int]([][]*context.Request)
 }
 
 func NewSrcManage(capacity uint) SrcManager {
 	return &SrcManage{
 		count: make(chan bool, int(capacity)),
-		queue: make(map[int][]*context.Request),
+		queue: make(map[int][][]*context.Request),
 	}
 }
 
 func (self *SrcManage) Push(req *context.Request) {
 	if spiderId, ok := req.GetSpiderId(); ok {
-		self.queue[spiderId] = append(self.queue[spiderId], req)
+		priority := int(req.GetPriority())
+		if priority > MAX_PRIORITY {
+			priority = MAX_PRIORITY
+		}
+
+		for i, x := 0, priority+1-len(self.queue[spiderId]); i < x; i++ {
+			self.queue[spiderId] = append(self.queue[spiderId], []*context.Request{})
+		}
+
+		self.queue[spiderId][priority] = append(self.queue[spiderId][priority], req)
 	}
 }
 
-func (self *SrcManage) Use(spiderId int) *context.Request {
-	if len(self.queue[spiderId]) == 0 {
-		return nil
+func (self *SrcManage) Use(spiderId int) (req *context.Request) {
+	for i := len(self.queue[spiderId]) - 1; i >= 0; i-- {
+		if len(self.queue[spiderId][i]) > 0 {
+			req = self.queue[spiderId][i][0]
+			self.queue[spiderId][i] = self.queue[spiderId][i][1:]
+			self.count <- true
+			return
+		}
 	}
-	req := self.queue[spiderId][0]
-	self.queue[spiderId] = self.queue[spiderId][1:]
-	self.count <- true
-	return req
+	return
 }
 
 func (self *SrcManage) Free() {
 	<-self.count
 }
 
-func (self *SrcManage) IsEmpty(spiderId int) bool {
-	if len(self.queue[spiderId]) == 0 {
-		return true
+func (self *SrcManage) IsEmpty(spiderId int) (empty bool) {
+	empty = true
+	for i, count := 0, len(self.queue[spiderId]); i < count; i++ {
+		if len(self.queue[spiderId][i]) > 0 {
+			empty = false
+			return
+		}
 	}
-	return false
+	return
 }
 
 func (self *SrcManage) IsAllEmpty() bool {
-	if len(self.count) == 0 {
-		for _, v := range self.queue {
-			if len(v) != 0 {
+	if len(self.count) > 0 {
+		return false
+	}
+	for _, v := range self.queue {
+		for _, vv := range v {
+			if len(vv) > 0 {
 				return false
 			}
 		}
-		return true
 	}
-	return false
+	return true
+}
+
+func (self *SrcManage) ClearAll() {
+	self.count = make(chan bool, cap(self.count))
+	self.queue = make(map[int][][]*context.Request)
 }

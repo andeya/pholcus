@@ -7,4 +7,5 @@ import (
 type Crawler interface {
 	Init(*spider.Spider) Crawler
 	Start()
+	GetId() int
 }

@@ -22,7 +22,7 @@ func (self *Pholcus) Push(req *context.Request) {
 		pushMutex.Unlock()
 	}()
 	if !self.TryOutsource(req) {
-		scheduler.Self.Push(req)
+		scheduler.Sdl.Push(req)
 	}
 }
 
@@ -47,7 +47,7 @@ func (self *Pholcus) Send(req context.Request) {
 }
 
 func (self *Pholcus) Receive(req context.Request) {
-	scheduler.Self.Push(&req)
+	scheduler.Sdl.Push(&req)
 }
 
 // 初始化

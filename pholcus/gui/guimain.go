@@ -160,17 +160,22 @@ func Run() {
 						Text:     "开始抓取",
 						AssignTo: &toggleSpecialModePB,
 						OnClicked: func() {
-							if err := db.Submit(); err != nil {
-								log.Print(err)
-								return
+							if toggleSpecialModePB.Text() == "取消" {
+								toggleSpecialModePB.SetEnabled(false)
+								toggleSpecialModePB.SetText("取消中…")
+								Stop()
+							} else {
+								if err := db.Submit(); err != nil {
+									log.Print(err)
+									return
+								}
+								Input.Spiders = SpiderModel.GetChecked()
+								if len(Input.Spiders) == 0 {
+									return
+								}
+								toggleSpecialModePB.SetText("取消")
+								Start()
 							}
-							Input.Spiders = SpiderModel.GetChecked()
-							if len(Input.Spiders) == 0 {
-								return
-							}
-							toggleSpecialModePB.SetEnabled(false)
-							toggleSpecialModePB.SetText("正在抓取")
-							SubmitAndRun()
 						},
 					},
 				},
@@ -195,7 +200,99 @@ func Run() {
 	mw.Run()
 }
 
-// 初始化蜘蛛列表,必须在用户前端输入之后执行！
+var status int
+
+const (
+	STOP = iota
+	RUN
+)
+
+// 提交用户输入并开始运行
+func Start() {
+	// 初始化蜘蛛列表，返回长度
+	count := InitSpiders()
+
+	// 初始化config参数
+	config.InitDockerParam(Input.DockerCap)
+
+	if Input.ThreadNum == 0 {
+		// 纠正协程数
+		Input.ThreadNum = 1
+	}
+	config.ThreadNum = Input.ThreadNum
+	config.OutType = Input.OutType
+	config.StartTime = time.Now()
+	config.ReqSum = 0
+
+	// 初始化资源队列
+	scheduler.Init(Input.ThreadNum)
+
+	// 初始化爬虫队列
+	CrawlerNum := config.CRAWLER_CAP
+	if count < config.CRAWLER_CAP {
+		CrawlerNum = count
+	}
+	crawler.CQ.Init(uint(CrawlerNum))
+
+	// 开启报告
+	reporter.Log.Run()
+	reporter.Log.Printf("\n执行任务总数（任务数[*关键词数]）为 %v 个...\n", count)
+	reporter.Log.Printf("\n爬虫队列可容纳蜘蛛 %v 只...\n", CrawlerNum)
+	reporter.Log.Printf("\n并发协程最多 %v 个……\n", Input.ThreadNum)
+	reporter.Log.Printf("\n随机停顿时间为 %v~%v ms ……\n", Input.BaseSleeptime, Input.BaseSleeptime+Input.RandomSleepPeriod)
+	reporter.Log.Printf("*********************************************开始抓取，请耐心等候*********************************************")
+
+	// 任务执行
+	status = RUN
+	go GoRun(count)
+}
+
+// 任务执行
+func GoRun(count int) {
+	for i := 0; i < count && status == RUN; i++ {
+		// 从爬行队列取出空闲蜘蛛，并发执行
+		c := crawler.CQ.Use()
+
+		if c != nil {
+			go func(i int, c crawler.Crawler) {
+				// 执行并返回结果消息
+				c.Init(spider.SpiderList[i]).Start()
+				// 任务结束后回收该蜘蛛
+				crawler.CQ.Free(c.GetId())
+			}(i, c)
+		}
+	}
+
+	// 监控结束任务
+	sum := 0 //数据总数
+	for i := 0; i < count; i++ {
+		s := <-config.ReportChan
+		reporter.Log.Printf("[结束报告 -> 任务：%v | 关键词：%v] 共输出数据 %v 条，用时 %v 分钟！！！\n", s.SpiderName, s.Keyword, s.Num, s.Time)
+		if slen, err := strconv.Atoi(s.Num); err == nil {
+			sum += slen
+		}
+	}
+	reporter.Log.Printf("*****************************！！本次抓取合计 %v 条数据，下载页面 %v 个，耗时：%.5f 分钟！！***************************", sum, config.ReqSum, time.Since(config.StartTime).Minutes())
+
+	// 按钮状态控制
+	toggleSpecialModePB.SetEnabled(true)
+	toggleSpecialModePB.SetText("开始抓取")
+
+}
+
+//中途终止任务
+func Stop() {
+	status = STOP
+	crawler.CQ.Stop()
+	scheduler.Sdl.Stop()
+	reporter.Log.Stop()
+	log.Printf("************************！！任务取消：下载页面 %v 个，耗时：%.5f 分钟！！**********************", config.ReqSum, time.Since(config.StartTime).Minutes())
+	// 按钮状态控制
+	toggleSpecialModePB.SetEnabled(true)
+	toggleSpecialModePB.SetText("开始抓取")
+}
+
+// 用户提交后，生成蜘蛛列表
 func InitSpiders() int {
 	var sp = spider.Spiders{}
 	spider.SpiderList.Init()
@@ -230,76 +327,4 @@ func InitSpiders() int {
 		spider.SpiderList = sp
 	}
 	return len(spider.SpiderList)
-}
-
-// 提交用户输入并开始运行
-func SubmitAndRun() {
-	// 纠正协程数
-	if Input.ThreadNum == 0 {
-		Input.ThreadNum = 1
-	}
-
-	// 初始化config参数
-	config.InitDockerParam(Input.DockerCap)
-	config.ThreadNum = Input.ThreadNum
-	config.OutType = Input.OutType
-	config.StartTime = time.Now()
-	config.ReqSum = 0 // 清空下载页面计数
-
-	count := InitSpiders()
-
-	// 初始化资源队列
-	scheduler.Init(Input.ThreadNum)
-
-	// 初始化爬行队列
-	CrawlerNum := config.CRAWLER_CAP
-	if count < config.CRAWLER_CAP {
-		CrawlerNum = count
-	}
-	config.CrawlerQueue.Init(CrawlerNum)
-
-	reporter.Log.Printf("\n执行任务总数（任务数[*关键词数]）为 %v 个...\n", count)
-	reporter.Log.Printf("\n爬行队列可容纳蜘蛛 %v 只...\n", CrawlerNum)
-	reporter.Log.Printf("\n并发协程最多 %v 个……\n", Input.ThreadNum)
-	reporter.Log.Printf("\n随机停顿时间为 %v~%v ms ……\n", Input.BaseSleeptime, Input.BaseSleeptime+Input.RandomSleepPeriod)
-	reporter.Log.Printf("*********************************************开始抓取，请耐心等候*********************************************")
-
-	// 任务执行
-	go func(count int) {
-
-		// 由现有爬行队列转换目标所需爬行队列，注意爬行队列实例还是原来的
-		for s, add := 0, config.CrawlerQueue.Exchange(CrawlerNum); s < add; s++ {
-			config.CrawlerQueue.Push(crawler.New())
-		}
-
-		for i := 0; i < count; i++ {
-
-			// 等待从爬行队列取出空闲蜘蛛
-			oneCrawler := config.CrawlerQueue.Pull().(crawler.Crawler)
-
-			// 并发执行爬行任务
-			go func(i int, c crawler.Crawler) {
-				// 执行并返回结果消息
-				c.Init(spider.SpiderList[i]).Start()
-				// 任务结束后回收该蜘蛛
-				config.CrawlerQueue.Push(c)
-
-			}(i, oneCrawler)
-		}
-
-		// 监控结束任务
-		sum := 0 //数据总数
-		for i := 0; i < count; i++ {
-			s := <-config.ReportChan
-			reporter.Log.Printf("[结束报告 -> 任务：%v | 关键词：%v] 共输出数据 %v 条，用时 %v 分钟！！！\n", s.SpiderName, s.Keyword, s.Num, s.Time)
-			if slen, err := strconv.Atoi(s.Num); err == nil {
-				sum += slen
-			}
-		}
-		reporter.Log.Printf("*****************************！！本次抓取合计 %v 条数据，下载页面 %v 个，耗时：%.5f 分钟！！***************************", sum, config.ReqSum, time.Since(config.StartTime).Minutes())
-
-		// 按钮状态控制
-		toggleSpecialModePB.SetText("开始抓取")
-		toggleSpecialModePB.SetEnabled(true)
-	}(count)
 }

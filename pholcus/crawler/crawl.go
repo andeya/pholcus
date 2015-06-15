@@ -15,14 +15,16 @@ import (
 )
 
 type crawler struct {
+	id int
 	*spider.Spider
 	downloader.Downloader
 	pipeline.Pipeline
 	srcManage [2]uint
 }
 
-func New() Crawler {
+func New(id int) Crawler {
 	return &crawler{
+		id:         id,
 		Pipeline:   pipeline.New(),
 		Downloader: downloader.NewSurfer(0),
 		srcManage:  [2]uint{},
@@ -42,13 +44,14 @@ func (self *crawler) Init(sp *spider.Spider) Crawler {
 
 // 任务执行入口
 func (self *crawler) Start() {
+
 	// 预先开启输出管理协程
 	self.Pipeline.Start()
 
 	// 开始运行
 	self.Spider.Start(self.Spider)
 	self.Run()
-	// reporter.Log.Println("**************断点 8 ***********")
+	// reporter.Log.Printf("**************爬虫：%v***********", self.GetId())
 	// 通知输出模块输出未输出的数据
 	self.Pipeline.CtrlR()
 	// reporter.Log.Println("**************断点 11 ***********")
@@ -135,12 +138,12 @@ func (self *crawler) sleep() {
 
 // 从调度读取一个请求
 func (self *crawler) GetOne() *context.Request {
-	return scheduler.Self.Use(self.Spider.GetId())
+	return scheduler.Sdl.Use(self.Spider.GetId())
 }
 
 //从调度释放一个资源空位
 func (self *crawler) FreeOne() {
-	scheduler.Self.Free()
+	scheduler.Sdl.Free()
 }
 
 func (self *crawler) RequestIn() {
@@ -160,6 +163,13 @@ func (self *crawler) RequestOut() {
 //判断调度中是否还有属于自己的资源运行
 func (self *crawler) canStop() bool {
 	// reporter.Log.Println("**************", self.srcManage[0], self.srcManage[1], "***********")
+	return (self.srcManage[0] == self.srcManage[1] && scheduler.Sdl.IsEmpty(self.Spider.GetId())) || scheduler.Sdl.IsStop()
+}
 
-	return self.srcManage[0] == self.srcManage[1] && scheduler.Self.IsEmpty(self.Spider.GetId())
+func (self *crawler) SetId(id int) {
+	self.id = id
+}
+
+func (self *crawler) GetId() int {
+	return self.id
 }

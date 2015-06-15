@@ -1,13 +1,12 @@
 package config
 
 import (
-	"github.com/henrylee2cn/pholcus/common/queue"
 	"time"
 )
 
 const (
 	//软件名
-	APP_NAME = "幽灵蛛数据采集 V0.2 (by henrylee2cn)"
+	APP_NAME = "幽灵蛛数据采集 V0.25 (by henrylee2cn)"
 	// 蜘蛛池容量
 	CRAWLER_CAP = 50
 
@@ -38,8 +37,6 @@ var (
 	ReportChan chan *Report
 	// 请求页面计数
 	ReqSum uint
-	// 创建默认爬行队列
-	CrawlerQueue *queue.Queue
 
 	ThreadNum uint
 
@@ -55,8 +52,6 @@ var (
 func init() {
 
 	ReportChan = make(chan *Report)
-
-	CrawlerQueue = queue.NewQueue(0)
 
 	InitDockerParam(50000)
 

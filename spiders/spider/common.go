@@ -7,6 +7,7 @@ import (
 	// "golang.org/x/text/transform"
 	// "io/ioutil"
 	// "github.com/henrylee2cn/pholcus/downloader/context"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -42,20 +43,20 @@ func CleanHtml(str string, depth int) string {
 	return str
 }
 
-// func Encode(src string) (dst string) {
-// 	data, err := ioutil.ReadAll(transform.NewReader(bytes.NewReader([]byte(src)), simplifiedchinese.GBK.NewEncoder()))
-// 	if err == nil {
-// 		dst = string(data)
-// 	}
-// 	return
-// }
-// func Decode(src string) (dst string) {
-// 	data, err := ioutil.ReadAll(transform.NewReader(bytes.NewReader([]byte(src)), simplifiedchinese.GBK.NewDecoder()))
-// 	if err == nil {
-// 		dst = string(data)
-// 	}
-// 	return
-// }
+// cookies字符串转[]*http.Cookie，（如"mt=ci%3D-1_0; thw=cn; sec=5572dc7c40ce07d4e8c67e4879a; v=0;"）
+func SplitCookies(cookieStr string) (cookies []*http.Cookie) {
+	slice := strings.Split(cookieStr, ";")
+	for _, v := range slice {
+		oneCookie := &http.Cookie{}
+		s := strings.Split(v, "=")
+		if len(s) == 2 {
+			oneCookie.Name = strings.Trim(s[0], " ")
+			oneCookie.Value = strings.Trim(s[1], " ")
+			cookies = append(cookies, oneCookie)
+		}
+	}
+	return
+}
 
 func DecodeString(src, charset string) string {
 	return mahonia.NewDecoder(charset).ConvertString(src)

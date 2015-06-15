@@ -36,6 +36,9 @@ type Request struct {
 
 	// 标记临时数据，通过temp[x]==nil判断是否有值存入，所以请存入带类型的值，如[]int(nil)等
 	temp map[string]interface{}
+
+	// 即将加入哪个优先级的队列当中
+	priority uint
 }
 
 // NewRequest returns initialized Request object.
@@ -95,6 +98,13 @@ func NewRequest(param map[string]interface{}) *Request {
 		req.temp = v
 	default:
 		req.temp = map[string]interface{}{}
+	}
+
+	switch v := param["priority"].(type) {
+	case uint:
+		req.priority = v
+	default:
+		req.priority = uint(0)
 	}
 
 	switch v := param["header"].(type) {
@@ -234,4 +244,12 @@ func (self *Request) GetSpiderId() (int, bool) {
 
 func (self *Request) SetSpiderId(spiderId int) {
 	self.temp["__SPIDER_ID__"] = spiderId
+}
+
+func (self *Request) GetPriority() uint {
+	return self.priority
+}
+
+func (self *Request) SetPriority(priority uint) {
+	self.priority = priority
 }
