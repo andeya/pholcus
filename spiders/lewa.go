@@ -51,8 +51,8 @@ var Lewa = &Spider{
 					// 	"rule":   "登录后",
 					// 	"method": "POST",
 					// 	"postData": url.Values{
-					// 		"username":  []string{"lyc731"},
-					// 		"password":  []string{"271218"},
+					// 		"username":  []string{""},
+					// 		"password":  []string{""},
 					// 		"login_btn": []string{"login_btn"},
 					// 		"submit":    []string{"login_btn"},
 					// 	},
