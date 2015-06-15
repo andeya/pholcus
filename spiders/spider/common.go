@@ -7,6 +7,7 @@ import (
 	// "golang.org/x/text/transform"
 	// "io/ioutil"
 	// "github.com/henrylee2cn/pholcus/downloader/context"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -90,4 +91,26 @@ func UnicodeToUTF8(str string) string {
 		}
 	}
 	return strings.Join(strSlice, "")
+}
+
+//@SchemeAndHost https://www.baidu.com
+//@path /search?w=x
+func MakeUrl(path string, schemeAndHost ...string) (string, bool) {
+	if string(path[0]) != "/" && strings.ToLower(string(path[0])) != "h" {
+		path = "/" + path
+	}
+	u := path
+	idx := strings.Index(path, "://")
+	if idx < 0 {
+		if len(schemeAndHost) > 0 {
+			u = schemeAndHost[0] + u
+		} else {
+			return u, false
+		}
+	}
+	_, err := url.Parse(u)
+	if err != nil {
+		return u, false
+	}
+	return u, true
 }

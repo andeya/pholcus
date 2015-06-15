@@ -9,8 +9,8 @@ import (
 )
 
 import (
-	// "net/http" //http.Header
-	"net/url"
+// "net/http" //http.Header
+// "net/url"
 )
 
 // 编码包
@@ -46,17 +46,26 @@ var Lewa = &Spider{
 
 			"登录页": &Rule{
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					self.AddQueue(map[string]interface{}{
-						"url":    "http://accounts.lewaos.com",
-						"rule":   "登录后",
-						"method": "POST",
-						"postData": url.Values{
-							"username":  []string{"lyc731"},
-							"password":  []string{"271218"},
-							"login_btn": []string{"login_btn"},
-							"submit":    []string{"login_btn"},
-						},
-					})
+					// self.AddQueue(map[string]interface{}{
+					// 	"url":    "http://accounts.lewaos.com",
+					// 	"rule":   "登录后",
+					// 	"method": "POST",
+					// 	"postData": url.Values{
+					// 		"username":  []string{"lyc731"},
+					// 		"password":  []string{"271218"},
+					// 		"login_btn": []string{"login_btn"},
+					// 		"submit":    []string{"login_btn"},
+					// 	},
+					// })
+					NewForm(
+						self,
+						"登录后",
+						"http://accounts.lewaos.com",
+						resp.GetDom().Find(".userlogin.lw-pl40"),
+					).Inputs(map[string]string{
+						"username": "lyc731",
+						"password": "271218",
+					}).Submit()
 				},
 			},
 			"登录后": &Rule{
