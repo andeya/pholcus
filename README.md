@@ -1,7 +1,12 @@
 ## pholcus
 
-Pholcus（幽灵蛛）是一款纯Go语言编写的重量级爬虫软件，清新的GUI界面，优雅的爬虫规则、可控的高并发、任意的批量任务、多种输出方式、大量Demo，支持横纵向两种抓取模式，支持模拟登录和任务取消等，并且考虑了支持分布式布局。 （官方QQ群：Go大数据 42731170，欢迎加入我们的讨论）
+Pholcus（幽灵蛛）是一款纯Go语言编写的重量级爬虫软件，清新的GUI界面，优雅的爬虫规则、可控的高并发、任意的批量任务、多种输出方式、大量Demo，支持横纵向两种抓取模式，支持模拟登录和任务取消等，并且考虑了支持分布式布局。
 
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/icon.png)
+
+Latest Release: [Version 0.26 (Jun 17, 2015)](https://github.com/henrylee2cn/pholcus/releases).
+
+* 官方QQ群：Go大数据 42731170    [![Go大数据群](http://pub.idqqimg.com/wpa/images/group.png)](http://qm.qq.com/cgi-bin/qm/qr?k=VCQHUTKSAS6I4Climjaut8LwRM1iLfNh)
 
 #### 框架模块
 
@@ -54,12 +59,6 @@ go build -ldflags="-H windowsgui"
  - 添加一条规则的方法：只需在“henrylee2cn/pholcus/spiders/”中增加一个采集规则（go文件），框架将自动添加该规则到GUI任务列表！
 
 
-#### 当前版本号
-
-```
-version: 0.26
-updated: 2015.6.17
-```
 
 #### 第三方依赖包
 
