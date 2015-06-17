@@ -1,15 +1,14 @@
-package main
+package socket
 
 import (
-	// "bufio"
-	"fmt"
-	// "io/ioutil"
-	"log"
+	"github.com/henrylee2cn/pholcus/reporter"
 	"net"
+	// "bufio"
+	// "io/ioutil"
 )
 
 const (
-	PhoSocketServer = "127.0.0.1:6010"
+	URL = "127.0.0.1:6010"
 )
 
 //建立连接
@@ -22,11 +21,11 @@ const (
 *@服务端用
 *
 *PhoSoketLisent()为幽灵蛛socket监听函数
-*PhoSocketServer为预定义常量：server:port
+*URL为预定义常量：server:port
 *输出类型为net.Listener,一个监听句柄
  */
 func PhoSoketLisent() net.Listener {
-	ln, err := net.Listen("tcp", PhoSocketServer)
+	ln, err := net.Listen("tcp", URL)
 	if err != nil {
 		panic(err)
 	}
@@ -37,11 +36,11 @@ func PhoSoketLisent() net.Listener {
 *@客户端用
 *
 *PhoSoketDial()为幽灵蛛socket拨号函数，请求服务端
-*PhoSocketServer为预定义常量：server:port
+*URL为预定义常量：server:port
 *输出类型为net.Conn,一个握手连接，下一步可以进行接收，发送
  */
 func PhoSoketDial() net.Conn {
-	conn, err := net.Dial("tcp", PhoSocketServer)
+	conn, err := net.Dial("tcp", URL)
 	if err != nil {
 		panic(err)
 	}
@@ -103,9 +102,9 @@ func PhoSocketAcceptData(conn net.Conn) {
 	n, err := conn.Read(databuf)
 	// data, err := ioutil.ReadAll(conn)
 	if err != nil {
-		log.Fatal("get client data error: ", err)
+		reporter.Log.Fatal("get client data error: ", err)
 	}
-	fmt.Printf("%#v\n", string(databuf[:n]))
+	reporter.Log.Printf("%#v\n", string(databuf[:n]))
 }
 
 //接收并发送，完关闭
@@ -118,13 +117,4 @@ func AcceptAndSendClose(conn net.Conn) {
 func AcceptAndSend(conn net.Conn) {
 	PhoSocketAcceptData(conn)
 	PhoSocketSendData(conn, "this is server\n")
-}
-
-func main() {
-	ln := PhoSoketLisent()
-	for {
-		conn := PhoSocketAccept(ln)
-		go AcceptAndSendClose(conn)
-	}
-
 }

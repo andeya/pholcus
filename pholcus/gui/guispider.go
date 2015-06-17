@@ -11,19 +11,15 @@ import (
 	// . "github.com/lxn/walk/declarative"
 )
 
-type GUISpiderCore struct {
-	Spider      *spider.Spider
-	Description string
-}
-
 type GUISpider struct {
-	*GUISpiderCore
-	Index   int
-	Title   string
-	checked bool
+	Spider      *spider.Spider
+	Title       string
+	Description string
+	Index       int
+	checked     bool
 }
 
-type GUISpiderModel struct {
+type SpiderMenu struct {
 	walk.TableModelBase
 	walk.SorterBase
 	sortColumn int
@@ -33,32 +29,36 @@ type GUISpiderModel struct {
 	items []*GUISpider
 }
 
-func NewGUISpiderModel(list []*GUISpiderCore) *GUISpiderModel {
-	m := new(GUISpiderModel)
+func NewGUISpider(sp *spider.Spider, idx int) *GUISpider {
+	return &GUISpider{
+		Spider:      sp,
+		Title:       sp.GetName(),
+		Description: sp.GetDescription(),
+		Index:       idx,
+	}
+}
+
+func NewSpiderMenu(list *spider.Spiders) *SpiderMenu {
+	m := new(SpiderMenu)
 	// m.evenBitmap, _ = walk.NewBitmapFromFile("")
 	// m.oddIcon, _ = walk.NewIconFromFile("img/x.ico")
-	for i, t := range list {
-		m.items = append(m.items, &GUISpider{
-			Index: i + 1,
-			Title: t.Spider.GetName(),
-			GUISpiderCore: &GUISpiderCore{
-				Description: t.Description,
-				Spider:      t.Spider,
-			},
-		})
+	for i, t := range list.GetAll() {
+		m.items = append(
+			m.items,
+			NewGUISpider(t, i+1),
+		)
 	}
-
 	return m
 }
 
 // Called by the TableView from SetModel and every time the model publishes a
 // RowsReset event.
-func (m *GUISpiderModel) RowCount() int {
+func (m *SpiderMenu) RowCount() int {
 	return len(m.items)
 }
 
 // Called by the TableView when it needs the text to display for a given cell.
-func (m *GUISpiderModel) Value(row, col int) interface{} {
+func (m *SpiderMenu) Value(row, col int) interface{} {
 	item := m.items[row]
 
 	switch col {
@@ -78,19 +78,19 @@ func (m *GUISpiderModel) Value(row, col int) interface{} {
 }
 
 // Called by the TableView to retrieve if a given row is checked.
-func (m *GUISpiderModel) Checked(row int) bool {
+func (m *SpiderMenu) Checked(row int) bool {
 	return m.items[row].checked
 }
 
 // Called by the TableView when the user toggled the check box of a given row.
-func (m *GUISpiderModel) SetChecked(row int, checked bool) error {
+func (m *SpiderMenu) SetChecked(row int, checked bool) error {
 	m.items[row].checked = checked
 
 	return nil
 }
 
 //获取被选中的结果
-func (m *GUISpiderModel) GetChecked() []*GUISpider {
+func (m *SpiderMenu) GetChecked() []*GUISpider {
 	rc := []*GUISpider{}
 	for idx, item := range m.items {
 		if m.Checked(idx) {
@@ -101,7 +101,7 @@ func (m *GUISpiderModel) GetChecked() []*GUISpider {
 }
 
 // Called by the TableView to sort the model.
-func (m *GUISpiderModel) Sort(col int, order walk.SortOrder) error {
+func (m *SpiderMenu) Sort(col int, order walk.SortOrder) error {
 	m.sortColumn, m.sortOrder = col, order
 
 	sort.Sort(m)
@@ -109,11 +109,11 @@ func (m *GUISpiderModel) Sort(col int, order walk.SortOrder) error {
 	return m.SorterBase.Sort(col, order)
 }
 
-func (m *GUISpiderModel) Len() int {
+func (m *SpiderMenu) Len() int {
 	return len(m.items)
 }
 
-func (m *GUISpiderModel) Less(i, j int) bool {
+func (m *SpiderMenu) Less(i, j int) bool {
 	a, b := m.items[i], m.items[j]
 
 	c := func(ls bool) bool {
@@ -141,12 +141,12 @@ func (m *GUISpiderModel) Less(i, j int) bool {
 	panic("unreachable")
 }
 
-func (m *GUISpiderModel) Swap(i, j int) {
+func (m *SpiderMenu) Swap(i, j int) {
 	m.items[i], m.items[j] = m.items[j], m.items[i]
 }
 
 // Called by the TableView to retrieve an item image.
-// func (m *GUISpiderModel) Image(row int) interface{} {
+// func (m *SpiderMenu) Image(row int) interface{} {
 // 	// if m.items[row].Index%2 == 0 {
 // 	// 	return m.oddIcon
 // 	// }

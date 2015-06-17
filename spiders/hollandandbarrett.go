@@ -32,8 +32,13 @@ import (
 	// "math"
 )
 
+func init() {
+	Hollandandbarrett.AddMenu()
+}
+
 var Hollandandbarrett = &Spider{
-	Name: "Hollandandbarrett",
+	Name:        "Hollandandbarrett",
+	Description: "Hollandand&Barrett商品数据 [Auto Page] [www.Hollandandbarrett.com]",
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
 	RuleTree: &RuleTree{

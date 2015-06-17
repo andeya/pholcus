@@ -33,6 +33,10 @@ import (
 	"time"
 )
 
+func init() {
+	BaiduNews.AddMenu()
+}
+
 var rss_BaiduNews = NewRSS(map[string]string{
 	"国内最新":  "http://news.baidu.com/n?cmd=4&class=civilnews&tn=rss",
 	"国际最新":  "http://news.baidu.com/n?cmd=4&class=internews&tn=rss",
@@ -49,7 +53,7 @@ var rss_BaiduNews = NewRSS(map[string]string{
 	"科技最新":  "http://news.baidu.com/n?cmd=4&class=technnews&tn=rss",
 	"社会最新":  "http://news.baidu.com/n?cmd=4&class=socianews&tn=rss",
 },
-	[]int{1, 2, 3, 4, 5, 6},
+	[]int{5, 10, 20, 30, 45, 60},
 )
 
 type BaiduNewsData struct {
@@ -65,7 +69,8 @@ type BaiduNewsItem struct {
 }
 
 var BaiduNews = &Spider{
-	Name: "百度RSS新闻",
+	Name:        "百度RSS新闻",
+	Description: "百度RSS新闻，实现轮询更新 [Auto Page] [news.baidu.com]",
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
 	RuleTree: &RuleTree{

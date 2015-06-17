@@ -51,10 +51,15 @@ go build -ldflags="-H windowsgui"
 
 #### 添加规则
 
- - 目前添加规则的方法：在“henrylee2cn/pholcus/spiders/”中添加一个采集规则（go文件），然后在“henrylee2cn/pholcus/pholcus/gui/menu.go”中登记该规则条目；
+ - 添加一条规则的方法：只需在“henrylee2cn/pholcus/spiders/”中增加一个采集规则（go文件），框架将自动添加该规则到GUI任务列表！
 
- - 未来计划支持动态加载外部规则的模式……
 
+#### 当前版本号
+
+```
+version: 0.26
+updated: 2015.6.17
+```
 
 #### 第三方依赖包
 

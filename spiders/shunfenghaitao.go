@@ -32,9 +32,14 @@ import (
 // "math"
 )
 
+func init() {
+	Shunfenghaitao.AddMenu()
+}
+
 // 进口母婴专区，买进口奶粉、尿裤尿布、辅食、营养、洗护、日用、母婴用品  - 顺丰海淘
 var Shunfenghaitao = &Spider{
-	Name: "顺丰海淘",
+	Name:        "顺丰海淘",
+	Description: "顺丰海淘商品数据 [Auto Page] [www.sfht.com]",
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
 	RuleTree: &RuleTree{

@@ -32,6 +32,10 @@ import (
 	"math"
 )
 
+func init() {
+	GoogleSearch.AddMenu()
+}
+
 var googleIp = []string{
 	"210.242.125.100",
 	"210.242.125.96",
@@ -46,7 +50,8 @@ var googleIp = []string{
 }
 
 var GoogleSearch = &Spider{
-	Name: "谷歌搜索",
+	Name:        "谷歌搜索",
+	Description: "谷歌搜索结果 [www.google.com镜像]",
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
 	RuleTree: &RuleTree{

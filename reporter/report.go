@@ -36,6 +36,14 @@ func (self *Report) Println(v ...interface{}) {
 	self.send(fmt.Sprintln(v...))
 }
 
+func (self *Report) Fatal(v ...interface{}) {
+	if self.status == STOP {
+		return
+	}
+	self.send(fmt.Sprintln(v...))
+	log.Fatal(v...)
+}
+
 func (self *Report) Stop() {
 	self.status = STOP
 }

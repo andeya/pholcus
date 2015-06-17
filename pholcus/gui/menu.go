@@ -1,9 +1,5 @@
 package gui
 
-import (
-	. "github.com/henrylee2cn/pholcus/spiders"
-)
-
 // GUI输入
 type Inputor struct {
 	ThreadNum         uint
@@ -34,82 +30,28 @@ type KV struct {
 	String string
 }
 
-var (
-	// 任务选项
-	SpiderModel = NewGUISpiderModel([]*GUISpiderCore{
-		&GUISpiderCore{
-			Spider:      BaiduSearch,
-			Description: "百度搜索结果 [www.baidu.com]",
-		},
-		&GUISpiderCore{
-			Spider:      GoogleSearch,
-			Description: "谷歌搜索结果 [www.google.com镜像]",
-		},
-		&GUISpiderCore{
-			Spider:      TaobaoSearch,
-			Description: "淘宝天猫搜索结果 [s.taobao.com]",
-		},
-		&GUISpiderCore{
-			Spider:      JDSearch,
-			Description: "京东搜索结果 [search.jd.com]",
-		},
-		&GUISpiderCore{
-			Spider:      AlibabaProduct,
-			Description: "阿里巴巴产品搜索 [s.1688.com/selloffer/offer_search.htm]",
-		},
-		&GUISpiderCore{
-			Spider:      Wangyi,
-			Description: "网易排行榜新闻，含点击/跟帖排名 [Auto Page] [news.163.com/rank]",
-		},
-		&GUISpiderCore{
-			Spider:      BaiduNews,
-			Description: "百度RSS新闻，实现轮询更新 [Auto Page] [news.baidu.com]",
-		},
-		&GUISpiderCore{
-			Spider:      Kaola,
-			Description: "考拉海淘商品数据 [Auto Page] [www.kaola.com]",
-		},
-		&GUISpiderCore{
-			Spider:      Shunfenghaitao,
-			Description: "顺丰海淘商品数据 [Auto Page] [www.sfht.com]",
-		},
-		&GUISpiderCore{
-			Spider:      Miyabaobei,
-			Description: "蜜芽宝贝商品数据 [Auto Page] [www.miyabaobei.com]",
-		},
-		&GUISpiderCore{
-			Spider:      Hollandandbarrett,
-			Description: "Hollandand&Barrett商品数据 [Auto Page] [www.Hollandandbarrett.com]",
-		},
-		&GUISpiderCore{
-			Spider:      Lewa,
-			Description: "乐蛙登录测试 [Auto Page] [http://accounts.lewaos.com]",
-		},
-	})
-
-	// 暂停时间选项及输出类型选项
-	GUIOpt = struct {
-		OutType   []*KV
-		SleepTime []*KV
-	}{
-		OutType: []*KV{
-			{Key: "csv", String: "csv"},
-			{Key: "excel", String: "excel"},
-			{Key: "mongoDB", String: "mongoDB"},
-		},
-		SleepTime: []*KV{
-			{Key: "无暂停", Uint: 0},
-			{Key: "0.1 秒", Uint: 100},
-			{Key: "0.3 秒", Uint: 300},
-			{Key: "0.5 秒", Uint: 500},
-			{Key: "1 秒", Uint: 1000},
-			{Key: "3 秒", Uint: 3000},
-			{Key: "5 秒", Uint: 5000},
-			{Key: "10 秒", Uint: 10000},
-			{Key: "15 秒", Uint: 15000},
-			{Key: "20 秒", Uint: 20000},
-			{Key: "30 秒", Uint: 30000},
-			{Key: "60 秒", Uint: 60000},
-		},
-	}
-)
+// 暂停时间选项及输出类型选项
+var GUIOpt = struct {
+	OutType   []*KV
+	SleepTime []*KV
+}{
+	OutType: []*KV{
+		{Key: "csv", String: "csv"},
+		{Key: "excel", String: "excel"},
+		{Key: "mongoDB", String: "mongoDB"},
+	},
+	SleepTime: []*KV{
+		{Key: "无暂停", Uint: 0},
+		{Key: "0.1 秒", Uint: 100},
+		{Key: "0.3 秒", Uint: 300},
+		{Key: "0.5 秒", Uint: 500},
+		{Key: "1 秒", Uint: 1000},
+		{Key: "3 秒", Uint: 3000},
+		{Key: "5 秒", Uint: 5000},
+		{Key: "10 秒", Uint: 10000},
+		{Key: "15 秒", Uint: 15000},
+		{Key: "20 秒", Uint: 20000},
+		{Key: "30 秒", Uint: 30000},
+		{Key: "60 秒", Uint: 60000},
+	},
+}

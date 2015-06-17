@@ -32,9 +32,14 @@ import (
 // "math"
 )
 
+func init() {
+	Kaola.AddMenu()
+}
+
 // 考拉海淘,海外直采,7天无理由退货,售后无忧!考拉网放心的海淘网站!
 var Kaola = &Spider{
-	Name: "考拉海淘",
+	Name:        "考拉海淘",
+	Description: "考拉海淘商品数据 [Auto Page] [www.kaola.com]",
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
 	RuleTree: &RuleTree{

@@ -8,15 +8,16 @@ import (
 )
 
 type Spider struct {
-	Name      string
-	Pausetime [2]uint //暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
+	Id          int //所在SpiderList的下标编号
+	Name        string
+	Description string
+	Pausetime   [2]uint //暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
 	*RuleTree
 	// *SpiderStatus
 	//以下为可选成员
 	MaxPage int
 	Keyword string
 	Depth   int
-	Id      int    //所在SpiderList的下标编号
 	Proxy   string //代理服务器 example='localhost:80'
 }
 
@@ -32,8 +33,16 @@ func (self *Spider) Start(sp *Spider) {
 	sp.RuleTree.Root(sp)
 }
 
+func (self *Spider) AddMenu() {
+	Menu.Add(self)
+}
+
 func (self *Spider) GetName() string {
 	return self.Name
+}
+
+func (self *Spider) GetDescription() string {
+	return self.Description
 }
 
 func (self *Spider) GetId() int {
@@ -42,6 +51,14 @@ func (self *Spider) GetId() int {
 
 func (self *Spider) GetKeyword() string {
 	return self.Keyword
+}
+
+func (self *Spider) GetMaxPage() int {
+	return self.MaxPage
+}
+
+func (self *Spider) SetMaxPage(max int) {
+	self.MaxPage = max
 }
 
 func (self *Spider) GetRules() map[string]*Rule {

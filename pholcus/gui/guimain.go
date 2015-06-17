@@ -5,6 +5,7 @@ import (
 	"github.com/henrylee2cn/pholcus/pholcus/crawler"
 	"github.com/henrylee2cn/pholcus/reporter"
 	"github.com/henrylee2cn/pholcus/scheduler"
+	_ "github.com/henrylee2cn/pholcus/spiders"
 	"github.com/henrylee2cn/pholcus/spiders/spider"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
@@ -20,6 +21,7 @@ func Run() {
 	var mw *walk.MainWindow
 	var db *walk.DataBinder
 	var ep walk.ErrorPresenter
+	var spiderMenu = NewSpiderMenu(spider.Menu)
 
 	if err := (MainWindow{
 		AssignTo: &mw,
@@ -45,7 +47,7 @@ func Run() {
 							{Title: "任务", Width: 110 /*, Format: "%.2f", Alignment: AlignFar*/},
 							{Title: "描述", Width: 370},
 						},
-						Model: SpiderModel,
+						Model: spiderMenu,
 					},
 					// 关键词
 					VSplitter{
@@ -169,7 +171,7 @@ func Run() {
 									log.Print(err)
 									return
 								}
-								Input.Spiders = SpiderModel.GetChecked()
+								Input.Spiders = spiderMenu.GetChecked()
 								if len(Input.Spiders) == 0 {
 									return
 								}
@@ -211,7 +213,6 @@ const (
 func Start() {
 	// 初始化蜘蛛列表，返回长度
 	count := InitSpiders()
-
 	// 初始化config参数
 	config.InitDockerParam(Input.DockerCap)
 
@@ -256,7 +257,7 @@ func GoRun(count int) {
 		if c != nil {
 			go func(i int, c crawler.Crawler) {
 				// 执行并返回结果消息
-				c.Init(spider.SpiderList[i]).Start()
+				c.Init(spider.List.Get(i)).Start()
 				// 任务结束后回收该蜘蛛
 				crawler.CQ.Free(c.GetId())
 			}(i, c)
@@ -294,8 +295,8 @@ func Stop() {
 
 // 用户提交后，生成蜘蛛列表
 func InitSpiders() int {
-	var sp = spider.Spiders{}
-	spider.SpiderList.Init()
+	var sp = []*spider.Spider{}
+	spider.List.Init()
 
 	// 遍历任务
 	for i, sps := range Input.Spiders {
@@ -315,16 +316,16 @@ func InitSpiders() int {
 			if keyword == "" {
 				continue
 			}
-			nowLen := len(spider.SpiderList)
+			nowLen := spider.List.Len()
 			for n, _ := range sp {
 				sp[n].Keyword = keyword
 				sp[n].Id = nowLen + n
 				c := *sp[n]
-				spider.SpiderList.Add(&c)
+				spider.List.Add(&c)
 			}
 		}
 	} else {
-		spider.SpiderList = sp
+		spider.List.ReSet(sp)
 	}
-	return len(spider.SpiderList)
+	return spider.List.Len()
 }
