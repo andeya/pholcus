@@ -74,3 +74,10 @@ go get "gopkg.in/mgo.v2"
 go get "code.google.com/p/mahonia"
 go get "golang.org/x/net/html/charset"
 ```
+（在此对以上依赖包的开源项目表示感谢！）
+
+
+
+#### 开源协议
+
+Pholcus（幽灵蛛）项目采用商业应用友好的[Apache License v2](https://github.com/henrylee2cn/pholcus/blob/master/doc/license.txt).发布
