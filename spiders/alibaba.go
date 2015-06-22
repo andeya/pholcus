@@ -39,6 +39,7 @@ func init() {
 var AlibabaProduct = &Spider{
 	Name:        "阿里巴巴产品搜索",
 	Description: "阿里巴巴产品搜索 [s.1688.com/selloffer/offer_search.htm]",
+	// Keyword:     USE,
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
 	RuleTree: &RuleTree{
@@ -66,13 +67,28 @@ var AlibabaProduct = &Spider{
 				},
 				ParseFunc: func(self *Spider, resp *context.Response) {
 					query := resp.GetDom()
-					total1, _ := query.Find("#sm-pagination div[data-total-page]").First().Attr("data-total-page")
+					pageTag := query.Find("#sm-pagination div[data-total-page]")
+					// 跳转
+					if len(pageTag.Nodes) == 0 {
+						reporter.Log.Printf("[消息提示：| 任务：%v | 关键词：%v | 规则：%v] 由于跳转AJAX问题，目前只能每个子类抓取 1 页……\n", self.GetName(), self.GetKeyword(), resp.GetRuleName())
+						query.Find(".sm-floorhead-typemore a").Each(func(i int, s *goquery.Selection) {
+							if href, ok := s.Attr("href"); ok {
+								self.AddQueue(map[string]interface{}{
+									"url":    href,
+									"header": http.Header{"Content-Type": []string{"text/html", "charset=GBK"}},
+									"rule":   "搜索结果",
+								})
+							}
+						})
+						return
+					}
+					total1, _ := pageTag.First().Attr("data-total-page")
 					total1 = strings.Trim(total1, " \t\n")
 					total, _ := strconv.Atoi(total1)
 					if total > self.MaxPage {
-						total = self.MaxPage
+						// total = self.MaxPage
 					} else if total == 0 {
-						reporter.Log.Printf("[消息提示：| 任务：%v | 关键词：%v | 规则：%v] 没有抓取到任何数据！!!\n", self.GetName(), self.GetKeyword(), resp.GetRuleName())
+						reporter.Log.Printf("[消息提示：| 任务：%v | 关键词：%v | 规则：%v] 没有抓取到任何数据！！！\n", self.GetName(), self.GetKeyword(), resp.GetRuleName())
 						return
 					}
 
