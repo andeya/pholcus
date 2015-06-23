@@ -4,7 +4,9 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的重量级爬虫软件，清�
 
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/icon.png)
 
-* Latest Release: [Version 0.26 (Jun 17, 2015)](https://github.com/henrylee2cn/pholcus/releases).
+* 稳定版： [Version 0.2.6 (Jun 17, 2015)](https://github.com/henrylee2cn/pholcus/releases).   [此处进入](https://github.com/henrylee2cn/pholcus/tree/master)
+* 
+* 开发版： [Version 0.3.1 (Jun 23, 2015)](https://github.com/henrylee2cn/pholcus/releases).   [此处进入](https://github.com/henrylee2cn/pholcus/tree/developer)
 
 * 官方QQ群：Go大数据 42731170    [![Go大数据群](http://pub.idqqimg.com/wpa/images/group.png)](http://shang.qq.com/wpa/qunwpa?idkey=83ee3e1a4be6bdb2b08a51a044c06ae52cf10a082f7c5cf6b36c1f78e8b03589)
 
