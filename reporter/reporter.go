@@ -1,3 +1,4 @@
+// 同时输出报告到子节点。
 package reporter
 
 type Reporter interface {
