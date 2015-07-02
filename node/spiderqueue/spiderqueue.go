@@ -45,7 +45,7 @@ func (self *sq) AddAll(list []*Spider) {
 	}
 }
 
-// 添加keyword，遍历蜘蛛队列得到新的队列（调用此方法前不可为其赋值Keywords）
+// 添加keyword，遍历蜘蛛队列得到新的队列（已被显式赋值过的spider将不再重新分配Keyword）
 func (self *sq) AddKeywords(keywords string) error {
 	if keywords == "" {
 		return errors.New("遍历关键词失败：keywords 不能为空！")

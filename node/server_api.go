@@ -1,25 +1,19 @@
 ﻿package node
 
 import (
-	"github.com/henrylee2cn/pholcus/node/task"
 	. "github.com/henrylee2cn/teleport"
 	"log"
-	"time"
+	"sync"
 )
 
+var taskMutex sync.Mutex
 var ServerApi = API{
 
 	// 提供任务给客户端
 	"task": func(receive *NetData) *NetData {
-		var t task.Task
-		var ok bool
-		for {
-			if t, ok = Pholcus.Out(receive.From, Pholcus.CountNodes()); ok {
-				break
-			}
-			time.Sleep(1e9)
-		}
-		return ReturnData(t)
+		taskMutex.Lock()
+		defer taskMutex.Unlock()
+		return ReturnData(Pholcus.Out(Pholcus.CountNodes()))
 	},
 
 	// 打印接收到的报告

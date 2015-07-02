@@ -23,7 +23,7 @@ var ClientApi = API{
 			return nil
 		}
 		Pholcus.TaskJar.Into(t)
-		return ReturnData(nil)
+		return nil
 	},
 
 	// 打印接收到的报告

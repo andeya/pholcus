@@ -37,6 +37,7 @@ var GuiOpt = struct {
 		{Key: "csv", String: "csv"},
 		{Key: "excel", String: "excel"},
 		{Key: "mongoDB", String: "mongoDB"},
+		{Key: "HBase", String: "HBase"},
 	},
 	SleepTime: []*KV{
 		{Key: "无暂停", Uint: 0},

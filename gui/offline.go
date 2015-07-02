@@ -3,8 +3,6 @@ package gui
 import (
 	"github.com/henrylee2cn/pholcus/config"
 	. "github.com/henrylee2cn/pholcus/gui/model"
-	. "github.com/henrylee2cn/pholcus/node"
-	"github.com/henrylee2cn/pholcus/reporter"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"log"
@@ -136,6 +134,7 @@ func offlineWindow() {
 									{Text: GuiOpt.OutType[0].Key, Value: GuiOpt.OutType[0].String},
 									{Text: GuiOpt.OutType[1].Key, Value: GuiOpt.OutType[1].String},
 									{Text: GuiOpt.OutType[2].Key, Value: GuiOpt.OutType[2].String},
+									{Text: GuiOpt.OutType[3].Key, Value: GuiOpt.OutType[3].String},
 								},
 							},
 						},
@@ -175,11 +174,8 @@ func offlineWindow() {
 		mw.SetIcon(icon)
 	}
 
-	// 开启报告
-	reporter.Log.Run()
-
-	// 运行pholcus核心
-	PholcusRun()
+	// 业务程序准备
+	LogicApp.Ready()
 
 	// 运行窗体程序
 	mw.Run()
@@ -187,13 +183,15 @@ func offlineWindow() {
 
 // 点击开始事件
 func offlineStart() {
-	// 每次点击重新开启报告
-	reporter.Log.Run()
+	// 业务程序准备
+	LogicApp.Ready()
 
 	if toggleRunBtn.Text() == "取消" {
 		toggleRunBtn.SetEnabled(false)
 		toggleRunBtn.SetText("取消中…")
-		Stop()
+		LogicApp.Stop()
+		LogicApp.WaitStop()
+		offlineResetBtn()
 		return
 	}
 
@@ -215,6 +213,18 @@ func offlineStart() {
 	// 记录配置信息
 	WTaskConf2()
 
-	// 初始化蜘蛛列表，返回长度，并执行任务
-	Exec(InitSpiders())
+	SetSpiderQueue()
+
+	LogicApp.Run()
+
+	go func() {
+		LogicApp.WaitStop()
+		offlineResetBtn()
+	}()
+}
+
+// Offline 模式下按钮状态控制
+func offlineResetBtn() {
+	toggleRunBtn.SetEnabled(true)
+	toggleRunBtn.SetText("开始运行")
 }

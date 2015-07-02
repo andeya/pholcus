@@ -3,8 +3,6 @@ package gui
 import (
 	"github.com/henrylee2cn/pholcus/config"
 	. "github.com/henrylee2cn/pholcus/gui/model"
-	. "github.com/henrylee2cn/pholcus/node"
-	"github.com/henrylee2cn/pholcus/reporter"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"log"
@@ -140,6 +138,7 @@ func serverWindow() {
 									{Text: GuiOpt.OutType[0].Key, Value: GuiOpt.OutType[0].String},
 									{Text: GuiOpt.OutType[1].Key, Value: GuiOpt.OutType[1].String},
 									{Text: GuiOpt.OutType[2].Key, Value: GuiOpt.OutType[2].String},
+									{Text: GuiOpt.OutType[3].Key, Value: GuiOpt.OutType[3].String},
 								},
 							},
 						},
@@ -180,11 +179,8 @@ func serverWindow() {
 		mw.SetIcon(icon)
 	}
 
-	// 开启报告
-	reporter.Log.Run()
-
-	// 运行pholcus核心
-	PholcusRun()
+	// 业务程序准备
+	LogicApp.Ready()
 
 	// 运行窗体程序
 	mw.Run()
@@ -211,8 +207,13 @@ func serverStart() {
 	toggleRunBtn.SetEnabled(false)
 	toggleRunBtn.SetText("分发任务 (···)")
 
-	// 分发任务
-	serverAddTasks()
+	// 重置spiders队列
+	SetSpiderQueue()
+
+	// 生成分发任务
+	LogicApp.CreateTask()
+
+	serverCount++
 
 	toggleRunBtn.SetText(serverBtnTxt())
 	toggleRunBtn.SetEnabled(true)
@@ -221,28 +222,4 @@ func serverStart() {
 // 更新按钮文字
 func serverBtnTxt() string {
 	return "分发任务 (" + strconv.Itoa(serverCount) + ")"
-}
-
-// 分发任务
-func serverAddTasks() {
-	sps := []string{}
-	// 遍历采集规则
-	for _, s := range Input.Spiders {
-		sps = append(sps, s.Spider.GetName())
-	}
-
-	// 便利添加任务到库
-	Pholcus.AddNewTask(sps, Input.Keywords)
-
-	// 发布任务计数
-	count := len(sps)
-	serverCount++
-
-	// 打印报告
-	log.Println(` ********************************************************************************************************************************************** `)
-	log.Printf(" * ")
-	log.Printf(" *                               —— 成功添加 1 条任务，其中包含 %v 条采集规则 ——", count)
-	log.Printf(" * ")
-	log.Println(` ********************************************************************************************************************************************** `)
-
 }

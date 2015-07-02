@@ -3,8 +3,6 @@ package gui
 import (
 	"github.com/henrylee2cn/pholcus/config"
 	. "github.com/henrylee2cn/pholcus/gui/model"
-	. "github.com/henrylee2cn/pholcus/node"
-	"github.com/henrylee2cn/pholcus/reporter"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"log"
@@ -135,6 +133,7 @@ func clientWindow() {
 									{Text: GuiOpt.OutType[0].Key, Value: GuiOpt.OutType[0].String},
 									{Text: GuiOpt.OutType[1].Key, Value: GuiOpt.OutType[1].String},
 									{Text: GuiOpt.OutType[2].Key, Value: GuiOpt.OutType[2].String},
+									{Text: GuiOpt.OutType[3].Key, Value: GuiOpt.OutType[3].String},
 								},
 							},
 						},
@@ -152,10 +151,9 @@ func clientWindow() {
 					},
 
 					PushButton{
-						MinSize:   Size{110, 0},
-						Text:      "断开服务器连接",
-						AssignTo:  &toggleRunBtn,
-						OnClicked: clientStart,
+						MinSize:  Size{110, 0},
+						Text:     "断开服务器连接",
+						AssignTo: &toggleRunBtn,
 					},
 				},
 			},
@@ -179,53 +177,29 @@ func clientWindow() {
 	setting.SetEnabled(false)
 	toggleRunBtn.SetEnabled(false)
 
-	// 开启报告
-	reporter.Log.Run()
-
-	// 运行pholcus核心
-	PholcusRun()
+	// 业务程序准备
+	LogicApp.Ready()
 
 	// 记录配置信息
 	WTaskConf2()
 
 	// 执行任务
-	go clientExec()
+	go LogicApp.Run()
 
 	// 运行窗体程序
 	mw.Run()
 }
 
 // 点击开始事件
-func clientStart() {
+// func clientStart() {
 
-	if toggleRunBtn.Text() == "重新连接服务器" {
-		toggleRunBtn.SetEnabled(false)
-		toggleRunBtn.SetText("正在连接服务器…")
-		clientStop()
-		return
-	}
+// 	if toggleRunBtn.Text() == "重新连接服务器" {
+// 		toggleRunBtn.SetEnabled(false)
+// 		toggleRunBtn.SetText("正在连接服务器…")
+// 		clientStop()
+// 		return
+// 	}
 
-	toggleRunBtn.SetText("断开服务器连接")
+// 	toggleRunBtn.SetText("断开服务器连接")
 
-}
-
-func clientExec() {
-	Pholcus.Spiders.Reset()
-	for {
-		// reporter.Log.Println("开始获取任务")
-
-		// 从任务库获取一个任务
-		t := Pholcus.DownTask()
-		// reporter.Log.Printf("成功获取任务 %#v", t)
-
-		// 准备运行
-		TaskToReady(t)
-
-		// 执行任务
-		Exec(Pholcus.Spiders.Len())
-	}
-}
-
-func clientStop() {
-
-}
+// }

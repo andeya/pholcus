@@ -14,6 +14,9 @@ import (
 	"strconv"
 	"strings"
 	// "time"
+	"github.com/henrylee2cn/teleport"
+	// "log"
+	"sync"
 )
 
 /************************ excel 输出 ***************************/
@@ -194,5 +197,18 @@ func (self *Collector) mgo(dataIndex int) {
 		if err != nil {
 			panic(err)
 		}
+	}
+}
+
+/************************ HBase 输出 ***************************/
+var master = cache.Task.Master
+var port = ":" + strconv.Itoa(cache.Task.Port)
+var hbaseSocket = teleport.New().SetPackHeader("tentinet")
+var once sync.Once
+
+func (self *Collector) hbase(dataIndex int) {
+	once.Do(func() { hbaseSocket.Client(master, port) })
+	for i, count := 0, len(self.DockerQueue.Dockers[dataIndex]); i < count; i++ {
+		hbaseSocket.Request(self.DockerQueue.Dockers[dataIndex][i], "log")
 	}
 }

@@ -48,6 +48,10 @@ func (self *Spider) GetKeyword() string {
 	return self.Keyword
 }
 
+func (self *Spider) SetKeyword(keyword string) {
+	self.Keyword = keyword
+}
+
 func (self *Spider) GetMaxPage() int {
 	return self.MaxPage
 }

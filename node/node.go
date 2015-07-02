@@ -81,11 +81,9 @@ func (self *Node) CountNodes() int {
 }
 
 // 生成task并添加至库，服务器模式专用
-func (self *Node) AddNewTask(spiders []string, keywords string) {
-	t := &task.Task{}
-
-	t.Spiders = spiders
-	t.Keywords = keywords
+func (self *Node) AddNewTask() (tasksNum, spidersNum int) {
+	length := self.Spiders.Len()
+	t := task.Task{}
 
 	// 从配置读取字段
 	t.ThreadNum = cache.Task.ThreadNum
@@ -96,9 +94,33 @@ func (self *Node) AddNewTask(spiders []string, keywords string) {
 	t.DockerQueueCap = cache.Task.DockerQueueCap
 	t.MaxPage = cache.Task.MaxPage
 
-	// 存入
-	self.TaskJar.Push(t)
-	// log.Printf(" *     [新增任务]   详情： %#v", *t)
+	for i, sp := range self.Spiders.GetAll() {
+
+		t.Spiders = append(t.Spiders, map[string]string{"name": sp.GetName(), "keyword": sp.GetKeyword()})
+		spidersNum++
+
+		// 每十个蜘蛛存为一个任务
+		if i > 0 && i%10 == 0 && length > 10 {
+			// 存入
+			one := t
+			self.TaskJar.Push(&one)
+			// log.Printf(" *     [新增任务]   详情： %#v", *t)
+
+			tasksNum++
+
+			// 清空spider
+			t.Spiders = []map[string]string{}
+		}
+	}
+
+	if len(t.Spiders) != 0 {
+		// 存入
+		one := t
+		self.TaskJar.Push(&one)
+		// log.Printf(" *     [新增任务]   详情： %#v", *t)
+		tasksNum++
+	}
+	return
 }
 
 // 客户端请求获取任务
@@ -108,16 +130,20 @@ func (self *Node) GetTaskAlways() {
 
 // 客户端模式模式下获取任务
 func (self *Node) DownTask() *task.Task {
-	for len(self.TaskJar.Ready) == 0 {
-		if self.CountNodes() != 0 {
-			self.GetTaskAlways()
+	for self.CountNodes() == 0 {
+		if len(self.TaskJar.Tasks) != 0 {
 			break
 		}
 		time.Sleep(5e7)
 	}
-	for len(self.TaskJar.Ready) == 0 {
-		time.Sleep(5e7)
+
+	if len(self.TaskJar.Tasks) == 0 {
+		self.GetTaskAlways()
+		for len(self.TaskJar.Tasks) == 0 {
+			time.Sleep(5e7)
+		}
 	}
+
 	return self.TaskJar.Pull()
 }
 

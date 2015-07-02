@@ -36,6 +36,8 @@ func (self *Collector) Output(dataIndex int) {
 		self.csv(dataIndex)
 	case "mongoDB":
 		self.mgo(dataIndex)
+	case "HBase":
+		self.hbase(dataIndex)
 	default:
 		self.excel(dataIndex)
 	}
