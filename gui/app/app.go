@@ -55,11 +55,11 @@ type App interface {
 	// Offline 模式下中途终止任务
 	Stop()
 
-	// server模式下生成任务的方法，必须在SetSpiderQueue()执行以后才可调用
+	// server模式下生成任务的方法，必须在全局配置和蜘蛛队列设置完成后才可调用
 	CreateTask()
 
 	// 运行前准备
-	Ready()
+	Ready() App
 	// Run()必须在最后运行
 	Run()
 }
@@ -164,12 +164,13 @@ func (self *Logic) CreateTask() {
 	log.Println(` ********************************************************************************************************************************************** `)
 }
 
-func (self *Logic) Ready() {
+func (self *Logic) Ready() App {
 	// 开启报告
 	reporter.Log.Run()
 
 	// 运行pholcus核心
 	PholcusRun()
+	return self
 }
 
 func (self *Logic) Run() {
@@ -223,7 +224,6 @@ func (self *Logic) offline() {
 func (self *Logic) server() {}
 
 func (self *Logic) client() {
-	Pholcus.Spiders.Reset()
 	for {
 		// reporter.Log.Println("开始获取任务")
 
@@ -260,7 +260,8 @@ func (self *Logic) taskToRun(t *task.Task) {
 			if v, ok := n["keyword"]; ok {
 				sp.SetKeyword(v)
 			}
-			Pholcus.Spiders.Add(sp)
+			one := *sp
+			Pholcus.Spiders.Add(&one)
 		}
 	}
 }
