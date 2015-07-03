@@ -10,6 +10,7 @@ import (
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 	"github.com/henrylee2cn/pholcus/spider"
+	_ "github.com/henrylee2cn/pholcus/spider/spiders"
 	"log"
 	"strconv"
 	"time"

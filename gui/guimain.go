@@ -4,7 +4,6 @@ import (
 	"github.com/henrylee2cn/pholcus/gui/app"
 	. "github.com/henrylee2cn/pholcus/gui/model"
 	"github.com/henrylee2cn/pholcus/spider"
-	_ "github.com/henrylee2cn/pholcus/spider/spiders"
 )
 
 var LogicApp = app.New()

@@ -29,10 +29,10 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的重量级爬虫软件，清�
 #### GUI界面
 随时改进中，该截图仅供参考！
 
-![image](https://github.com/henrylee2cn/pholcus/blob/developer/doc/guishow_0.jpg)
-![image](https://github.com/henrylee2cn/pholcus/blob/developer/doc/guishow_1.jpg)
-![image](https://github.com/henrylee2cn/pholcus/blob/developer/doc/guishow_2.jpg)
-![image](https://github.com/henrylee2cn/pholcus/blob/developer/doc/guishow_3.jpg)
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_0.jpg)
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_1.jpg)
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_2.jpg)
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_3.jpg)
 
 
 #### 初次安装
