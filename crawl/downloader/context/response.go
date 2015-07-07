@@ -2,57 +2,43 @@ package context
 
 import (
 	"github.com/PuerkitoBio/goquery"
+	. "github.com/henrylee2cn/pholcus/reporter"
+	"golang.org/x/net/html/charset"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"path"
 	"strings"
 )
 
 // Response represents an entity be crawled.
 type Response struct {
-	// The isfail is true when crawl process is failed and errormsg is the fail resean.
-	isfail bool
-
-	errormsg string
+	// The Body is crawl result.
+	*http.Response
 
 	// The request is crawled by spider that contains url and relevent information.
 	*Request
 
-	// The body is plain text of crawl result.
-	body string
-
-	header  http.Header
-	cookies []*http.Cookie
+	// The text is body of response
+	text string
 
 	// The dom is a pointer of goquery boject that contains html result.
 	dom *goquery.Document
 
 	// The items is the container of parsed result.
 	items []map[string]interface{}
+
+	// The isfail is true when crawl process is failed and errormsg is the fail resean.
+	isfail bool
+
+	errormsg string
 }
 
 // NewResponse returns initialized Response object.
 func NewResponse(req *Request) *Response {
 	return &Response{Request: req, items: []map[string]interface{}{}}
-}
-
-// SetHeader save the header of http responce
-func (self *Response) SetHeader(header http.Header) {
-	self.header = header
-}
-
-// GetHeader returns the header of http responce
-func (self *Response) GetHeader() http.Header {
-	return self.header
-}
-
-// SetHeader save the cookies of http responce
-func (self *Response) SetCookies(cookies []*http.Cookie) {
-	self.cookies = cookies
-}
-
-// GetHeader returns the cookies of http responce
-func (self *Response) GetCookies() []*http.Cookie {
-	return self.cookies
 }
 
 // IsSucc test whether download process success or not.
@@ -85,6 +71,12 @@ func (self *Response) GetItems() []map[string]interface{} {
 }
 
 // SetRequest saves request oject of self page.
+func (self *Response) SetResponse(resp *http.Response) *Response {
+	self.Response = resp
+	return self
+}
+
+// SetRequest saves request oject of self page.
 func (self *Response) SetRequest(r *Request) *Response {
 	self.Request = r
 	return self
@@ -95,28 +87,33 @@ func (self *Response) GetRequest() *Request {
 	return self.Request
 }
 
-// SetBodyStr saves plain string crawled in Response.
-func (self *Response) SetText(body string) *Response {
-	self.body = body
-	return self
+// GetBodyStr returns plain string crawled.
+func (self *Response) GetText() string {
+	if self.text == "" {
+		self.initText()
+	}
+	return self.text
 }
 
 // GetBodyStr returns plain string crawled.
-func (self *Response) GetText() string {
-	return self.body
+func (self *Response) initText() {
+	// get converter to utf-8
+	self.text = changeCharsetEncodingAuto(self.Response.Body, self.Response.Header.Get("Content-Type"))
+	//fmt.Printf("utf-8 body %v \r\n", bodyStr)
+	defer self.Response.Body.Close()
 }
 
 // GetHtmlParser returns goquery object binded to target crawl result.
 func (self *Response) GetDom() *goquery.Document {
 	if self.dom == nil {
-		self.InitDom()
+		self.initDom()
 	}
 	return self.dom
 }
 
 // GetHtmlParser returns goquery object binded to target crawl result.
-func (self *Response) InitDom() *goquery.Document {
-	r := strings.NewReader(self.body)
+func (self *Response) initDom() *goquery.Document {
+	r := strings.NewReader(self.GetText())
 	var err error
 	self.dom, err = goquery.NewDocumentFromReader(r)
 	if err != nil {
@@ -124,4 +121,54 @@ func (self *Response) InitDom() *goquery.Document {
 		panic(err.Error())
 	}
 	return self.dom
+}
+
+// 下载图片
+func (self *Response) LoadImg(filePath string) {
+	wholePath := "data/images/" + filePath
+	folder, _ := path.Split(wholePath)
+	// 创建/打开目录
+	f, err := os.Stat(folder)
+	if err != nil || !f.IsDir() {
+		if err := os.MkdirAll(folder, 0777); err != nil {
+			log.Printf("Error: %v\n", err)
+		}
+	}
+	// 创建文件
+	file, _ := os.Create(wholePath)
+	defer file.Close()
+	io.Copy(file, self.Response.Body)
+
+	// 打印报告
+	Log.Printf(" * ")
+	Log.Printf(" *                               —— 成功下载图片： %v ——", wholePath)
+	Log.Printf(" * ")
+}
+
+// 读取图片
+func (self *Response) ReadImg() io.ReadCloser {
+	return self.Response.Body
+}
+
+// Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8
+func changeCharsetEncodingAuto(sor io.ReadCloser, contentTypeStr string) string {
+	var err error
+	destReader, err := charset.NewReader(sor, contentTypeStr)
+
+	if err != nil {
+		log.Println(err.Error())
+		destReader = sor
+	}
+
+	var sorbody []byte
+	if sorbody, err = ioutil.ReadAll(destReader); err != nil {
+		log.Println(err.Error())
+		// For gb2312, an error will be returned.
+		// Error like: simplifiedchinese: invalid GBK encoding
+		// return ""
+	}
+	//e,name,certain := charset.DetermineEncoding(sorbody,contentTypeStr)
+	bodystr := string(sorbody)
+
+	return bodystr
 }

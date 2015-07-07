@@ -130,6 +130,7 @@ func (self *Node) GetTaskAlways() {
 
 // 客户端模式模式下获取任务
 func (self *Node) DownTask() *task.Task {
+ReStartLabel:
 	for self.CountNodes() == 0 {
 		if len(self.TaskJar.Tasks) != 0 {
 			break
@@ -140,10 +141,12 @@ func (self *Node) DownTask() *task.Task {
 	if len(self.TaskJar.Tasks) == 0 {
 		self.GetTaskAlways()
 		for len(self.TaskJar.Tasks) == 0 {
+			if self.CountNodes() == 0 {
+				goto ReStartLabel
+			}
 			time.Sleep(5e7)
 		}
 	}
-
 	return self.TaskJar.Pull()
 }
 
