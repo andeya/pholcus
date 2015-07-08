@@ -128,7 +128,7 @@ func (self *Node) GetTaskAlways() {
 	self.Request(nil, "task")
 }
 
-// 客户端模式模式下获取任务
+// 客户端模式下获取任务
 func (self *Node) DownTask() *task.Task {
 ReStartLabel:
 	for self.CountNodes() == 0 {
