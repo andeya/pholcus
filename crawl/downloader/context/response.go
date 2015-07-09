@@ -140,9 +140,9 @@ func (self *Response) LoadImg(filePath string) {
 	io.Copy(file, self.Response.Body)
 
 	// 打印报告
-	Log.Printf(" * ")
+	log.Printf(" * ")
 	Log.Printf(" *                               —— 成功下载图片： %v ——", wholePath)
-	Log.Printf(" * ")
+	log.Printf(" * ")
 }
 
 // 读取图片
