@@ -42,11 +42,11 @@ func (*LogView) LayoutFlags() walk.LayoutFlags {
 }
 
 func (*LogView) MinSizeHint() walk.Size {
-	return walk.Size{100, 180}
+	return walk.Size{100, 160}
 }
 
 func (*LogView) SizeHint() walk.Size {
-	return walk.Size{100, 100}
+	return walk.Size{100, 160}
 }
 
 func (lv *LogView) setTextSelection(start, end int) {

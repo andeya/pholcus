@@ -24,7 +24,7 @@ func serverWindow() {
 		},
 		Title:   config.APP_NAME + "                                                          【 运行模式 -> 服务器 】",
 		MinSize: Size{1100, 700},
-		Layout:  VBox{ /*MarginsZero: true*/ },
+		Layout:  VBox{MarginsZero: true},
 		Children: []Widget{
 
 			Composite{
@@ -34,7 +34,7 @@ func serverWindow() {
 					// 任务列表
 					TableView{
 						ColumnSpan:            1,
-						MinSize:               Size{550, 350},
+						MinSize:               Size{550, 450},
 						AlternatingRowBGColor: walk.RGB(255, 255, 224),
 						CheckBoxes:            true,
 						ColumnsOrderable:      true,
@@ -48,7 +48,7 @@ func serverWindow() {
 
 					VSplitter{
 						ColumnSpan: 1,
-						MinSize:    Size{550, 0},
+						MinSize:    Size{550, 450},
 						Children: []Widget{
 
 							VSplitter{

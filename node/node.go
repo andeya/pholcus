@@ -56,19 +56,19 @@ func PholcusRun() {
 	switch Pholcus.RunMode {
 	case status.SERVER:
 		if Pholcus.checkPort() {
-			log.Printf("                                                                                                          ！！当前运行模式为：[ 服务器 ] 模式！！")
+			log.Printf("                                                                                               ！！当前运行模式为：[ 服务器 ] 模式！！")
 			Pholcus.Teleport.SetAPI(ServerApi).SetUID("服务端").Server(Pholcus.Port)
 		}
 
 	case status.CLIENT:
 		if Pholcus.checkAll() {
-			log.Printf("                                                                                                          ！！当前运行模式为：[ 客户端 ] 模式！！")
+			log.Printf("                                                                                               ！！当前运行模式为：[ 客户端 ] 模式！！")
 			Pholcus.Teleport.SetAPI(ClientApi).Client(Pholcus.Master, Pholcus.Port)
 		}
 	// case status.OFFLINE:
 	// 	fallthrough
 	default:
-		log.Printf("                                                                                                          ！！当前运行模式为：[ 单机 ] 模式！！")
+		log.Printf("                                                                                               ！！当前运行模式为：[ 单机 ] 模式！！")
 		return
 	}
 	// 开启实时log发送

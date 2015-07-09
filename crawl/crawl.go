@@ -84,7 +84,7 @@ func (self *crawler) Run() {
 				self.FreeOne()
 				self.RequestOut()
 			}()
-			log.Println("start crawl :", req.GetUrl())
+			log.Println(" *     start crawl :", req.GetUrl())
 			self.Process(req)
 		}(req)
 	}
@@ -98,7 +98,7 @@ func (self *crawler) Process(req *context.Request) {
 			if strerr, ok := err.(string); ok {
 				log.Println(strerr)
 			} else {
-				log.Println("Process error：", err)
+				log.Println(" *     Process error：", err)
 			}
 		}
 	}()

@@ -4,7 +4,7 @@ package config
 
 const (
 	//软件名
-	APP_NAME = "Pholcus幽灵蛛数据采集_v0.4.6 （by henrylee2cn）"
+	APP_NAME = "Pholcus幽灵蛛数据采集_v0.4.7 （by henrylee2cn）"
 	// 蜘蛛池容量
 	CRAWLS_CAP = 50
 
