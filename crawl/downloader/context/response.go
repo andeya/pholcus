@@ -30,8 +30,8 @@ type Response struct {
 	// The items is the container of parsed result.
 	items []map[string]interface{}
 
-	// The isfail is true when crawl process is failed and errormsg is the fail resean.
-	isfail bool
+	// The isSucc is false when crawl process is failed and errormsg is the fail resean.
+	isSucc bool
 
 	errormsg string
 }
@@ -43,7 +43,7 @@ func NewResponse(req *Request) *Response {
 
 // IsSucc test whether download process success or not.
 func (self *Response) IsSucc() bool {
-	return !self.isfail
+	return self.isSucc
 }
 
 // Errormsg show the download error message.
@@ -52,8 +52,8 @@ func (self *Response) Errormsg() string {
 }
 
 // SetStatus save status info about download process.
-func (self *Response) SetStatus(isfail bool, errormsg string) {
-	self.isfail = isfail
+func (self *Response) SetStatus(issucc bool, errormsg string) {
+	self.isSucc = issucc
 	self.errormsg = errormsg
 }
 

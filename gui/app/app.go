@@ -200,7 +200,7 @@ func (self *Logic) Stop() {
 	// 打印总结报告
 	log.Println(` *********************************************************************************************************************************** `)
 	log.Printf(" * ")
-	log.Printf(" *                               ！！任务取消：下载页面 %v 个，耗时：%.5f 分钟！！", cache.ReqSum, takeTime)
+	log.Printf(" *                               ！！任务取消：下载页面 %v 个，耗时：%.5f 分钟！！", cache.GetPageCount(0), takeTime)
 	log.Printf(" * ")
 	log.Println(` *********************************************************************************************************************************** `)
 
@@ -269,7 +269,7 @@ func (self *Logic) taskToRun(t *task.Task) {
 // 开始执行任务
 func (self *Logic) exec() {
 	count := Pholcus.Spiders.Len()
-	cache.ReqSum = 0
+	cache.ReSetPageCount()
 
 	// 初始化资源队列
 	scheduler.Init(cache.Task.ThreadNum)
@@ -338,7 +338,7 @@ func (self *Logic) goRun(count int) {
 	// 打印总结报告
 	log.Println(` *********************************************************************************************************************************** `)
 	log.Printf(" * ")
-	reporter.Log.Printf(" *                               —— 本次抓取合计 %v 条数据，下载页面 %v 个，耗时：%.5f 分钟 ——", sum, cache.ReqSum, takeTime)
+	reporter.Log.Printf(" *                            —— 本次抓取合计 %v 条数据，下载页面 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum, cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
 	log.Printf(" * ")
 	log.Println(` *********************************************************************************************************************************** `)
 

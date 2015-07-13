@@ -76,8 +76,8 @@ func (self *crawler) Run() {
 		// 自身资源统计
 		self.RequestIn()
 
-		// 全局统计下载页面数
-		cache.ReqSum++
+		// 全局统计下载总页数
+		cache.PageCount()
 
 		go func(req *context.Request) {
 			defer func() {
@@ -109,6 +109,8 @@ func (self *crawler) Process(req *context.Request) {
 	// log.Println("**************断点 2 ***********")
 	if !resp.IsSucc() { // if fail do not need process
 		log.Println(resp.Errormsg())
+		// 统计下载失败的页数
+		cache.PageFailCount()
 		return
 	}
 

@@ -2,6 +2,7 @@ package cache
 
 import (
 	"github.com/henrylee2cn/pholcus/runtime/status"
+	"sync"
 	"time"
 )
 
@@ -67,9 +68,45 @@ var (
 	StartTime time.Time
 	// 小结报告通道
 	ReportChan chan *Report
-	// 请求页面计数
-	ReqSum uint
+	// 请求页面总数[]uint{总数，失败数}
+	pageSum [2]uint
 )
+
+func ReSetPageCount() {
+	pageSum = [2]uint{}
+}
+
+// 0 返回总下载页数，负数 返回失败数，正数 返回成功数
+func GetPageCount(i int) uint {
+	if i > 0 {
+		// 返回成功数
+		return pageSum[0] - pageSum[1]
+	}
+	if i < 0 {
+		// 返回失败数
+		return pageSum[1]
+	}
+	// 返回总数
+	return pageSum[0]
+}
+
+// 统计总下载数
+var pageMutex sync.Mutex
+
+func PageCount() {
+	pageMutex.Lock()
+	defer pageMutex.Unlock()
+	pageSum[0]++
+}
+
+// 统计下载失败数
+var pageFailMutex sync.Mutex
+
+func PageFailCount() {
+	pageFailMutex.Lock()
+	defer pageFailMutex.Unlock()
+	pageSum[1]++
+}
 
 //****************************************节点通信数据*******************************************\\
 

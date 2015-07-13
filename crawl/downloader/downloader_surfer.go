@@ -29,10 +29,10 @@ func (self *Surfer) Download(cReq *context.Request) *context.Response {
 	cResp.SetResponse(resp)
 
 	if err != nil {
-		cResp.SetStatus(true, err.Error())
+		cResp.SetStatus(false, err.Error())
 		return cResp
 	}
 
-	cResp.SetStatus(false, "")
+	cResp.SetStatus(true, "")
 	return cResp
 }
