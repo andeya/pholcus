@@ -57,7 +57,7 @@ func PholcusRun() {
 	case status.SERVER:
 		if Pholcus.checkPort() {
 			log.Printf("                                                                                               ！！当前运行模式为：[ 服务器 ] 模式！！")
-			Pholcus.Teleport.SetAPI(ServerApi).SetUID("服务端").Server(Pholcus.Port)
+			Pholcus.Teleport.SetAPI(ServerApi).Server(Pholcus.Port)
 		}
 
 	case status.CLIENT:
