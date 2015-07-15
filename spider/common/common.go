@@ -2,7 +2,7 @@ package common
 
 import (
 	// "bytes"
-	"code.google.com/p/mahonia"
+	"github.com/henrylee2cn/mahonia"
 	// "golang.org/x/text/encoding/simplifiedchinese"
 	// "golang.org/x/text/transform"
 	// "io/ioutil"

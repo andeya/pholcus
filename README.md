@@ -67,16 +67,16 @@ go build -ldflags="-H windowsgui"
 
 
 ```
-go get "github.com/lxn/walk"
-go get "github.com/lxn/win"
-go get "github.com/PuerkitoBio/goquery"
 go get "github.com/henrylee2cn/surfer"
 go get "github.com/henrylee2cn/teleport"
+go get "github.com/PuerkitoBio/goquery"
 go get "github.com/bitly/go-simplejson"
+go get "github.com/henrylee2cn/mahonia"
+go get "golang.org/x/net/html/charset"
+go get "github.com/lxn/walk"
+go get "github.com/lxn/win"
 go get "github.com/tealeg/xlsx"
 go get "gopkg.in/mgo.v2"
-go get "code.google.com/p/mahonia"
-go get "golang.org/x/net/html/charset"
 ```
 （在此对以上依赖包的开源项目表示感谢！）
 
