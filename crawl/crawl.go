@@ -8,6 +8,7 @@ import (
 	"github.com/henrylee2cn/pholcus/crawl/scheduler"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/spider"
+	"io"
 	"log"
 	"math/rand"
 	"sync"
@@ -118,17 +119,26 @@ func (self *crawler) Process(req *context.Request) {
 	// 过程处理，提炼数据
 	self.Spider.GoRule(resp)
 	// log.Println("**************断点 5 ***********")
-	// 该条请求结果存入pipeline
-	datas := resp.GetItems()
-	for i, count := 0, len(datas); i < count; i++ {
-		self.Pipeline.Collect(
+	// 该条请求文本结果存入pipeline
+	for _, data := range resp.GetItems() {
+		self.Pipeline.CollectData(
 			resp.GetRuleName(), //DataCell.RuleName
-			datas[i],           //DataCell.Data
+			data,               //DataCell.Data
 			resp.GetUrl(),      //DataCell.Url
 			resp.GetReferer(),  //DataCell.ParentUrl
 			time.Now().Format("2006-01-02 15:04:05"),
 		)
 	}
+
+	// 该条请求文件结果存入pipeline
+	for _, img := range resp.GetFiles() {
+		self.Pipeline.CollectFile(
+			resp.GetRuleName(),
+			img["Name"].(string),
+			img["Body"].(io.ReadCloser),
+		)
+	}
+
 	// log.Println("**************断点 end ***********")
 }
 

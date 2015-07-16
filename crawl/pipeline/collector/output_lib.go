@@ -7,12 +7,11 @@ import (
 	// "gopkg.in/mgo.v2/bson"
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"github.com/henrylee2cn/pholcus/config"
 	. "github.com/henrylee2cn/pholcus/reporter"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"os"
-	"strconv"
-	"strings"
 	// "time"
 	"github.com/henrylee2cn/teleport"
 	// "log"
@@ -33,11 +32,9 @@ func (self *Collector) excel(dataIndex int) {
 	var cell *xlsx.Cell
 	var err error
 
-	folder1 := "data"
-	_folder2 := strings.Split(cache.StartTime.Format("2006-01-02 15:04:05"), ":")
-	folder2 := _folder2[0] + "时" + _folder2[1] + "分" + _folder2[2] + "秒"
-	folder2 = folder1 + "/" + folder2
-	filename := folder2 + "/" + self.Spider.GetName() + "_" + self.Spider.GetKeyword() + " " + strconv.Itoa(self.sum[0]) + "-" + strconv.Itoa(self.sum[1]) + ".xlsx"
+	folder1 := "result/data"
+	folder2 := folder1 + "/" + self.startTime
+	filename := folder2 + "/" + self.Spider.GetName() + "_" + self.Spider.GetKeyword() + " " + fmt.Sprintf("%v", self.sum[0]) + "-" + fmt.Sprintf("%v", self.sum[1]) + ".xlsx"
 
 	file = xlsx.NewFile()
 
@@ -114,11 +111,9 @@ func (self *Collector) csv(dataIndex int) {
 		}
 	}()
 
-	folder1 := "data"
-	_folder2 := strings.Split(cache.StartTime.Format("2006-01-02 15:04:05"), ":")
-	folder2 := _folder2[0] + "时" + _folder2[1] + "分" + _folder2[2] + "秒"
-	folder2 = folder1 + "/" + folder2
-	filenameBase := folder2 + "/" + self.Spider.GetName() + "_" + self.Spider.GetKeyword() + " " + strconv.Itoa(self.sum[0]) + "-" + strconv.Itoa(self.sum[1])
+	folder1 := "result/data"
+	folder2 := folder1 + "/" + self.startTime
+	filenameBase := folder2 + "/" + self.Spider.GetName() + "_" + self.Spider.GetKeyword() + " " + fmt.Sprintf("%v", self.sum[0]) + "-" + fmt.Sprintf("%v", self.sum[1])
 
 	// 创建/打开目录
 	f2, err := os.Stat(folder2)
@@ -202,7 +197,7 @@ func (self *Collector) mgo(dataIndex int) {
 
 /************************ HBase 输出 ***************************/
 var master = cache.Task.Master
-var port = ":" + strconv.Itoa(cache.Task.Port)
+var port = ":" + fmt.Sprintf("%v", cache.Task.Port)
 var hbaseSocket = teleport.New().SetPackHeader("tentinet")
 var once sync.Once
 

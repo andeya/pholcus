@@ -12,7 +12,6 @@ import (
 	"github.com/henrylee2cn/pholcus/spider"
 	_ "github.com/henrylee2cn/pholcus/spider/spiders"
 	"log"
-	"strconv"
 	"time"
 )
 
@@ -319,17 +318,25 @@ func (self *Logic) goRun(count int) {
 	}
 
 	// 监控结束任务
-	sum := 0 //数据总数
+	sum := [2]uint{} //数据总数
 	for i := 0; i < count; i++ {
 		s := <-cache.ReportChan
-
-		log.Printf(" * ")
-		reporter.Log.Printf(" *     [结束报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.Num, s.Time)
-		log.Printf(" * ")
-
-		if slen, err := strconv.Atoi(s.Num); err == nil {
-			sum += slen
+		if (s.DataNum == 0) && (s.FileNum == 0) {
+			continue
 		}
+		log.Printf(" * ")
+		switch {
+		case s.DataNum > 0 && s.FileNum == 0:
+			reporter.Log.Printf(" *     [输出报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.DataNum, s.Time)
+		case s.DataNum == 0 && s.FileNum > 0:
+			reporter.Log.Printf(" *     [输出报告 -> 任务：%v | 关键词：%v]   共下载文件 %v 个，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.FileNum, s.Time)
+		default:
+			reporter.Log.Printf(" *     [输出报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条 + 下载文件 %v 个，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.DataNum, s.FileNum, s.Time)
+		}
+		log.Printf(" * ")
+
+		sum[0] += s.DataNum
+		sum[1] += s.FileNum
 	}
 
 	// 总耗时
@@ -338,7 +345,14 @@ func (self *Logic) goRun(count int) {
 	// 打印总结报告
 	log.Println(` *********************************************************************************************************************************** `)
 	log.Printf(" * ")
-	reporter.Log.Printf(" *                            —— 本次抓取合计 %v 条数据，下载页面 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum, cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
+	switch {
+	case sum[0] > 0 && sum[1] == 0:
+		reporter.Log.Printf(" *                            —— 本次合计抓取 %v 条数据，下载页面 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum[0], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
+	case sum[0] == 0 && sum[1] > 0:
+		reporter.Log.Printf(" *                            —— 本次合计抓取 %v 个文件，下载页面 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
+	default:
+		reporter.Log.Printf(" *                            —— 本次合计抓取 %v 条数据 + %v 个文件，下载网页 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum[0], sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
+	}
 	log.Printf(" * ")
 	log.Println(` *********************************************************************************************************************************** `)
 

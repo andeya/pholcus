@@ -2,13 +2,11 @@ package context
 
 import (
 	"github.com/PuerkitoBio/goquery"
-	. "github.com/henrylee2cn/pholcus/reporter"
 	"golang.org/x/net/html/charset"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"path"
 	"strings"
 )
@@ -30,6 +28,10 @@ type Response struct {
 	// The items is the container of parsed result.
 	items []map[string]interface{}
 
+	// The files is the container of image.
+	// "Name": string; "Body": io.ReadCloser
+	files []map[string]interface{}
+
 	// The isSucc is false when crawl process is failed and errormsg is the fail resean.
 	isSucc bool
 
@@ -38,7 +40,11 @@ type Response struct {
 
 // NewResponse returns initialized Response object.
 func NewResponse(req *Request) *Response {
-	return &Response{Request: req, items: []map[string]interface{}{}}
+	return &Response{
+		Request: req,
+		items:   []map[string]interface{}{},
+		files:   []map[string]interface{}{},
+	}
 }
 
 // IsSucc test whether download process success or not.
@@ -57,7 +63,7 @@ func (self *Response) SetStatus(issucc bool, errormsg string) {
 	self.errormsg = errormsg
 }
 
-// AddField saves KV string pair to ResponseItems preparing for Pipeline
+// AddItem saves KV string pair to Response.Items preparing for Pipeline
 func (self *Response) AddItem(data map[string]interface{}) {
 	self.items = append(self.items, data)
 }
@@ -68,6 +74,46 @@ func (self *Response) GetItem(idx int) map[string]interface{} {
 
 func (self *Response) GetItems() []map[string]interface{} {
 	return self.items
+}
+
+// AddFile saves to Response.Files preparing for Pipeline
+func (self *Response) AddFile(name ...string) {
+	file := map[string]interface{}{
+		"Body": self.Response.Body,
+	}
+
+	_, s := path.Split(self.GetUrl())
+	n := strings.Split(s, "?")[0]
+
+	// 初始化
+	baseName := strings.Split(n, ".")[0]
+	ext := path.Ext(n)
+
+	if len(name) > 0 {
+		_, n = path.Split(name[0])
+		if baseName2 := strings.Split(n, ".")[0]; baseName2 != "" {
+			baseName = baseName2
+		}
+		if ext == "" {
+			ext = path.Ext(n)
+		}
+	}
+
+	if ext == "" {
+		ext = ".html"
+	}
+
+	file["Name"] = baseName + ext
+
+	self.files = append(self.files, file)
+}
+
+func (self *Response) GetFile(idx int) map[string]interface{} {
+	return self.files[idx]
+}
+
+func (self *Response) GetFiles() []map[string]interface{} {
+	return self.files
 }
 
 // SetRequest saves request oject of self page.
@@ -121,33 +167,6 @@ func (self *Response) initDom() *goquery.Document {
 		panic(err.Error())
 	}
 	return self.dom
-}
-
-// 下载图片
-func (self *Response) LoadImg(filePath string) {
-	wholePath := "data/images/" + filePath
-	folder, _ := path.Split(wholePath)
-	// 创建/打开目录
-	f, err := os.Stat(folder)
-	if err != nil || !f.IsDir() {
-		if err := os.MkdirAll(folder, 0777); err != nil {
-			log.Printf("Error: %v\n", err)
-		}
-	}
-	// 创建文件
-	file, _ := os.Create(wholePath)
-	defer file.Close()
-	io.Copy(file, self.Response.Body)
-
-	// 打印报告
-	log.Printf(" * ")
-	Log.Printf(" *                               —— 成功下载图片： %v ——", wholePath)
-	log.Printf(" * ")
-}
-
-// 读取图片
-func (self *Response) ReadImg() io.ReadCloser {
-	return self.Response.Body
 }
 
 // Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8

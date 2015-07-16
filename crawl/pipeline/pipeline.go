@@ -6,16 +6,19 @@ import (
 	"github.com/henrylee2cn/pholcus/crawl/pipeline/collector"
 	// "github.com/henrylee2cn/pholcus/reporter"
 	"github.com/henrylee2cn/pholcus/spider"
+	"io"
 )
 
 type Pipeline interface {
 	Start()
 	//接收控制通知
 	CtrlR()
-	//发送控制通知
-	CtrlS()
+	//控制通知
+	CtrlW()
 	// 收集数据单元
-	Collect(ruleName string, data map[string]interface{}, url string, parentUrl string, downloadTime string)
+	CollectData(ruleName string, data map[string]interface{}, url string, parentUrl string, downloadTime string)
+	// 收集文件
+	CollectFile(ruleName, name string, body io.ReadCloser)
 	// 对比Url的fingerprint，返回是否有重复
 	Deduplicate(string) bool
 	// 重置
@@ -34,9 +37,12 @@ func New() Pipeline {
 	}
 }
 
-func (self *pipeline) Collect(ruleName string, data map[string]interface{}, url string, parentUrl string, downloadTime string) {
-	dataCell := collector.NewDataCell(ruleName, data, url, parentUrl, downloadTime)
-	self.Collector.Collect(dataCell)
+func (self *pipeline) CollectData(ruleName string, data map[string]interface{}, url string, parentUrl string, downloadTime string) {
+	self.Collector.CollectData(collector.NewDataCell(ruleName, data, url, parentUrl, downloadTime))
+}
+
+func (self *pipeline) CollectFile(ruleName, name string, body io.ReadCloser) {
+	self.Collector.CollectFile(collector.NewFileCell(ruleName, name, body))
 }
 
 func (self *pipeline) Init(sp *spider.Spider) {

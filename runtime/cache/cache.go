@@ -59,19 +59,21 @@ func AutoDockerQueueCap() {
 type Report struct {
 	SpiderName string
 	Keyword    string
-	Num        string
+	DataNum    uint
+	FileNum    uint
 	Time       string
 }
 
 var (
 	// 点击开始按钮的时间点
 	StartTime time.Time
-	// 小结报告通道
+	// 文本数据小结报告
 	ReportChan chan *Report
 	// 请求页面总数[]uint{总数，失败数}
 	pageSum [2]uint
 )
 
+// 重置页面计数
 func ReSetPageCount() {
 	pageSum = [2]uint{}
 }
@@ -90,7 +92,7 @@ func GetPageCount(i int) uint {
 	return pageSum[0]
 }
 
-// 统计总下载数
+// 统计页面总下载数
 var pageMutex sync.Mutex
 
 func PageCount() {

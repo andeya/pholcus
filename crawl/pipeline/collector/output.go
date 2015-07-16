@@ -26,7 +26,7 @@ func (self *Collector) Output(dataIndex int) {
 	}
 
 	// 输出数据统计
-	self.setSum(dataLen)
+	self.setDataSum(uint(dataLen))
 
 	// 选择执行输出
 	switch self.outType {

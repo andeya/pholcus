@@ -34,26 +34,31 @@ import (
 )
 
 func init() {
-	ImageTest.AddMenu()
+	FileTest.AddMenu()
 }
 
-var ImageTest = &Spider{
-	Name:        "图片下载测试",
-	Description: "图片下载测试",
+var FileTest = &Spider{
+	Name:        "文件下载测试",
+	Description: "文件下载测试",
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
 	RuleTree: &RuleTree{
 		// Spread: []string{},
 		Root: func(self *Spider) {
-			self.AddQueue(map[string]interface{}{"url": "https://www.baidu.com/img/bd_logo1.png", "rule": "下载图片"})
+			self.AddQueue(map[string]interface{}{"url": "https://www.baidu.com/img/bd_logo1.png", "rule": "百度图片"})
+			self.AddQueue(map[string]interface{}{"url": "https://github.com/henrylee2cn/pholcus", "rule": "Pholcus页面"})
 		},
 
 		Nodes: map[string]*Rule{
 
-			"下载图片": &Rule{
-
+			"百度图片": &Rule{
 				ParseFunc: func(self *Spider, resp *context.Response) {
-					resp.LoadImg("百度/百度LOGO.png")
+					resp.AddFile("baidu")
+				},
+			},
+			"Pholcus页面": &Rule{
+				ParseFunc: func(self *Spider, resp *context.Response) {
+					resp.AddFile()
 				},
 			},
 		},
