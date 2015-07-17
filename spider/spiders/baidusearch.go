@@ -59,8 +59,7 @@ var BaiduSearch = &Spider{
 							return []string{"http://www.baidu.com/s?ie=utf-8&nojc=1&wd=" + self.GetKeyword() + "&rn=50&pn=" + strconv.Itoa(50*i)}
 						},
 						map[string]interface{}{
-							"rule":      aid["rule"],
-							"outsource": aid["outsource"],
+							"rule": aid["rule"],
 						},
 					)
 					return nil

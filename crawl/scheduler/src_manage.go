@@ -28,20 +28,20 @@ type SrcManager interface {
 
 type SrcManage struct {
 	count chan bool
-	// 蜘蛛编号spiderId----->请求优先级priority队列
+	// map[spiderId][请求优先级priority][]请求，优先级默认为0
 	queue map[int]([][]*context.Request)
 }
 
 func NewSrcManage(capacity uint) SrcManager {
 	return &SrcManage{
-		count: make(chan bool, int(capacity)),
+		count: make(chan bool, capacity),
 		queue: make(map[int][][]*context.Request),
 	}
 }
 
 func (self *SrcManage) Push(req *context.Request) {
 	if spiderId, ok := req.GetSpiderId(); ok {
-		priority := int(req.GetPriority())
+		priority := req.GetPriority()
 		if priority > MAX_PRIORITY {
 			priority = MAX_PRIORITY
 		}

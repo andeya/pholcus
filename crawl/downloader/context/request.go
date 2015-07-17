@@ -24,8 +24,10 @@ type Request struct {
 	Cookies []*http.Cookie
 	// POST values
 	PostData url.Values
+
 	//是否支持外包（分布式），根据ruleTree.Outsource确定
-	Outsource bool
+	// Outsource bool
+
 	// Redirect function for downloader used in http.Client
 	// If CheckRedirect returns an error, the Client's Get
 	// method returns both the previous Response.
@@ -35,8 +37,8 @@ type Request struct {
 	// 标记临时数据，通过temp[x]==nil判断是否有值存入，所以请存入带类型的值，如[]int(nil)等
 	Temp map[string]interface{}
 
-	// 即将加入哪个优先级的队列当中
-	Priority uint
+	// 即将加入哪个优先级的队列当中，默认为0，最小优先级为0
+	Priority int
 }
 
 // NewRequest returns initialized Request object.
@@ -77,12 +79,12 @@ func NewRequest(param map[string]interface{}) *Request {
 		req.PostData = nil
 	}
 
-	switch v := param["outsource"].(type) {
-	case bool:
-		req.Outsource = v
-	default:
-		req.Outsource = false
-	}
+	// switch v := param["outsource"].(type) {
+	// case bool:
+	// 	req.Outsource = v
+	// default:
+	// 	req.Outsource = false
+	// }
 
 	switch v := param["checkRedirect"].(type) {
 	case func(*http.Request, []*http.Request) error:
@@ -99,10 +101,15 @@ func NewRequest(param map[string]interface{}) *Request {
 	}
 
 	switch v := param["priority"].(type) {
-	case uint:
-		req.Priority = v
+	case int:
+		if v > 0 {
+			req.Priority = v
+		} else {
+			req.Priority = 0
+		}
+
 	default:
-		req.Priority = uint(0)
+		req.Priority = 0
 	}
 
 	switch v := param["header"].(type) {
@@ -206,13 +213,13 @@ func (self *Request) GetCookies() []*http.Cookie {
 	return self.Cookies
 }
 
-func (self *Request) CanOutsource() bool {
-	return self.Outsource
-}
+// func (self *Request) CanOutsource() bool {
+// 	return self.Outsource
+// }
 
-func (self *Request) SetOutsource(can bool) {
-	self.Outsource = can
-}
+// func (self *Request) SetOutsource(can bool) {
+// 	self.Outsource = can
+// }
 
 func (self *Request) GetTemp(key string) interface{} {
 	return self.Temp[key]
@@ -239,10 +246,10 @@ func (self *Request) SetSpiderId(spiderId int) {
 	self.Temp["__SPIDER_ID__"] = spiderId
 }
 
-func (self *Request) GetPriority() uint {
+func (self *Request) GetPriority() int {
 	return self.Priority
 }
 
-func (self *Request) SetPriority(priority uint) {
+func (self *Request) SetPriority(priority int) {
 	self.Priority = priority
 }

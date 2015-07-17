@@ -31,8 +31,8 @@ func (self *Collector) SaveFile() {
 
 			// 创建文件
 			f, _ := os.Create(dir + file["Name"].(string))
-			defer f.Close()
 			io.Copy(f, file["Body"].(io.ReadCloser))
+			f.Close()
 
 			// 打印报告
 			log.Printf(" * ")
