@@ -153,7 +153,7 @@ func clientWindow() {
 					PushButton{
 						MinSize:  Size{110, 0},
 						Text:     "断开服务器连接",
-						AssignTo: &toggleRunBtn,
+						AssignTo: &runStopBtn,
 					},
 				},
 			},
@@ -162,24 +162,13 @@ func clientWindow() {
 		log.Fatal(err)
 	}
 
-	// 绑定log输出界面
-	lv, err := NewLogView(mw)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.SetOutput(lv)
-
-	if icon, err := walk.NewIconFromResource("ICON"); err == nil {
-		mw.SetIcon(icon)
-	}
+	setWindow()
 
 	// 禁用配置
 	setting.SetEnabled(false)
-	toggleRunBtn.SetEnabled(false)
-
-	// 业务程序准备
-	LogicApp.Ready()
-
+	runStopBtn.SetEnabled(false)
+	// 配置运行模式
+	WTaskConf1()
 	// 记录配置信息
 	WTaskConf2()
 
@@ -193,13 +182,13 @@ func clientWindow() {
 // 点击开始事件
 // func clientStart() {
 
-// 	if toggleRunBtn.Text() == "重新连接服务器" {
-// 		toggleRunBtn.SetEnabled(false)
-// 		toggleRunBtn.SetText("正在连接服务器…")
+// 	if runStopBtn.Text() == "重新连接服务器" {
+// 		runStopBtn.SetEnabled(false)
+// 		runStopBtn.SetText("正在连接服务器…")
 // 		clientStop()
 // 		return
 // 	}
 
-// 	toggleRunBtn.SetText("断开服务器连接")
+// 	runStopBtn.SetText("断开服务器连接")
 
 // }

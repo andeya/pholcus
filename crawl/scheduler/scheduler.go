@@ -10,6 +10,7 @@ import (
 type Scheduler interface {
 	// 采集非重复url并返回对比结果，重复为true
 	Compare(string) bool
+	PauseRecover() // 暂停\恢复所有爬行任务
 	Stop()
 	IsStop() bool
 	SrcManager
@@ -60,9 +61,9 @@ func (self *scheduler) Push(req *context.Request) {
 	if self.status == status.STOP {
 		return
 	}
-	is := self.Compare(req.GetUrl() + req.GetMethod())
+
 	// 有重复则返回
-	if is {
+	if self.Compare(req.GetUrl() + req.GetMethod()) {
 		return
 	}
 
@@ -79,10 +80,20 @@ func (self *scheduler) Compare(url string) bool {
 }
 
 func (self *scheduler) Use(spiderId int) (req *context.Request) {
-	if self.status == status.STOP {
+	if self.status != status.RUN {
 		return nil
 	}
 	return self.SrcManage.Use(spiderId)
+}
+
+// 暂停\恢复所有爬行任务
+func (self *scheduler) PauseRecover() {
+	switch self.status {
+	case status.PAUSE:
+		self.status = status.RUN
+	case status.RUN:
+		self.status = status.PAUSE
+	}
 }
 
 func (self *scheduler) Stop() {
@@ -91,8 +102,5 @@ func (self *scheduler) Stop() {
 }
 
 func (self *scheduler) IsStop() bool {
-	if self.status == status.STOP {
-		return true
-	}
-	return false
+	return self.status == status.STOP
 }

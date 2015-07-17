@@ -5,23 +5,45 @@ import (
 	"fmt"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
+	"io"
 	"log"
 )
 
 type Report struct {
-	status int
+	// 有效输出
+	output io.Writer
+	// 废弃输出
+	rubbish io.Writer
+	status  int
 }
 
 var Log Reporter
 
 func init() {
-	Log = &Report{}
+	Log = &Report{
+		rubbish: &rubbish{},
+	}
 }
 
-func (self *Report) send(str string) {
-	if cache.Task.RunMode != status.OFFLINE {
-		cache.PushNetData(str)
+func (self *Report) SetOutput(w io.Writer) {
+	if w != nil {
+		self.output = w
+		log.SetOutput(w)
 	}
+}
+
+func (self *Report) Run() {
+	if self.output != nil {
+		log.SetOutput(self.output)
+	}
+	self.status = status.RUN
+}
+
+func (self *Report) Stop() {
+	if self.output != nil {
+		log.SetOutput(self.rubbish)
+	}
+	self.status = status.STOP
 }
 
 func (self *Report) Printf(format string, v ...interface{}) {
@@ -48,10 +70,15 @@ func (self *Report) Fatal(v ...interface{}) {
 	log.Fatal(v...)
 }
 
-func (self *Report) Stop() {
-	self.status = status.STOP
+func (self *Report) send(str string) {
+	if cache.Task.RunMode != status.OFFLINE {
+		cache.PushNetData(str)
+	}
 }
 
-func (self *Report) Run() {
-	self.status = status.RUN
+// 数据中转
+type rubbish struct{}
+
+func (self *rubbish) Write(p []byte) (int, error) {
+	return 0, nil
 }

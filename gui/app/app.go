@@ -1,4 +1,5 @@
 // app interface for graphical user interface.
+// 必须调用的三（或四）个函数方法，依次为：New()-->[SetLog(io.Writer)-->]APP.SetRunMode(int)-->APP.Run()
 package app
 
 import (
@@ -11,7 +12,9 @@ import (
 	"github.com/henrylee2cn/pholcus/runtime/status"
 	"github.com/henrylee2cn/pholcus/spider"
 	_ "github.com/henrylee2cn/pholcus/spider/spiders"
+	"io"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -26,6 +29,7 @@ type App interface {
 	SpiderQueueLen() int
 
 	// status.OFFLINE  status.SERVER  status.CLIENT
+	// New()之后Run()之前必须调用一次该方法
 	SetRunMode(int) App
 
 	// server与client模式下设置
@@ -48,30 +52,38 @@ type App interface {
 	// 已被显式赋值过的spider将不再重新分配Keyword
 	SetSpiderQueue(original []spider.Spider, keywords string) App
 
-	// 阻塞等待运行结束
-	WaitStop()
+	// 设置全局log输出目标，不设置或设置为nil则为go语言默认
+	SetLog(io.Writer) App
+
+	// Run()对外为阻塞运行方式，其返回时意味着当前任务已经执行完毕
+	// Run()必须在所有应当配置项配置完成后调用
+	// server模式下生成任务的方法，必须在全局配置和蜘蛛队列设置完成后才可调用
+	Run()
 
 	// Offline 模式下中途终止任务
+	// 对外为阻塞运行方式，其返回时意味着当前任务已经终止
 	Stop()
 
-	// server模式下生成任务的方法，必须在全局配置和蜘蛛队列设置完成后才可调用
-	CreateTask()
+	// Offline 模式下暂停\恢复任务
+	PauseRecover()
 
-	// 运行前准备
-	Ready() App
-	// Run()必须在最后运行
-	Run()
+	// 返回当前状态
+	Status() int
 }
 
 type Logic struct {
 	spider.Traversal
-	finish chan bool
+	status     int
+	finish     chan bool
+	finishOnce sync.Once
 }
 
 func New() App {
+	// 开启报告，调用前必须先设置Log.Output(w io.Writer)
+	reporter.Log.Run()
+
 	return &Logic{
 		Traversal: spider.Menu,
-		finish:    make(chan bool, 1),
 	}
 }
 
@@ -83,8 +95,18 @@ func (self *Logic) GetSpiderByName(name string) *spider.Spider {
 	return self.Traversal.GetByName(name)
 }
 
+// 设置全局log输出目标，不设置或设置为nil则为go语言默认
+func (self *Logic) SetLog(w io.Writer) App {
+	reporter.Log.SetOutput(w)
+	return self
+}
+
+var modeOnce sync.Once
+
 func (self *Logic) SetRunMode(mode int) App {
 	cache.Task.RunMode = mode
+	// 运行pholcus核心
+	modeOnce.Do(PholcusRun)
 	return self
 }
 
@@ -150,29 +172,14 @@ func (self *Logic) SpiderQueueLen() int {
 	return Pholcus.Spiders.Len()
 }
 
-// server模式下分发任务，必须在SpiderQueueL()执行之后调用
-func (self *Logic) CreateTask() {
-	// 便利添加任务到库
-	tasksNum, spidersNum := Pholcus.AddNewTask()
-
-	// 打印报告
-	log.Println(` *********************************************************************************************************************************** `)
-	log.Printf(" * ")
-	log.Printf(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, spidersNum)
-	log.Printf(" * ")
-	log.Println(` *********************************************************************************************************************************** `)
-}
-
-func (self *Logic) Ready() App {
-	// 开启报告
-	reporter.Log.Run()
-
-	// 运行pholcus核心
-	PholcusRun()
-	return self
-}
-
 func (self *Logic) Run() {
+	// 确保开启报告
+	reporter.Log.Run()
+	self.finish = make(chan bool)
+	self.finishOnce = sync.Once{}
+
+	// 任务执行
+	self.status = status.RUN
 	switch cache.Task.RunMode {
 	case status.OFFLINE:
 		self.offline()
@@ -184,14 +191,26 @@ func (self *Logic) Run() {
 		log.Println(" *    ——请指定正确的运行模式！——")
 		return
 	}
+	<-self.finish
+}
+
+// Offline 模式下暂停\恢复任务
+func (self *Logic) PauseRecover() {
+	switch self.status {
+	case status.PAUSE:
+		self.status = status.RUN
+	case status.RUN:
+		self.status = status.PAUSE
+	}
+
+	scheduler.Sdl.PauseRecover()
 }
 
 // Offline 模式下中途终止任务
 func (self *Logic) Stop() {
-	status.Crawl = status.STOP
+	self.status = status.STOP
 	Pholcus.Crawls.Stop()
 	scheduler.Sdl.Stop()
-	reporter.Log.Stop()
 
 	// 总耗时
 	takeTime := time.Since(cache.StartTime).Minutes()
@@ -203,29 +222,55 @@ func (self *Logic) Stop() {
 	log.Printf(" * ")
 	log.Println(` *********************************************************************************************************************************** `)
 
+	reporter.Log.Stop()
+
 	// 标记结束
-	self.finish <- true
+	self.finishOnce.Do(func() { close(self.finish) })
 }
 
-// 阻塞等待运行结束
-func (self *Logic) WaitStop() {
-	<-self.finish
+// 返回当前运行状态
+func (self *Logic) Status() int {
+	return self.status
 }
 
 // ******************************************** 私有方法 ************************************************* \\
 
 func (self *Logic) offline() {
-	// 每次执行重新开启报告
-	reporter.Log.Run()
 	self.exec()
 }
 
-func (self *Logic) server() {}
+// 必须在SetSpiderQueue()执行之后调用才可以成功添加任务
+func (self *Logic) server() {
+	// 标记结束
+	defer func() {
+		self.status = status.STOP
+		self.finishOnce.Do(func() { close(self.finish) })
+	}()
+
+	// 便利添加任务到库
+	tasksNum, spidersNum := Pholcus.AddNewTask()
+
+	if tasksNum == 0 {
+		return
+	}
+
+	// 打印报告
+	log.Println(` *********************************************************************************************************************************** `)
+	log.Printf(" * ")
+	log.Printf(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, spidersNum)
+	log.Printf(" * ")
+	log.Println(` *********************************************************************************************************************************** `)
+
+}
 
 func (self *Logic) client() {
-	for {
-		// reporter.Log.Println("开始获取任务")
+	// 标记结束
+	defer func() {
+		self.status = status.STOP
+		self.finishOnce.Do(func() { close(self.finish) })
+	}()
 
+	for {
 		// 从任务库获取一个任务
 		t := Pholcus.DownTask()
 		// reporter.Log.Printf("成功获取任务 %#v", t)
@@ -235,8 +280,6 @@ func (self *Logic) client() {
 
 		// 执行任务
 		self.exec()
-
-		self.WaitStop()
 	}
 }
 
@@ -290,21 +333,22 @@ func (self *Logic) exec() {
 	// 开始计时
 	cache.StartTime = time.Now()
 
-	// 任务执行
-	status.Crawl = status.RUN
-
 	// 根据模式选择合理的并发
 	if cache.Task.RunMode == status.OFFLINE {
 		go self.goRun(count)
 	} else {
-		// 保证了打印信息的同步输出
+		// 不并发是为保证接收服务端任务的同步
 		self.goRun(count)
 	}
 }
 
 // 任务执行
 func (self *Logic) goRun(count int) {
-	for i := 0; i < count && status.Crawl == status.RUN; i++ {
+	for i := 0; i < count && self.status != status.STOP; i++ {
+		if self.status == status.PAUSE {
+			time.Sleep(1e9)
+			continue
+		}
 		// 从爬行队列取出空闲蜘蛛，并发执行
 		c := Pholcus.Crawls.Use()
 		if c != nil {
@@ -356,6 +400,9 @@ func (self *Logic) goRun(count int) {
 	log.Printf(" * ")
 	log.Println(` *********************************************************************************************************************************** `)
 
-	// 标记结束
-	self.finish <- true
+	// 单机模式并发运行，需要标记任务结束
+	if cache.Task.RunMode == status.OFFLINE {
+		self.status = status.STOP
+		self.finishOnce.Do(func() { close(self.finish) })
+	}
 }

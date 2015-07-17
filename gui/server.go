@@ -158,7 +158,7 @@ func serverWindow() {
 					PushButton{
 						MinSize:   Size{90, 0},
 						Text:      serverBtnTxt(),
-						AssignTo:  &toggleRunBtn,
+						AssignTo:  &runStopBtn,
 						OnClicked: serverStart,
 					},
 				},
@@ -168,19 +168,10 @@ func serverWindow() {
 		log.Fatal(err)
 	}
 
-	// 绑定log输出界面
-	lv, err := NewLogView(mw)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.SetOutput(lv)
+	setWindow()
 
-	if icon, err := walk.NewIconFromResource("ICON"); err == nil {
-		mw.SetIcon(icon)
-	}
-
-	// 业务程序准备
-	LogicApp.Ready()
+	// 配置运行模式
+	WTaskConf1()
 
 	// 运行窗体程序
 	mw.Run()
@@ -204,19 +195,19 @@ func serverStart() {
 	// 记录配置信息
 	WTaskConf2()
 
-	toggleRunBtn.SetEnabled(false)
-	toggleRunBtn.SetText("分发任务 (···)")
+	runStopBtn.SetEnabled(false)
+	runStopBtn.SetText("分发任务 (···)")
 
 	// 重置spiders队列
 	SetSpiderQueue()
 
 	// 生成分发任务
-	LogicApp.CreateTask()
+	LogicApp.Run()
 
 	serverCount++
 
-	toggleRunBtn.SetText(serverBtnTxt())
-	toggleRunBtn.SetEnabled(true)
+	runStopBtn.SetText(serverBtnTxt())
+	runStopBtn.SetEnabled(true)
 }
 
 // 更新按钮文字

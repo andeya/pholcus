@@ -69,15 +69,12 @@ func runmodeWindow() {
 			PushButton{
 				Text:     "确认开始",
 				MinSize:  Size{0, 30},
-				AssignTo: &toggleRunBtn,
+				AssignTo: &runStopBtn,
 				OnClicked: func() {
 					if err := db.Submit(); err != nil {
 						log.Println(err)
 						return
 					}
-
-					// 配置运行模式
-					WTaskConf1()
 
 					switch Input.RunMode {
 					case status.OFFLINE:
@@ -89,6 +86,7 @@ func runmodeWindow() {
 					case status.CLIENT:
 						clientWindow()
 					}
+
 				},
 			},
 		},

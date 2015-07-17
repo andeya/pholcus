@@ -3,6 +3,7 @@ package gui
 import (
 	"github.com/henrylee2cn/pholcus/config"
 	. "github.com/henrylee2cn/pholcus/gui/model"
+	"github.com/henrylee2cn/pholcus/runtime/status"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"log"
@@ -152,9 +153,15 @@ func offlineWindow() {
 					},
 
 					PushButton{
+						Text:      "暂停/恢复",
+						AssignTo:  &pauseRecoverBtn,
+						OnClicked: offlinePauseRecover,
+					},
+
+					PushButton{
 						Text:      "开始运行",
-						AssignTo:  &toggleRunBtn,
-						OnClicked: offlineStart,
+						AssignTo:  &runStopBtn,
+						OnClicked: offlineRunStop,
 					},
 				},
 			},
@@ -163,34 +170,34 @@ func offlineWindow() {
 		log.Fatal(err)
 	}
 
-	// 绑定log输出界面
-	lv, err := NewLogView(mw)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.SetOutput(lv)
+	setWindow()
 
-	if icon, err := walk.NewIconFromResource("ICON"); err == nil {
-		mw.SetIcon(icon)
-	}
-
-	// 业务程序准备
-	LogicApp.Ready()
+	pauseRecoverBtn.SetVisible(false)
 
 	// 运行窗体程序
 	mw.Run()
 }
 
-// 点击开始事件
-func offlineStart() {
-	// 业务程序准备
-	LogicApp.Ready()
+// 暂停\恢复
+func offlinePauseRecover() {
+	switch LogicApp.Status() {
+	case status.RUN:
+		pauseRecoverBtn.SetText("恢复运行")
+	case status.PAUSE:
+		pauseRecoverBtn.SetText("暂停")
+	}
+	LogicApp.PauseRecover()
+}
 
-	if toggleRunBtn.Text() == "取消" {
-		toggleRunBtn.SetEnabled(false)
-		toggleRunBtn.SetText("取消中…")
+// 开始\停止控制
+func offlineRunStop() {
+
+	if LogicApp.Status() != status.STOP {
+		runStopBtn.SetEnabled(false)
+		runStopBtn.SetText("停止中…")
+		pauseRecoverBtn.SetVisible(false)
+		pauseRecoverBtn.SetText("暂停")
 		LogicApp.Stop()
-		LogicApp.WaitStop()
 		offlineResetBtn()
 		return
 	}
@@ -208,24 +215,28 @@ func offlineStart() {
 		return
 	}
 
-	toggleRunBtn.SetText("取消")
+	runStopBtn.SetText("停止")
 
+	// 配置运行模式
+	WTaskConf1()
 	// 记录配置信息
 	WTaskConf2()
 
 	// 更新蜘蛛队列
 	SetSpiderQueue()
 
-	LogicApp.Run()
-
 	go func() {
-		LogicApp.WaitStop()
+		pauseRecoverBtn.SetText("暂停")
+		pauseRecoverBtn.SetVisible(true)
+		LogicApp.Run()
 		offlineResetBtn()
+		pauseRecoverBtn.SetVisible(false)
+		pauseRecoverBtn.SetText("暂停")
 	}()
 }
 
 // Offline 模式下按钮状态控制
 func offlineResetBtn() {
-	toggleRunBtn.SetEnabled(true)
-	toggleRunBtn.SetText("开始运行")
+	runStopBtn.SetEnabled(true)
+	runStopBtn.SetText("开始运行")
 }

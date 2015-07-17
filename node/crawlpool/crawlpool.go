@@ -49,7 +49,7 @@ func (self *cq) Reset(spiderNum int) int {
 }
 
 func (self *cq) Use() crawl.Crawler {
-	if self.status == status.STOP {
+	if self.status != status.RUN {
 		return nil
 	}
 	for {

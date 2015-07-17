@@ -4,6 +4,8 @@ import (
 	"github.com/henrylee2cn/pholcus/gui/app"
 	. "github.com/henrylee2cn/pholcus/gui/model"
 	"github.com/henrylee2cn/pholcus/spider"
+	"github.com/lxn/walk"
+	"log"
 )
 
 var LogicApp = app.New()
@@ -45,4 +47,18 @@ func SpiderNames() (names []string) {
 		names = append(names, sp.Spider.GetName())
 	}
 	return
+}
+
+func setWindow() {
+	// 绑定log输出界面
+	lv, err := NewLogView(mw)
+	if err != nil {
+		log.Fatal(err)
+	}
+	LogicApp.SetLog(lv)
+
+	// 设置左上角图标
+	if icon, err := walk.NewIconFromResource("ICON"); err == nil {
+		mw.SetIcon(icon)
+	}
 }
