@@ -4,6 +4,7 @@ import (
 	"github.com/henrylee2cn/pholcus/config"
 	. "github.com/henrylee2cn/pholcus/gui/model"
 	"github.com/henrylee2cn/pholcus/runtime/status"
+	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"log"
 )
@@ -93,6 +94,10 @@ func runmodeWindow() {
 		},
 	}.Create()); err != nil {
 		log.Fatal(err)
+	}
+
+	if icon, err := walk.NewIconFromResource("ICON"); err == nil {
+		mw.SetIcon(icon)
 	}
 	// 运行窗体程序
 	mw.Run()
