@@ -72,12 +72,15 @@ go get "github.com/henrylee2cn/teleport"
 go get "github.com/PuerkitoBio/goquery"
 go get "github.com/bitly/go-simplejson"
 go get "github.com/henrylee2cn/mahonia"
-go get "golang.org/x/net/html/charset"
-go get "golang.org/x/text"
+go get "github.com/andybalholm/cascadia"
 go get "github.com/lxn/walk"
 go get "github.com/lxn/win"
 go get "github.com/tealeg/xlsx"
 go get "gopkg.in/mgo.v2"
+<以下需翻墙下载>
+go get "golang.org/x/net/html"
+go get "golang.org/x/text/encoding"
+go get "golang.org/x/text/transform"
 ```
 （在此对以上依赖包的开源项目表示感谢！）
 

@@ -146,22 +146,33 @@ func offlineWindow() {
 			Composite{
 				Layout: HBox{},
 				Children: []Widget{
-
-					// 必填项错误检查
-					LineErrorPresenter{
-						AssignTo: &ep,
+					VSplitter{
+						Children: []Widget{
+							// 必填项错误检查
+							LineErrorPresenter{
+								AssignTo: &ep,
+							},
+						},
 					},
-
-					PushButton{
-						Text:      "暂停/恢复",
-						AssignTo:  &pauseRecoverBtn,
-						OnClicked: offlinePauseRecover,
+					VSplitter{
+						MaxSize: Size{90, 50},
+						Children: []Widget{
+							PushButton{
+								Text:      "暂停/恢复",
+								AssignTo:  &pauseRecoverBtn,
+								OnClicked: offlinePauseRecover,
+							},
+						},
 					},
-
-					PushButton{
-						Text:      "开始运行",
-						AssignTo:  &runStopBtn,
-						OnClicked: offlineRunStop,
+					VSplitter{
+						MaxSize: Size{90, 50},
+						Children: []Widget{
+							PushButton{
+								Text:      "开始运行",
+								AssignTo:  &runStopBtn,
+								OnClicked: offlineRunStop,
+							},
+						},
 					},
 				},
 			},
