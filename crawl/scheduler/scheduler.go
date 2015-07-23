@@ -38,10 +38,10 @@ type scheduler struct {
 var Sdl Scheduler
 
 func Init(capacity uint) {
-	Sdl = new(capacity)
+	Sdl = newScheduler(capacity)
 }
 
-func new(capacity uint) Scheduler {
+func newScheduler(capacity uint) Scheduler {
 	return &scheduler{
 		SrcManage:     NewSrcManage(capacity).(*SrcManage),
 		Deduplication: deduplicate.New().(*deduplicate.Deduplication),

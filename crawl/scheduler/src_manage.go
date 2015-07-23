@@ -2,12 +2,9 @@
 package scheduler
 
 import (
+	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/crawl/downloader/context"
-)
-
-const (
-	// 允许的最高优先级
-	MAX_PRIORITY = 5
+	"sync"
 )
 
 // SrcManage is an interface that who want implement an management object can realize these functions.
@@ -27,38 +24,55 @@ type SrcManager interface {
 }
 
 type SrcManage struct {
+	// 全局并发量计数
 	count chan bool
-	// map[spiderId][请求优先级priority][]请求，优先级默认为0
-	queue map[int]([][]*context.Request)
+	// map[spiderId](map[请求优先级priority]([]请求))，优先级默认为0
+	queue map[int](map[int][]*context.Request)
+	// map[spiderId]int[存在的请求优先级],优先级从小到大排序
+	index map[int][]int
+	// map[spiderId]并发锁
+	mutex map[int]*sync.Mutex
 }
 
 func NewSrcManage(capacity uint) SrcManager {
 	return &SrcManage{
 		count: make(chan bool, capacity),
-		queue: make(map[int][][]*context.Request),
+		queue: make(map[int]map[int][]*context.Request),
+		index: make(map[int][]int),
+		mutex: make(map[int]*sync.Mutex),
 	}
 }
 
 func (self *SrcManage) Push(req *context.Request) {
-	if spiderId, ok := req.GetSpiderId(); ok {
-		priority := req.GetPriority()
-		if priority > MAX_PRIORITY {
-			priority = MAX_PRIORITY
-		}
-
-		for i, x := 0, priority+1-len(self.queue[spiderId]); i < x; i++ {
-			self.queue[spiderId] = append(self.queue[spiderId], []*context.Request{})
-		}
-
-		self.queue[spiderId][priority] = append(self.queue[spiderId][priority], req)
+	spiderId, ok := req.GetSpiderId()
+	if !ok {
+		return
 	}
+
+	// 初始化该蜘蛛的队列
+	if _, ok := self.queue[spiderId]; !ok {
+		self.mutex[spiderId] = new(sync.Mutex)
+		self.queue[spiderId] = make(map[int][]*context.Request)
+	}
+
+	priority := req.GetPriority()
+
+	// 登记该蜘蛛下该优先级队列
+	if _, ok := self.queue[spiderId][priority]; !ok {
+		self.uIndex(spiderId, priority)
+	}
+
+	// 添加请求到队列
+	self.queue[spiderId][priority] = append(self.queue[spiderId][priority], req)
 }
 
 func (self *SrcManage) Use(spiderId int) (req *context.Request) {
+	// 按优先级从高到低取出请求
 	for i := len(self.queue[spiderId]) - 1; i >= 0; i-- {
-		if len(self.queue[spiderId][i]) > 0 {
-			req = self.queue[spiderId][i][0]
-			self.queue[spiderId][i] = self.queue[spiderId][i][1:]
+		idx := self.index[spiderId][i]
+		if len(self.queue[spiderId][idx]) > 0 {
+			req = self.queue[spiderId][idx][0]
+			self.queue[spiderId][idx] = self.queue[spiderId][idx][1:]
 			self.count <- true
 			return
 		}
@@ -73,7 +87,8 @@ func (self *SrcManage) Free() {
 func (self *SrcManage) IsEmpty(spiderId int) (empty bool) {
 	empty = true
 	for i, count := 0, len(self.queue[spiderId]); i < count; i++ {
-		if len(self.queue[spiderId][i]) > 0 {
+		idx := self.index[spiderId][i]
+		if len(self.queue[spiderId][idx]) > 0 {
 			empty = false
 			return
 		}
@@ -97,5 +112,18 @@ func (self *SrcManage) IsAllEmpty() bool {
 
 func (self *SrcManage) ClearAll() {
 	self.count = make(chan bool, cap(self.count))
-	self.queue = make(map[int][][]*context.Request)
+	self.queue = make(map[int]map[int][]*context.Request)
+	self.index = make(map[int][]int)
+	self.mutex = make(map[int]*sync.Mutex)
+}
+
+// 登记蜘蛛的优先级
+func (self *SrcManage) uIndex(spiderId int, priority int) {
+	self.mutex[spiderId].Lock()
+	defer self.mutex[spiderId].Unlock()
+
+	self.index[spiderId] = append(self.index[spiderId], priority)
+
+	// 从小到大排序
+	util.QSort(self.index[spiderId])
 }

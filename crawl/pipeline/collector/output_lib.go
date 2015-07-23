@@ -6,8 +6,8 @@ import (
 	"gopkg.in/mgo.v2"
 	// "gopkg.in/mgo.v2/bson"
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
+	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	. "github.com/henrylee2cn/pholcus/reporter"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
@@ -68,8 +68,7 @@ func (self *Collector) excel(dataIndex int) {
 					if v, ok := vd[title].(string); ok || vd[title] == nil {
 						cell.Value = v
 					} else {
-						j, _ := json.Marshal(vd[title])
-						cell.Value = string(j)
+						cell.Value = util.JsonString(vd[title])
 					}
 				}
 				cell = row.AddCell()
@@ -152,8 +151,7 @@ func (self *Collector) csv(dataIndex int) {
 					if v, ok := vd[title].(string); ok || vd[title] == nil {
 						row = append(row, v)
 					} else {
-						j, _ := json.Marshal(vd[title])
-						row = append(row, string(j))
+						row = append(row, util.JsonString(vd[title]))
 					}
 				}
 

@@ -133,3 +133,61 @@ func MakeMd5(obj interface{}, length int) string {
 	s := hex.EncodeToString(h.Sum(nil))
 	return s[:length]
 }
+
+// 将对象转为json字符串
+func JsonString(obj interface{}) string {
+	b, _ := json.Marshal(obj)
+	s := fmt.Sprintf("%+v", string(b))
+	r := strings.Replace(s, `\u003c`, "<", -1)
+	r = strings.Replace(r, `\u003e`, ">", -1)
+	return r
+}
+
+// []int从小到大快速排序
+func QSort(arr []int, start2End ...int) {
+	var start, end int
+
+	switch len(start2End) {
+	case 0:
+		start = 0
+		end = len(arr) - 1
+	case 1:
+		start = start2End[0]
+		end = len(arr) - 1
+	default:
+		start = start2End[0]
+		end = start2End[1]
+	}
+
+	var (
+		key  int = arr[start]
+		low  int = start
+		high int = end
+	)
+	for {
+		for low < high {
+			if arr[high] < key {
+				arr[low] = arr[high]
+				break
+			}
+			high--
+		}
+		for low < high {
+			if arr[low] > key {
+				arr[high] = arr[low]
+				break
+			}
+			low++
+		}
+		if low >= high {
+			arr[low] = key
+			break
+		}
+	}
+	if low-1 > start {
+		QSort(arr, start, low-1)
+	}
+	if high+1 < end {
+		QSort(arr, high+1, end)
+	}
+}
