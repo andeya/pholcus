@@ -28,22 +28,10 @@ func (self *Collector) Output(dataIndex int) {
 	// 输出数据统计
 	self.setDataSum(uint(dataLen))
 
-	// 选择执行输出
-	switch self.outType {
-	case "excel":
-		self.excel(dataIndex)
-	case "csv":
-		self.csv(dataIndex)
-	case "mongoDB":
-		self.mgo(dataIndex)
-	case "HBase":
-		self.hbase(dataIndex)
-	default:
-		self.excel(dataIndex)
-	}
+	// 执行输出
+	Output[self.outType](self, dataIndex)
 
 	log.Printf(" * ")
 	Log.Printf(" *     [任务：%v | 关键词：%v | 批次：%v]   输出 %v 条数据，用时 %.5f 分钟！\n", self.Spider.GetName(), self.Spider.GetKeyword(), self.outCount[1]+1, dataLen, time.Since(cache.StartTime).Minutes())
 	log.Printf(" * ")
-
 }

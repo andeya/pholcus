@@ -11,6 +11,7 @@ import (
 	"hash/crc32"
 	"hash/fnv"
 	"io"
+	"log"
 	"os"
 	"regexp"
 	"strconv"
@@ -189,5 +190,78 @@ func QSort(arr []int, start2End ...int) {
 	}
 	if high+1 < end {
 		QSort(arr, high+1, end)
+	}
+}
+
+// []uint64从小到大快速排序
+func QSortU64(arr []uint64, start2End ...int) {
+	var start, end int
+
+	switch len(start2End) {
+	case 0:
+		start = 0
+		end = len(arr) - 1
+	case 1:
+		start = start2End[0]
+		end = len(arr) - 1
+	default:
+		start = start2End[0]
+		end = start2End[1]
+	}
+
+	var (
+		key      = arr[start]
+		low  int = start
+		high int = end
+	)
+	for {
+		for low < high {
+			if arr[high] < key {
+				arr[low] = arr[high]
+				break
+			}
+			high--
+		}
+		for low < high {
+			if arr[low] > key {
+				arr[high] = arr[low]
+				break
+			}
+			low++
+		}
+		if low >= high {
+			arr[low] = key
+			break
+		}
+	}
+	if low-1 > start {
+		QSortU64(arr, start, low-1)
+	}
+	if high+1 < end {
+		QSortU64(arr, high+1, end)
+	}
+}
+
+// []string按首字符从小到大快速排序
+func StringsSort(ss []string) {
+	var arr []uint64
+	var m = make(map[uint64]string)
+	for _, s := range ss {
+		i := HashString(s)
+		m[i] = s
+		arr = append(arr, i)
+	}
+
+	QSortU64(arr)
+
+	for k, v := range arr {
+		ss[k] = m[v]
+	}
+}
+
+//检查并打印错误
+func CheckErr(err error) {
+	if err != nil {
+		log.Println(err)
 	}
 }

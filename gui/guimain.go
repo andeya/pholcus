@@ -1,8 +1,7 @@
 package gui
 
 import (
-	"github.com/henrylee2cn/pholcus/gui/app"
-	. "github.com/henrylee2cn/pholcus/gui/model"
+	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/spider"
 	"github.com/lxn/walk"
 	"log"

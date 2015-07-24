@@ -4,7 +4,7 @@ package config
 
 const (
 	//软件名
-	APP_NAME = "Pholcus幽灵蛛数据采集_v0.5.0 （by henrylee2cn）"
+	APP_NAME = "Pholcus幽灵蛛数据采集_v0.5.1 （by henrylee2cn）"
 	// 蜘蛛池容量
 	CRAWLS_CAP = 50
 
@@ -19,4 +19,13 @@ const (
 
 	//mongodb数据库集合
 	DB_COLLECTION = "news"
+
+	//mysql地址
+	MYSQL_HOST = "127.0.0.1:3306"
+	//msyql数据库
+	MYSQL_DB = "pholcus"
+	//mysql用户
+	MYSQL_USER = "root"
+	//mysql密码
+	MYSQL_PW = ""
 )
