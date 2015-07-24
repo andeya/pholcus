@@ -30,7 +30,6 @@ var Task = &TaskConf{
 	ThreadNum:         20,
 	BaseSleeptime:     1000,
 	RandomSleepPeriod: 3000,
-	OutType:           "csv",
 	DockerCap:         10000,
 
 	MaxPage: 100,

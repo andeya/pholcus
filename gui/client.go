@@ -2,7 +2,6 @@ package gui
 
 import (
 	"github.com/henrylee2cn/pholcus/config"
-	. "github.com/henrylee2cn/pholcus/gui/model"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"log"
@@ -129,12 +128,7 @@ func clientWindow() {
 								Title:      "*输出方式",
 								Layout:     HBox{},
 								DataMember: "OutType",
-								Buttons: []RadioButton{
-									{Text: GuiOpt.OutType[0].Key, Value: GuiOpt.OutType[0].String},
-									{Text: GuiOpt.OutType[1].Key, Value: GuiOpt.OutType[1].String},
-									{Text: GuiOpt.OutType[2].Key, Value: GuiOpt.OutType[2].String},
-									{Text: GuiOpt.OutType[3].Key, Value: GuiOpt.OutType[3].String},
-								},
+								Buttons:    outputList,
 							},
 						},
 					},
