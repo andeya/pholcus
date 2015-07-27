@@ -34,19 +34,30 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的重量级爬虫软件，清�
 
 
 #### 初次安装
+
+1. [这里下载需要翻墙的依赖包](https://github.com/henrylee2cn/pholcus/blob/master/doc/需翻墙的依赖包在这里-解压至gopath.rar)
+2. 下载其他全部源码，命令行如下
 ```
 go get github.com/henrylee2cn/pholcus
 ```
 
 
 
-#### 编译运行
+#### GUI编译运行
 ```
-go install -ldflags="-H windowsgui"
+go install -ldflags="-H windowsgui" pholcus-gui.go
 ```
 或者
 ```
-go build -ldflags="-H windowsgui"
+go build -ldflags="-H windowsgui" pholcus-gui.go
+```
+
+
+
+#### 命令行编译运行
+```
+go install pholcus-cmd.go  或者  go build pholcus-cmd.go
+$ pholcus-cmd.exe -spider=3,8 -output=csv -go=500 -docker=5000 -pase=1000,3000 -kw=pholcus,golang -page=100
 ```
 
 
