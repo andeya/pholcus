@@ -24,18 +24,10 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的重量级爬虫软件，清�
  
  5. 支持横纵向两种抓取模式，并支持任务取消操作。
 
-#### GUI界面
-随时改进中，该截图仅供参考！
 
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_0.jpg)
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_1.jpg)
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_2.jpg)
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_3.jpg)
+#### 下载安装
 
-
-#### 初次安装
-
-1. [这里下载需要翻墙的依赖包](https://github.com/henrylee2cn/pholcus/blob/master/doc/需翻墙的依赖包在这里-解压至gopath.rar)
+1. [这里下载需要翻墙的依赖包](https://raw.githubusercontent.com/henrylee2cn/pholcus/master/doc/%E9%9C%80%E8%A6%81%E7%BF%BB%E5%A2%99%E7%9A%84%E4%BE%9D%E8%B5%96%E5%8C%85%E5%9C%A8%E8%BF%99%E9%87%8C-%E8%A7%A3%E5%8E%8B%E8%87%B3gopath.rar)
 2. 下载其他全部源码，命令行如下
 ```
 go get github.com/henrylee2cn/pholcus
@@ -60,6 +52,14 @@ go install pholcus-cmd.go  或者  go build pholcus-cmd.go
 $ pholcus-cmd.exe -spider=3,8 -output=csv -go=500 -docker=5000 -pase=1000,3000 -kw=pholcus,golang -page=100
 ```
 
+
+#### GUI界面
+随时改进中，该截图仅供参考！
+
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_0.jpg)
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_1.jpg)
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_2.jpg)
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_3.jpg)
 
 
 #### 添加ICON
