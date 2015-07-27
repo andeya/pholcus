@@ -48,8 +48,10 @@ go build -ldflags="-H windowsgui" pholcus-gui.go
 
 #### 命令行编译运行
 ```
-go install pholcus-cmd.go  或者  go build pholcus-cmd.go
-$ pholcus-cmd.exe -spider=3,8 -output=csv -go=500 -docker=5000 -pase=1000,3000 -kw=pholcus,golang -page=100
+编译命令: go install pholcus-cmd.go  或者  go build pholcus-cmd.go
+查看命令参数: pholcus-cmd.exe -h
+执行爬虫命令: pholcus-cmd.exe -spider=3,8 -output=csv -go=500 -docker=5000 -pase=1000,3000 -kw=pholcus,golang -page=100
+(注：花括号“{}”中为选择参数或参数格式，多个参数值之间用逗号“,”间隔，各项参数根据采集规则的需要自行设置)
 ```
 
 
@@ -58,9 +60,9 @@ $ pholcus-cmd.exe -spider=3,8 -output=csv -go=500 -docker=5000 -pase=1000,3000 -
 
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_0.jpg)
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_1.jpg)
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_2.jpg)
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_3.jpg)
 
+#### 命令行界面
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/cmd.jpg)
 
 #### 添加ICON
 
