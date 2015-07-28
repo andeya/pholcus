@@ -1,10 +1,10 @@
-## pholcus
+# pholcus    [![GoDoc](https://godoc.org/github.com/tsuna/gohbase?status.png)](https://godoc.org/github.com/henrylee2cn/pholcus)
 
 Pholcus（幽灵蛛）是一款纯Go语言编写的重量级爬虫软件，清新的GUI界面，优雅的爬虫规则、可控的高并发、任意的批量任务、多种输出方式、大量Demo，更重要的是它支持socket长连接、全双工并发分布式，支持横纵向两种抓取模式，支持模拟登录和任务取消等。
 
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/icon.png)
 
-* 稳定版： [Version 0.5.1 (July 24, 2015)](https://github.com/henrylee2cn/pholcus/releases).   [此处进入](https://github.com/henrylee2cn/pholcus/tree/master)
+* 稳定版： [Version 0.5.1 (July 27, 2015)](https://github.com/henrylee2cn/pholcus/releases).   [此处进入](https://github.com/henrylee2cn/pholcus/tree/master)
 
 * 官方QQ群：Go大数据 42731170    [![Go大数据群](http://pub.idqqimg.com/wpa/images/group.png)](http://shang.qq.com/wpa/qunwpa?idkey=83ee3e1a4be6bdb2b08a51a044c06ae52cf10a082f7c5cf6b36c1f78e8b03589)
 
