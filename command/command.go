@@ -74,14 +74,14 @@ func Run() {
 	pase[1], _ = strconv.ParseUint(ptf[1], 10, 64)
 
 	// 创建蜘蛛队列
-	sps := []spider.Spider{}
+	sps := []*spider.Spider{}
 	if *spiderflag == "" {
 		log.Println(" *     —— 亲，任务列表不能为空哦~")
 		return
 	}
 	for _, idx := range strings.Split(*spiderflag, ",") {
 		i, _ := strconv.Atoi(idx)
-		sps = append(sps, *LogicApp.GetAllSpiders()[i])
+		sps = append(sps, LogicApp.GetAllSpiders()[i])
 	}
 	// fmt.Println("输入配置", *outputflag, *spiderflag, *goroutineflag, *dockerflag, *pasetimeflag, *keywordflag, *maxpageflag)
 

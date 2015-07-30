@@ -34,9 +34,9 @@ func WTaskConf2() {
 }
 
 func SetSpiderQueue() {
-	sps := []spider.Spider{}
+	sps := []*spider.Spider{}
 	for _, sp := range Input.Spiders {
-		sps = append(sps, *sp.Spider)
+		sps = append(sps, sp.Spider)
 	}
 	LogicApp.SetSpiderQueue(sps, Input.Keywords)
 }

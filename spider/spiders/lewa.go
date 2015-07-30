@@ -4,7 +4,7 @@ package spiders
 import (
 	// "github.com/PuerkitoBio/goquery" //DOM解析
 	"github.com/henrylee2cn/pholcus/crawl/downloader/context" //必需
-	// "github.com/henrylee2cn/pholcus/reporter"           //信息输出
+	// . "github.com/henrylee2cn/pholcus/reporter"           //信息输出
 	. "github.com/henrylee2cn/pholcus/spider"        //必需
 	. "github.com/henrylee2cn/pholcus/spider/common" //选用
 )
@@ -43,9 +43,8 @@ var Lewa = &Spider{
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
 	RuleTree: &RuleTree{
-		// Spread: []string{},
 		Root: func(self *Spider) {
-			self.AddQueue(map[string]interface{}{"url": "http://accounts.lewaos.com/", "rule": "登录页"})
+			self.AddQueue(map[string]interface{}{"Url": "http://accounts.lewaos.com/", "Rule": "登录页"})
 		},
 
 		Nodes: map[string]*Rule{
@@ -53,10 +52,10 @@ var Lewa = &Spider{
 			"登录页": &Rule{
 				ParseFunc: func(self *Spider, resp *context.Response) {
 					// self.AddQueue(map[string]interface{}{
-					// 	"url":    "http://accounts.lewaos.com",
-					// 	"rule":   "登录后",
-					// 	"method": "POST",
-					// 	"postData": url.Values{
+					// 	"Url":    "http://accounts.lewaos.com",
+					// 	"Rule":   "登录后",
+					// 	"Method": "POST",
+					// 	"PostData": url.Values{
 					// 		"username":  []string{""},
 					// 		"password":  []string{""},
 					// 		"login_btn": []string{"login_btn"},

@@ -4,7 +4,7 @@ package spiders
 import (
 	"github.com/PuerkitoBio/goquery"                          //DOM解析
 	"github.com/henrylee2cn/pholcus/crawl/downloader/context" //必需
-	"github.com/henrylee2cn/pholcus/reporter"                 //信息输出
+	. "github.com/henrylee2cn/pholcus/reporter"               //信息输出
 	. "github.com/henrylee2cn/pholcus/spider"                 //必需
 	// . "github.com/henrylee2cn/pholcus/spider/common"          //选用
 )
@@ -44,9 +44,8 @@ var BaiduSearch = &Spider{
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
 	RuleTree: &RuleTree{
-		// Spread: []string{},
 		Root: func(self *Spider) {
-			self.AidRule("生成请求", map[string]interface{}{"loop": [2]int{0, 1}, "rule": "生成请求"})
+			self.AidRule("生成请求", map[string]interface{}{"loop": [2]int{0, 1}, "Rule": "生成请求"})
 		},
 
 		Nodes: map[string]*Rule{
@@ -59,7 +58,7 @@ var BaiduSearch = &Spider{
 							return []string{"http://www.baidu.com/s?ie=utf-8&nojc=1&wd=" + self.GetKeyword() + "&rn=50&pn=" + strconv.Itoa(50*i)}
 						},
 						map[string]interface{}{
-							"rule": aid["rule"],
+							"Rule": aid["Rule"],
 						},
 					)
 					return nil
@@ -74,11 +73,11 @@ var BaiduSearch = &Spider{
 					if total > self.MaxPage {
 						total = self.MaxPage
 					} else if total == 0 {
-						reporter.Log.Printf("[消息提示：| 任务：%v | 关键词：%v | 规则：%v] 没有抓取到任何数据！!!\n", self.GetName(), self.GetKeyword(), resp.GetRuleName())
+						Log.Printf("[消息提示：| 任务：%v | 关键词：%v | 规则：%v] 没有抓取到任何数据！!!\n", self.GetName(), self.GetKeyword(), resp.GetRuleName())
 						return
 					}
 					// 调用指定规则下辅助函数
-					self.AidRule("生成请求", map[string]interface{}{"loop": [2]int{1, total}, "rule": "搜索结果"})
+					self.AidRule("生成请求", map[string]interface{}{"loop": [2]int{1, total}, "Rule": "搜索结果"})
 					// 用指定规则解析响应流
 					self.CallRule("搜索结果", resp)
 				},

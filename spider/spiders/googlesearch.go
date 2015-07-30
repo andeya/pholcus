@@ -4,7 +4,7 @@ package spiders
 import (
 	"github.com/PuerkitoBio/goquery"                          //DOM解析
 	"github.com/henrylee2cn/pholcus/crawl/downloader/context" //必需
-	"github.com/henrylee2cn/pholcus/reporter"                 //信息输出
+	. "github.com/henrylee2cn/pholcus/reporter"               //信息输出
 	. "github.com/henrylee2cn/pholcus/spider"                 //必需
 	// . "github.com/henrylee2cn/pholcus/spider/common"          //选用
 )
@@ -57,11 +57,10 @@ var GoogleSearch = &Spider{
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
 	RuleTree: &RuleTree{
-		// Spread: []string{},
 		Root: func(self *Spider) {
 			var url string
 			var success bool
-			reporter.Log.Println("正在查找可用的Google镜像，该过程可能需要几分钟……")
+			Log.Println("正在查找可用的Google镜像，该过程可能需要几分钟……")
 			for _, ip := range googleIp {
 				url = "http://" + ip + "/search?q=" + self.GetKeyword() + "&newwindow=1&biw=1600&bih=398&start="
 				if _, err := goquery.NewDocument(url); err == nil {
@@ -70,14 +69,14 @@ var GoogleSearch = &Spider{
 				}
 			}
 			if !success {
-				reporter.Log.Println("没有可用的Google镜像IP！！")
+				Log.Println("没有可用的Google镜像IP！！")
 				return
 			}
-			reporter.Log.Println("开始Google搜索……")
+			Log.Println("开始Google搜索……")
 			self.AddQueue(map[string]interface{}{
-				"url":  url,
-				"rule": "获取总页数",
-				"temp": map[string]interface{}{
+				"Url":  url,
+				"Rule": "获取总页数",
+				"Temp": map[string]interface{}{
 					"baseUrl": url,
 				},
 			})
@@ -99,18 +98,18 @@ var GoogleSearch = &Spider{
 				ParseFunc: func(self *Spider, resp *context.Response) {
 					query := resp.GetDom()
 					txt := query.Find("#resultStats").Text()
-					reporter.Log.Println("总页数txt：", txt)
+					Log.Println("总页数txt：", txt)
 					re, _ := regexp.Compile(`,+`)
 					txt = re.ReplaceAllString(txt, "")
 					re, _ = regexp.Compile(`[\d]+`)
 					txt = re.FindString(txt)
 					num, _ := strconv.Atoi(txt)
-					reporter.Log.Println("总页数：", num)
+					Log.Println("总页数：", num)
 					total := int(math.Ceil(float64(num) / 10))
 					if total > self.MaxPage {
 						total = self.MaxPage
 					} else if total == 0 {
-						reporter.Log.Printf("[消息提示：| 任务：%v | 关键词：%v | 规则：%v] 没有抓取到任何数据！!!\n", self.GetName(), self.GetKeyword(), resp.GetRuleName())
+						Log.Printf("[消息提示：| 任务：%v | 关键词：%v | 规则：%v] 没有抓取到任何数据！!!\n", self.GetName(), self.GetKeyword(), resp.GetRuleName())
 						return
 					}
 					// 调用指定规则下辅助函数
@@ -118,7 +117,7 @@ var GoogleSearch = &Spider{
 						"loop":    [2]int{1, total},
 						"urlBase": resp.GetTemp("baseUrl"),
 						"req": map[string]interface{}{
-							"rule": "搜索结果",
+							"Rule": "搜索结果",
 						},
 					})
 					// 用指定规则解析响应流

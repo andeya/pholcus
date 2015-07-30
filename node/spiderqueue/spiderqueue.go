@@ -76,8 +76,8 @@ func (self *sq) AddKeywords(keywords string) error {
 		}
 		for _, v := range unit2 {
 			v.Keyword = keyword
-			c := *v
-			self.Add(&c)
+			nv := *v
+			self.Add((&nv).Gost())
 		}
 	}
 	if self.Len() == 0 {

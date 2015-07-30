@@ -6,7 +6,7 @@ import (
 	"github.com/henrylee2cn/pholcus/crawl/downloader/context" //必需
 	. "github.com/henrylee2cn/pholcus/spider"                 //必需
 	// . "github.com/henrylee2cn/pholcus/spider/common" //选用
-	// "github.com/henrylee2cn/pholcus/reporter"
+	// . "github.com/henrylee2cn/pholcus/reporter"
 )
 
 // 设置header包
@@ -43,10 +43,9 @@ var FileTest = &Spider{
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
 	RuleTree: &RuleTree{
-		// Spread: []string{},
 		Root: func(self *Spider) {
-			self.AddQueue(map[string]interface{}{"url": "https://www.baidu.com/img/bd_logo1.png", "rule": "百度图片"})
-			self.AddQueue(map[string]interface{}{"url": "https://github.com/henrylee2cn/pholcus", "rule": "Pholcus页面"})
+			self.AddQueue(map[string]interface{}{"Url": "https://www.baidu.com/img/bd_logo1.png", "Rule": "百度图片"})
+			self.AddQueue(map[string]interface{}{"Url": "https://github.com/henrylee2cn/pholcus", "Rule": "Pholcus页面"})
 		},
 
 		Nodes: map[string]*Rule{

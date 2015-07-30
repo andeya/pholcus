@@ -4,7 +4,7 @@ package spiders
 import (
 	"github.com/PuerkitoBio/goquery"                          //DOM解析
 	"github.com/henrylee2cn/pholcus/crawl/downloader/context" //必需
-	// "github.com/henrylee2cn/pholcus/reporter"               //信息输出
+	// . "github.com/henrylee2cn/pholcus/reporter"               //信息输出
 	. "github.com/henrylee2cn/pholcus/spider" //必需
 	// . "github.com/henrylee2cn/pholcus/spider/common" //选用
 )
@@ -45,7 +45,7 @@ var Wangyi = &Spider{
 	RuleTree: &RuleTree{
 		// Spread: []string{},
 		Root: func(self *Spider) {
-			self.AddQueue(map[string]interface{}{"url": "http://news.163.com/rank/", "rule": "排行榜主页"})
+			self.AddQueue(map[string]interface{}{"Url": "http://news.163.com/rank/", "Rule": "排行榜主页"})
 		},
 
 		Nodes: map[string]*Rule{
@@ -55,7 +55,7 @@ var Wangyi = &Spider{
 					query := resp.GetDom()
 					query.Find(".subNav a").Each(func(i int, s *goquery.Selection) {
 						if url, ok := s.Attr("href"); ok {
-							self.AddQueue(map[string]interface{}{"url": url, "rule": "新闻排行榜"})
+							self.AddQueue(map[string]interface{}{"Url": url, "Rule": "新闻排行榜"})
 						}
 					})
 				},
@@ -96,9 +96,9 @@ var Wangyi = &Spider{
 					})
 					for k, v := range urls_top {
 						self.AddQueue(map[string]interface{}{
-							"url":  k,
-							"rule": "热点新闻",
-							"temp": map[string]interface{}{
+							"Url":  k,
+							"Rule": "热点新闻",
+							"Temp": map[string]interface{}{
 								"newsType": newsType,
 								"top":      v,
 							},
@@ -123,9 +123,9 @@ var Wangyi = &Spider{
 					if pageAll := query.Find(".ep-pages-all"); len(pageAll.Nodes) != 0 {
 						if pageAllUrl, ok := pageAll.Attr("href"); ok {
 							self.AddQueue(map[string]interface{}{
-								"url":  pageAllUrl,
-								"rule": "热点新闻",
-								"temp": resp.GetTemps(),
+								"Url":  pageAllUrl,
+								"Rule": "热点新闻",
+								"Temp": resp.GetTemps(),
 							})
 						}
 						return
@@ -158,78 +158,3 @@ var Wangyi = &Spider{
 		},
 	},
 }
-
-// 不确定因素过多，暂未实现抓取
-// &crawler.Rule{
-// 	Name: "热门跟帖",
-// 	Semantic: []string{
-// 		"新闻标题",
-// 		"新闻链接",
-// 		"评论者",
-// 		"评论内容",
-// 		"release_data",
-// 	},
-// 	Meta: map[string]int{}, //用于标记如是否已获取总页数等
-// 	// url生成规则，参数：循环计数、Task实例、urltag、params
-// 	UrlFunc: func(self crawler.Crawler, startEnd [2]int, urltag map[string]string, params []string) {
-// 		baseUrl := strings.Split(params[0], ".html")
-// 		self.AddUrl(
-// 			baseUrl+"_"+i+".html",
-// 			"json",
-// 			urltag,
-// 		)
-// 		return self
-// 	},
-// 	ProcessFunc: func(self crawler.Crawler, p *page.Page) {
-// 		// 获取该请求数据的规则名
-// 		name := p.GetUrlTag()["RuleName"]
-
-// 		// 获取总页数
-// 		if _, ok := self.GetRuleExecPage(name); !ok {
-// 			// 试运行并获取总页数
-// 			self.AddUrl(p.GetUrl(), "html", map[string]string{}).Run(false)
-// 			self.CreatAndAddUrl(1, self, urltag, []string{p.GetUrl()}).Run(false)
-
-// 			// 存入新闻标题
-// 			p.AddField(map[string]string{self.GetRuleSemantic(name, 0): p.GetUrlTag()["newsTitle"]})
-
-// 			// 存入新闻链接
-// 			p.AddField(map[string]string{self.GetRuleSemantic(name, 1): p.GetUrlTag()["newsUrl"]})
-
-// 			// 获取该页面数据
-// 			query := p.GetDom()
-
-// 			self.SetRuleTotalPage(name, 0)
-
-// 			total1 := query.Find(".pages").Eq(0).Find("li a").Last().Prev().Text()
-
-// 			tatal2, _ := strconv.Atoi(total1)
-
-// 			self.SetRuleTotalPage(name, tatal2)
-
-// 			if total, _ := self.GetRuleExecPage(name); total == 0 {
-// 				log.Printf("[消息提示：%v::%v::%v] 没有抓取到任何数据！!!\n", self.GetTaskName(), self.GetKeyword(), name)
-// 			}
-// 		}
-
-// 		query.Find("#hotReplies .reply.essence").Each(func(i int, s *goquery.Selection) {
-
-// 			re, _ = regexp.Compile("\\<[\\S\\s]+?\\>")
-
-// 			// 获取并存入作者及其地址
-// 			author := s.Find(".author").Text()
-// 			author = re.ReplaceAllString(author, "")
-// 			p.AddField(map[string]string{self.GetRuleSemantic(name, 2): author})
-
-// 			// 获取并存入评论内容
-// 			body := s.Find(".body").Text()
-// 			body = re.ReplaceAllString(body, "")
-// 			p.AddField(map[string]string{self.GetRuleSemantic(name, 3): body})
-
-// 			// 获取并存入发表时间
-// 			postTime := s.Find(".postTime").Text()
-// 			postTime = strings.Split(postTime, " 发表")[0]
-// 			p.AddField(map[string]string{self.GetRuleSemantic(name, 5): postTime})
-// 		})
-// 	},
-// }, //end

@@ -111,27 +111,27 @@ func (self *Form) send(buttonName, buttonValue string) bool {
 
 	if self.Method() == "GET" {
 		self.spider.AddQueue(map[string]interface{}{
-			"rule":   self.rule,
-			"url":    self.Action() + "?" + values.Encode(),
-			"method": self.Method(),
+			"Rule":   self.rule,
+			"Url":    self.Action() + "?" + values.Encode(),
+			"Method": self.Method(),
 		})
 		return true
 	} else {
 		enctype, _ := self.selection.Attr("enctype")
 		if enctype == "multipart/form-data" {
 			self.spider.AddQueue(map[string]interface{}{
-				"rule":     self.rule,
-				"url":      self.Action(),
-				"postData": values,
-				"method":   "POST-M",
+				"Rule":     self.rule,
+				"Url":      self.Action(),
+				"PostData": values,
+				"Method":   "POST-M",
 			})
 			return true
 		}
 		self.spider.AddQueue(map[string]interface{}{
-			"rule":     self.rule,
-			"url":      self.Action(),
-			"postData": values,
-			"method":   self.Method(),
+			"Rule":     self.rule,
+			"Url":      self.Action(),
+			"PostData": values,
+			"Method":   self.Method(),
 		})
 		return true
 	}

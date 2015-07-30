@@ -54,7 +54,7 @@ type App interface {
 	// SetSpiderQueue()必须在设置全局运行参数之后运行
 	// original为spider包中未有过赋值操作的原始蜘蛛种类
 	// 已被显式赋值过的spider将不再重新分配Keyword
-	SetSpiderQueue(original []spider.Spider, keywords string) App
+	SetSpiderQueue(original []*spider.Spider, keywords string) App
 
 	// 设置全局log输出目标，不设置或设置为nil则为go语言默认
 	SetLog(io.Writer) App
@@ -165,14 +165,14 @@ func (self *Logic) SetMaxPage(maxPage int) App {
 // SetSpiderQueue()必须在设置全局运行参数之后运行
 // original为spider包中未有过赋值操作的原始蜘蛛种类
 // 已被显式赋值过的spider将不再重新分配Keyword
-func (self *Logic) SetSpiderQueue(original []spider.Spider, keywords string) App {
+func (self *Logic) SetSpiderQueue(original []*spider.Spider, keywords string) App {
 	Pholcus.Spiders.Reset()
 	// 遍历任务
 	for _, sp := range original {
-		sp.SetPausetime(cache.Task.BaseSleeptime, cache.Task.RandomSleepPeriod)
-		sp.SetMaxPage(cache.Task.MaxPage)
-		me := sp
-		Pholcus.Spiders.Add(&me)
+		spgost := sp.Gost()
+		spgost.SetPausetime(cache.Task.BaseSleeptime, cache.Task.RandomSleepPeriod)
+		spgost.SetMaxPage(cache.Task.MaxPage)
+		Pholcus.Spiders.Add(spgost)
 	}
 	// 遍历关键词
 	Pholcus.Spiders.AddKeywords(keywords)
@@ -308,13 +308,13 @@ func (self *Logic) taskToRun(t *task.Task) {
 	// 初始化蜘蛛队列
 	for _, n := range t.Spiders {
 		if sp := spider.Menu.GetByName(n["name"]); sp != nil {
-			sp.SetPausetime(t.BaseSleeptime, t.RandomSleepPeriod)
-			sp.SetMaxPage(t.MaxPage)
+			spgost := sp.Gost()
+			spgost.SetPausetime(t.BaseSleeptime, t.RandomSleepPeriod)
+			spgost.SetMaxPage(t.MaxPage)
 			if v, ok := n["keyword"]; ok {
-				sp.SetKeyword(v)
+				spgost.SetKeyword(v)
 			}
-			one := *sp
-			Pholcus.Spiders.Add(&one)
+			Pholcus.Spiders.Add(spgost)
 		}
 	}
 }

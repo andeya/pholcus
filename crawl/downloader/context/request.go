@@ -45,62 +45,62 @@ type Request struct {
 
 func NewRequest(param map[string]interface{}) *Request {
 	req := &Request{
-		Url:    param["url"].(string),    //必填
-		Rule:   param["rule"].(string),   //必填
-		Spider: param["spider"].(string), //必填
+		Url:    param["Url"].(string),    //必填
+		Rule:   param["Rule"].(string),   //必填
+		Spider: param["Spider"].(string), //必填
 	}
 
 	// 若有必填
-	switch v := param["referer"].(type) {
+	switch v := param["Referer"].(type) {
 	case string:
 		req.Referer = v
 	default:
 		req.Referer = ""
 	}
 
-	switch v := param["method"].(type) {
+	switch v := param["Method"].(type) {
 	case string:
 		req.Method = v
 	default:
 		req.Method = "GET"
 	}
 
-	switch v := param["cookies"].(type) {
+	switch v := param["Cookies"].(type) {
 	case []*http.Cookie:
 		req.Cookies = v
 	default:
 		req.Cookies = nil
 	}
 
-	switch v := param["postData"].(type) {
+	switch v := param["PostData"].(type) {
 	case url.Values:
 		req.PostData = v
 	default:
 		req.PostData = nil
 	}
 
-	// switch v := param["outsource"].(type) {
+	// switch v := param["Outsource"].(type) {
 	// case bool:
 	// 	req.Outsource = v
 	// default:
 	// 	req.Outsource = false
 	// }
 
-	switch v := param["checkRedirect"].(type) {
+	switch v := param["CheckRedirect"].(type) {
 	case func(*http.Request, []*http.Request) error:
 		req.CheckRedirect = v
 	default:
 		req.CheckRedirect = nil
 	}
 
-	switch v := param["temp"].(type) {
+	switch v := param["Temp"].(type) {
 	case map[string]interface{}:
 		req.Temp = v
 	default:
 		req.Temp = map[string]interface{}{}
 	}
 
-	switch v := param["priority"].(type) {
+	switch v := param["Priority"].(type) {
 	case int:
 		if v > 0 {
 			req.Priority = v
@@ -112,7 +112,7 @@ func NewRequest(param map[string]interface{}) *Request {
 		req.Priority = 0
 	}
 
-	switch v := param["header"].(type) {
+	switch v := param["Header"].(type) {
 	case string:
 		_, err := os.Stat(v)
 		if err == nil {
@@ -148,13 +148,13 @@ func readHeaderFromFile(headerFile string) http.Header {
 }
 
 //point to a json file
-/* xxx.json
-{
-	"User-Agent":"curl/7.19.3 (i386-pc-win32) libcurl/7.19.3 OpenSSL/1.0.0d",
-	"Referer":"http://weixin.sogou.com/gzh?openid=oIWsFt6Sb7aZmuI98AU7IXlbjJps",
-	"Cookie":""
-}
-*/
+// xxx.json
+// {
+// 	"User-Agent":"curl/7.19.3 (i386-pc-win32) libcurl/7.19.3 OpenSSL/1.0.0d",
+// 	"Referer":"http://weixin.sogou.com/gzh?openid=oIWsFt6Sb7aZmuI98AU7IXlbjJps",
+// 	"Cookie":""
+// }
+
 func (self *Request) AddHeaderFile(headerFile string) *Request {
 	_, err := os.Stat(headerFile)
 	if err != nil {
