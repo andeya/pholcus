@@ -6,19 +6,16 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/tealeg/xlsx"
 	"gopkg.in/mgo.v2"
-	// "log"
 	// "gopkg.in/mgo.v2/bson"
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	. "github.com/henrylee2cn/pholcus/reporter"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
+	"github.com/henrylee2cn/teleport"
 	"os"
 	"strings"
-	// "time"
-	"github.com/henrylee2cn/teleport"
 	"sync"
 )
 
@@ -215,17 +212,16 @@ func init() {
 	var master = cache.Task.Master
 	var port = ":" + fmt.Sprintf("%v", cache.Task.Port)
 	var hbaseSocket = teleport.New().SetPackHeader("tentinet")
-	var once sync.Once
+	var hbaseOnce sync.Once
 
 	Output["hbase"] = func(self *Collector, dataIndex int) {
-		once.Do(func() { hbaseSocket.Client(master, port) })
+		hbaseOnce.Do(func() { hbaseSocket.Client(master, port) })
 		for i, count := 0, len(self.DockerQueue.Dockers[dataIndex]); i < count; i++ {
 			hbaseSocket.Request(self.DockerQueue.Dockers[dataIndex][i], "log")
 		}
 	}
 
 	/************************ Mysql 输出 ***************************/
-
 	Output["mysql"] = func(self *Collector, dataIndex int) {
 		db, err := sql.Open("mysql", config.MYSQL_USER+":"+config.MYSQL_PW+"@tcp("+config.MYSQL_HOST+")/"+config.MYSQL_DB+"?charset=utf8")
 		if err != nil {
@@ -233,8 +229,7 @@ func init() {
 		}
 		defer db.Close()
 
-		var newMysql myTable
-		newMysql.setTableName("`" + self.Spider.GetName() + "-" + self.Spider.GetKeyword() + `-` + self.startTime + `-(` + fmt.Sprintf("%v", self.sum[0]) + `-` + fmt.Sprintf("%v", self.sum[1]) + ")`")
+		var newMysql = new(myTable)
 
 		for Name, Rule := range self.GetRules() {
 			//跳过不输出的数据
@@ -242,48 +237,34 @@ func init() {
 				continue
 			}
 
-			var tempTitle []string
+			newMysql.setTableName("`" + self.Spider.GetName() + "-" + Name + "-" + self.Spider.GetKeyword() + `-` + self.startTime + "`")
+
 			for _, title := range Rule.GetOutFeild() {
-				tempTitle = append(tempTitle, title)
+				newMysql.addColumn(title)
 			}
-			tempTitle = append(tempTitle, "当前连接", "上级链接", "下载时间")
-			newMysql.setColumnName(tempTitle)
-			newMysql.createColumn()
-			stmt, err := db.Prepare(newMysql.sqlString)
-			util.CheckErr(err)
-			_, err = stmt.Exec()
-			util.CheckErr(err)
+
+			newMysql.addColumn("当前连接", "上级链接", "下载时间").
+				create(db)
 
 			num := 0 //小计
 
 			for _, datacell := range self.DockerQueue.Dockers[dataIndex] {
 				if datacell["RuleName"].(string) == Name {
-					var tempRow []string
 					for _, title := range Rule.GetOutFeild() {
 						vd := datacell["Data"].(map[string]interface{})
-
 						if v, ok := vd[title].(string); ok || vd[title] == nil {
-							tempRow = append(tempRow, v)
+							newMysql.addRow(v)
 						} else {
-							j, _ := json.Marshal(vd[title])
-							tempRow = append(tempRow, string(j))
+							newMysql.addRow(util.JsonString(vd[title]))
 						}
 					}
-					tempRow = append(tempRow, datacell["Url"].(string))
-					tempRow = append(tempRow, datacell["ParentUrl"].(string))
-					tempRow = append(tempRow, datacell["DownloadTime"].(string))
-
-					// 输出
-					newMysql.setValue(tempRow)
-					newMysql.insertColumn()
-					stmt, err = db.Prepare(newMysql.sqlString)
-					util.CheckErr(err)
-					_, err = stmt.Exec()
-					util.CheckErr(err)
+					newMysql.addRow(datacell["Url"].(string), datacell["ParentUrl"].(string), datacell["DownloadTime"].(string)).
+						update(db)
 
 					num++
 				}
 			}
+			newMysql = new(myTable)
 		}
 	}
 }
@@ -292,62 +273,78 @@ func init() {
 
 //sql转换结构体
 type myTable struct {
-	myTablename  string
-	myColumnname []string
-	value        []string
-	sqlString    string
+	tableName   string
+	columnNames []string
+	rowValues   []string
+	sqlCode     string
 }
 
-//设置msyql表名
-func (self *myTable) setTableName(tableName string) {
-	self.myTablename = tableName
+//设置表名
+func (self *myTable) setTableName(name string) *myTable {
+	self.tableName = name
+	return self
 }
 
-//设置字段名，字段为切片
-func (self *myTable) setColumnName(columnName []string) {
-	self.myColumnname = columnName
+//设置表单列
+func (self *myTable) addColumn(name ...string) *myTable {
+	self.columnNames = append(self.columnNames, name...)
+	return self
 }
 
-//设置字段值
-func (self *myTable) setValue(value []string) {
-	self.value = value
-}
+//生成"创建表单"的语句，执行前须保证setTableName()、addColumn()已经执行
+func (self *myTable) create(db *sql.DB) {
+	if self.tableName != "" {
+		self.sqlCode = `create table if not exists ` + self.tableName + `(`
+		self.sqlCode += ` id int(8) not null primary key auto_increment`
 
-//创建表字段
-func (self *myTable) createColumn() {
-	if self.myTablename != "" {
-		self.sqlString = `create table ` + self.myTablename + `(`
-		self.sqlString += ` id int(8) not null primary key auto_increment`
-		if self.myColumnname != nil {
-			for _, value := range self.myColumnname {
-				self.sqlString += `,` + value + ` varchar(255) not null`
+		if self.columnNames != nil {
+			for _, rowValues := range self.columnNames {
+				self.sqlCode += `,` + rowValues + ` varchar(255) not null`
 			}
 		}
-		self.sqlString += `);`
+		self.sqlCode += `);`
 	}
+	stmt, err := db.Prepare(self.sqlCode)
+	util.CheckErr(err)
+
+	_, err = stmt.Exec()
+	util.CheckErr(err)
 }
 
-//插入字段
-//insert into table1(field1,field2) values(value1,value2)
-func (self *myTable) insertColumn() {
-	if self.myTablename != "" {
-		self.sqlString = `insert into ` + self.myTablename + `(`
-		if self.myColumnname != nil {
-			for _, v1 := range self.myColumnname {
-				self.sqlString += "`" + v1 + "`" + `,`
+//设置插入的1行数据
+func (self *myTable) addRow(value ...string) *myTable {
+	self.rowValues = append(self.rowValues, value...)
+	return self
+}
+
+//向sqlCode添加"插入1行数据"的语句，执行前须保证create()、addRow()已经执行
+//insert into table1(field1,field2) values(rowValues[0],rowValues[1])
+func (self *myTable) update(db *sql.DB) {
+	if self.tableName != "" {
+		self.sqlCode = `insert into ` + self.tableName + `(`
+		if self.columnNames != nil {
+			for _, v1 := range self.columnNames {
+				self.sqlCode += "`" + v1 + "`" + `,`
 			}
-			tem_string := self.sqlString[:len(self.sqlString)-1]
-			self.sqlString = string(tem_string)
-			self.sqlString += `)values(`
+			self.sqlCode = string(self.sqlCode[:len(self.sqlCode)-1])
+			self.sqlCode += `)values(`
 		}
-		if self.value != nil {
-			for _, v2 := range self.value {
+		if self.rowValues != nil {
+			for _, v2 := range self.rowValues {
 				v2 = strings.Replace(v2, `"`, `\"`, -1)
-				self.sqlString += `"` + v2 + `"` + `,`
+				self.sqlCode += `"` + v2 + `"` + `,`
 			}
-			tem_string := self.sqlString[:len(self.sqlString)-1]
-			self.sqlString = string(tem_string)
-			self.sqlString += `);`
+			self.sqlCode = string(self.sqlCode[:len(self.sqlCode)-1])
+			self.sqlCode += `);`
 		}
 	}
+
+	stmt, err := db.Prepare(self.sqlCode)
+	util.CheckErr(err)
+
+	_, err = stmt.Exec()
+	util.CheckErr(err)
+
+	// 清空临时数据
+	self.rowValues = []string{}
 }

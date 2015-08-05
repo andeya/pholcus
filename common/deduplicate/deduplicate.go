@@ -2,6 +2,7 @@ package deduplicate
 
 import (
 	"github.com/henrylee2cn/pholcus/common/util"
+	"sync"
 )
 
 type Deduplicate interface {
@@ -11,6 +12,7 @@ type Deduplicate interface {
 
 type Deduplication struct {
 	sampling map[string]bool
+	sync.Mutex
 }
 
 func New() Deduplicate {
@@ -21,6 +23,9 @@ func New() Deduplicate {
 
 // 对比是否已存在，不存在则采样
 func (self *Deduplication) Compare(obj interface{}) bool {
+	self.Mutex.Lock()
+	defer self.Unlock()
+
 	s := util.MakeUnique(obj)
 	if !self.sampling[s] {
 		self.sampling[s] = true

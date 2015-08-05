@@ -55,7 +55,7 @@ var BaiduSearch = &Spider{
 					self.LoopAddQueue(
 						aid["loop"].([2]int),
 						func(i int) []string {
-							return []string{"http://www.baidu.com/s?ie=utf-8&nojc=1&wd=" + self.GetKeyword() + "&rn=50&pn=" + strconv.Itoa(50*i)}
+							return []string{"http://www.baidu.com/s?ie=utf-8&nojc=1&wd=" + strings.Replace(self.GetKeyword(), " ", "%20", -1) + "&rn=50&pn=" + strconv.Itoa(50*i)}
 						},
 						map[string]interface{}{
 							"Rule": aid["Rule"],

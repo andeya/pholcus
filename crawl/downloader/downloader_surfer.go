@@ -3,6 +3,7 @@ package downloader
 import (
 	"github.com/henrylee2cn/pholcus/crawl/downloader/context"
 	"github.com/henrylee2cn/surfer"
+	"log"
 	"time"
 )
 
@@ -29,8 +30,9 @@ func (self *Surfer) Download(cReq *context.Request) *context.Response {
 	cResp.SetResponse(resp)
 
 	if err != nil {
-		cResp.SetStatus(false, err.Error())
-		return cResp
+		log.Println(" *     ", err)
+		// cResp.SetStatus(false, err.Error())
+		// return cResp
 	}
 
 	cResp.SetStatus(true, "")

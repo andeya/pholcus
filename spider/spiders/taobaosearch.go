@@ -56,7 +56,7 @@ var TaobaoSearch = &Spider{
 					self.LoopAddQueue(
 						aid["loop"].([2]int),
 						func(i int) []string {
-							return []string{"http://s.taobao.com/search?q=" + self.GetKeyword() + "&ie=utf8&cps=yes&app=vproduct&cd=false&v=auction&tab=all&vlist=1&bcoffset=1&s=" + strconv.Itoa(i*44)}
+							return []string{"http://s.taobao.com/search?q=" + strings.Replace(self.GetKeyword(), " ", "+", -1) + "&ie=utf8&cps=yes&app=vproduct&cd=false&v=auction&tab=all&vlist=1&bcoffset=1&s=" + strconv.Itoa(i*44)}
 						},
 						map[string]interface{}{
 							"Rule": aid["Rule"].(string),
