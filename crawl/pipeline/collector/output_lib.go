@@ -47,7 +47,7 @@ func init() {
 
 		folder1 := "result/data"
 		folder2 := folder1 + "/" + self.startTime
-		filename := folder2 + "/" + self.Spider.GetName() + "_" + self.Spider.GetKeyword() + " " + fmt.Sprintf("%v", self.sum[0]) + "-" + fmt.Sprintf("%v", self.sum[1]) + ".xlsx"
+		filename := folder2 + "/" + util.FileNameReplace(self.Spider.GetName()+"_"+self.Spider.GetKeyword()+" "+fmt.Sprintf("%v", self.sum[0])+"-"+fmt.Sprintf("%v", self.sum[1])) + ".xlsx"
 
 		// 创建文件
 		file = xlsx.NewFile()
@@ -59,7 +59,7 @@ func init() {
 				continue
 			}
 			// 添加工作表
-			sheet = file.AddSheet(Name)
+			sheet = file.AddSheet(util.ExcelSheetNameReplace(Name))
 			// 写入表头
 			row = sheet.AddRow()
 			for _, title := range Rule.GetOutFeild() {
@@ -127,7 +127,7 @@ func init() {
 
 		folder1 := "result/data"
 		folder2 := folder1 + "/" + self.startTime
-		filenameBase := folder2 + "/" + self.Spider.GetName() + "_" + self.Spider.GetKeyword() + " " + fmt.Sprintf("%v", self.sum[0]) + "-" + fmt.Sprintf("%v", self.sum[1])
+		filenameBase := folder2 + "/" + util.FileNameReplace(self.Spider.GetName()+"_"+self.Spider.GetKeyword()+" "+fmt.Sprintf("%v", self.sum[0])+"-"+fmt.Sprintf("%v", self.sum[1]))
 
 		// 创建/打开目录
 		f2, err := os.Stat(folder2)
@@ -144,7 +144,7 @@ func init() {
 				continue
 			}
 
-			file, err := os.Create(filenameBase + " (" + Name + ").csv")
+			file, err := os.Create(filenameBase + " (" + util.FileNameReplace(Name) + ").csv")
 
 			if err != nil {
 				Log.Println(err)
@@ -237,7 +237,7 @@ func init() {
 				continue
 			}
 
-			newMysql.setTableName("`" + self.Spider.GetName() + "-" + Name + "-" + self.Spider.GetKeyword() + `-` + self.startTime + "`")
+			newMysql.setTableName("`" + self.Spider.GetName() + "-" + Name + "-" + self.Spider.GetKeyword() + "`")
 
 			for _, title := range Rule.GetOutFeild() {
 				newMysql.addColumn(title)

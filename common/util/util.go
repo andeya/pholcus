@@ -265,3 +265,51 @@ func CheckErr(err error) {
 		log.Println(err)
 	}
 }
+
+// 将文件名非法字符替换为相似字符
+func FileNameReplace(fileName string) (rfn string) {
+	// 替换`""`为`“”`
+	if strings.Count(fileName, `"`) > 0 {
+		var i = 1
+	label:
+		for k, v := range []byte(fileName) {
+			if string(v) != `"` {
+				continue
+			}
+			if i%2 == 1 {
+				fileName = string(fileName[:k]) + `“` + string(fileName[k+1:])
+			} else {
+				fileName = string(fileName[:k]) + `”` + string(fileName[k+1:])
+			}
+			i++
+			goto label
+		}
+	}
+
+	rfn = strings.Replace(fileName, `:`, `：`, -1)
+	rfn = strings.Replace(rfn, `*`, `ж`, -1)
+	// rfn = strings.Replace(rfn, `*`, `×`, -1)
+	rfn = strings.Replace(rfn, `<`, `＜`, -1)
+	rfn = strings.Replace(rfn, `>`, `＞`, -1)
+	rfn = strings.Replace(rfn, `?`, `？`, -1)
+	rfn = strings.Replace(rfn, `/`, `／`, -1)
+	rfn = strings.Replace(rfn, `|`, `∣`, -1)
+	rfn = strings.Replace(rfn, `\`, `╲`, -1)
+	return
+}
+
+// 将Excel工作表名中非法字符替换为下划线
+func ExcelSheetNameReplace(fileName string) (rfn string) {
+	rfn = strings.Replace(fileName, `:`, `_`, -1)
+	rfn = strings.Replace(rfn, `：`, `_`, -1)
+	rfn = strings.Replace(rfn, `*`, `_`, -1)
+	rfn = strings.Replace(rfn, `?`, `_`, -1)
+	rfn = strings.Replace(rfn, `？`, `_`, -1)
+	rfn = strings.Replace(rfn, `/`, `_`, -1)
+	rfn = strings.Replace(rfn, `／`, `_`, -1)
+	rfn = strings.Replace(rfn, `\`, `_`, -1)
+	rfn = strings.Replace(rfn, `╲`, `_`, -1)
+	rfn = strings.Replace(rfn, `]`, `_`, -1)
+	rfn = strings.Replace(rfn, `[`, `_`, -1)
+	return
+}
