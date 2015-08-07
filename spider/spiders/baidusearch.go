@@ -43,6 +43,7 @@ var BaiduSearch = &Spider{
 	Keyword:     CAN_ADD,
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
+	UseCookie: false,
 	RuleTree: &RuleTree{
 		Root: func(self *Spider) {
 			self.AidRule("生成请求", map[string]interface{}{"loop": [2]int{0, 1}, "Rule": "生成请求"})

@@ -8,15 +8,17 @@ import (
 )
 
 type Surfer struct {
-	download *surfer.Download
+	download surfer.Surfer
 }
 
-func NewSurfer(paseTime time.Duration, proxy ...string) *Surfer {
-	if len(proxy) == 0 {
-		proxy = append(proxy, "")
+func NewSurfer(useCookie bool, paseTime time.Duration, proxy ...string) *Surfer {
+	sf := surfer.New()
+	if len(proxy) != 0 {
+		sf.SetProxy(proxy[0])
 	}
+
 	return &Surfer{
-		download: surfer.NewDownload(3, paseTime, proxy[0]),
+		download: sf,
 	}
 }
 
@@ -37,4 +39,19 @@ func (self *Surfer) Download(cReq *context.Request) *context.Response {
 
 	cResp.SetStatus(true, "")
 	return cResp
+}
+
+func (self *Surfer) SetUseCookie(use bool) Downloader {
+	self.download.SetUseCookie(use)
+	return self
+}
+
+func (self *Surfer) SetPaseTime(paseTime time.Duration) Downloader {
+	self.download.SetPaseTime(paseTime)
+	return self
+}
+
+func (self *Surfer) SetProxy(proxy string) Downloader {
+	self.download.SetProxy(proxy)
+	return self
 }

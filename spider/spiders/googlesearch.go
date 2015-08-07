@@ -56,6 +56,7 @@ var GoogleSearch = &Spider{
 	Keyword:     CAN_ADD,
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
+	UseCookie: false,
 	RuleTree: &RuleTree{
 		Root: func(self *Spider) {
 			var url string

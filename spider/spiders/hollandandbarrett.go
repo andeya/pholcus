@@ -42,6 +42,7 @@ var Hollandandbarrett = &Spider{
 	Description: "Hollandand&Barrett商品数据 [Auto Page] [www.Hollandandbarrett.com]",
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
+	UseCookie: false,
 	RuleTree: &RuleTree{
 		Root: func(self *Spider) {
 			self.AddQueue(

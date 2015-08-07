@@ -133,6 +133,11 @@ func (self *Response) GetRequest() *Request {
 	return self.Request
 }
 
+// GetHeader ruturns header of Response.
+func (self *Response) GetHeader() http.Header {
+	return self.Response.Header
+}
+
 // GetBodyStr returns plain string crawled.
 func (self *Response) GetText() string {
 	if self.text == "" {

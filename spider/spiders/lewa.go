@@ -42,6 +42,7 @@ var Lewa = &Spider{
 	Description: "乐蛙登录测试 [Auto Page] [http://accounts.lewaos.com]",
 	// Pausetime: [2]uint{uint(3000), uint(1000)},
 	// Optional: &Optional{},
+	UseCookie: true,
 	RuleTree: &RuleTree{
 		Root: func(self *Spider) {
 			self.AddQueue(map[string]interface{}{"Url": "http://accounts.lewaos.com/", "Rule": "登录页"})
