@@ -46,7 +46,7 @@ func init() {
 		var err error
 
 		folder1 := "result/data"
-		folder2 := folder1 + "/" + self.startTime
+		folder2 := folder1 + "/" + self.startTime.Format("2006年01月02日 15时04分05秒")
 		filename := folder2 + "/" + util.FileNameReplace(self.Spider.GetName()+"_"+self.Spider.GetKeyword()+" "+fmt.Sprintf("%v", self.sum[0])+"-"+fmt.Sprintf("%v", self.sum[1])) + ".xlsx"
 
 		// 创建文件
@@ -126,7 +126,7 @@ func init() {
 		}()
 
 		folder1 := "result/data"
-		folder2 := folder1 + "/" + self.startTime
+		folder2 := folder1 + "/" + self.startTime.Format("2006年01月02日 15时04分05秒")
 		filenameBase := folder2 + "/" + util.FileNameReplace(self.Spider.GetName()+"_"+self.Spider.GetKeyword()+" "+fmt.Sprintf("%v", self.sum[0])+"-"+fmt.Sprintf("%v", self.sum[1]))
 
 		// 创建/打开目录

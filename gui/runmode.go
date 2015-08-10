@@ -16,7 +16,7 @@ func runmodeWindow() {
 			DataSource:     Input,
 			ErrorPresenter: ErrorPresenterRef{&ep},
 		},
-		Title:   config.APP_NAME,
+		Title:   config.APP_FULL_NAME,
 		MinSize: Size{450, 350},
 		Layout:  VBox{ /*MarginsZero: true*/ },
 		Children: []Widget{

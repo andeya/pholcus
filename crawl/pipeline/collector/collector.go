@@ -6,7 +6,6 @@ import (
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/spider"
-	"strings"
 	"time"
 )
 
@@ -17,7 +16,7 @@ type Collector struct {
 	DataChan  chan DataCell
 	FileChan  chan FileCell
 	ctrl      chan bool //长度为零时退出并输出
-	startTime string
+	startTime time.Time
 	outType   string
 	sum       [3]uint //收集的数据总数[文本过去，文本现在，文件],非并发安全
 	outCount  [4]uint //[文本输出开始，文本输出结束，文件输出开始，文件输出结束]
@@ -42,8 +41,7 @@ func (self *Collector) Init(sp *spider.Spider) {
 	self.ctrl = make(chan bool, 1)
 	self.sum = [3]uint{}
 	self.outCount = [4]uint{}
-	ts := strings.Split(cache.StartTime.Format("2006-01-02 15:04:05"), ":")
-	self.startTime = ts[0] + "时" + ts[1] + "分" + ts[2] + "秒"
+	self.startTime = cache.StartTime
 }
 
 func (self *Collector) CollectData(dataCell DataCell) {

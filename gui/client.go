@@ -16,7 +16,7 @@ func clientWindow() {
 			DataSource:     Input,
 			ErrorPresenter: ErrorPresenterRef{&ep},
 		},
-		Title:   config.APP_NAME + "                                                          【 运行模式 -> 客户端 】",
+		Title:   config.APP_FULL_NAME + "                                                          【 运行模式 -> 客户端 】",
 		MinSize: Size{1100, 700},
 		Layout:  VBox{MarginsZero: true},
 		Children: []Widget{
@@ -161,10 +161,9 @@ func clientWindow() {
 	// 禁用配置
 	setting.SetEnabled(false)
 	runStopBtn.SetEnabled(false)
-	// 配置运行模式
-	WTaskConf1()
-	// 记录配置信息
-	WTaskConf2()
+
+	// 初始化应用
+	Init()
 
 	// 执行任务
 	go LogicApp.Run()

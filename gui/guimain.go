@@ -13,32 +13,29 @@ func Run() {
 	runmodeWindow()
 }
 
-func WTaskConf1() {
-	LogicApp.SetRunMode(Input.RunMode) // 节点角色
-	LogicApp.SetPort(Input.Port)       // 主节点端口
-	LogicApp.SetMaster(Input.Master)   //服务器(主节点)地址，不含端口
+func Init() {
+	LogicApp.Init(Input.RunMode, Input.Port, Input.Master)
 }
 
-func WTaskConf2() {
+func SetTaskConf() {
 	// 纠正协程数
 	if Input.ThreadNum == 0 {
 		Input.ThreadNum = 1
 	}
 	LogicApp.SetThreadNum(Input.ThreadNum)
-	LogicApp.SetBaseSleeptime(Input.BaseSleeptime)
-	LogicApp.SetRandomSleepPeriod(Input.RandomSleepPeriod) //随机暂停最大增益时长
+	LogicApp.SetPausetime([2]uint{Input.BaseSleeptime, Input.RandomSleepPeriod})
 	LogicApp.SetOutType(Input.OutType)
 	LogicApp.SetDockerCap(Input.DockerCap) //分段转储容器容量
 	// 选填项
 	LogicApp.SetMaxPage(Input.MaxPage)
 }
 
-func SetSpiderQueue() {
+func SpiderPrepare() {
 	sps := []*spider.Spider{}
 	for _, sp := range Input.Spiders {
 		sps = append(sps, sp.Spider)
 	}
-	LogicApp.SetSpiderQueue(sps, Input.Keywords)
+	LogicApp.SpiderPrepare(sps, Input.Keywords)
 }
 
 func SpiderNames() (names []string) {

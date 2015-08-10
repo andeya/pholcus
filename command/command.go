@@ -17,9 +17,9 @@ import (
 var LogicApp = app.New()
 
 func Run() {
-
 	// //运行模式
 	// modeflag := flag.Int("运行模式", 0, "*运行模式: [0] 单机    [1] 服务端    [2] 客户端\r\n")
+	LogicApp.Init(1, 0, "")
 
 	// //端口号，非单机模式填写
 	// portflag := flag.Int("端口号", 0, "端口号: 只填写数字即可，不含冒号\r\n")
@@ -86,13 +86,11 @@ func Run() {
 	// fmt.Println("输入配置", *outputflag, *spiderflag, *goroutineflag, *dockerflag, *pasetimeflag, *keywordflag, *maxpageflag)
 
 	// 配置运行参数
-	LogicApp.SetRunMode(0).
-		SetThreadNum(*goroutineflag).
+	LogicApp.SetThreadNum(*goroutineflag).
 		SetDockerCap(*dockerflag).
 		SetOutType(*outputflag).
 		SetMaxPage(*maxpageflag).
-		SetBaseSleeptime(uint(pase[0])).
-		SetRandomSleepPeriod(uint(pase[1])).
-		SetSpiderQueue(sps, keyword).
+		SetPausetime([2]uint{uint(pase[0]), uint(pase[1])}).
+		SpiderPrepare(sps, keyword).
 		Run()
 }

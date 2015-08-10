@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"github.com/henrylee2cn/pholcus/runtime/status"
 	"sync"
 	"time"
 )
@@ -10,30 +9,20 @@ import (
 
 // 任务运行时公共配置
 type TaskConf struct {
-	RunMode           int    // 节点角色
-	Port              int    // 主节点端口
-	Master            string //服务器(主节点)地址，不含端口
-	ThreadNum         uint
-	BaseSleeptime     uint
-	RandomSleepPeriod uint //随机暂停最大增益时长
-	OutType           string
-	DockerCap         uint //分段转储容器容量
-	DockerQueueCap    uint //分段输出池容量，不小于2
+	RunMode        int    // 节点角色
+	Port           int    // 主节点端口
+	Master         string //服务器(主节点)地址，不含端口
+	ThreadNum      uint
+	Pausetime      [2]uint //暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
+	OutType        string
+	DockerCap      uint //分段转储容器容量
+	DockerQueueCap uint //分段输出池容量，不小于2
 	// 选填项
 	MaxPage int
 }
 
-var Task = &TaskConf{
-	RunMode:           status.OFFLINE,
-	Port:              2015,
-	Master:            "127.0.0.1",
-	ThreadNum:         20,
-	BaseSleeptime:     1000,
-	RandomSleepPeriod: 3000,
-	DockerCap:         10000,
-
-	MaxPage: 100,
-}
+// 该初始值即默认值
+var Task = new(TaskConf)
 
 // 根据Task.DockerCap智能调整分段输出池容量Task.DockerQueueCap
 func AutoDockerQueueCap() {

@@ -18,7 +18,7 @@ func offlineWindow() {
 			DataSource:     Input,
 			ErrorPresenter: ErrorPresenterRef{&ep},
 		},
-		Title:   config.APP_NAME + "                                                          【 运行模式 ->  单机 】",
+		Title:   config.APP_FULL_NAME + "                                                          【 运行模式 ->  单机 】",
 		MinSize: Size{1100, 700},
 		Layout:  VBox{MarginsZero: true},
 		Children: []Widget{
@@ -179,6 +179,9 @@ func offlineWindow() {
 
 	pauseRecoverBtn.SetVisible(false)
 
+	// 初始化应用
+	Init()
+
 	// 运行窗体程序
 	mw.Run()
 }
@@ -196,7 +199,6 @@ func offlinePauseRecover() {
 
 // 开始\停止控制
 func offlineRunStop() {
-
 	if LogicApp.Status() != status.STOP {
 		runStopBtn.SetEnabled(false)
 		runStopBtn.SetText("停止中…")
@@ -222,13 +224,11 @@ func offlineRunStop() {
 
 	runStopBtn.SetText("停止")
 
-	// 配置运行模式
-	WTaskConf1()
 	// 记录配置信息
-	WTaskConf2()
+	SetTaskConf()
 
 	// 更新蜘蛛队列
-	SetSpiderQueue()
+	SpiderPrepare()
 
 	go func() {
 		pauseRecoverBtn.SetText("暂停")

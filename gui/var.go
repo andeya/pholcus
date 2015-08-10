@@ -27,11 +27,15 @@ type Inputor struct {
 	Keywords string //后期split()为slice
 	Spiders  []*GUISpider
 	*cache.TaskConf
+	BaseSleeptime     uint
+	RandomSleepPeriod uint
 }
 
 var Input = &Inputor{
 	// 默认值
-	TaskConf: cache.Task,
+	TaskConf:          cache.Task,
+	BaseSleeptime:     cache.Task.Pausetime[0],
+	RandomSleepPeriod: cache.Task.Pausetime[1],
 }
 
 //****************************************GUI内容显示配置*******************************************\\

@@ -1,10 +1,10 @@
 # pholcus    [![GoDoc](https://godoc.org/github.com/tsuna/gohbase?status.png)](https://godoc.org/github.com/henrylee2cn/pholcus)
 
-Pholcus（幽灵蛛）是一款纯Go语言编写的重量级爬虫软件，清新的GUI界面，优雅的爬虫规则、可控的高并发、任意的批量任务、多种输出方式、大量Demo，更重要的是它支持socket长连接、全双工并发分布式，支持横纵向两种抓取模式，支持模拟登录和任务取消等。
+Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重量级爬虫软件，支持单机、服务端、客户端三种运行模式，拥有Web、GUI、命令行三种操作界面；规则简单灵活、批量任务并发、输出方式丰富（mysql/mongodb/csv/excel等）、有大量Demo共享；同时她还支持横纵向两种抓取模式，支持模拟登录和任务暂停、取消等一系列高级功能。
 
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/icon.png)
 
-* 稳定版： [Version 0.5.2 (Aug 6, 2015)](https://github.com/henrylee2cn/pholcus/releases).   [此处进入](https://github.com/henrylee2cn/pholcus/tree/master)
+* 稳定版： [Version 0.6.0 (Aug 10, 2015)](https://github.com/henrylee2cn/pholcus/releases).   [此处进入](https://github.com/henrylee2cn/pholcus/tree/master)
 
 * 官方QQ群：Go大数据 42731170    [![Go大数据群](http://pub.idqqimg.com/wpa/images/group.png)](http://shang.qq.com/wpa/qunwpa?idkey=83ee3e1a4be6bdb2b08a51a044c06ae52cf10a082f7c5cf6b36c1f78e8b03589)
 
@@ -16,13 +16,19 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的重量级爬虫软件，清�
 #### 框架特点
  1. Pholcus（幽灵蛛）以高效率，高灵活性和人性化设计为开发的指导思想；
 
- 2. 继承Go语言“少即是多”的风格，GUI界面尽量少得呈现技术层面的参数配置，而在程序内部做智能化参数调控；
+ 2. 支持单机、服务端、客户端三种运行模式，即支持分布式布局，适用于各种业务需要；
  
- 3. 对采集规则进行了精心设计，结构化规则、高度封装、通用方法集、自由灵活的发挥空间，让你轻松添加规则；
+ 3. 支持Web、GUI、命令行三种操作界面，适用于各种运行环境；
  
- 4. 每个pholcus程序既可以是服务器也可以是客户端，通过socket传递request来实现任务分发，其中node模块充当管理核心的角色，负责分发给其他节点和本地队列请求以及实时log，比如，让Pholcus软件同时在10台电脑运行，你就拥有了10个节点，自然形成分布式。
+ 4. 支持mysql/mongodb/csv/excel等多种输出方式，且可以轻松添加更多输出方式；
  
- 5. 支持横纵向两种抓取模式，并支持任务取消操作。
+ 5. 采用surfer高并发下载器，支持 GET/POST/HEAD 方法及 http/https 协议，同时支持固定UserAgent自动保存cookie与随机大量UserAgent禁用cookie两种模式，高度模拟浏览器行为，可实现模拟登录等功能；
+
+ 6. 服务器/客户端模式采用teleport高并发socketAPI框架，全双工长连接通信，内部数据传输格式为JSON；
+ 
+ 7. 对采集规则进行了精心设计，规则灵活简单、高度封装，用于通用方法集与大量Demo，让你轻松添加规则；
+ 
+ 8. 支持横纵向两种抓取模式，并且支持任务暂停、取消等操作。
 
 
 #### 下载安装
@@ -35,6 +41,18 @@ go get github.com/henrylee2cn/pholcus
 
 
 
+#### Web编译运行
+```
+go install pholcus-web.go
+```
+或者
+```
+go build pholcus-web.go
+```
+
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/webshow_1.jpg)
+
+
 #### GUI编译运行
 ```
 go install -ldflags="-H windowsgui" pholcus-gui.go
@@ -43,6 +61,8 @@ go install -ldflags="-H windowsgui" pholcus-gui.go
 ```
 go build -ldflags="-H windowsgui" pholcus-gui.go
 ```
+
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_0.jpg)
 
 
 
@@ -54,15 +74,10 @@ go build -ldflags="-H windowsgui" pholcus-gui.go
 (注：花括号“{}”中为选择参数或参数格式，多个参数值之间用逗号“,”间隔，各项参数根据采集规则的需要自行设置)
 ```
 
-
-#### GUI界面
-随时改进中，该截图仅供参考！
-
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_0.jpg)
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_1.jpg)
-
-#### 命令行界面
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/cmd.jpg)
+
+
+
 
 #### 添加ICON
 

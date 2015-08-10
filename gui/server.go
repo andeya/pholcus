@@ -21,7 +21,7 @@ func serverWindow() {
 			DataSource:     Input,
 			ErrorPresenter: ErrorPresenterRef{&ep},
 		},
-		Title:   config.APP_NAME + "                                                          【 运行模式 -> 服务器 】",
+		Title:   config.APP_FULL_NAME + "                                                          【 运行模式 -> 服务器 】",
 		MinSize: Size{1100, 700},
 		Layout:  VBox{MarginsZero: true},
 		Children: []Widget{
@@ -164,8 +164,8 @@ func serverWindow() {
 
 	setWindow()
 
-	// 配置运行模式
-	WTaskConf1()
+	// 初始化应用
+	Init()
 
 	// 运行窗体程序
 	mw.Run()
@@ -187,13 +187,13 @@ func serverStart() {
 	}
 
 	// 记录配置信息
-	WTaskConf2()
+	SetTaskConf()
 
 	runStopBtn.SetEnabled(false)
 	runStopBtn.SetText("分发任务 (···)")
 
 	// 重置spiders队列
-	SetSpiderQueue()
+	SpiderPrepare()
 
 	// 生成分发任务
 	LogicApp.Run()

@@ -313,3 +313,27 @@ func ExcelSheetNameReplace(fileName string) (rfn string) {
 	rfn = strings.Replace(rfn, `[`, `_`, -1)
 	return
 }
+
+func Atoa(str interface{}) string {
+
+	if str == nil {
+		return ""
+	}
+	return strings.Trim(str.(string), " ")
+}
+
+func Atoi(str interface{}) int {
+	if str == nil {
+		return 0
+	}
+	i, _ := strconv.Atoi(strings.Trim(str.(string), " "))
+	return i
+}
+
+func Atoui(str interface{}) uint {
+	if str == nil {
+		return 0
+	}
+	u, _ := strconv.Atoi(strings.Trim(str.(string), " "))
+	return uint(u)
+}

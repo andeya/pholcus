@@ -31,11 +31,11 @@ type Node struct {
 	Status int
 }
 
-func newPholcus() *Node {
+func NewNode(mode int, port int, master string) *Node {
 	return &Node{
-		RunMode:  cache.Task.RunMode,
-		Port:     ":" + strconv.Itoa(cache.Task.Port),
-		Master:   cache.Task.Master,
+		RunMode:  mode,
+		Port:     ":" + strconv.Itoa(port),
+		Master:   master,
 		Teleport: teleport.New(),
 		TaskJar:  task.NewTaskJar(),
 		Spiders:  spiderqueue.New(),
@@ -44,35 +44,34 @@ func newPholcus() *Node {
 	}
 }
 
-// 声明实例
-var Pholcus *Node = nil
-
-// 运行节点
-func PholcusRun() {
-	if Pholcus != nil {
-		return
-	}
-	Pholcus = newPholcus()
-	switch Pholcus.RunMode {
+// 初始化并运行节点
+func (self *Node) Run() {
+	switch self.RunMode {
 	case status.SERVER:
-		if Pholcus.checkPort() {
+		if self.checkPort() {
 			log.Printf("                                                                                               ！！当前运行模式为：[ 服务器 ] 模式！！")
-			Pholcus.Teleport.SetAPI(ServerApi).Server(Pholcus.Port)
+			self.Teleport.SetAPI(ServerApi(self)).Server(self.Port)
 		}
 
 	case status.CLIENT:
-		if Pholcus.checkAll() {
+		if self.checkAll() {
 			log.Printf("                                                                                               ！！当前运行模式为：[ 客户端 ] 模式！！")
-			Pholcus.Teleport.SetAPI(ClientApi).Client(Pholcus.Master, Pholcus.Port)
+			self.Teleport.SetAPI(ClientApi(self)).Client(self.Master, self.Port)
 		}
-	// case status.OFFLINE:
-	// 	fallthrough
-	default:
+	case status.OFFLINE:
 		log.Printf("                                                                                               ！！当前运行模式为：[ 单机 ] 模式！！")
+		return
+	default:
+		log.Println(" *    ——请指定正确的运行模式！——")
 		return
 	}
 	// 开启实时log发送
-	go Pholcus.log()
+	go self.log()
+}
+
+func (self *Node) Stop() {
+	self.Teleport.Close()
+	self.Status = status.STOP
 }
 
 // 返回节点数
@@ -87,8 +86,7 @@ func (self *Node) AddNewTask() (tasksNum, spidersNum int) {
 
 	// 从配置读取字段
 	t.ThreadNum = cache.Task.ThreadNum
-	t.BaseSleeptime = cache.Task.BaseSleeptime
-	t.RandomSleepPeriod = cache.Task.RandomSleepPeriod
+	t.Pausetime = cache.Task.Pausetime
 	t.OutType = cache.Task.OutType
 	t.DockerCap = cache.Task.DockerCap
 	t.DockerQueueCap = cache.Task.DockerQueueCap
@@ -152,6 +150,9 @@ ReStartLabel:
 
 func (self *Node) log() {
 	for {
+		if self.Status == status.STOP {
+			return
+		}
 		self.Teleport.Request(<-cache.SendChan, "log")
 	}
 }

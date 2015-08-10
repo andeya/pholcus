@@ -88,8 +88,8 @@ func (self *Spider) GetRules() map[string]*Rule {
 	return self.RuleTree.Nodes
 }
 
-func (self *Spider) SetPausetime(a, b uint) {
-	self.Pausetime = [2]uint{a, b}
+func (self *Spider) SetPausetime(pause [2]uint) {
+	self.Pausetime = pause
 }
 
 // 根据响应流运行指定解析规则，不推荐在规则中使用

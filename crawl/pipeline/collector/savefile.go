@@ -19,7 +19,7 @@ func (self *Collector) SaveFile() {
 			self.setFileSum(1)
 
 			// 路径： file/"RuleName"/"time"/"Name"
-			dir := `result/file/` + self.Spider.GetName() + `/` + file["RuleName"].(string) + `/` + self.startTime + `/`
+			dir := `result/file/` + self.Spider.GetName() + `/` + file["RuleName"].(string) + `/` + self.startTime.Format("2006年01月02日 15时04分05秒") + `/`
 
 			// 创建/打开目录
 			d, err := os.Stat(dir)

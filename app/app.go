@@ -1,12 +1,12 @@
 // app interface for graphical user interface.
-// 必须调用的三（或四）个函数方法，依次为：New()-->[SetLog(io.Writer)-->]APP.SetRunMode(int)-->APP.Run()
+// 基本业务执行顺序依次为：New()-->[SetLog(io.Writer)-->]Init()-->SpiderPrepare()-->Run()
 package app
 
 import (
 	"github.com/henrylee2cn/pholcus/crawl"
 	"github.com/henrylee2cn/pholcus/crawl/pipeline/collector"
 	"github.com/henrylee2cn/pholcus/crawl/scheduler"
-	. "github.com/henrylee2cn/pholcus/node"
+	"github.com/henrylee2cn/pholcus/node"
 	"github.com/henrylee2cn/pholcus/node/task"
 	"github.com/henrylee2cn/pholcus/reporter"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
@@ -20,44 +20,27 @@ import (
 )
 
 type App interface {
-	// 获取输出方式列表
-	GetOutputLib() []string
+	// 设置全局log输出目标，不设置或设置为nil则为go语言默认
+	SetLog(io.Writer) App
 
-	// 获取全部蜘蛛种类
-	GetAllSpiders() []*spider.Spider
+	// 使用App前必须进行先Init初始化，SetLog()除外
+	Init(mode int, port int, master string, w ...io.Writer) App
 
-	// 通过名字获取某蜘蛛
-	GetSpiderByName(string) *spider.Spider
-
-	// 获取执行队列中蜘蛛总数
-	SpiderQueueLen() int
-
-	// status.OFFLINE  status.SERVER  status.CLIENT
-	// New()之后Run()之前必须调用一次该方法
-	SetRunMode(int) App
-
-	// server与client模式下设置
-	SetPort(int) App
-
-	// client模式下设置
-	SetMaster(string) App
+	// 切换运行模式时使用
+	ReInit(mode int, port int, master string, w ...io.Writer) App
 
 	// 以下Set类方法均为Offline和Server模式用到的
 	SetThreadNum(uint) App
-	SetBaseSleeptime(uint) App
-	SetRandomSleepPeriod(uint) App
+	SetPausetime([2]uint) App //暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
 	SetOutType(string) App
 	SetDockerCap(uint) App
 	SetMaxPage(int) App
 
-	// Offline模式下设置
-	// SetSpiderQueue()必须在设置全局运行参数之后运行
+	// SpiderPrepare()必须在设置全局运行参数之后，就Run()的前一刻执行
 	// original为spider包中未有过赋值操作的原始蜘蛛种类
 	// 已被显式赋值过的spider将不再重新分配Keyword
-	SetSpiderQueue(original []*spider.Spider, keywords string) App
-
-	// 设置全局log输出目标，不设置或设置为nil则为go语言默认
-	SetLog(io.Writer) App
+	// client模式下不调用该方法
+	SpiderPrepare(original []*spider.Spider, keywords string) App
 
 	// Run()对外为阻塞运行方式，其返回时意味着当前任务已经执行完毕
 	// Run()必须在所有应当配置项配置完成后调用
@@ -73,9 +56,25 @@ type App interface {
 
 	// 返回当前状态
 	Status() int
+
+	// 获取当前运行模式，若返回-1则表示应用未启动
+	GetRunMode() int
+
+	// 获取全部蜘蛛种类
+	GetAllSpiders() []*spider.Spider
+
+	// 通过名字获取某蜘蛛
+	GetSpiderByName(string) *spider.Spider
+
+	// 获取执行队列中蜘蛛总数
+	SpiderQueueLen() int
+
+	// 获取输出方式列表
+	GetOutputLib() []string
 }
 
 type Logic struct {
+	*node.Node
 	spider.Traversal
 	status     int
 	finish     chan bool
@@ -83,27 +82,7 @@ type Logic struct {
 }
 
 func New() App {
-	// 开启报告，调用前必须先设置Log.Output(w io.Writer)
-	reporter.Log.Run()
-
-	return &Logic{
-		Traversal: spider.Menu,
-	}
-}
-
-// 获取输出方式列表
-func (self *Logic) GetOutputLib() []string {
-	return collector.OutputLib
-}
-
-// 获取全部蜘蛛种类
-func (self *Logic) GetAllSpiders() []*spider.Spider {
-	return self.Traversal.Get()
-}
-
-// 通过名字获取某蜘蛛
-func (self *Logic) GetSpiderByName(name string) *spider.Spider {
-	return self.Traversal.GetByName(name)
+	return new(Logic)
 }
 
 // 设置全局log输出目标，不设置或设置为nil则为go语言默认
@@ -112,23 +91,29 @@ func (self *Logic) SetLog(w io.Writer) App {
 	return self
 }
 
-var modeOnce sync.Once
-
-func (self *Logic) SetRunMode(mode int) App {
-	cache.Task.RunMode = mode
-	// 运行pholcus核心
-	modeOnce.Do(PholcusRun)
+// 使用App前必须进行先Init初始化，SetLog()除外
+func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
+	if len(w) > 0 {
+		self.SetLog(w[0])
+	}
+	reporter.Log.Run()
+	cache.Task.RunMode, cache.Task.Port, cache.Task.Master = mode, port, master
+	self.Traversal = spider.Menu
+	self.Node = node.NewNode(mode, port, master)
+	self.Node.Run()
 	return self
 }
 
-func (self *Logic) SetPort(port int) App {
-	cache.Task.Port = port
-	return self
-}
-
-func (self *Logic) SetMaster(master string) App {
-	cache.Task.Master = master
-	return self
+// 切换运行模式时使用
+func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App {
+	self.status = status.STOP
+	self.Node.Stop()
+	self.Node.Crawls.Stop()
+	if scheduler.Sdl != nil {
+		scheduler.Sdl.Stop()
+	}
+	self = nil
+	return New().Init(mode, port, master, w...)
 }
 
 func (self *Logic) SetThreadNum(threadNum uint) App {
@@ -136,13 +121,9 @@ func (self *Logic) SetThreadNum(threadNum uint) App {
 	return self
 }
 
-func (self *Logic) SetBaseSleeptime(baseSleeptime uint) App {
-	cache.Task.BaseSleeptime = baseSleeptime
-	return self
-}
-
-func (self *Logic) SetRandomSleepPeriod(randomSleepPeriod uint) App {
-	cache.Task.RandomSleepPeriod = randomSleepPeriod
+//暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
+func (self *Logic) SetPausetime(pause [2]uint) App {
+	cache.Task.Pausetime = pause
 	return self
 }
 
@@ -162,25 +143,48 @@ func (self *Logic) SetMaxPage(maxPage int) App {
 	return self
 }
 
-// SetSpiderQueue()必须在设置全局运行参数之后运行
+// SpiderPrepare()必须在设置全局运行参数之后，就Run()的前一刻执行
 // original为spider包中未有过赋值操作的原始蜘蛛种类
 // 已被显式赋值过的spider将不再重新分配Keyword
-func (self *Logic) SetSpiderQueue(original []*spider.Spider, keywords string) App {
-	Pholcus.Spiders.Reset()
+// client模式下不调用该方法
+func (self *Logic) SpiderPrepare(original []*spider.Spider, keywords string) App {
+	self.Node.Spiders.Reset()
 	// 遍历任务
 	for _, sp := range original {
 		spgost := sp.Gost()
-		spgost.SetPausetime(cache.Task.BaseSleeptime, cache.Task.RandomSleepPeriod)
+		spgost.SetPausetime(cache.Task.Pausetime)
 		spgost.SetMaxPage(cache.Task.MaxPage)
-		Pholcus.Spiders.Add(spgost)
+		self.Node.Spiders.Add(spgost)
 	}
 	// 遍历关键词
-	Pholcus.Spiders.AddKeywords(keywords)
+	self.Node.Spiders.AddKeywords(keywords)
 	return self
 }
 
+// 获取输出方式列表
+func (self *Logic) GetOutputLib() []string {
+	return collector.OutputLib
+}
+
+// 获取全部蜘蛛种类
+func (self *Logic) GetAllSpiders() []*spider.Spider {
+	return self.Traversal.Get()
+}
+
+// 通过名字获取某蜘蛛
+func (self *Logic) GetSpiderByName(name string) *spider.Spider {
+	return self.Traversal.GetByName(name)
+}
+
+func (self *Logic) GetRunMode() int {
+	if self.Node == nil {
+		return -1
+	}
+	return cache.Task.RunMode
+}
+
 func (self *Logic) SpiderQueueLen() int {
-	return Pholcus.Spiders.Len()
+	return self.Node.Spiders.Len()
 }
 
 func (self *Logic) Run() {
@@ -199,7 +203,6 @@ func (self *Logic) Run() {
 	case status.CLIENT:
 		self.client()
 	default:
-		log.Println(" *    ——请指定正确的运行模式！——")
 		return
 	}
 	<-self.finish
@@ -220,7 +223,7 @@ func (self *Logic) PauseRecover() {
 // Offline 模式下中途终止任务
 func (self *Logic) Stop() {
 	self.status = status.STOP
-	Pholcus.Crawls.Stop()
+	self.Node.Crawls.Stop()
 	scheduler.Sdl.Stop()
 
 	// 总耗时
@@ -250,7 +253,7 @@ func (self *Logic) offline() {
 	self.exec()
 }
 
-// 必须在SetSpiderQueue()执行之后调用才可以成功添加任务
+// 必须在SpiderPrepare()执行之后调用才可以成功添加任务
 func (self *Logic) server() {
 	// 标记结束
 	defer func() {
@@ -259,7 +262,7 @@ func (self *Logic) server() {
 	}()
 
 	// 便利添加任务到库
-	tasksNum, spidersNum := Pholcus.AddNewTask()
+	tasksNum, spidersNum := self.Node.AddNewTask()
 
 	if tasksNum == 0 {
 		return
@@ -283,7 +286,7 @@ func (self *Logic) client() {
 
 	for {
 		// 从任务库获取一个任务
-		t := Pholcus.DownTask()
+		t := self.Node.DownTask()
 		// reporter.Log.Printf("成功获取任务 %#v", t)
 
 		// 准备运行
@@ -297,45 +300,46 @@ func (self *Logic) client() {
 // client模式下从task准备运行条件
 func (self *Logic) taskToRun(t *task.Task) {
 	// 清空历史任务
-	Pholcus.Spiders.Reset()
+	self.Node.Spiders.Reset()
 
 	// 更改全局配置
 	cache.Task.OutType = t.OutType
 	cache.Task.ThreadNum = t.ThreadNum
 	cache.Task.DockerCap = t.DockerCap
 	cache.Task.DockerQueueCap = t.DockerQueueCap
+	cache.Task.Pausetime = t.Pausetime
 
 	// 初始化蜘蛛队列
 	for _, n := range t.Spiders {
 		if sp := spider.Menu.GetByName(n["name"]); sp != nil {
 			spgost := sp.Gost()
-			spgost.SetPausetime(t.BaseSleeptime, t.RandomSleepPeriod)
+			spgost.SetPausetime(t.Pausetime)
 			spgost.SetMaxPage(t.MaxPage)
 			if v, ok := n["keyword"]; ok {
 				spgost.SetKeyword(v)
 			}
-			Pholcus.Spiders.Add(spgost)
+			self.Node.Spiders.Add(spgost)
 		}
 	}
 }
 
 // 开始执行任务
 func (self *Logic) exec() {
-	count := Pholcus.Spiders.Len()
+	count := self.Node.Spiders.Len()
 	cache.ReSetPageCount()
 
 	// 初始化资源队列
 	scheduler.Init(cache.Task.ThreadNum)
 
 	// 设置爬虫队列
-	crawlNum := Pholcus.Crawls.Reset(count)
+	crawlNum := self.Node.Crawls.Reset(count)
 
 	log.Println(` *********************************************************************************************************************************** `)
 	log.Printf(" * ")
 	log.Printf(" *     执行任务总数（任务数[*关键词数]）为 %v 个...\n", count)
 	log.Printf(" *     爬虫队列可容纳蜘蛛 %v 只...\n", crawlNum)
 	log.Printf(" *     并发协程最多 %v 个……\n", cache.Task.ThreadNum)
-	log.Printf(" *     随机停顿时间为 %v~%v ms ……\n", cache.Task.BaseSleeptime, cache.Task.BaseSleeptime+cache.Task.RandomSleepPeriod)
+	log.Printf(" *     随机停顿时间为 %v~%v ms ……\n", cache.Task.Pausetime[0], cache.Task.Pausetime[0]+cache.Task.Pausetime[1])
 	log.Printf(" * ")
 	log.Printf(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
 	log.Printf(" * ")
@@ -361,13 +365,13 @@ func (self *Logic) goRun(count int) {
 			continue
 		}
 		// 从爬行队列取出空闲蜘蛛，并发执行
-		c := Pholcus.Crawls.Use()
+		c := self.Node.Crawls.Use()
 		if c != nil {
 			go func(i int, c crawl.Crawler) {
 				// 执行并返回结果消息
-				c.Init(Pholcus.Spiders.GetByIndex(i)).Start()
+				c.Init(self.Node.Spiders.GetByIndex(i)).Start()
 				// 任务结束后回收该蜘蛛
-				Pholcus.Crawls.Free(c.GetId())
+				self.Node.Crawls.Free(c.GetId())
 			}(i, c)
 		}
 	}
