@@ -23,7 +23,7 @@ func wsHandle(conn *ws.Conn) {
 	go func(conn *ws.Conn) {
 		var err error
 		defer func() {
-			reporter.Printf("websocket发送出错断开 (%v) !", err)
+			// reporter.Printf("websocket发送出错断开 (%v) !", err)
 		}()
 		for info := range wchan {
 			if _, err = ws.JSON.Send(conn, info); err != nil {
@@ -36,7 +36,7 @@ func wsHandle(conn *ws.Conn) {
 		var req map[string]interface{}
 
 		if err := ws.JSON.Receive(conn, &req); err != nil {
-			reporter.Printf("websocket接收出错断开 (%v) !", err)
+			// reporter.Printf("websocket接收出错断开 (%v) !", err)
 			return
 		}
 
@@ -194,7 +194,7 @@ func setSpiderQueue(req map[string]interface{}) bool {
 func wsLogHandle(conn *ws.Conn) {
 	var err error
 	defer func() {
-		reporter.Printf("websocket log发送出错断开 (%v) !", err)
+		// reporter.Printf("websocket log发送出错断开 (%v) !", err)
 	}()
 
 	Log.logChan = make(chan string, 1024)
@@ -206,7 +206,7 @@ func wsLogHandle(conn *ws.Conn) {
 		}()
 		for {
 			if err := ws.JSON.Receive(conn, nil); err != nil {
-				reporter.Printf("websocket log接收出错断开 (%v) !", err)
+				// reporter.Printf("websocket log接收出错断开 (%v) !", err)
 				return
 			}
 		}
