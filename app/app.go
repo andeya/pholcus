@@ -3,6 +3,11 @@
 package app
 
 import (
+	"io"
+	"log"
+	"sync"
+	"time"
+
 	"github.com/henrylee2cn/pholcus/crawl"
 	"github.com/henrylee2cn/pholcus/crawl/pipeline/collector"
 	"github.com/henrylee2cn/pholcus/crawl/scheduler"
@@ -12,11 +17,6 @@ import (
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 	"github.com/henrylee2cn/pholcus/spider"
-	_ "github.com/henrylee2cn/pholcus/spider/spiders"
-	"io"
-	"log"
-	"sync"
-	"time"
 )
 
 type App interface {

@@ -43,14 +43,61 @@ go get github.com/henrylee2cn/pholcus
  > *<font size=2>注意：go get执行完成后，提示出现多个main函数的错误是正常的，这是由于支持下面的多种编译方式所致。</font>*
 
 
+#### 创建项目
 
-#### Web编译运行
 ```
-go install pholcus-web.go
+package main
+
+import (
+    "github.com/henrylee2cn/pholcus/config"
+    // 按界面需求选择相应版本
+    "github.com/henrylee2cn/pholcus/web" // web版
+    // "github.com/henrylee2cn/pholcus/cmd" // cmd版
+    // "github.com/henrylee2cn/pholcus/gui" // gui版
+)
+
+// 导入自己的规则库（须保证最后声明，即最先导入）
+import (
+    _ "github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
+    // _ "path/myrule_lib" // 同样你也可以自由添加自己的规则库
+)
+
+// 自定义相关配置，将覆盖默认值
+func setConf() {
+    //mongodb数据库服务器
+    config.DB_URL = "127.0.0.1:27017"
+    //mongodb数据库名称
+    config.DB_NAME = "temp-collection-tentinet"
+    //mongodb数据库集合
+    config.DB_COLLECTION = "news"
+    //mysql地址
+    config.MYSQL_HOST = "127.0.0.1:3306"
+    //msyql数据库
+    config.MYSQL_DB = "pholcus"
+    //mysql用户
+    config.MYSQL_USER = "root"
+    //mysql密码
+    config.MYSQL_PW = ""
+}
+
+func main() {
+    // setConf() // 不调用则为默认值
+
+    // 开始运行
+    web.Run() // web版
+    // cmd.Run() // cmd版
+    // gui.Run() // gui版
+}
+
+```
+
+#### Web版编译运行
+```
+go install (可选参数： -ip 0.0.0.0 -port 9090)
 ```
 或者
 ```
-go build pholcus-web.go
+go build (可选参数： -ip 0.0.0.0 -port 9090)
 ```
 
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/webshow_1.jpg)
@@ -58,25 +105,25 @@ go build pholcus-web.go
 
 #### GUI编译运行
 ```
-go install -ldflags="-H windowsgui" pholcus-gui.go
+go install -ldflags="-H windowsgui"
 ```
 或者
 ```
-go build -ldflags="-H windowsgui" pholcus-gui.go
+go build -ldflags="-H windowsgui"
 ```
 
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_0.jpg)
 
 
 
-#### 命令行编译运行
+#### Cmd版编译运行
 ```
 编译命令: go install pholcus-cmd.go  或者  go build pholcus-cmd.go
 查看命令参数: pholcus-cmd.exe -h
 执行爬虫命令: pholcus-cmd.exe -spider=3,8 -output=csv -go=500 -docker=5000 -pase=1000,3000 -kw=pholcus,golang -page=100
-(注：花括号“{}”中为选择参数或参数格式，多个参数值之间用逗号“,”间隔，各项参数根据采集规则的需要自行设置)
 ```
 
+> *<font size="2">(注：花括号“{}”中为选择参数或参数格式，多个参数值之间用逗号“,”间隔，各项参数根据采集规则的需要自行设置)*
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/cmd.jpg)
 
 
@@ -85,13 +132,6 @@ go build -ldflags="-H windowsgui" pholcus-gui.go
 #### 添加ICON
 
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/addicon.jpg)
-
-
-
-#### 添加规则
-
- - 添加一条规则的方法：只需在“henrylee2cn/pholcus/spider/spiders/”中增加一个采集规则（go文件），框架将自动添加该规则到GUI任务列表！
-
 
 
 #### 第三方依赖包

@@ -1,22 +1,28 @@
-// 命令行模式，目前仅实现简单的单机模式。
-// 作为破砖引玉，更复杂的功能如服务端、客户端模式、暂停等可以自己模仿实现
-package command
+// [spider frame (golang)] Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重量级爬虫软件，支持单机、服务端、客户端三种运行模式，拥有Web、GUI、命令行三种操作界面；规则简单灵活、批量任务并发、输出方式丰富（mysql/mongodb/csv/excel等）、有大量Demo共享；同时她还支持横纵向两种抓取模式，支持模拟登录和任务暂停、取消等一系列高级功能；
+//（官方QQ群：Go大数据 42731170，欢迎加入我们的讨论）。
+// 命令行界面版。
+package cmd
 
 import (
 	"flag"
-	"github.com/henrylee2cn/pholcus/app"
-	"github.com/henrylee2cn/pholcus/spider"
 	// "bufio"
 	"log"
 	// "os"
 	// "fmt"
+	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/henrylee2cn/pholcus/app"
+	"github.com/henrylee2cn/pholcus/spider"
 )
 
 var LogicApp = app.New()
 
 func Run() {
+	// 开启最大核心数运行
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	// //运行模式
 	// modeflag := flag.Int("运行模式", 0, "*运行模式: [0] 单机    [1] 服务端    [2] 客户端\r\n")
 	LogicApp.Init(1, 0, "")
