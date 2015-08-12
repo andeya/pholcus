@@ -30,6 +30,7 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重�
  
  8. 支持横纵向两种抓取模式，并且支持任务暂停、取消等操作。
 
+&nbsp;
 
 #### 下载安装
 
@@ -42,6 +43,7 @@ go get github.com/henrylee2cn/pholcus
 
  > *<font size=2>注意：go get执行完成后，提示出现多个main函数的错误是正常的，这是由于支持下面的多种编译方式所致。</font>*
 
+&nbsp;
 
 #### 创建项目
 
@@ -90,6 +92,7 @@ func main() {
 }
 
 ```
+&nbsp;
 
 #### Web版编译运行
 ```
@@ -99,7 +102,7 @@ go install (可选参数： -ip 0.0.0.0 -port 9090)
 ```
 go build (可选参数： -ip 0.0.0.0 -port 9090)
 ```
-
+> *<font size="2">(注意：将 src/github.com/henrylee2cn/pholcus/web 文件夹拷贝至当前项目目录下，其中的go文件可删除)*
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/webshow_1.jpg)
 
 
@@ -114,7 +117,7 @@ go build -ldflags="-H windowsgui"
 
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_0.jpg)
 
-
+&nbsp;
 
 #### Cmd版编译运行
 ```
@@ -127,12 +130,13 @@ go build -ldflags="-H windowsgui"
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/cmd.jpg)
 
 
-
+&nbsp;
 
 #### 添加ICON
 
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/addicon.jpg)
 
+&nbsp;
 
 #### 第三方依赖包
 
@@ -156,7 +160,7 @@ go get "golang.org/x/text/transform"
 > *<font size="2">（在此感谢以上开源项目的支持！）</font>*
 
 
-
+&nbsp;
 
 #### 开源协议
 
