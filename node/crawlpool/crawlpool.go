@@ -10,20 +10,19 @@ import (
 type CrawlPool interface {
 	Reset(spiderNum int) int
 	Use() crawl.Crawler
-	Free(id int)
+	Free(crawl.Crawler)
 	Stop()
 }
 
 type cq struct {
 	Cap    int
-	Using  map[int]bool
-	Src    []crawl.Crawler
+	Src    map[crawl.Crawler]bool
 	status int
 }
 
 func New() CrawlPool {
 	return &cq{
-		Src:    []crawl.Crawler{},
+		Src:    make(map[crawl.Crawler]bool),
 		status: status.RUN,
 	}
 }
@@ -31,59 +30,58 @@ func New() CrawlPool {
 // 根据要执行的蜘蛛数量设置CrawlerPool
 // 在二次使用Pool实例时，可根据容量高效转换
 func (self *cq) Reset(spiderNum int) int {
-	num := config.CRAWLS_CAP
+	var wantNum int
 	if spiderNum < config.CRAWLS_CAP {
-		num = spiderNum
+		wantNum = spiderNum
+	} else {
+		wantNum = config.CRAWLS_CAP
 	}
 
-	last := len(self.Src)
-	if num > last {
-		self.Cap = num
-		self.Using = make(map[int]bool, num)
+	hasNum := len(self.Src)
+	if wantNum > hasNum {
+		self.Cap = wantNum
 	} else {
-		self.Cap = last
-		self.Using = make(map[int]bool, last)
+		self.Cap = hasNum
 	}
 	self.status = status.RUN
-	return num
+	return self.Cap
 }
 
+// 非并发安全地使用资源
 func (self *cq) Use() crawl.Crawler {
 	if self.status != status.RUN {
 		return nil
 	}
 	for {
-
 		for k, v := range self.Src {
-
-			if !self.Using[k] {
-
-				self.Using[k] = true
-				return v
+			if !v {
+				self.Src[k] = true
+				return k
 			}
 		}
-		self.autoAdd()
-		time.Sleep(5e8)
+		if len(self.Src) <= self.Cap {
+			self.increment()
+		} else {
+			time.Sleep(5e8)
+		}
 	}
 	return nil
 }
 
-func (self *cq) Free(id int) {
-	self.Using[id] = false
+func (self *cq) Free(c crawl.Crawler) {
+	self.Src[c] = false
 }
 
 // 终止所有爬行任务
 func (self *cq) Stop() {
 	self.status = status.STOP
-	self.Src = make([]crawl.Crawler, 0)
-	self.Using = make(map[int]bool, self.Cap)
+	self.Src = make(map[crawl.Crawler]bool)
 }
 
 // 根据情况自动动态增加Crawl
-func (self *cq) autoAdd() {
-	count := len(self.Src)
-	if count < self.Cap {
-		self.Src = append(self.Src, crawl.New(count))
-		self.Using[count] = false
+func (self *cq) increment() {
+	id := len(self.Src)
+	if id < self.Cap {
+		self.Src[crawl.New(id)] = false
 	}
 }

@@ -332,14 +332,14 @@ func (self *Logic) exec() {
 	scheduler.Init(cache.Task.ThreadNum)
 
 	// 设置爬虫队列
-	crawlNum := self.Node.Crawls.Reset(count)
+	crawlCap := self.Node.Crawls.Reset(count)
 
 	log.Println(` *********************************************************************************************************************************** `)
 	log.Printf(" * ")
-	log.Printf(" *     执行任务总数（任务数[*关键词数]）为 %v 个...\n", count)
-	log.Printf(" *     爬虫队列可容纳蜘蛛 %v 只...\n", crawlNum)
-	log.Printf(" *     并发协程最多 %v 个……\n", cache.Task.ThreadNum)
-	log.Printf(" *     随机停顿时间为 %v~%v ms ……\n", cache.Task.Pausetime[0], cache.Task.Pausetime[0]+cache.Task.Pausetime[1])
+	log.Printf(" *     执行任务总数（任务数[*关键词数]）为 %v 个 ...\n", count)
+	log.Printf(" *     爬虫池容量为 %v ...\n", crawlCap)
+	log.Printf(" *     并发协程最多 %v 个 ...\n", cache.Task.ThreadNum)
+	log.Printf(" *     随机停顿时间为 %v~%v ms ...\n", cache.Task.Pausetime[0], cache.Task.Pausetime[0]+cache.Task.Pausetime[1])
 	log.Printf(" * ")
 	log.Printf(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
 	log.Printf(" * ")
@@ -371,7 +371,7 @@ func (self *Logic) goRun(count int) {
 				// 执行并返回结果消息
 				c.Init(self.Node.Spiders.GetByIndex(i)).Start()
 				// 任务结束后回收该蜘蛛
-				self.Node.Crawls.Free(c.GetId())
+				self.Node.Crawls.Free(c)
 			}(i, c)
 		}
 	}

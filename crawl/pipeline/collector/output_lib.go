@@ -190,15 +190,15 @@ func init() {
 	/************************ MongoDB 输出 ***************************/
 
 	Output["mgo"] = func(self *Collector, dataIndex int) {
-		session, err := mgo.Dial(config.DB_URL) //连接数据库
+		session, err := mgo.Dial(config.MGO_URL) //连接数据库
 		if err != nil {
 			panic(err)
 		}
 		defer session.Close()
 		session.SetMode(mgo.Monotonic, true)
 
-		db := session.DB(config.DB_NAME)         //数据库名称
-		collection := db.C(config.DB_COLLECTION) //如果该集合已经存在的话，则直接返回
+		db := session.DB(config.MGO_NAME)         //数据库名称
+		collection := db.C(config.MGO_COLLECTION) //如果该集合已经存在的话，则直接返回
 
 		for i, count := 0, len(self.DockerQueue.Dockers[dataIndex]); i < count; i++ {
 			err = collection.Insert((interface{})(self.DockerQueue.Dockers[dataIndex][i]))

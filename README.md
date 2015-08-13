@@ -67,11 +67,11 @@ import (
 // 自定义相关配置，将覆盖默认值
 func setConf() {
     //mongodb数据库服务器
-    config.DB_URL = "127.0.0.1:27017"
+    config.MGO_URL = "127.0.0.1:27017"
     //mongodb数据库名称
-    config.DB_NAME = "temp-collection-tentinet"
+    config.MGO_NAME = "temp-collection-tentinet"
     //mongodb数据库集合
-    config.DB_COLLECTION = "news"
+    config.MGO_COLLECTION = "news"
     //mysql地址
     config.MYSQL_HOST = "127.0.0.1:3306"
     //msyql数据库

@@ -19,7 +19,7 @@ const (
 
 	APP_FULL_NAME = APP_NAME + "_" + APP_VERSION + " （by " + APP_AUTHOR + "）"
 
-	// 蜘蛛池容量
+	// 蜘蛛池最大容量
 	CRAWLS_CAP = 50
 
 	// 收集器容量
@@ -29,13 +29,13 @@ const (
 // 相关默认值，可在main中重新定义
 var (
 	// mongodb数据库服务器
-	DB_URL = "127.0.0.1:27017"
+	MGO_URL = "127.0.0.1:27017"
 
 	//mongodb数据库名称
-	DB_NAME = "temp-collection-tentinet"
+	MGO_NAME = "temp-collection-tentinet"
 
 	//mongodb数据库集合
-	DB_COLLECTION = "news"
+	MGO_COLLECTION = "news"
 
 	//mysql地址
 	MYSQL_HOST = "127.0.0.1:3306"
