@@ -10,7 +10,7 @@ import (
 
 // 导入自己的规则库（须保证最后声明，即最先导入）
 import (
-	_ "github.com/henrylee2cn/pholcus/spider_lib" // 此为公开维护的spider规则库
+	_ "github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
 	// _ "path/myrule_lib" // 同样你也可以自由添加自己的规则库
 )
 
