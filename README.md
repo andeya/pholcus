@@ -103,6 +103,9 @@ go build (可选参数： -ip 0.0.0.0 -port 9090)
 > *<font size="2">(注意：将 src/github.com/henrylee2cn/pholcus/web 文件夹拷贝至当前项目目录下，其中的go文件可删除)*
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/webshow_1.jpg)
 
+&nbsp;
+
+#### GUI版编译运行
 
 1. 编译
 ```
