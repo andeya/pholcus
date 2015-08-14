@@ -4,8 +4,8 @@ import (
 	"github.com/henrylee2cn/pholcus/config"
 	// 按界面需求选择相应版本
 	// "github.com/henrylee2cn/pholcus/web" // web版
-	// "github.com/henrylee2cn/pholcus/cmd" // cmd版
-	"github.com/henrylee2cn/pholcus/gui" // gui版
+	"github.com/henrylee2cn/pholcus/cmd" // cmd版
+	// "github.com/henrylee2cn/pholcus/gui" // gui版
 )
 
 // 导入自己的规则库（须保证最后声明，即最先导入）
@@ -37,6 +37,6 @@ func main() {
 
 	// 开始运行
 	// web.Run() // web版
-	// cmd.Run() // cmd版
-	gui.Run() // gui版
+	cmd.Run() // cmd版
+	// gui.Run() // gui版
 }

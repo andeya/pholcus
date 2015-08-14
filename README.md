@@ -34,14 +34,12 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重�
 
 #### 下载安装
 
-1. 下载需要翻墙的依赖包（[点击此处](https://raw.githubusercontent.com/henrylee2cn/pholcus/master/doc/%E9%9C%80%E8%A6%81%E7%BF%BB%E5%A2%99%E7%9A%84%E4%BE%9D%E8%B5%96%E5%8C%85%E5%9C%A8%E8%BF%99%E9%87%8C-%E8%A7%A3%E5%8E%8B%E8%87%B3gopath.rar)），并将其解压至 GOPATH/src 目录；
+1. 下载第三方依赖包源码（请放至 GOPATH/src 目录下）。[点击下载 ZIP](https://github.com/pholcus/dependent/archive/master.zip)；
 
-2. 下载剩余全部源码，命令行如下
+2. 下载保持更新状态的源码，命令行如下
 ```
 go get github.com/henrylee2cn/pholcus
 ```
-
- > *<font size=2>注意：go get执行完成后，提示出现多个main函数的错误是正常的，这是由于支持下面的多种编译方式所致。</font>*
 
 &nbsp;
 
@@ -143,9 +141,10 @@ go build -ldflags="-H windowsgui"
 ```
 go get "github.com/henrylee2cn/surfer"
 go get "github.com/henrylee2cn/teleport"
+go get "github.com/henrylee2cn/mahonia"
+go get "github.com/henrylee2cn/websocket.google"
 go get "github.com/PuerkitoBio/goquery"
 go get "github.com/bitly/go-simplejson"
-go get "github.com/henrylee2cn/mahonia"
 go get "github.com/andybalholm/cascadia"
 go get "github.com/lxn/walk"
 go get "github.com/lxn/win"
