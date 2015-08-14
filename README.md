@@ -104,7 +104,7 @@ go build (可选参数： -ip 0.0.0.0 -port 9090)
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/webshow_1.jpg)
 
 
-#### GUI编译运行
+1. 编译
 ```
 go install -ldflags="-H windowsgui"
 ```
@@ -113,26 +113,26 @@ go install -ldflags="-H windowsgui"
 go build -ldflags="-H windowsgui"
 ```
 
+2. 添加ICON
+
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/addicon.jpg)
+
+> *<font size="2">(下图为GUI选择模式界面图例)*
+
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_0.jpg)
 
 &nbsp;
+
 
 #### Cmd版编译运行
 ```
 编译命令: go install pholcus-cmd.go  或者  go build pholcus-cmd.go
 查看命令参数: pholcus-cmd.exe -h
-执行爬虫命令: pholcus-cmd.exe -spider=3,8 -output=csv -go=500 -docker=5000 -pase=1000,3000 -kw=pholcus,golang -page=100
+执行爬虫命令: pholcus-cmd.exe -spider=1,3 -output=csv -go=500 -docker=5000 -pase=1000,3000 -kw=pholcus,golang -page=100
 ```
 
 > *<font size="2">(注：花括号“{}”中为选择参数或参数格式，多个参数值之间用逗号“,”间隔，各项参数根据采集规则的需要自行设置)*
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/cmd.jpg)
-
-
-&nbsp;
-
-#### 添加ICON
-
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/addicon.jpg)
 
 &nbsp;
 
