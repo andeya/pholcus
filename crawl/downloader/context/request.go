@@ -1,7 +1,7 @@
 package context
 
 import (
-	"github.com/bitly/go-simplejson"
+	"github.com/henrylee2cn/pholcus/common/simplejson"
 	"io/ioutil"
 	"log"
 	"net/http"
