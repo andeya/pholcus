@@ -116,7 +116,7 @@ func (self *crawler) Process(req *context.Request) {
 
 	// log.Println("**************断点 3 ***********")
 	// 过程处理，提炼数据
-	self.Spider.GoRule(resp)
+	self.Spider.ExecParse(resp)
 	// log.Println("**************断点 5 ***********")
 	// 该条请求文本结果存入pipeline
 	for _, data := range resp.GetItems() {
