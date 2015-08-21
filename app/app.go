@@ -20,13 +20,17 @@ import (
 )
 
 type App interface {
-	// 设置全局log输出目标，不设置或设置为nil则为go语言默认
+	// 设置全局log打印目标，不设置或设置为nil则为标准输出
 	SetLog(io.Writer) App
+	// 开始log打印
+	LogRun() App
+	// 停止log打印
+	LogStop() App
 
 	// 使用App前必须进行先Init初始化，SetLog()除外
 	Init(mode int, port int, master string, w ...io.Writer) App
 
-	// 切换运行模式时使用
+	// 切换运行模式并重设log打印目标
 	ReInit(mode int, port int, master string, w ...io.Writer) App
 
 	// 以下Set类方法均为Offline和Server模式用到的
@@ -82,12 +86,24 @@ type Logic struct {
 }
 
 func New() App {
-	return new(Logic)
+	return &Logic{}
 }
 
-// 设置全局log输出目标，不设置或设置为nil则为go语言默认
+// 设置全局log打印目标，不设置或设置为nil则为标准输出
 func (self *Logic) SetLog(w io.Writer) App {
 	reporter.Log.SetOutput(w)
+	return self
+}
+
+// 开始log打印
+func (self *Logic) LogRun() App {
+	reporter.Log.Run()
+	return self
+}
+
+// 停止log打印
+func (self *Logic) LogStop() App {
+	reporter.Log.Stop()
 	return self
 }
 
@@ -106,13 +122,16 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 
 // 切换运行模式时使用
 func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App {
+	reporter.Log.Stop()
 	self.status = status.STOP
 	self.Node.Stop()
 	self.Node.Crawls.Stop()
 	if scheduler.Sdl != nil {
 		scheduler.Sdl.Stop()
 	}
+
 	self = nil
+
 	return New().Init(mode, port, master, w...)
 }
 

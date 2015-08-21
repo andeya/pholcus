@@ -11,10 +11,25 @@ import (
 	"log"
 )
 
-var wchan chan interface{}
+var (
+	wchan       chan interface{}
+	wchanClosed bool
+	isRunning   bool
+
+	logicApp   = app.New()
+	spiderMenu = make([]map[string]string, 0)
+	wsApi      = map[string]func(*ws.Conn, map[string]interface{}){}
+)
 
 func wsHandle(conn *ws.Conn) {
+	wchanClosed = false
 	defer func() {
+		// 连接断开前关闭正在运行的任务
+		if isRunning {
+			isRunning = false
+			logicApp.LogStop().Stop()
+		}
+		wchanClosed = true
 		close(wchan)
 		conn.Close()
 	}()
@@ -45,14 +60,7 @@ func wsHandle(conn *ws.Conn) {
 	}
 }
 
-var logicApp = app.New()
-var spiderMenu = make([]map[string]string, 0)
-var wsApi = map[string]func(*ws.Conn, map[string]interface{}){}
-
 func init() {
-	// 设置log输出目标
-	logicApp.SetLog(Log)
-
 	// 初始化运行
 	wsApi["init"] = func(conn *ws.Conn, req map[string]interface{}) {
 		var mode = util.Atoi(req["mode"])
@@ -60,12 +68,12 @@ func init() {
 		var master = util.Atoa(req["ip"]) //服务器(主节点)地址，不含端口
 		currMode := logicApp.GetRunMode()
 		if currMode == -1 {
-			logicApp.Init(mode, port, master) // 运行模式初始化
+			logicApp.Init(mode, port, master, Log) // 运行模式初始化，设置log输出目标
 			// 获取蜘蛛家族
 			for _, sp := range logicApp.GetAllSpiders() {
 				spiderMenu = append(spiderMenu, map[string]string{"name": sp.GetName(), "description": sp.GetDescription()})
 			}
-		} else if currMode != mode {
+		} else {
 			logicApp = logicApp.ReInit(mode, port, master) // 切换运行模式
 		}
 
@@ -108,24 +116,27 @@ func init() {
 
 	send:
 		// 写入发送通道
-		wchan <- info
+		if !wchanClosed {
+			wchan <- info
+		}
 	}
 
 	wsApi["run"] = func(conn *ws.Conn, req map[string]interface{}) {
-		if logicApp.GetRunMode() != status.CLIENT {
+		if logicApp.GetRunMode() != status.CLIENT && !wchanClosed {
 			if !setConf(req) {
 				wchan <- map[string]interface{}{"mode": logicApp.GetRunMode(), "status": 0}
 				return
 			}
 		}
 
-		if logicApp.GetRunMode() == status.OFFLINE {
+		if logicApp.GetRunMode() == status.OFFLINE && !wchanClosed {
 			wchan <- map[string]interface{}{"operate": "run", "mode": status.OFFLINE, "status": 1}
 		}
 
 		go func() {
+			isRunning = true
 			logicApp.Run()
-			if logicApp.GetRunMode() == status.OFFLINE {
+			if logicApp.GetRunMode() == status.OFFLINE && !wchanClosed {
 				wchan <- map[string]interface{}{"operate": "stop", "mode": status.OFFLINE, "status": 1}
 			}
 		}()
@@ -133,11 +144,12 @@ func init() {
 
 	// 终止当前任务，现仅支持单机模式
 	wsApi["stop"] = func(conn *ws.Conn, req map[string]interface{}) {
-		if logicApp.GetRunMode() != status.OFFLINE {
+		if logicApp.GetRunMode() != status.OFFLINE && !wchanClosed {
 			wchan <- map[string]interface{}{"operate": "stop", "mode": logicApp.GetRunMode(), "status": 0}
 			return
+		} else if !wchanClosed {
+			wchan <- map[string]interface{}{"operate": "stop", "mode": status.OFFLINE, "status": 1}
 		}
-		wchan <- map[string]interface{}{"operate": "stop", "mode": status.OFFLINE, "status": 1}
 		logicApp.Stop()
 	}
 
@@ -197,11 +209,14 @@ func wsLogHandle(conn *ws.Conn) {
 		// reporter.Printf("websocket log发送出错断开 (%v) !", err)
 	}()
 
-	Log.logChan = make(chan string, 1024)
+	// 新建web前端log输出
+	Log.Open()
 
 	go func(conn *ws.Conn) {
 		defer func() {
-			close(Log.logChan)
+			// 关闭web前端log输出
+			Log.Close()
+			// 关闭websocket连接
 			conn.Close()
 		}()
 		for {

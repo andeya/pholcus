@@ -15,10 +15,7 @@ import (
 var (
 	ip   string
 	port string
-
-	addr      string
-	wsAddr    string
-	wslogAddr string
+	addr string
 )
 
 func init() {
@@ -28,8 +25,6 @@ func init() {
 	flag.Parse()
 
 	addr = *ip + ":" + strconv.Itoa(*port)
-	wsAddr = *ip + ":" + strconv.Itoa(*port+1)
-	wslogAddr = *ip + ":" + strconv.Itoa(*port+2)
 }
 
 func Run() {
@@ -38,24 +33,10 @@ func Run() {
 
 	// 预绑定路由
 	Router()
-	// 开启websocket
-	go func() {
-		reporter.Println("[pholcus] websocket server Running on ", wsAddr)
-		if err := http.ListenAndServe(wsAddr, nil); err != nil {
-			reporter.Fatal("Websocket ListenAndServe: ", err)
-		}
-	}()
-	// 开启websocket log
-	go func() {
-		reporter.Println("[pholcus] websocket log server Running on ", wslogAddr)
-		if err := http.ListenAndServe(wslogAddr, nil); err != nil {
-			reporter.Fatal("Websocket Log ListenAndServe: ", err)
-		}
-	}()
-	// 开启http
-	reporter.Println("[pholcus] http server Running on ", addr)
+	// 监听端口
+	reporter.Println("[pholcus] server Running on ", addr)
 	err := http.ListenAndServe(addr, nil) //设置监听的端口
 	if err != nil {
-		reporter.Fatal("Http ListenAndServe: ", err)
+		reporter.Fatal("ListenAndServe: ", err)
 	}
 }

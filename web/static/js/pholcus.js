@@ -1,5 +1,5 @@
 // websocket
-var wsUri = "ws://" + location.hostname + ":" + (parseInt(location.port) + 1) + "/ws";
+var wsUri = "ws://" + location.hostname + ":" + location.port + "/ws";
 var ws = null;
 if ('WebSocket' in window) {
     ws = new WebSocket(wsUri);
@@ -313,7 +313,7 @@ function pauseRecover(self) {
 };
 
 // ********************************* 打印log信息 ************************************** \\
-var wsLogUri = "ws://" + location.hostname + ":" + (parseInt(location.port) + 2) + "/ws/log";
+var wsLogUri = "ws://" + location.hostname + ":" + location.port + "/ws/log";
 var wslog = null;
 
 

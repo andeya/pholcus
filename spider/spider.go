@@ -1,4 +1,4 @@
-// 蜘蛛，采集Rule。
+// 蜘蛛采集规则。
 package spider
 
 import (
@@ -25,7 +25,7 @@ type Spider struct {
 	Proxy     string //代理服务器 example='localhost:80'
 }
 
-//采集Rule树
+//采集规则树
 type RuleTree struct {
 	// 执行入口（树根）
 	Root func(*Spider)
