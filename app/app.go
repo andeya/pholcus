@@ -5,18 +5,19 @@ package app
 import (
 	"io"
 	"log"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/henrylee2cn/pholcus/crawl"
-	"github.com/henrylee2cn/pholcus/crawl/pipeline/collector"
-	"github.com/henrylee2cn/pholcus/crawl/scheduler"
-	"github.com/henrylee2cn/pholcus/node"
-	"github.com/henrylee2cn/pholcus/node/task"
+	"github.com/henrylee2cn/pholcus/distribute"
+	"github.com/henrylee2cn/pholcus/pipeline/collector"
 	"github.com/henrylee2cn/pholcus/reporter"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
+	"github.com/henrylee2cn/pholcus/scheduler"
 	"github.com/henrylee2cn/pholcus/spider"
+	"github.com/henrylee2cn/teleport"
 )
 
 type App interface {
@@ -75,18 +76,37 @@ type App interface {
 
 	// 获取输出方式列表
 	GetOutputLib() []string
+
+	// 服务器客户端模式下返回节点数
+	CountNodes() int
 }
 
 type Logic struct {
-	*node.Node
+	// 运行模式
+	RunMode int
+	// 服务器端口号
+	Port string
+	// 服务器地址（不含Port）
+	Master string
+	// 全部蜘蛛种类
 	spider.Traversal
-	status     int
-	finish     chan bool
-	finishOnce sync.Once
+	// 当前任务的蜘蛛队列
+	crawl.SpiderQueue
+	// 服务器与客户端间传递任务的存储库
+	*distribute.TaskJar
+	// 爬行回收池
+	crawl.CrawlPool
+	// socket长连接双工通信接口，json数据传输
+	teleport.Teleport
+	// 运行状态
+	status       int
+	finish       chan bool
+	finishOnce   sync.Once
+	canSocketLog bool
 }
 
 func New() App {
-	return &Logic{}
+	return &Logic{RunMode: status.UNSET}
 }
 
 // 设置全局log打印目标，不设置或设置为nil则为标准输出
@@ -109,14 +129,45 @@ func (self *Logic) LogStop() App {
 
 // 使用App前必须进行先Init初始化，SetLog()除外
 func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
+	self.canSocketLog = false
 	if len(w) > 0 {
 		self.SetLog(w[0])
 	}
 	reporter.Log.Run()
+
 	cache.Task.RunMode, cache.Task.Port, cache.Task.Master = mode, port, master
+
 	self.Traversal = spider.Menu
-	self.Node = node.NewNode(mode, port, master)
-	self.Node.Run()
+	self.RunMode = mode
+	self.Port = ":" + strconv.Itoa(port)
+	self.Master = master
+	self.Teleport = teleport.New()
+	self.TaskJar = distribute.NewTaskJar()
+	self.SpiderQueue = crawl.NewSpiderQueue()
+	self.CrawlPool = crawl.NewCrawlPool()
+
+	switch self.RunMode {
+	case status.SERVER:
+		if self.checkPort() {
+			log.Printf("                                                                                               ！！当前运行模式为：[ 服务器 ] 模式！！")
+			self.Teleport.SetAPI(distribute.ServerApi(self)).Server(self.Port)
+		}
+
+	case status.CLIENT:
+		if self.checkAll() {
+			log.Printf("                                                                                               ！！当前运行模式为：[ 客户端 ] 模式！！")
+			self.Teleport.SetAPI(distribute.ClientApi(self)).Client(self.Master, self.Port)
+		}
+	case status.OFFLINE:
+		log.Printf("                                                                                               ！！当前运行模式为：[ 单机 ] 模式！！")
+		return self
+	default:
+		log.Println(" *    ——请指定正确的运行模式！——")
+		return self
+	}
+	// 根据RunMode判断是否开启节点间log打印
+	self.canSocketLog = true
+	go self.socketLog()
 	return self
 }
 
@@ -124,8 +175,10 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App {
 	reporter.Log.Stop()
 	self.status = status.STOP
-	self.Node.Stop()
-	self.Node.Crawls.Stop()
+	if self.Teleport != nil {
+		self.Teleport.Close()
+	}
+	self.CrawlPool.Stop()
 	if scheduler.Sdl != nil {
 		scheduler.Sdl.Stop()
 	}
@@ -167,16 +220,16 @@ func (self *Logic) SetMaxPage(maxPage int) App {
 // 已被显式赋值过的spider将不再重新分配Keyword
 // client模式下不调用该方法
 func (self *Logic) SpiderPrepare(original []*spider.Spider, keywords string) App {
-	self.Node.Spiders.Reset()
+	self.SpiderQueue.Reset()
 	// 遍历任务
 	for _, sp := range original {
 		spgost := sp.Gost()
 		spgost.SetPausetime(cache.Task.Pausetime)
 		spgost.SetMaxPage(cache.Task.MaxPage)
-		self.Node.Spiders.Add(spgost)
+		self.SpiderQueue.Add(spgost)
 	}
 	// 遍历关键词
-	self.Node.Spiders.AddKeywords(keywords)
+	self.SpiderQueue.AddKeywords(keywords)
 	return self
 }
 
@@ -195,17 +248,22 @@ func (self *Logic) GetSpiderByName(name string) *spider.Spider {
 	return self.Traversal.GetByName(name)
 }
 
+// 返回当前运行模式
 func (self *Logic) GetRunMode() int {
-	if self.Node == nil {
-		return -1
-	}
-	return cache.Task.RunMode
+	return self.RunMode
 }
 
+// 服务器客户端模式下返回节点数
+func (self *Logic) CountNodes() int {
+	return self.Teleport.CountNodes()
+}
+
+// 当前蜘蛛队列长度
 func (self *Logic) SpiderQueueLen() int {
-	return self.Node.Spiders.Len()
+	return self.SpiderQueue.Len()
 }
 
+// 运行任务
 func (self *Logic) Run() {
 	// 确保开启报告
 	reporter.Log.Run()
@@ -242,7 +300,7 @@ func (self *Logic) PauseRecover() {
 // Offline 模式下中途终止任务
 func (self *Logic) Stop() {
 	self.status = status.STOP
-	self.Node.Crawls.Stop()
+	self.CrawlPool.Stop()
 	scheduler.Sdl.Stop()
 
 	// 总耗时
@@ -267,12 +325,12 @@ func (self *Logic) Status() int {
 }
 
 // ******************************************** 私有方法 ************************************************* \\
-
+// 离线模式运行
 func (self *Logic) offline() {
 	self.exec()
 }
 
-// 必须在SpiderPrepare()执行之后调用才可以成功添加任务
+// 服务器模式运行，必须在SpiderPrepare()执行之后调用才可以成功添加任务
 func (self *Logic) server() {
 	// 标记结束
 	defer func() {
@@ -281,7 +339,7 @@ func (self *Logic) server() {
 	}()
 
 	// 便利添加任务到库
-	tasksNum, spidersNum := self.Node.AddNewTask()
+	tasksNum, spidersNum := self.addNewTask()
 
 	if tasksNum == 0 {
 		return
@@ -296,6 +354,49 @@ func (self *Logic) server() {
 
 }
 
+// 服务器模式下，生成task并添加至库
+func (self *Logic) addNewTask() (tasksNum, spidersNum int) {
+	length := self.SpiderQueue.Len()
+	t := distribute.Task{}
+
+	// 从配置读取字段
+	t.ThreadNum = cache.Task.ThreadNum
+	t.Pausetime = cache.Task.Pausetime
+	t.OutType = cache.Task.OutType
+	t.DockerCap = cache.Task.DockerCap
+	t.DockerQueueCap = cache.Task.DockerQueueCap
+	t.MaxPage = cache.Task.MaxPage
+
+	for i, sp := range self.SpiderQueue.GetAll() {
+
+		t.Spiders = append(t.Spiders, map[string]string{"name": sp.GetName(), "keyword": sp.GetKeyword()})
+		spidersNum++
+
+		// 每十个蜘蛛存为一个任务
+		if i > 0 && i%10 == 0 && length > 10 {
+			// 存入
+			one := t
+			self.TaskJar.Push(&one)
+			// log.Printf(" *     [新增任务]   详情： %#v", *t)
+
+			tasksNum++
+
+			// 清空spider
+			t.Spiders = []map[string]string{}
+		}
+	}
+
+	if len(t.Spiders) != 0 {
+		// 存入
+		one := t
+		self.TaskJar.Push(&one)
+		// log.Printf(" *     [新增任务]   详情： %#v", *t)
+		tasksNum++
+	}
+	return
+}
+
+// 客户端模式运行
 func (self *Logic) client() {
 	// 标记结束
 	defer func() {
@@ -305,7 +406,7 @@ func (self *Logic) client() {
 
 	for {
 		// 从任务库获取一个任务
-		t := self.Node.DownTask()
+		t := self.downTask()
 		// reporter.Log.Printf("成功获取任务 %#v", t)
 
 		// 准备运行
@@ -316,10 +417,32 @@ func (self *Logic) client() {
 	}
 }
 
+// 客户端模式下获取任务
+func (self *Logic) downTask() *distribute.Task {
+ReStartLabel:
+	for self.CountNodes() == 0 {
+		if len(self.TaskJar.Tasks) != 0 {
+			break
+		}
+		time.Sleep(5e7)
+	}
+
+	if len(self.TaskJar.Tasks) == 0 {
+		self.Request(nil, "task")
+		for len(self.TaskJar.Tasks) == 0 {
+			if self.CountNodes() == 0 {
+				goto ReStartLabel
+			}
+			time.Sleep(5e7)
+		}
+	}
+	return self.TaskJar.Pull()
+}
+
 // client模式下从task准备运行条件
-func (self *Logic) taskToRun(t *task.Task) {
+func (self *Logic) taskToRun(t *distribute.Task) {
 	// 清空历史任务
-	self.Node.Spiders.Reset()
+	self.SpiderQueue.Reset()
 
 	// 更改全局配置
 	cache.Task.OutType = t.OutType
@@ -337,21 +460,21 @@ func (self *Logic) taskToRun(t *task.Task) {
 			if v, ok := n["keyword"]; ok {
 				spgost.SetKeyword(v)
 			}
-			self.Node.Spiders.Add(spgost)
+			self.SpiderQueue.Add(spgost)
 		}
 	}
 }
 
 // 开始执行任务
 func (self *Logic) exec() {
-	count := self.Node.Spiders.Len()
+	count := self.SpiderQueue.Len()
 	cache.ReSetPageCount()
 
 	// 初始化资源队列
 	scheduler.Init(cache.Task.ThreadNum)
 
 	// 设置爬虫队列
-	crawlCap := self.Node.Crawls.Reset(count)
+	crawlCap := self.CrawlPool.Reset(count)
 
 	log.Println(` *********************************************************************************************************************************** `)
 	log.Printf(" * ")
@@ -384,13 +507,13 @@ func (self *Logic) goRun(count int) {
 			continue
 		}
 		// 从爬行队列取出空闲蜘蛛，并发执行
-		c := self.Node.Crawls.Use()
+		c := self.CrawlPool.Use()
 		if c != nil {
 			go func(i int, c crawl.Crawler) {
 				// 执行并返回结果消息
-				c.Init(self.Node.Spiders.GetByIndex(i)).Start()
+				c.Init(self.SpiderQueue.GetByIndex(i)).Start()
 				// 任务结束后回收该蜘蛛
-				self.Node.Crawls.Free(c)
+				self.CrawlPool.Free(c)
 			}(i, c)
 		}
 	}
@@ -439,4 +562,35 @@ func (self *Logic) goRun(count int) {
 		self.status = status.STOP
 		self.finishOnce.Do(func() { close(self.finish) })
 	}
+}
+
+// 服务器客户端之间log打印
+func (self *Logic) socketLog() {
+	for {
+		if !self.canSocketLog {
+			return
+		}
+		select {
+		case msg := <-cache.SendChan:
+			self.Teleport.Request(msg, "log")
+		default:
+			time.Sleep(5e7)
+		}
+	}
+}
+
+func (self *Logic) checkPort() bool {
+	if cache.Task.Port == 0 {
+		log.Println(" *     —— 亲，分布式端口不能为空哦~")
+		return false
+	}
+	return true
+}
+
+func (self *Logic) checkAll() bool {
+	if cache.Task.Master == "" || !self.checkPort() {
+		log.Println(" *     —— 亲，服务器地址不能为空哦~")
+		return false
+	}
+	return true
 }

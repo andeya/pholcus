@@ -1,7 +1,7 @@
 package downloader
 
 import (
-	"github.com/henrylee2cn/pholcus/crawl/downloader/context"
+	"github.com/henrylee2cn/pholcus/downloader/context"
 	"github.com/henrylee2cn/surfer"
 	"log"
 	"time"

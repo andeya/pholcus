@@ -1,5 +1,4 @@
-// 运行时蜘蛛队列
-package spiderqueue
+package crawl
 
 import (
 	"errors"
@@ -7,7 +6,7 @@ import (
 	"strings"
 )
 
-// 蜘蛛队列接口
+// 运行时蜘蛛队列
 type SpiderQueue interface {
 	Reset() //重置清空队列
 	Add(*Spider)
@@ -24,7 +23,7 @@ type sq struct {
 	hasKeyWord bool
 }
 
-func New() SpiderQueue {
+func NewSpiderQueue() SpiderQueue {
 	return &sq{
 		list: []*Spider{},
 	}

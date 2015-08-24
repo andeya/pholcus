@@ -14,10 +14,11 @@ import (
 	"strings"
 
 	"github.com/henrylee2cn/pholcus/app"
+	"github.com/henrylee2cn/pholcus/runtime/status"
 	"github.com/henrylee2cn/pholcus/spider"
 )
 
-var LogicApp = app.New()
+var LogicApp = app.New().Init(status.OFFLINE, 0, "")
 
 func Run() {
 	// 开启最大核心数运行
@@ -25,7 +26,6 @@ func Run() {
 
 	// //运行模式
 	// modeflag := flag.Int("运行模式", 0, "*运行模式: [0] 单机    [1] 服务端    [2] 客户端\r\n")
-	LogicApp.Init(1, 0, "")
 
 	// //端口号，非单机模式填写
 	// portflag := flag.Int("端口号", 0, "端口号: 只填写数字即可，不含冒号\r\n")

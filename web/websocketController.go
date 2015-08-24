@@ -67,7 +67,7 @@ func init() {
 		var port = util.Atoi(req["port"])
 		var master = util.Atoa(req["ip"]) //服务器(主节点)地址，不含端口
 		currMode := logicApp.GetRunMode()
-		if currMode == -1 {
+		if currMode == status.UNSET {
 			logicApp.Init(mode, port, master, Log) // 运行模式初始化，设置log输出目标
 			// 获取蜘蛛家族
 			for _, sp := range logicApp.GetAllSpiders() {

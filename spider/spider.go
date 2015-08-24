@@ -1,9 +1,8 @@
-// 蜘蛛采集规则。
 package spider
 
 import (
-	"github.com/henrylee2cn/pholcus/crawl/downloader/context"
-	"github.com/henrylee2cn/pholcus/crawl/scheduler"
+	"github.com/henrylee2cn/pholcus/downloader/context"
+	"github.com/henrylee2cn/pholcus/scheduler"
 	"log"
 )
 
@@ -12,6 +11,7 @@ const (
 	CAN_ADD = " " //注意必须为空格
 )
 
+// 蜘蛛规则
 type Spider struct {
 	Id          int //所在SpiderList的下标编号
 	Name        string

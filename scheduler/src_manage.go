@@ -3,7 +3,7 @@ package scheduler
 
 import (
 	"github.com/henrylee2cn/pholcus/common/util"
-	"github.com/henrylee2cn/pholcus/crawl/downloader/context"
+	"github.com/henrylee2cn/pholcus/downloader/context"
 	"sync"
 )
 

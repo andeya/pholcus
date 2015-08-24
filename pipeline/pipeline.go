@@ -3,7 +3,7 @@ package pipeline
 
 import (
 	"github.com/henrylee2cn/pholcus/common/deduplicate"
-	"github.com/henrylee2cn/pholcus/crawl/pipeline/collector"
+	"github.com/henrylee2cn/pholcus/pipeline/collector"
 	// "github.com/henrylee2cn/pholcus/reporter"
 	"github.com/henrylee2cn/pholcus/spider"
 	"io"

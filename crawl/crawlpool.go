@@ -1,28 +1,27 @@
-package crawlpool
+package crawl
 
 import (
 	"github.com/henrylee2cn/pholcus/config"
-	"github.com/henrylee2cn/pholcus/crawl"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 	"time"
 )
 
 type CrawlPool interface {
 	Reset(spiderNum int) int
-	Use() crawl.Crawler
-	Free(crawl.Crawler)
+	Use() Crawler
+	Free(Crawler)
 	Stop()
 }
 
 type cq struct {
 	Cap    int
-	Src    map[crawl.Crawler]bool
+	Src    map[Crawler]bool
 	status int
 }
 
-func New() CrawlPool {
+func NewCrawlPool() CrawlPool {
 	return &cq{
-		Src:    make(map[crawl.Crawler]bool),
+		Src:    make(map[Crawler]bool),
 		status: status.RUN,
 	}
 }
@@ -48,7 +47,7 @@ func (self *cq) Reset(spiderNum int) int {
 }
 
 // 非并发安全地使用资源
-func (self *cq) Use() crawl.Crawler {
+func (self *cq) Use() Crawler {
 	if self.status != status.RUN {
 		return nil
 	}
@@ -68,20 +67,20 @@ func (self *cq) Use() crawl.Crawler {
 	return nil
 }
 
-func (self *cq) Free(c crawl.Crawler) {
+func (self *cq) Free(c Crawler) {
 	self.Src[c] = false
 }
 
 // 终止所有爬行任务
 func (self *cq) Stop() {
 	self.status = status.STOP
-	self.Src = make(map[crawl.Crawler]bool)
+	self.Src = make(map[Crawler]bool)
 }
 
 // 根据情况自动动态增加Crawl
 func (self *cq) increment() {
 	id := len(self.Src)
 	if id < self.Cap {
-		self.Src[crawl.New(id)] = false
+		self.Src[New(id)] = false
 	}
 }

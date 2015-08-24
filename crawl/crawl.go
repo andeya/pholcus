@@ -2,11 +2,11 @@ package crawl
 
 import (
 	// "fmt"
-	"github.com/henrylee2cn/pholcus/crawl/downloader"
-	"github.com/henrylee2cn/pholcus/crawl/downloader/context"
-	"github.com/henrylee2cn/pholcus/crawl/pipeline"
-	"github.com/henrylee2cn/pholcus/crawl/scheduler"
+	"github.com/henrylee2cn/pholcus/downloader"
+	"github.com/henrylee2cn/pholcus/downloader/context"
+	"github.com/henrylee2cn/pholcus/pipeline"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
+	"github.com/henrylee2cn/pholcus/scheduler"
 	"github.com/henrylee2cn/pholcus/spider"
 	"io"
 	"log"
@@ -14,6 +14,12 @@ import (
 	"sync"
 	"time"
 )
+
+type Crawler interface {
+	Init(*spider.Spider) Crawler
+	Start()
+	GetId() int
+}
 
 type crawler struct {
 	id int

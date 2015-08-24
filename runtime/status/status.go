@@ -4,7 +4,8 @@
 
 // 运行模式
 const (
-	OFFLINE = iota + 1
+	UNSET = iota - 1
+	OFFLINE
 	SERVER
 	CLIENT
 )

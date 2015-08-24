@@ -1,7 +1,6 @@
-// 提供蜘蛛种类清单。
 package spider
 
-// 蜘蛛种类添加与获取的接口
+// 蜘蛛种类接口
 type Traversal interface {
 	Add(*Spider)
 	Get() []*Spider
