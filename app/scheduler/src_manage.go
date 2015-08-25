@@ -2,8 +2,8 @@
 package scheduler
 
 import (
+	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/common/util"
-	"github.com/henrylee2cn/pholcus/downloader/context"
 	"sync"
 )
 

@@ -2,7 +2,7 @@ package crawl
 
 import (
 	"errors"
-	. "github.com/henrylee2cn/pholcus/spider"
+	. "github.com/henrylee2cn/pholcus/app/spider"
 	"strings"
 )
 

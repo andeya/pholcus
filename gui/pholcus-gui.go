@@ -8,7 +8,7 @@ import (
 	"runtime"
 
 	"github.com/henrylee2cn/pholcus/app"
-	"github.com/henrylee2cn/pholcus/spider"
+	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/lxn/walk"
 )
 

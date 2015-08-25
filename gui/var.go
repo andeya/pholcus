@@ -1,10 +1,10 @@
 package gui
 
 import (
+	"github.com/henrylee2cn/pholcus/app/spider"
 	. "github.com/henrylee2cn/pholcus/gui/model"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
-	"github.com/henrylee2cn/pholcus/spider"
 	"github.com/lxn/walk"
 	"github.com/lxn/walk/declarative"
 )

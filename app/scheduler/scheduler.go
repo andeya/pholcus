@@ -1,8 +1,8 @@
 package scheduler
 
 import (
+	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/common/deduplicate"
-	"github.com/henrylee2cn/pholcus/downloader/context"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 	"sync"
 )

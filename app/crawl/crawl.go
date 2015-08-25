@@ -1,13 +1,14 @@
 package crawl
 
 import (
-	// "fmt"
-	"github.com/henrylee2cn/pholcus/downloader"
-	"github.com/henrylee2cn/pholcus/downloader/context"
-	"github.com/henrylee2cn/pholcus/pipeline"
+	"github.com/henrylee2cn/pholcus/app/downloader"
+	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/pipeline"
+	"github.com/henrylee2cn/pholcus/app/scheduler"
+	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
-	"github.com/henrylee2cn/pholcus/scheduler"
-	"github.com/henrylee2cn/pholcus/spider"
+
+	// "fmt"
 	"io"
 	"log"
 	"math/rand"

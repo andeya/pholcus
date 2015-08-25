@@ -14,8 +14,8 @@ import (
 	"strings"
 
 	"github.com/henrylee2cn/pholcus/app"
+	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/runtime/status"
-	"github.com/henrylee2cn/pholcus/spider"
 )
 
 var LogicApp = app.New().Init(status.OFFLINE, 0, "")

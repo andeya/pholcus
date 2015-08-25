@@ -36,6 +36,10 @@ ws.onmessage = function(m) {
     switch (data.operate) {
         // 初始化运行参数
         case "init":
+            $("#init").text(" 开  启 ").css({
+                "background-color": "#337ab7",
+                "border-color": "#2e6da4"
+            });
             // 设置当前运行模式
             mode = data.mode;
             // 打开软件界面
@@ -249,6 +253,10 @@ function selectMode(m) {
 
 // 按模式启动Pholcus
 function firstStep() {
+    $("#init").text(" 开  启 …").css({
+        "background-color": "#286090",
+        "border-color": "#204d74"
+    });
     var formJson = {
         'operate': 'init',
         'mode': document.step1.elements['mode'].value,

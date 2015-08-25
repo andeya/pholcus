@@ -9,14 +9,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/henrylee2cn/pholcus/crawl"
-	"github.com/henrylee2cn/pholcus/distribute"
-	"github.com/henrylee2cn/pholcus/pipeline/collector"
+	"github.com/henrylee2cn/pholcus/app/crawl"
+	"github.com/henrylee2cn/pholcus/app/distribute"
+	"github.com/henrylee2cn/pholcus/app/pipeline/collector"
+	"github.com/henrylee2cn/pholcus/app/scheduler"
+	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/reporter"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
-	"github.com/henrylee2cn/pholcus/scheduler"
-	"github.com/henrylee2cn/pholcus/spider"
 	"github.com/henrylee2cn/teleport"
 )
 
@@ -182,9 +182,10 @@ func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App
 	if scheduler.Sdl != nil {
 		scheduler.Sdl.Stop()
 	}
-
 	self = nil
-
+	// 等待结束
+	time.Sleep(2.5e9)
+	// 重新开启
 	return New().Init(mode, port, master, w...)
 }
 

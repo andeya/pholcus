@@ -1,8 +1,8 @@
 package spider
 
 import (
-	"github.com/henrylee2cn/pholcus/downloader/context"
-	"github.com/henrylee2cn/pholcus/scheduler"
+	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"log"
 )
 

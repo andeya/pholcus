@@ -2,7 +2,7 @@ package common
 
 import (
 	"github.com/PuerkitoBio/goquery"
-	. "github.com/henrylee2cn/pholcus/spider"
+	. "github.com/henrylee2cn/pholcus/app/spider"
 	// "github.com/henrylee2cn/surfer/errors"
 	"net/url"
 	"strings"

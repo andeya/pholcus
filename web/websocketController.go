@@ -2,11 +2,11 @@ package web
 
 import (
 	"github.com/henrylee2cn/pholcus/app"
+	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/reporter"
 	"github.com/henrylee2cn/pholcus/runtime/status"
-	"github.com/henrylee2cn/pholcus/spider"
 	ws "github.com/henrylee2cn/websocket.google"
 	"log"
 )
@@ -107,9 +107,9 @@ func init() {
 		}
 		// 暂停时间，单位ms
 		info["sleepTime"] = map[string][]uint{
-			"base":    []uint{0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
-			"random":  []uint{0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
-			"default": []uint{defaultConfig.Pausetime[0], defaultConfig.Pausetime[1]},
+			"base":    {0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
+			"random":  {0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
+			"default": {defaultConfig.Pausetime[0], defaultConfig.Pausetime[1]},
 		}
 		// 分批输出的容量
 		info["dockerCap"] = map[string]uint{"min": 1, "max": 5000000, "default": defaultConfig.DockerCap}
@@ -137,6 +137,7 @@ func init() {
 			isRunning = true
 			logicApp.Run()
 			if logicApp.GetRunMode() == status.OFFLINE && !wchanClosed {
+				isRunning = false
 				wchan <- map[string]interface{}{"operate": "stop", "mode": status.OFFLINE, "status": 1}
 			}
 		}()
