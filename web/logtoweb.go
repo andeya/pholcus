@@ -1,6 +1,6 @@
-// 设置所有log输出位置为Log，整个项目的log不能用于非Pholcus
 package web
 
+// 设置所有log输出位置为Log
 type LogView struct {
 	closed  bool
 	logChan chan string
