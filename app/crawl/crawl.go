@@ -152,7 +152,10 @@ func (self *crawler) Process(req *context.Request) {
 
 // 常用基础方法
 func (self *crawler) sleep() {
-	sleeptime := int(self.Spider.Pausetime[0]) + rand.Intn(int(self.Spider.Pausetime[1]))
+	sleeptime := int(self.Spider.Pausetime[0])
+	if self.Spider.Pausetime[1] > 0 {
+		sleeptime += rand.New(rand.NewSource(time.Now().UnixNano())).Intn(int(self.Spider.Pausetime[1]))
+	}
 	time.Sleep(time.Duration(sleeptime) * time.Millisecond)
 }
 
