@@ -54,7 +54,7 @@ func (self *sq) AddKeywords(keywords string) error {
 	// 可被添加kw的蜘蛛
 	unit2 := []*Spider{}
 	for _, v := range self.GetAll() {
-		if v.GetKeyword() == CAN_ADD {
+		if v.GetKeyword() == USE {
 			unit2 = append(unit2, v)
 			continue
 		}

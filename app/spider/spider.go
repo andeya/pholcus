@@ -7,22 +7,21 @@ import (
 )
 
 const (
-	// 如需使用Keyword，则用需用CAN_ADD初始化
-	CAN_ADD = " " //注意必须为空格
+	USE = " " //注意必须为空格
 )
 
 // 蜘蛛规则
 type Spider struct {
-	Id          int //所在SpiderList的下标编号
-	Name        string
+	Id          int    // 所在SpiderList的下标编号，系统自动分配
+	Name        string // 必须保证全局唯一
 	Description string
-	Pausetime   [2]uint //暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
+	Pausetime   [2]uint // 暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
 	*RuleTree
 	//以下为可选成员
-	MaxPage   int
-	Keyword   string
-	UseCookie bool
-	Proxy     string //代理服务器 example='localhost:80'
+	MaxPage   int    // UI传参而来，可在涉及采集页数控制时使用
+	Keyword   string // 如需使用必须附初始值为常量USE
+	UseCookie bool   // 控制下载器运行模式，true:支持登录功能，false:支持大量UserAgent随机轮换
+	Proxy     string // 代理服务器 example='localhost:80'
 }
 
 //采集规则树
@@ -128,8 +127,11 @@ func (self *Spider) GetRules() map[string]*Rule {
 }
 
 // 设置暂停时间 pause[0]~(pause[0]+pause[1])
-func (self *Spider) SetPausetime(pause [2]uint) {
-	self.Pausetime = pause
+// 当且仅当runtime[0]为true时可覆盖现有值
+func (self *Spider) SetPausetime(pause [2]uint, runtime ...bool) {
+	if self.Pausetime == [2]uint{} || len(runtime) > 0 && runtime[0] {
+		self.Pausetime = pause
+	}
 }
 
 // 调用指定Rule下解析函数ParseFunc()，解析响应流

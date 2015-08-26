@@ -66,6 +66,9 @@ func (self *crawler) Start() {
 
 func (self *crawler) Run() {
 	for {
+		// 随机等待
+		self.sleep()
+
 		// 队列中取出一条请求
 		req := self.GetOne()
 
@@ -75,7 +78,6 @@ func (self *crawler) Run() {
 				// log.Println("**************退出队列************")
 				break
 			} else {
-				time.Sleep(500 * time.Millisecond)
 				continue
 			}
 		}
@@ -150,7 +152,7 @@ func (self *crawler) Process(req *context.Request) {
 
 // 常用基础方法
 func (self *crawler) sleep() {
-	sleeptime := rand.Intn(int(self.Spider.Pausetime[1])) + int(self.Spider.Pausetime[0])
+	sleeptime := int(self.Spider.Pausetime[0]) + rand.Intn(int(self.Spider.Pausetime[1]))
 	time.Sleep(time.Duration(sleeptime) * time.Millisecond)
 }
 
