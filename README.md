@@ -51,8 +51,8 @@ package main
 import (
     "github.com/henrylee2cn/pholcus/config"
     // 按界面需求选择相应版本
-    "github.com/henrylee2cn/pholcus/web" // web版
-    // "github.com/henrylee2cn/pholcus/cmd" // cmd版
+    // "github.com/henrylee2cn/pholcus/web" // web版
+    "github.com/henrylee2cn/pholcus/cmd" // cmd版
     // "github.com/henrylee2cn/pholcus/gui" // gui版
 )
 
@@ -64,31 +64,36 @@ import (
 
 // 自定义相关配置，将覆盖默认值
 func setConf() {
-    //mongodb数据库服务器
-    config.MGO_URL = "127.0.0.1:27017"
-    //mongodb数据库名称
-    config.MGO_NAME = "temp-collection-tentinet"
-    //mongodb数据库集合
-    config.MGO_COLLECTION = "news"
-    //mysql地址
-    config.MYSQL_HOST = "127.0.0.1:3306"
+    //mongodb服务器地址
+    config.MGO_OUTPUT.Host = "127.0.0.1:27017"
+    // mongodb输出时的内容分类
+    // key:蜘蛛规则清单
+    // value:数据库名
+    config.MGO_OUTPUT.DBClass = map[string]string{
+        "百度RSS新闻": "1_1",
+    }
+    // mongodb输出时非默认数据库时以当前时间为集合名
+    // h: 精确到小时 (格式 2015-08-28-09)
+    // d: 精确到天 (格式 2015-08-28)
+    config.MGO_OUTPUT.TableFmt = "d"
+
+    //mysql服务器地址
+    config.MYSQL_OUTPUT.Host = "127.0.0.1:3306"
     //msyql数据库
-    config.MYSQL_DB = "pholcus"
+    config.MYSQL_OUTPUT.DefaultDB = "pholcus"
     //mysql用户
-    config.MYSQL_USER = "root"
+    config.MYSQL_OUTPUT.User = "root"
     //mysql密码
-    config.MYSQL_PW = ""
+    config.MYSQL_OUTPUT.Password = ""
 }
 
 func main() {
-    // setConf() // 不调用则为默认值
-
+    setConf() // 不调用则为默认值
     // 开始运行
-    web.Run() // web版
-    // cmd.Run() // cmd版
+    // web.Run() // web版
+    cmd.Run() // cmd版
     // gui.Run() // gui版
 }
-
 ```
 &nbsp;
 
