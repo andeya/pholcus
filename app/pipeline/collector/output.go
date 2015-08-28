@@ -8,11 +8,14 @@ import (
 	"time"
 )
 
+var Output = make(map[string]func(self *Collector, dataIndex int))
+var OutputLib []string
+
 func (self *Collector) Output(dataIndex int) {
 	defer func() {
 		err := recover()
 		if err != nil {
-			log.Printf("输出时出错！\n")
+			log.Printf(" *     输出时出错: %v", err)
 		} else {
 			// 正常情况下回收内存
 			self.DockerQueue.Recover(dataIndex)

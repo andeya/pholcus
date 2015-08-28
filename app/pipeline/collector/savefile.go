@@ -1,4 +1,3 @@
-//文件输出管理
 package collector
 
 import (
@@ -9,6 +8,7 @@ import (
 	"time"
 )
 
+//文件输出管理
 func (self *Collector) SaveFile() {
 	for !(self.CtrlLen() == 0 && len(self.FileChan) == 0) {
 		select {
