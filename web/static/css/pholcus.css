@@ -79,6 +79,7 @@ h1 {
     display: inline-block;
     width: 96%;
     height: 95%;
+    min-height: 440px;
     padding: 0;
     margin-right: auto;
     margin-left: auto;
