@@ -41,6 +41,8 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重�
 go get github.com/henrylee2cn/pholcus
 ```
 
+3. 备注：Pholcus公开维护的spider规则库地址 <https://github.com/pholcus/spider_lib>
+
 &nbsp;
 
 #### 创建项目
@@ -147,21 +149,22 @@ go build -ldflags="-H windowsgui"
 #### 第三方依赖包
 
 ```
-go get "github.com/henrylee2cn/surfer"
-go get "github.com/henrylee2cn/teleport"
-go get "github.com/henrylee2cn/mahonia"
-go get "github.com/henrylee2cn/websocket.google"
-go get "github.com/PuerkitoBio/goquery"
-go get "github.com/andybalholm/cascadia"
-go get "github.com/lxn/walk"
-go get "github.com/lxn/win"
-go get "github.com/tealeg/xlsx"
-go get "github.com/go-sql-driver/mysql"
-go get "gopkg.in/mgo.v2"
+go get github.com/pholcus/spider_lib
+go get github.com/henrylee2cn/surfer
+go get github.com/henrylee2cn/teleport
+go get github.com/henrylee2cn/mahonia
+go get github.com/henrylee2cn/websocket.google
+go get github.com/PuerkitoBio/goquery
+go get github.com/andybalholm/cascadia
+go get github.com/lxn/walk
+go get github.com/lxn/win
+go get github.com/tealeg/xlsx
+go get github.com/go-sql-driver/mysql
+go get gopkg.in/mgo.v2
 <以下需翻墙下载>
-go get "golang.org/x/net/html"
-go get "golang.org/x/text/encoding"
-go get "golang.org/x/text/transform"
+go get golang.org/x/net/html
+go get golang.org/x/text/encoding
+go get golang.org/x/text/transform
 ```
 > *<font size="2">（在此感谢以上开源项目的支持！）</font>*
 
