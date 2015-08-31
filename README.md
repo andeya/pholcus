@@ -41,7 +41,7 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重�
 go get github.com/henrylee2cn/pholcus
 ```
 
-3. 备注：Pholcus公开维护的spider规则库地址 <https://github.com/pholcus/spider_lib>
+备注：Pholcus公开维护的spider规则库地址 <https://github.com/pholcus/spider_lib>
 
 &nbsp;
 
