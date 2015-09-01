@@ -429,7 +429,7 @@ ReStartLabel:
 	}
 
 	if len(self.TaskJar.Tasks) == 0 {
-		self.Request(nil, "task")
+		self.Request(nil, "task", "")
 		for len(self.TaskJar.Tasks) == 0 {
 			if self.CountNodes() == 0 {
 				goto ReStartLabel
@@ -573,7 +573,7 @@ func (self *Logic) socketLog() {
 		}
 		select {
 		case msg := <-cache.SendChan:
-			self.Teleport.Request(msg, "log")
+			self.Teleport.Request(msg, "log", "")
 		default:
 			time.Sleep(5e7)
 		}
