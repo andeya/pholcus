@@ -10,5 +10,5 @@ func init() {
 	for out, _ := range collector.Output {
 		collector.OutputLib = append(collector.OutputLib, out)
 	}
-	util.StringsSort(collector.OutputLib)
+	util.QSortT(collector.OutputLib)
 }

@@ -125,5 +125,5 @@ func (self *SrcManage) uIndex(spiderId int, priority int) {
 	self.index[spiderId] = append(self.index[spiderId], priority)
 
 	// 从小到大排序
-	util.QSort(self.index[spiderId])
+	util.QSortT(self.index[spiderId])
 }
