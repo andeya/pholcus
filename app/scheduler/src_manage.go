@@ -3,7 +3,7 @@ package scheduler
 
 import (
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
-	"github.com/henrylee2cn/pholcus/common/util"
+	"sort"
 	"sync"
 )
 
@@ -125,5 +125,5 @@ func (self *SrcManage) uIndex(spiderId int, priority int) {
 	self.index[spiderId] = append(self.index[spiderId], priority)
 
 	// 从小到大排序
-	util.QSortT(self.index[spiderId])
+	sort.Ints(self.index[spiderId])
 }
