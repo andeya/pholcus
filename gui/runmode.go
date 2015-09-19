@@ -2,10 +2,10 @@ package gui
 
 import (
 	"github.com/henrylee2cn/pholcus/config"
+	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
-	"log"
 )
 
 func runmodeWindow() {
@@ -71,7 +71,7 @@ func runmodeWindow() {
 				AssignTo: &runStopBtn,
 				OnClicked: func() {
 					if err := db.Submit(); err != nil {
-						log.Println(err)
+						logs.Log.Error("%v", err)
 						return
 					}
 
@@ -90,7 +90,7 @@ func runmodeWindow() {
 			},
 		},
 	}.Create()); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	if icon, err := walk.NewIconFromResource("ICON"); err == nil {

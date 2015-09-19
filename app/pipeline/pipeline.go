@@ -3,9 +3,8 @@ package pipeline
 
 import (
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector"
-	"github.com/henrylee2cn/pholcus/common/deduplicate"
-	// "github.com/henrylee2cn/pholcus/reporter"
 	"github.com/henrylee2cn/pholcus/app/spider"
+	"github.com/henrylee2cn/pholcus/common/deduplicate"
 	"io"
 )
 
@@ -55,5 +54,4 @@ func (self *pipeline) Deduplicate(s string) bool {
 
 func (self *pipeline) Start() {
 	go self.Collector.Manage()
-	// reporter.Log.Println("**************开启输出管道************")
 }

@@ -100,22 +100,12 @@ func PageFailCount() {
 
 //****************************************节点通信数据*******************************************\\
 
-type NetData struct {
-	Type int
-	Body interface{}
-	From string
-	To   string
-}
-
-var (
-	// 发送数据的缓存池(目前只在客户端存放将要发送给服务器的报告)
-	SendChan = make(chan interface{}, 1024)
-)
-
-// 生成并发送信息，注意body不可为变量地址
-func PushNetData(body interface{}) {
-	SendChan <- body
-}
+// type NetData struct {
+// 	Type int
+// 	Body interface{}
+// 	From string
+// 	To   string
+// }
 
 //****************************************初始化*******************************************\\
 

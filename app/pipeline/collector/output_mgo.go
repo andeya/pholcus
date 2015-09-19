@@ -1,11 +1,12 @@
 package collector
 
 import (
+	"gopkg.in/mgo.v2"
+	// "gopkg.in/mgo.v2/bson"
+
 	"github.com/henrylee2cn/pholcus/common/pool"
 	"github.com/henrylee2cn/pholcus/config"
-	"gopkg.in/mgo.v2"
-	"log"
-	// "gopkg.in/mgo.v2/bson"
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 /************************ MongoDB 输出 ***************************/
@@ -55,7 +56,7 @@ func init() {
 				collection := db.C(tabname)
 				err = collection.Insert(datacell)
 				if err != nil {
-					log.Println(err)
+					logs.Log.Error("%v", err)
 				}
 			}
 			return
@@ -66,7 +67,7 @@ func init() {
 		for i, count := 0, len(self.DockerQueue.Dockers[dataIndex]); i < count; i++ {
 			err = collection.Insert((interface{})(self.DockerQueue.Dockers[dataIndex][i]))
 			if err != nil {
-				log.Println(err)
+				logs.Log.Error("%v", err)
 			}
 		}
 	}

@@ -2,10 +2,10 @@ package gui
 
 import (
 	"github.com/henrylee2cn/pholcus/config"
+	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
-	"log"
 )
 
 func offlineWindow() {
@@ -172,7 +172,7 @@ func offlineWindow() {
 			},
 		},
 	}.Create()); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	setWindow()
@@ -210,7 +210,7 @@ func offlineRunStop() {
 	}
 
 	if err := db.Submit(); err != nil {
-		log.Println(err)
+		logs.Log.Error("%v", err)
 		return
 	}
 
@@ -218,7 +218,7 @@ func offlineRunStop() {
 	Input.Spiders = spiderMenu.GetChecked()
 
 	if len(Input.Spiders) == 0 {
-		log.Println(" *     —— 亲，任务列表不能为空哦~")
+		logs.Log.Warning(" *     —— 亲，任务列表不能为空哦~")
 		return
 	}
 

@@ -1,8 +1,8 @@
 ﻿package distribute
 
 import (
+	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/teleport"
-	"log"
 )
 
 func ServerApi(n subApp) teleport.API {
@@ -26,8 +26,8 @@ func (self *task1) Process(receive *teleport.NetData) *teleport.NetData {
 type log1 struct{}
 
 func (*log1) Process(receive *teleport.NetData) *teleport.NetData {
-	log.Printf(" * ")
-	log.Printf(" *     [ %s ]    %s", receive.From, receive.Body)
-	log.Printf(" * ")
+	logs.Log.Informational(" * ")
+	logs.Log.Informational(" *     [ %s ]    %s", receive.From, receive.Body)
+	logs.Log.Informational(" * ")
 	return nil
 }

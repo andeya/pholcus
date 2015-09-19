@@ -5,10 +5,9 @@ import (
 	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
-	"github.com/henrylee2cn/pholcus/reporter"
+	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 	ws "github.com/henrylee2cn/websocket.google"
-	"log"
 )
 
 var (
@@ -16,7 +15,7 @@ var (
 	wchanClosed bool
 	isRunning   bool
 
-	logicApp   = app.New()
+	logicApp   = app.New().SetLog(Log).AsyncLog(true)
 	spiderMenu = make([]map[string]string, 0)
 	wsApi      = map[string]func(*ws.Conn, map[string]interface{}){}
 )
@@ -27,7 +26,7 @@ func wsHandle(conn *ws.Conn) {
 		// 连接断开前关闭正在运行的任务
 		if isRunning {
 			isRunning = false
-			logicApp.LogStop().Stop()
+			logicApp.LogRest().Stop()
 		}
 		wchanClosed = true
 		close(wchan)
@@ -38,7 +37,7 @@ func wsHandle(conn *ws.Conn) {
 	go func(conn *ws.Conn) {
 		var err error
 		defer func() {
-			// reporter.Printf("websocket发送出错断开 (%v) !", err)
+			// logs.Log.Debug("websocket发送出错断开 (%v) !", err)
 		}()
 		for info := range wchan {
 			if _, err = ws.JSON.Send(conn, info); err != nil {
@@ -51,11 +50,11 @@ func wsHandle(conn *ws.Conn) {
 		var req map[string]interface{}
 
 		if err := ws.JSON.Receive(conn, &req); err != nil {
-			// reporter.Printf("websocket接收出错断开 (%v) !", err)
+			// logs.Log.Debug("websocket接收出错断开 (%v) !", err)
 			return
 		}
 
-		reporter.Printf("Received from web: %v", req)
+		// log.Log.Debug("Received from web: %v", req)
 		wsApi[util.Atoa(req["operate"])](conn, req)
 	}
 }
@@ -184,7 +183,7 @@ func setConf(req map[string]interface{}) bool {
 func setSpiderQueue(req map[string]interface{}) bool {
 	spNames, ok := req["spiders"].([]interface{})
 	if !ok {
-		log.Println(" *     —— 亲，任务列表不能为空哦~")
+		logs.Log.Warning(" *     —— 亲，任务列表不能为空哦~")
 		return false
 	}
 	spiders := []*spider.Spider{}
@@ -197,7 +196,7 @@ func setSpiderQueue(req map[string]interface{}) bool {
 	}
 	logicApp.SpiderPrepare(spiders, util.Atoa(req["keywords"]))
 	if logicApp.SpiderQueueLen() == 0 {
-		log.Println(" *     —— 亲，任务列表不能为空哦~")
+		logs.Log.Warning(" *     —— 亲，任务列表不能为空哦~")
 		return false
 	}
 	return true
@@ -207,7 +206,7 @@ func setSpiderQueue(req map[string]interface{}) bool {
 func wsLogHandle(conn *ws.Conn) {
 	var err error
 	defer func() {
-		// reporter.Printf("websocket log发送出错断开 (%v) !", err)
+		// logs.Log.Debug("websocket log发送出错断开 (%v) !", err)
 	}()
 
 	// 新建web前端log输出
@@ -222,7 +221,7 @@ func wsLogHandle(conn *ws.Conn) {
 		}()
 		for {
 			if err := ws.JSON.Receive(conn, nil); err != nil {
-				// reporter.Printf("websocket log接收出错断开 (%v) !", err)
+				// logs.Log.Debug("websocket log接收出错断开 (%v) !", err)
 				return
 			}
 		}

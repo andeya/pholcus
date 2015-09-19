@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/henrylee2cn/pholcus/reporter"
+	"github.com/henrylee2cn/pholcus/logs"
 	"math"
 	"time"
 )
@@ -39,7 +39,7 @@ func (self *RSS) Wait(src string) {
 			if k == 0 {
 				k = 1
 			}
-			reporter.Log.Printf("************************ ……当前RSS <%s> 的更新周期为 %v 分钟……************************", src, self.Level[k-1])
+			logs.Log.Critical("************************ ……当前RSS <%s> 的更新周期为 %v 分钟……************************", src, self.Level[k-1])
 			time.Sleep(time.Minute * time.Duration(self.Level[k-1]))
 			break
 		}

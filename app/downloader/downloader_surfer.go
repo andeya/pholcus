@@ -1,11 +1,11 @@
 package downloader
 
 import (
-	"github.com/henrylee2cn/pholcus/app/downloader/context"
-	"github.com/henrylee2cn/surfer"
-
-	"log"
 	"time"
+
+	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/logs"
+	"github.com/henrylee2cn/surfer"
 )
 
 type Surfer struct {
@@ -33,7 +33,7 @@ func (self *Surfer) Download(cReq *context.Request) *context.Response {
 	cResp.SetResponse(resp)
 
 	if err != nil {
-		log.Println(" *     ", err)
+		logs.Log.Error(" *     %v", err)
 		// cResp.SetStatus(false, err.Error())
 		// return cResp
 	}

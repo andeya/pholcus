@@ -1,12 +1,13 @@
 package web
 
 import (
-	"github.com/henrylee2cn/pholcus/config"
-	"github.com/henrylee2cn/pholcus/reporter"
-	"github.com/henrylee2cn/pholcus/runtime/cache"
-	"github.com/henrylee2cn/pholcus/runtime/status"
 	"net/http"
 	"text/template"
+
+	"github.com/henrylee2cn/pholcus/config"
+	"github.com/henrylee2cn/pholcus/logs"
+	"github.com/henrylee2cn/pholcus/runtime/cache"
+	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
 // 记录默认配置
@@ -16,7 +17,7 @@ var defaultConfig = cache.Task
 func pholcus(rw http.ResponseWriter, req *http.Request) {
 	t, err := template.ParseFiles("web/views/index.html") //解析模板文件
 	if err != nil {
-		reporter.Println(err)
+		logs.Log.Error("%v", err)
 	}
 	//获取pholcus信息
 	data := map[string]interface{}{

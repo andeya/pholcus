@@ -4,7 +4,7 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重�
 
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/icon.png)
 
-* 稳定版： [Version 0.6.2 (Aug 26, 2015)](https://github.com/henrylee2cn/pholcus/releases).   [此处进入](https://github.com/henrylee2cn/pholcus/tree/master)
+* 稳定版： [Version 0.7.0 (Sep 20, 2015)](https://github.com/henrylee2cn/pholcus/releases).   [此处进入](https://github.com/henrylee2cn/pholcus/tree/master)
 
 * 官方QQ群：Go大数据 42731170    [![Go大数据群](http://pub.idqqimg.com/wpa/images/group.png)](http://shang.qq.com/wpa/qunwpa?idkey=83ee3e1a4be6bdb2b08a51a044c06ae52cf10a082f7c5cf6b36c1f78e8b03589)
 
@@ -51,11 +51,13 @@ go get github.com/henrylee2cn/pholcus
 package main
 
 import (
-    "github.com/henrylee2cn/pholcus/config"
     // 按界面需求选择相应版本
-    // "github.com/henrylee2cn/pholcus/web" // web版
-    "github.com/henrylee2cn/pholcus/cmd" // cmd版
+    "github.com/henrylee2cn/pholcus/web" // web版
+    // "github.com/henrylee2cn/pholcus/cmd" // cmd版
     // "github.com/henrylee2cn/pholcus/gui" // gui版
+
+    "github.com/henrylee2cn/pholcus/config"
+    "github.com/henrylee2cn/pholcus/logs"
 )
 
 // 导入自己的规则库（须保证最后声明，即最先导入）
@@ -90,12 +92,23 @@ func setConf() {
 }
 
 func main() {
+    // 开启错误日志调试功能（打印行号及Debug信息）
+    logs.Debug(true)
+
+    defer func() {
+        if err := recover(); err != nil {
+            logs.Log.Emergency("%v", err)
+        }
+    }()
+
     setConf() // 不调用则为默认值
+
     // 开始运行
-    // web.Run() // web版
-    cmd.Run() // cmd版
+    web.Run() // web版
+    // cmd.Run() // cmd版
     // gui.Run() // gui版
 }
+
 ```
 &nbsp;
 
@@ -152,6 +165,7 @@ go build -ldflags="-H windowsgui"
 go get github.com/pholcus/spider_lib
 go get github.com/henrylee2cn/surfer
 go get github.com/henrylee2cn/teleport
+go get github.com/henrylee2cn/beelogs
 go get github.com/henrylee2cn/mahonia
 go get github.com/henrylee2cn/websocket.google
 go get github.com/PuerkitoBio/goquery

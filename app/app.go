@@ -4,7 +4,7 @@ package app
 
 import (
 	"io"
-	"log"
+	// "log"
 	"strconv"
 	"sync"
 	"time"
@@ -14,19 +14,21 @@ import (
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/app/spider"
-	"github.com/henrylee2cn/pholcus/reporter"
+	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 	"github.com/henrylee2cn/teleport"
 )
 
 type App interface {
-	// 设置全局log打印目标，不设置或设置为nil则为标准输出
+	// 设置全局log实时显示终端
 	SetLog(io.Writer) App
-	// 开始log打印
-	LogRun() App
-	// 停止log打印
-	LogStop() App
+	// 设置全局log是否异步
+	AsyncLog(enable bool) App
+	// 继续log打印
+	LogGoOn() App
+	// 暂停log打印
+	LogRest() App
 
 	// 使用App前必须进行先Init初始化，SetLog()除外
 	Init(mode int, port int, master string, w ...io.Writer) App
@@ -109,21 +111,27 @@ func New() App {
 	return &Logic{RunMode: status.UNSET}
 }
 
-// 设置全局log打印目标，不设置或设置为nil则为标准输出
+// 设置全局log实时显示终端
 func (self *Logic) SetLog(w io.Writer) App {
-	reporter.Log.SetOutput(w)
+	logs.Log.SetOutput(w)
 	return self
 }
 
-// 开始log打印
-func (self *Logic) LogRun() App {
-	reporter.Log.Run()
+// 设置全局log是否异步
+func (self *Logic) AsyncLog(enable bool) App {
+	logs.Log.Async(enable)
 	return self
 }
 
-// 停止log打印
-func (self *Logic) LogStop() App {
-	reporter.Log.Stop()
+// 暂停log打印
+func (self *Logic) LogRest() App {
+	logs.Log.Rest()
+	return self
+}
+
+// 继续log打印
+func (self *Logic) LogGoOn() App {
+	logs.Log.GoOn()
 	return self
 }
 
@@ -133,7 +141,7 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 	if len(w) > 0 {
 		self.SetLog(w[0])
 	}
-	reporter.Log.Run()
+	self.LogGoOn()
 
 	cache.Task.RunMode, cache.Task.Port, cache.Task.Master = mode, port, master
 
@@ -149,20 +157,22 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 	switch self.RunMode {
 	case status.SERVER:
 		if self.checkPort() {
-			log.Printf("                                                                                               ！！当前运行模式为：[ 服务器 ] 模式！！")
+			logs.Log.SetStealLevel()
+			logs.Log.Informational("                                                                                               ！！当前运行模式为：[ 服务器 ] 模式！！")
 			self.Teleport.SetAPI(distribute.ServerApi(self)).Server(self.Port)
 		}
 
 	case status.CLIENT:
 		if self.checkAll() {
-			log.Printf("                                                                                               ！！当前运行模式为：[ 客户端 ] 模式！！")
+			logs.Log.SetStealLevel()
+			logs.Log.Informational("                                                                                               ！！当前运行模式为：[ 客户端 ] 模式！！")
 			self.Teleport.SetAPI(distribute.ClientApi(self)).Client(self.Master, self.Port)
 		}
 	case status.OFFLINE:
-		log.Printf("                                                                                               ！！当前运行模式为：[ 单机 ] 模式！！")
+		logs.Log.Informational("                                                                                               ！！当前运行模式为：[ 单机 ] 模式！！")
 		return self
 	default:
-		log.Println(" *    ——请指定正确的运行模式！——")
+		logs.Log.Warning(" *    ——请指定正确的运行模式！——")
 		return self
 	}
 	// 根据RunMode判断是否开启节点间log打印
@@ -173,7 +183,7 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 
 // 切换运行模式时使用
 func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App {
-	reporter.Log.Stop()
+	self.LogRest()
 	self.status = status.STOP
 	if self.Teleport != nil {
 		self.Teleport.Close()
@@ -267,7 +277,7 @@ func (self *Logic) SpiderQueueLen() int {
 // 运行任务
 func (self *Logic) Run() {
 	// 确保开启报告
-	reporter.Log.Run()
+	self.LogGoOn()
 	self.finish = make(chan bool)
 	self.finishOnce = sync.Once{}
 
@@ -308,13 +318,13 @@ func (self *Logic) Stop() {
 	takeTime := time.Since(cache.StartTime).Minutes()
 
 	// 打印总结报告
-	log.Println(` *********************************************************************************************************************************** `)
-	log.Printf(" * ")
-	log.Printf(" *                               ！！任务取消：下载页面 %v 个，耗时：%.5f 分钟！！", cache.GetPageCount(0), takeTime)
-	log.Printf(" * ")
-	log.Println(` *********************************************************************************************************************************** `)
+	logs.Log.Informational(` *********************************************************************************************************************************** `)
+	logs.Log.Informational(" * ")
+	logs.Log.Notice(" *                               ！！任务取消：下载页面 %v 个，耗时：%.5f 分钟！！", cache.GetPageCount(0), takeTime)
+	logs.Log.Informational(" * ")
+	logs.Log.Informational(` *********************************************************************************************************************************** `)
 
-	reporter.Log.Stop()
+	self.LogRest()
 
 	// 标记结束
 	self.finishOnce.Do(func() { close(self.finish) })
@@ -347,11 +357,11 @@ func (self *Logic) server() {
 	}
 
 	// 打印报告
-	log.Println(` *********************************************************************************************************************************** `)
-	log.Printf(" * ")
-	log.Printf(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, spidersNum)
-	log.Printf(" * ")
-	log.Println(` *********************************************************************************************************************************** `)
+	logs.Log.Informational(` *********************************************************************************************************************************** `)
+	logs.Log.Informational(" * ")
+	logs.Log.Notice(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, spidersNum)
+	logs.Log.Informational(" * ")
+	logs.Log.Informational(` *********************************************************************************************************************************** `)
 
 }
 
@@ -378,7 +388,7 @@ func (self *Logic) addNewTask() (tasksNum, spidersNum int) {
 			// 存入
 			one := t
 			self.TaskJar.Push(&one)
-			// log.Printf(" *     [新增任务]   详情： %#v", *t)
+			// logs.Log.Notice(" *     [新增任务]   详情： %#v", *t)
 
 			tasksNum++
 
@@ -391,7 +401,6 @@ func (self *Logic) addNewTask() (tasksNum, spidersNum int) {
 		// 存入
 		one := t
 		self.TaskJar.Push(&one)
-		// log.Printf(" *     [新增任务]   详情： %#v", *t)
 		tasksNum++
 	}
 	return
@@ -408,7 +417,6 @@ func (self *Logic) client() {
 	for {
 		// 从任务库获取一个任务
 		t := self.downTask()
-		// reporter.Log.Printf("成功获取任务 %#v", t)
 
 		// 准备运行
 		self.taskToRun(t)
@@ -477,16 +485,16 @@ func (self *Logic) exec() {
 	// 设置爬虫队列
 	crawlCap := self.CrawlPool.Reset(count)
 
-	log.Println(` *********************************************************************************************************************************** `)
-	log.Printf(" * ")
-	log.Printf(" *     执行任务总数（任务数[*关键词数]）为 %v 个 ...\n", count)
-	log.Printf(" *     爬虫池容量为 %v ...\n", crawlCap)
-	log.Printf(" *     并发协程最多 %v 个 ...\n", cache.Task.ThreadNum)
-	log.Printf(" *     随机停顿时间为 %v~%v ms ...\n", cache.Task.Pausetime[0], cache.Task.Pausetime[0]+cache.Task.Pausetime[1])
-	log.Printf(" * ")
-	log.Printf(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
-	log.Printf(" * ")
-	log.Println(` *********************************************************************************************************************************** `)
+	logs.Log.Informational(` *********************************************************************************************************************************** `)
+	logs.Log.Informational(" * ")
+	logs.Log.Informational(" *     执行任务总数（任务数[*关键词数]）为 %v 个 ...\n", count)
+	logs.Log.Informational(" *     爬虫池容量为 %v ...\n", crawlCap)
+	logs.Log.Informational(" *     并发协程最多 %v 个 ...\n", cache.Task.ThreadNum)
+	logs.Log.Informational(" *     随机停顿时间为 %v~%v ms ...\n", cache.Task.Pausetime[0], cache.Task.Pausetime[0]+cache.Task.Pausetime[1])
+	logs.Log.Informational(" * ")
+	logs.Log.Notice(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
+	logs.Log.Informational(" * ")
+	logs.Log.Informational(` *********************************************************************************************************************************** `)
 
 	// 开始计时
 	cache.StartTime = time.Now()
@@ -526,16 +534,16 @@ func (self *Logic) goRun(count int) {
 		if (s.DataNum == 0) && (s.FileNum == 0) {
 			continue
 		}
-		log.Printf(" * ")
+		logs.Log.Informational(" * ")
 		switch {
 		case s.DataNum > 0 && s.FileNum == 0:
-			reporter.Log.Printf(" *     [输出报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.DataNum, s.Time)
+			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.DataNum, s.Time)
 		case s.DataNum == 0 && s.FileNum > 0:
-			reporter.Log.Printf(" *     [输出报告 -> 任务：%v | 关键词：%v]   共下载文件 %v 个，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.FileNum, s.Time)
+			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共下载文件 %v 个，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.FileNum, s.Time)
 		default:
-			reporter.Log.Printf(" *     [输出报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条 + 下载文件 %v 个，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.DataNum, s.FileNum, s.Time)
+			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条 + 下载文件 %v 个，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.DataNum, s.FileNum, s.Time)
 		}
-		log.Printf(" * ")
+		logs.Log.Informational(" * ")
 
 		sum[0] += s.DataNum
 		sum[1] += s.FileNum
@@ -545,18 +553,18 @@ func (self *Logic) goRun(count int) {
 	takeTime := time.Since(cache.StartTime).Minutes()
 
 	// 打印总结报告
-	log.Println(` *********************************************************************************************************************************** `)
-	log.Printf(" * ")
+	logs.Log.Informational(` *********************************************************************************************************************************** `)
+	logs.Log.Informational(" * ")
 	switch {
 	case sum[0] > 0 && sum[1] == 0:
-		reporter.Log.Printf(" *                            —— 本次合计抓取 %v 条数据，下载页面 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum[0], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
+		logs.Log.Notice(" *                            —— 本次合计抓取 %v 条数据，下载页面 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum[0], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
 	case sum[0] == 0 && sum[1] > 0:
-		reporter.Log.Printf(" *                            —— 本次合计抓取 %v 个文件，下载页面 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
+		logs.Log.Notice(" *                            —— 本次合计抓取 %v 个文件，下载页面 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
 	default:
-		reporter.Log.Printf(" *                            —— 本次合计抓取 %v 条数据 + %v 个文件，下载网页 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum[0], sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
+		logs.Log.Notice(" *                            —— 本次合计抓取 %v 条数据 + %v 个文件，下载网页 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum[0], sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
 	}
-	log.Printf(" * ")
-	log.Println(` *********************************************************************************************************************************** `)
+	logs.Log.Informational(" * ")
+	logs.Log.Informational(` *********************************************************************************************************************************** `)
 
 	// 单机模式并发运行，需要标记任务结束
 	if cache.Task.RunMode == status.OFFLINE {
@@ -571,18 +579,22 @@ func (self *Logic) socketLog() {
 		if !self.canSocketLog {
 			return
 		}
-		select {
-		case msg := <-cache.SendChan:
-			self.Teleport.Request(msg, "log", "")
-		default:
-			time.Sleep(5e7)
+		_, msg, normal := logs.Log.StealOne()
+		if !normal {
+			return
 		}
+		if msg == "" {
+			time.Sleep(5e7)
+			continue
+		}
+		// log.Printf("截获log: %v\n", msg)
+		self.Teleport.Request(msg, "log", "")
 	}
 }
 
 func (self *Logic) checkPort() bool {
 	if cache.Task.Port == 0 {
-		log.Println(" *     —— 亲，分布式端口不能为空哦~")
+		logs.Log.Warning(" *     —— 亲，分布式端口不能为空哦~")
 		return false
 	}
 	return true
@@ -590,7 +602,7 @@ func (self *Logic) checkPort() bool {
 
 func (self *Logic) checkAll() bool {
 	if cache.Task.Master == "" || !self.checkPort() {
-		log.Println(" *     —— 亲，服务器地址不能为空哦~")
+		logs.Log.Warning(" *     —— 亲，服务器地址不能为空哦~")
 		return false
 	}
 	return true

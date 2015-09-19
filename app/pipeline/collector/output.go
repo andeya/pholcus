@@ -2,10 +2,10 @@
 package collector
 
 import (
-	. "github.com/henrylee2cn/pholcus/reporter"
-	"github.com/henrylee2cn/pholcus/runtime/cache"
-	"log"
 	"time"
+
+	"github.com/henrylee2cn/pholcus/logs"
+	"github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
 var Output = make(map[string]func(self *Collector, dataIndex int))
@@ -15,7 +15,7 @@ func (self *Collector) Output(dataIndex int) {
 	defer func() {
 		err := recover()
 		if err != nil {
-			log.Printf(" *     输出时出错: %v", err)
+			logs.Log.Error(" *     输出时出错: %v", err)
 		} else {
 			// 正常情况下回收内存
 			self.DockerQueue.Recover(dataIndex)
@@ -34,7 +34,7 @@ func (self *Collector) Output(dataIndex int) {
 	// 执行输出
 	Output[self.outType](self, dataIndex)
 
-	log.Printf(" * ")
-	Log.Printf(" *     [任务：%v | 关键词：%v | 批次：%v]   输出 %v 条数据，用时 %.5f 分钟！\n", self.Spider.GetName(), self.Spider.GetKeyword(), self.outCount[1]+1, dataLen, time.Since(cache.StartTime).Minutes())
-	log.Printf(" * ")
+	logs.Log.Informational(" * ")
+	logs.Log.Notice(" *     [任务：%v | 关键词：%v | 批次：%v]   输出 %v 条数据，用时 %.5f 分钟！\n", self.Spider.GetName(), self.Spider.GetKeyword(), self.outCount[1]+1, dataLen, time.Since(cache.StartTime).Minutes())
+	logs.Log.Informational(" * ")
 }

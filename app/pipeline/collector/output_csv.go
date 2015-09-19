@@ -3,9 +3,10 @@ package collector
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/henrylee2cn/pholcus/common/util"
-	. "github.com/henrylee2cn/pholcus/reporter"
 	"os"
+
+	"github.com/henrylee2cn/pholcus/common/util"
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 /************************ CSV 输出 ***************************/
@@ -13,7 +14,7 @@ func init() {
 	Output["csv"] = func(self *Collector, dataIndex int) {
 		defer func() {
 			if err := recover(); err != nil {
-				Log.Println(err)
+				logs.Log.Error("%v", err)
 			}
 		}()
 
@@ -25,7 +26,7 @@ func init() {
 		f2, err := os.Stat(folder2)
 		if err != nil || !f2.IsDir() {
 			if err := os.MkdirAll(folder2, 0777); err != nil {
-				Log.Printf("Error: %v\n", err)
+				logs.Log.Error("Error: %v\n", err)
 			}
 		}
 
@@ -39,7 +40,7 @@ func init() {
 			file, err := os.Create(filenameBase + " (" + util.FileNameReplace(Name) + ").csv")
 
 			if err != nil {
-				Log.Println(err)
+				logs.Log.Error("%v", err)
 				continue
 			}
 
@@ -75,7 +76,7 @@ func init() {
 			// 关闭文件
 			file.Close()
 			// 输出报告
-			// Log.Printf("[任务：%v | 关键词：%v | 小类：%v] 输出 %v 条数据！！！\n", self.Spider.GetName(), self.Spider.GetKeyword(), Name, num)
+			// logs.Log.Critical("[任务：%v | 关键词：%v | 小类：%v] 输出 %v 条数据！！！\n", self.Spider.GetName(), self.Spider.GetKeyword(), Name, num)
 		}
 	}
 }

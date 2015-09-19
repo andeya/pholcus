@@ -1,12 +1,12 @@
 package gui
 
 import (
+	"strconv"
+
 	"github.com/henrylee2cn/pholcus/config"
+	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
-	"log"
-	"strconv"
-	// "time"
 )
 
 var serverCount int
@@ -159,7 +159,7 @@ func serverWindow() {
 			},
 		},
 	}.Create()); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	setWindow()
@@ -174,7 +174,7 @@ func serverWindow() {
 // 点击开始事件
 func serverStart() {
 	if err := db.Submit(); err != nil {
-		log.Println(err)
+		logs.Log.Error("%v", err)
 		return
 	}
 
@@ -182,7 +182,7 @@ func serverStart() {
 	Input.Spiders = spiderMenu.GetChecked()
 
 	if len(Input.Spiders) == 0 {
-		log.Println(" *     —— 亲，任务列表不能为空哦~")
+		logs.Log.Warning(" *     —— 亲，任务列表不能为空哦~")
 		return
 	}
 

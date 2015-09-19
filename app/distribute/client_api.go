@@ -2,8 +2,8 @@
 
 import (
 	"encoding/json"
+	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/teleport"
-	"log"
 )
 
 func ClientApi(n subApp) teleport.API {
@@ -23,13 +23,13 @@ type task2 struct {
 func (self *task2) Process(receive *teleport.NetData) *teleport.NetData {
 	d, err := json.Marshal(receive.Body)
 	if err != nil {
-		log.Println("json编码失败", receive.Body)
+		logs.Log.Error("json编码失败 %v", receive.Body)
 		return nil
 	}
 	t := &Task{}
 	err = json.Unmarshal(d, t)
 	if err != nil {
-		log.Println("json解码失败", receive.Body)
+		logs.Log.Error("json解码失败 %v", receive.Body)
 		return nil
 	}
 	self.Into(t)
@@ -39,8 +39,8 @@ func (self *task2) Process(receive *teleport.NetData) *teleport.NetData {
 type log2 struct{}
 
 func (*log2) Process(receive *teleport.NetData) *teleport.NetData {
-	log.Printf(" * ")
-	log.Printf(" *     [ %s ]    %s", receive.From, receive.Body)
-	log.Printf(" * ")
+	logs.Log.Informational(" * ")
+	logs.Log.Informational(" *     [ %s ]    %s", receive.From, receive.Body)
+	logs.Log.Informational(" * ")
 	return nil
 }

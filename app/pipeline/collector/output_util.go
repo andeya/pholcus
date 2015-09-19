@@ -2,7 +2,6 @@ package collector
 
 import (
 	"github.com/henrylee2cn/pholcus/config"
-	// . "github.com/henrylee2cn/pholcus/reporter"
 	"time"
 )
 
@@ -10,7 +9,6 @@ import (
 
 // 返回数据库及集合名称
 func dbOrTabName(c *Collector) (dbName, tableName string) {
-	// Log.Printf("%+v", config.MGO_OUTPUT.DBClass)
 	if v, ok := config.MGO_OUTPUT.DBClass[c.Spider.GetName()]; ok {
 		switch config.MGO_OUTPUT.TableFmt {
 		case "h":

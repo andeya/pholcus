@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/henrylee2cn/pholcus/config"
 	// 按界面需求选择相应版本
-	// "github.com/henrylee2cn/pholcus/web" // web版
-	"github.com/henrylee2cn/pholcus/cmd" // cmd版
+	"github.com/henrylee2cn/pholcus/web" // web版
+	// "github.com/henrylee2cn/pholcus/cmd" // cmd版
 	// "github.com/henrylee2cn/pholcus/gui" // gui版
+
+	"github.com/henrylee2cn/pholcus/config"
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 // 导入自己的规则库（须保证最后声明，即最先导入）
@@ -40,10 +42,19 @@ func setConf() {
 }
 
 func main() {
+	// 开启错误日志调试功能（打印行号及Debug信息）
+	logs.Debug(true)
+
+	defer func() {
+		if err := recover(); err != nil {
+			logs.Log.Emergency("%v", err)
+		}
+	}()
+
 	setConf() // 不调用则为默认值
 
 	// 开始运行
-	// web.Run() // web版
-	cmd.Run() // cmd版
+	web.Run() // web版
+	// cmd.Run() // cmd版
 	// gui.Run() // gui版
 }

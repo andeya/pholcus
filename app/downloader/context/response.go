@@ -1,14 +1,15 @@
 package context
 
 import (
-	"github.com/PuerkitoBio/goquery"
-	"golang.org/x/net/html/charset"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"path"
 	"strings"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/henrylee2cn/pholcus/logs"
+	"golang.org/x/net/html/charset"
 )
 
 // Response represents an entity be crawled.
@@ -168,7 +169,7 @@ func (self *Response) initDom() *goquery.Document {
 	var err error
 	self.dom, err = goquery.NewDocumentFromReader(r)
 	if err != nil {
-		log.Println(err.Error())
+		logs.Log.Error("%v", err)
 		panic(err.Error())
 	}
 	return self.dom
@@ -180,13 +181,13 @@ func changeCharsetEncodingAuto(sor io.ReadCloser, contentTypeStr string) string 
 	destReader, err := charset.NewReader(sor, contentTypeStr)
 
 	if err != nil {
-		log.Println(err.Error())
+		logs.Log.Error("%v", err)
 		destReader = sor
 	}
 
 	var sorbody []byte
 	if sorbody, err = ioutil.ReadAll(destReader); err != nil {
-		log.Println(err.Error())
+		logs.Log.Error("%v", err)
 		// For gb2312, an error will be returned.
 		// Error like: simplifiedchinese: invalid GBK encoding
 		// return ""

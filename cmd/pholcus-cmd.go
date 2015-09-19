@@ -6,7 +6,6 @@ package cmd
 import (
 	"flag"
 	// "bufio"
-	"log"
 	// "os"
 	// "fmt"
 	"runtime"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/app/spider"
+	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
@@ -82,7 +82,7 @@ func Run() {
 	// 创建蜘蛛队列
 	sps := []*spider.Spider{}
 	if *spiderflag == "" {
-		log.Println(" *     —— 亲，任务列表不能为空哦~")
+		logs.Log.Warning(" *     —— 亲，任务列表不能为空哦~")
 		return
 	}
 	for _, idx := range strings.Split(*spiderflag, ",") {

@@ -1,9 +1,8 @@
 package collector
 
 import (
-	. "github.com/henrylee2cn/pholcus/reporter"
+	"github.com/henrylee2cn/pholcus/logs"
 	"io"
-	"log"
 	"os"
 	"time"
 )
@@ -25,7 +24,7 @@ func (self *Collector) SaveFile() {
 			d, err := os.Stat(dir)
 			if err != nil || !d.IsDir() {
 				if err := os.MkdirAll(dir, 0777); err != nil {
-					log.Printf("Error: %v\n", err)
+					logs.Log.Error("Error: %v\n", err)
 				}
 			}
 
@@ -35,9 +34,9 @@ func (self *Collector) SaveFile() {
 			f.Close()
 
 			// 打印报告
-			log.Printf(" * ")
-			Log.Printf(" *     [任务：%v | 关键词：%v]   成功下载文件： %v \n", self.Spider.GetName(), self.Spider.GetKeyword(), dir+file["Name"].(string))
-			log.Printf(" * ")
+			logs.Log.Informational(" * ")
+			logs.Log.Notice(" *     [任务：%v | 关键词：%v]   成功下载文件： %v \n", self.Spider.GetName(), self.Spider.GetKeyword(), dir+file["Name"].(string))
+			logs.Log.Informational(" * ")
 
 			self.outCount[3]++
 		default:

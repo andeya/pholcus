@@ -3,7 +3,7 @@ package spider
 import (
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
-	"log"
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 const (
@@ -156,7 +156,7 @@ func (self *Spider) OutFeild(respOrRuleName interface{}, index int) string {
 	case string:
 		ruleName = rn
 	default:
-		log.Println("error：参数 ", respOrRuleName, " 的类型应为*Response或string！")
+		logs.Log.Error("error：参数 %v 的类型应为*Response或string！", respOrRuleName)
 		return ""
 	}
 	return self.RuleTree.Trunk[ruleName].OutFeild[index]
@@ -172,7 +172,7 @@ func (self *Spider) AddOutFeild(respOrRuleName interface{}, feild string) {
 	case string:
 		ruleName = rn
 	default:
-		log.Println("error：参数 ", respOrRuleName, " 的类型应为*Response或string！")
+		logs.Log.Error("error：参数 %v 的类型应为*Response或string！", respOrRuleName)
 		return
 	}
 	for _, v := range self.RuleTree.Trunk[ruleName].OutFeild {

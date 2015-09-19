@@ -9,8 +9,8 @@ import (
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 
 	// "fmt"
+	"github.com/henrylee2cn/pholcus/logs"
 	"io"
-	"log"
 	"math/rand"
 	"sync"
 	"time"
@@ -58,10 +58,10 @@ func (self *crawler) Start() {
 	// 开始运行
 	self.Spider.Start(self.Spider)
 	self.Run()
-	// log.Printf("**************爬虫：%v***********", self.GetId())
+	// logs.Log.Debug("**************爬虫：%v***********", self.GetId())
 	// 通知输出模块输出未输出的数据
 	self.Pipeline.CtrlR()
-	// log.Println("**************断点 11 ***********")
+	// logs.Log.Debug("**************断点 11 ***********")
 }
 
 func (self *crawler) Run() {
@@ -75,7 +75,7 @@ func (self *crawler) Run() {
 		// 队列退出及空请求调控
 		if req == nil {
 			if self.canStop() {
-				// log.Println("**************退出队列************")
+				// logs.Log.Debug("**************退出队列************")
 				break
 			} else {
 				continue
@@ -93,7 +93,7 @@ func (self *crawler) Run() {
 				self.FreeOne()
 				self.RequestOut()
 			}()
-			log.Println(" *     start crawl :", req.GetUrl())
+			logs.Log.Informational(" *     crawl: %v", req.GetUrl())
 			self.Process(req)
 		}(req)
 	}
@@ -105,28 +105,28 @@ func (self *crawler) Process(req *context.Request) {
 	defer func() {
 		if err := recover(); err != nil { // do not affect other
 			if strerr, ok := err.(string); ok {
-				log.Println(strerr)
+				logs.Log.Error("%v", strerr)
 			} else {
-				log.Println(" *     Process error：", err)
+				logs.Log.Error(" *     Process error: %v", err)
 			}
 		}
 	}()
-	// log.Println("**************断点 1 ***********")
+	// logs.Log.Debug("**************断点 1 ***********")
 	// download page
 	resp := self.Downloader.Download(req)
 
-	// log.Println("**************断点 2 ***********")
+	// logs.Log.Debug("**************断点 2 ***********")
 	if !resp.IsSucc() { // if fail do not need process
-		log.Println(resp.Errormsg())
+		logs.Log.Error("%v", resp.Errormsg())
 		// 统计下载失败的页数
 		cache.PageFailCount()
 		return
 	}
 
-	// log.Println("**************断点 3 ***********")
+	// logs.Log.Debug("**************断点 3 ***********")
 	// 过程处理，提炼数据
 	self.Spider.ExecParse(resp)
-	// log.Println("**************断点 5 ***********")
+	// logs.Log.Debug("**************断点 5 ***********")
 	// 该条请求文本结果存入pipeline
 	for _, data := range resp.GetItems() {
 		self.Pipeline.CollectData(
@@ -147,7 +147,7 @@ func (self *crawler) Process(req *context.Request) {
 		)
 	}
 
-	// log.Println("**************断点 end ***********")
+	// logs.Log.Debug("**************断点 end ***********")
 }
 
 // 常用基础方法
@@ -185,7 +185,7 @@ func (self *crawler) RequestOut() {
 
 //判断调度中是否还有属于自己的资源运行
 func (self *crawler) canStop() bool {
-	// log.Println("**************", self.srcManage[0], self.srcManage[1], "***********")
+	// logs.Log.Debug("**************", self.srcManage[0], self.srcManage[1], "***********")
 	return (self.srcManage[0] == self.srcManage[1] && scheduler.Sdl.IsEmpty(self.Spider.GetId())) || scheduler.Sdl.IsStop()
 }
 

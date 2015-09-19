@@ -1,13 +1,14 @@
 package context
 
 import (
-	"github.com/henrylee2cn/pholcus/common/simplejson"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/henrylee2cn/pholcus/common/simplejson"
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 // Request represents object waiting for being crawled.
@@ -132,7 +133,7 @@ func readHeaderFromFile(headerFile string) http.Header {
 	b, err := ioutil.ReadFile(headerFile)
 	if err != nil {
 		//make be:  share access error
-		log.Println(err.Error())
+		logs.Log.Error("%v", err)
 		return nil
 	}
 	js, _ := simplejson.NewJson(b)

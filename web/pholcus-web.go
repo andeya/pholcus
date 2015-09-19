@@ -5,11 +5,12 @@ package web
 
 import (
 	"flag"
+	"log"
 	"net/http"
 	"runtime"
 	"strconv"
 
-	"github.com/henrylee2cn/pholcus/reporter"
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 var (
@@ -34,9 +35,9 @@ func Run() {
 	// 预绑定路由
 	Router()
 	// 监听端口
-	reporter.Println("[pholcus] server Running on ", addr)
+	log.Printf("[pholcus] server Running on %v\n", addr)
 	err := http.ListenAndServe(addr, nil) //设置监听的端口
 	if err != nil {
-		reporter.Fatal("ListenAndServe: ", err)
+		logs.Log.Emergency("ListenAndServe: %v", err)
 	}
 }

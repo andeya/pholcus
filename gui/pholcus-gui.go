@@ -12,7 +12,7 @@ import (
 	"github.com/lxn/walk"
 )
 
-var LogicApp = app.New()
+var LogicApp = app.New().AsyncLog(true)
 
 func Run() {
 	// 开启最大核心数运行
@@ -56,10 +56,10 @@ func setWindow() {
 	// 绑定log输出界面
 	lv, err := NewLogView(mw)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	LogicApp.SetLog(lv)
-
+	log.SetOutput(lv)
 	// 设置左上角图标
 	if icon, err := walk.NewIconFromResource("ICON"); err == nil {
 		mw.SetIcon(icon)

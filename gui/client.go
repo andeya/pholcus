@@ -4,7 +4,6 @@ import (
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
-	"log"
 )
 
 func clientWindow() {
@@ -153,7 +152,7 @@ func clientWindow() {
 			},
 		},
 	}.Create()); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	setWindow()

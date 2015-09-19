@@ -3,7 +3,7 @@ package collector
 import (
 	"fmt"
 	"github.com/henrylee2cn/pholcus/common/util"
-	. "github.com/henrylee2cn/pholcus/reporter"
+	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/tealeg/xlsx"
 	"os"
 )
@@ -13,7 +13,7 @@ func init() {
 	Output["excel"] = func(self *Collector, dataIndex int) {
 		defer func() {
 			if err := recover(); err != nil {
-				Log.Println(err)
+				logs.Log.Error("%v", err)
 			}
 		}()
 
@@ -73,16 +73,13 @@ func init() {
 					num++
 				}
 			}
-
-			// Log.Printf("[任务：%v | 关键词：%v | 小类：%v] 输出 %v 条数据！！！\n", self.Spider.GetName(), self.Spider.GetKeyword(), Name, num)
-
 		}
 
 		// 创建/打开目录
 		f2, err := os.Stat(folder2)
 		if err != nil || !f2.IsDir() {
 			if err := os.MkdirAll(folder2, 0777); err != nil {
-				Log.Printf("Error: %v\n", err)
+				logs.Log.Error("Error: %v\n", err)
 			}
 		}
 
@@ -90,7 +87,7 @@ func init() {
 		err = file.Save(filename)
 
 		if err != nil {
-			Log.Println(err)
+			logs.Log.Error("%v", err)
 		}
 
 	}
