@@ -2,9 +2,9 @@ package main
 
 import (
 	// 按界面需求选择相应版本
-	"github.com/henrylee2cn/pholcus/web" // web版
+	// "github.com/henrylee2cn/pholcus/web" // web版
 	// "github.com/henrylee2cn/pholcus/cmd" // cmd版
-	// "github.com/henrylee2cn/pholcus/gui" // gui版
+	"github.com/henrylee2cn/pholcus/gui" // gui版
 
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
@@ -54,7 +54,7 @@ func main() {
 	setConf() // 不调用则为默认值
 
 	// 开始运行
-	web.Run() // web版
+	// web.Run() // web版
 	// cmd.Run() // cmd版
-	// gui.Run() // gui版
+	gui.Run() // gui版
 }

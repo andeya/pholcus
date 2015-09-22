@@ -33,10 +33,8 @@ type Response struct {
 	// "Name": string; "Body": io.ReadCloser
 	files []map[string]interface{}
 
-	// The isSucc is false when crawl process is failed and errormsg is the fail resean.
-	isSucc bool
-
-	errormsg string
+	// The err is not nil when crawl process is success.
+	err error
 }
 
 // NewResponse returns initialized Response object.
@@ -48,20 +46,14 @@ func NewResponse(req *Request) *Response {
 	}
 }
 
-// IsSucc test whether download process success or not.
-func (self *Response) IsSucc() bool {
-	return self.isSucc
+// GetError test whether download process success or not.
+func (self *Response) GetError() error {
+	return self.err
 }
 
-// Errormsg show the download error message.
-func (self *Response) Errormsg() string {
-	return self.errormsg
-}
-
-// SetStatus save status info about download process.
-func (self *Response) SetStatus(issucc bool, errormsg string) {
-	self.isSucc = issucc
-	self.errormsg = errormsg
+// SetError save err about download process.
+func (self *Response) SetError(err error) {
+	self.err = err
 }
 
 // AddItem saves KV string pair to Response.Items preparing for Pipeline

@@ -116,8 +116,8 @@ func (self *crawler) Process(req *context.Request) {
 	resp := self.Downloader.Download(req)
 
 	// logs.Log.Debug("**************断点 2 ***********")
-	if !resp.IsSucc() { // if fail do not need process
-		logs.Log.Error("%v", resp.Errormsg())
+	if resp.GetError() != nil { // if fail do not need process
+		logs.Log.Error(" *     %v", resp.GetError())
 		// 统计下载失败的页数
 		cache.PageFailCount()
 		return

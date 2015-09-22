@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
-	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/surfer"
 )
 
@@ -32,13 +31,8 @@ func (self *Surfer) Download(cReq *context.Request) *context.Response {
 
 	cResp.SetResponse(resp)
 
-	if err != nil {
-		logs.Log.Error(" *     %v", err)
-		// cResp.SetStatus(false, err.Error())
-		// return cResp
-	}
+	cResp.SetError(err)
 
-	cResp.SetStatus(true, "")
 	return cResp
 }
 
