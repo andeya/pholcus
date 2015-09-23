@@ -39,7 +39,7 @@ func (self *Find) Exec() (interface{}, error) {
 
 	q := c.Find(self.Query)
 
-	result["total"], _ = q.Count()
+	result["Total"], _ = q.Count()
 
 	if len(self.Sort) > 0 {
 		q.Sort(self.Sort...)
@@ -56,7 +56,8 @@ func (self *Find) Exec() (interface{}, error) {
 	if self.Select != nil {
 		q.Select(self.Select)
 	}
-
-	err = q.All(result["docs"])
+	r := []interface{}{}
+	err = q.All(&r)
+	result["Docs"] = r
 	return result, err
 }
