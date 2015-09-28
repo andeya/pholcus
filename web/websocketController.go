@@ -16,18 +16,25 @@ var (
 	isRunning   bool
 
 	logicApp   = app.New().SetLog(Log).AsyncLog(true)
-	spiderMenu = make([]map[string]string, 0)
-	wsApi      = map[string]func(*ws.Conn, map[string]interface{}){}
+	spiderMenu = func() (spmenu []map[string]string) {
+		// 获取蜘蛛家族
+		for _, sp := range logicApp.GetSpiderLib() {
+			spmenu = append(spmenu, map[string]string{"name": sp.GetName(), "description": sp.GetDescription()})
+		}
+		return spmenu
+	}()
+
+	wsApi = map[string]func(*ws.Conn, map[string]interface{}){}
 )
 
 func wsHandle(conn *ws.Conn) {
 	wchanClosed = false
 	defer func() {
 		// 连接断开前关闭正在运行的任务
-		if isRunning {
-			isRunning = false
-			logicApp.LogRest().Stop()
-		}
+		// if isRunning {
+		// 	isRunning = false
+		// 	logicApp.LogRest().Stop()
+		// }
 		wchanClosed = true
 		close(wchan)
 		conn.Close()
@@ -61,119 +68,165 @@ func wsHandle(conn *ws.Conn) {
 
 func init() {
 	// 初始化运行
+	wsApi["goon"] = func(conn *ws.Conn, req map[string]interface{}) {
+		// 写入发送通道
+		if !wchanClosed {
+			wchan <- tplData(logicApp.GetAppConf("mode").(int))
+		}
+	}
+
+	// 初始化运行
 	wsApi["init"] = func(conn *ws.Conn, req map[string]interface{}) {
 		var mode = util.Atoi(req["mode"])
 		var port = util.Atoi(req["port"])
 		var master = util.Atoa(req["ip"]) //服务器(主节点)地址，不含端口
-		currMode := logicApp.GetRunMode()
+		currMode := logicApp.GetAppConf("mode").(int)
 		if currMode == status.UNSET {
 			logicApp.Init(mode, port, master, Log) // 运行模式初始化，设置log输出目标
-			// 获取蜘蛛家族
-			for _, sp := range logicApp.GetAllSpiders() {
-				spiderMenu = append(spiderMenu, map[string]string{"name": sp.GetName(), "description": sp.GetDescription()})
-			}
 		} else {
 			logicApp = logicApp.ReInit(mode, port, master) // 切换运行模式
 		}
 
-		// 输出到前端的信息
-		var info = map[string]interface{}{"operate": "init", "mode": mode}
-
-		// 运行模式标题
-		switch mode {
-		case status.OFFLINE:
-			info["title"] = config.APP_FULL_NAME + "                                                          【 运行模式 ->  单机 】"
-		case status.SERVER:
-			info["title"] = config.APP_FULL_NAME + "                                                          【 运行模式 ->  服务端 】"
-		case status.CLIENT:
-			info["title"] = config.APP_FULL_NAME + "                                                          【 运行模式 ->  客户端 】"
-		}
-
 		if mode == status.CLIENT {
 			go logicApp.Run()
-			goto send
 		}
 
-		// 蜘蛛家族清单
-		info["spiderMenu"] = spiderMenu
-		// 输出方式清单
-		info["outputMenu"] = logicApp.GetOutputLib()
-		// 并发协程上限
-		info["threadNum"] = map[string]uint{
-			"max":     999999,
-			"min":     1,
-			"default": defaultConfig.ThreadNum,
-		}
-		// 暂停时间，单位ms
-		info["sleepTime"] = map[string][]uint{
-			"base":    {0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
-			"random":  {0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
-			"default": {defaultConfig.Pausetime[0], defaultConfig.Pausetime[1]},
-		}
-		// 分批输出的容量
-		info["dockerCap"] = map[string]uint{"min": 1, "max": 5000000, "default": defaultConfig.DockerCap}
-
-	send:
 		// 写入发送通道
 		if !wchanClosed {
-			wchan <- info
+			wchan <- tplData(mode)
 		}
 	}
 
 	wsApi["run"] = func(conn *ws.Conn, req map[string]interface{}) {
-		if logicApp.GetRunMode() != status.CLIENT && !wchanClosed {
+		if logicApp.GetAppConf("mode").(int) != status.CLIENT && !wchanClosed {
 			if !setConf(req) {
-				wchan <- map[string]interface{}{"mode": logicApp.GetRunMode(), "status": 0}
+				wchan <- map[string]interface{}{"mode": logicApp.GetAppConf("mode").(int), "status": status.UNKNOW}
 				return
 			}
 		}
 
-		if logicApp.GetRunMode() == status.OFFLINE && !wchanClosed {
-			wchan <- map[string]interface{}{"operate": "run", "mode": status.OFFLINE, "status": 1}
+		if logicApp.GetAppConf("mode").(int) == status.OFFLINE && !wchanClosed {
+			wchan <- map[string]interface{}{"operate": "run", "mode": status.OFFLINE, "status": status.RUN}
 		}
 
 		go func() {
 			isRunning = true
 			logicApp.Run()
-			if logicApp.GetRunMode() == status.OFFLINE && !wchanClosed {
+			if logicApp.GetAppConf("mode").(int) == status.OFFLINE && !wchanClosed {
 				isRunning = false
-				wchan <- map[string]interface{}{"operate": "stop", "mode": status.OFFLINE, "status": 1}
+				wchan <- map[string]interface{}{"operate": "stop", "mode": status.OFFLINE, "status": status.STOP}
 			}
 		}()
 	}
 
 	// 终止当前任务，现仅支持单机模式
 	wsApi["stop"] = func(conn *ws.Conn, req map[string]interface{}) {
-		if logicApp.GetRunMode() != status.OFFLINE && !wchanClosed {
-			wchan <- map[string]interface{}{"operate": "stop", "mode": logicApp.GetRunMode(), "status": 0}
+		if logicApp.GetAppConf("mode").(int) != status.OFFLINE && !wchanClosed {
+			wchan <- map[string]interface{}{"operate": "stop", "mode": logicApp.GetAppConf("mode").(int), "status": status.UNKNOW}
 			return
 		} else if !wchanClosed {
-			wchan <- map[string]interface{}{"operate": "stop", "mode": status.OFFLINE, "status": 1}
+			wchan <- map[string]interface{}{"operate": "stop", "mode": status.OFFLINE, "status": status.STOP}
 		}
 		logicApp.Stop()
 	}
 
 	// 终止当前任务，现仅支持单机模式
 	wsApi["pauseRecover"] = func(conn *ws.Conn, req map[string]interface{}) {
-		if logicApp.GetRunMode() != status.OFFLINE {
+		if logicApp.GetAppConf("mode").(int) != status.OFFLINE {
 			return
 		}
 		logicApp.PauseRecover()
 	}
+
+	// 退出当前模式
+	wsApi["exit"] = func(conn *ws.Conn, req map[string]interface{}) {
+		logicApp = logicApp.ReInit(status.UNSET, 0, "")
+	}
+}
+
+func tplData(mode int) map[string]interface{} {
+	var info = map[string]interface{}{"operate": "init", "mode": mode}
+
+	// 运行模式标题
+	switch mode {
+	case status.OFFLINE:
+		info["title"] = config.APP_FULL_NAME + "                                                          【 运行模式 ->  单机 】"
+	case status.SERVER:
+		info["title"] = config.APP_FULL_NAME + "                                                          【 运行模式 ->  服务端 】"
+	case status.CLIENT:
+		info["title"] = config.APP_FULL_NAME + "                                                          【 运行模式 ->  客户端 】"
+	}
+
+	if mode == status.CLIENT {
+		return info
+	}
+
+	// 蜘蛛家族清单
+	info["spiders"] = map[string]interface{}{
+		"memu": spiderMenu,
+		"curr": func() interface{} {
+			l := logicApp.GetSpiderQueue().Len()
+			if l == 0 {
+				return 0
+			}
+			var curr = make(map[string]bool, l)
+			for _, sp := range logicApp.GetSpiderQueue().GetAll() {
+				curr[sp.GetName()] = true
+			}
+
+			return curr
+		}(),
+	}
+
+	// 输出方式清单
+	info["outputs"] = map[string]interface{}{
+		"memu": logicApp.GetOutputLib(),
+		"curr": logicApp.GetAppConf("OutType"),
+	}
+
+	// 并发协程上限
+	info["threadNum"] = map[string]uint{
+		"max":     999999,
+		"min":     1,
+		"default": logicApp.GetAppConf("ThreadNum").(uint),
+	}
+	// 暂停时间，单位ms
+	info["sleepTime"] = map[string][]uint{
+		"base":   {0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
+		"random": {0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
+		"default": func() []uint {
+			var a = logicApp.GetAppConf("Pausetime").([2]uint)
+			return []uint{a[0], a[1]}
+		}(),
+	}
+	// 分批输出的容量
+	info["dockerCap"] = map[string]uint{"min": 1, "max": 5000000, "default": logicApp.GetAppConf("DockerCap").(uint)}
+	// 最大页数
+	info["maxPage"] = logicApp.GetAppConf("maxPage")
+	// 关键词
+	info["keywords"] = logicApp.GetAppConf("Keywords")
+
+	// 运行状态
+	info["status"] = logicApp.Status()
+
+	return info
 }
 
 // 配置运行参数
 func setConf(req map[string]interface{}) bool {
 	if tn := util.Atoui(req["threadNum"]); tn == 0 {
-		logicApp.SetThreadNum(1)
+		logicApp.SetAppConf("threadNum", 1)
 	} else {
-		logicApp.SetThreadNum(tn)
+		logicApp.SetAppConf("threadNum", tn)
 	}
-	logicApp.SetPausetime([2]uint{(util.Atoui(req["baseSleeptime"])), util.Atoui(req["randomSleepPeriod"])})
-	logicApp.SetOutType(util.Atoa(req["output"]))
-	logicApp.SetDockerCap(util.Atoui(req["dockerCap"])) //分段转储容器容量
-	// 选填项
-	logicApp.SetMaxPage(util.Atoi(req["maxPage"]))
+
+	logicApp.
+		SetAppConf("Pausetime", [2]uint{(util.Atoui(req["baseSleeptime"])), util.Atoui(req["randomSleepPeriod"])}).
+		SetAppConf("OutType", util.Atoa(req["output"])).
+		SetAppConf("DockerCap", util.Atoui(req["dockerCap"])).
+		SetAppConf("MaxPage", util.Atoi(req["maxPage"])).
+		SetAppConf("Keywords", util.Atoa(req["keywords"]))
+
 	if !setSpiderQueue(req) {
 		return false
 	}
@@ -187,15 +240,15 @@ func setSpiderQueue(req map[string]interface{}) bool {
 		return false
 	}
 	spiders := []*spider.Spider{}
-	for _, sp := range logicApp.GetAllSpiders() {
+	for _, sp := range logicApp.GetSpiderLib() {
 		for _, spName := range spNames {
 			if util.Atoa(spName) == sp.GetName() {
 				spiders = append(spiders, sp.Gost())
 			}
 		}
 	}
-	logicApp.SpiderPrepare(spiders, util.Atoa(req["keywords"]))
-	if logicApp.SpiderQueueLen() == 0 {
+	logicApp.SpiderPrepare(spiders)
+	if logicApp.GetSpiderQueue().Len() == 0 {
 		logs.Log.Warning(" *     —— 亲，任务列表不能为空哦~")
 		return false
 	}

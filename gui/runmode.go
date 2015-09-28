@@ -27,11 +27,11 @@ func runmodeWindow() {
 				Layout:   HBox{},
 				MinSize:  Size{0, 70},
 
-				DataMember: "RunMode",
+				DataMember: "Mode",
 				Buttons: []RadioButton{
-					{Text: GuiOpt.RunMode[0].Key, Value: GuiOpt.RunMode[0].Int},
-					{Text: GuiOpt.RunMode[1].Key, Value: GuiOpt.RunMode[1].Int},
-					{Text: GuiOpt.RunMode[2].Key, Value: GuiOpt.RunMode[2].Int},
+					{Text: GuiOpt.Mode[0].Key, Value: GuiOpt.Mode[0].Int},
+					{Text: GuiOpt.Mode[1].Key, Value: GuiOpt.Mode[1].Int},
+					{Text: GuiOpt.Mode[2].Key, Value: GuiOpt.Mode[2].Int},
 				},
 			},
 
@@ -75,7 +75,7 @@ func runmodeWindow() {
 						return
 					}
 
-					switch Input.RunMode {
+					switch Input.Mode {
 					case status.OFFLINE:
 						offlineWindow()
 

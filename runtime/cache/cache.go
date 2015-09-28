@@ -8,8 +8,8 @@ import (
 //**************************************任务运行时公共配置****************************************\\
 
 // 任务运行时公共配置
-type TaskConf struct {
-	RunMode        int    // 节点角色
+type AppConf struct {
+	Mode           int    // 节点角色
 	Port           int    // 主节点端口
 	Master         string //服务器(主节点)地址，不含端口
 	ThreadNum      uint
@@ -18,11 +18,12 @@ type TaskConf struct {
 	DockerCap      uint //分段转储容器容量
 	DockerQueueCap uint //分段输出池容量，不小于2
 	// 选填项
-	MaxPage int
+	MaxPage  int
+	Keywords string //后期split()为slice
 }
 
 // 该初始值即默认值
-var Task = new(TaskConf)
+var Task = new(AppConf)
 
 // 根据Task.DockerCap智能调整分段输出池容量Task.DockerQueueCap
 func AutoDockerQueueCap() {

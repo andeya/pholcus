@@ -3,9 +3,11 @@
 package app
 
 import (
+	"fmt"
 	"io"
-	// "log"
+	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -36,18 +38,17 @@ type App interface {
 	// 切换运行模式并重设log打印目标
 	ReInit(mode int, port int, master string, w ...io.Writer) App
 
-	// 以下Set类方法均为Offline和Server模式用到的
-	SetThreadNum(uint) App
-	SetPausetime([2]uint) App //暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
-	SetOutType(string) App
-	SetDockerCap(uint) App
-	SetMaxPage(int) App
+	// 获取全局参数
+	GetAppConf(k ...string) interface{}
+
+	// 设置全局参数，Offline和Server模式用到的
+	SetAppConf(k string, v interface{}) App
 
 	// SpiderPrepare()必须在设置全局运行参数之后，就Run()的前一刻执行
 	// original为spider包中未有过赋值操作的原始蜘蛛种类
 	// 已被显式赋值过的spider将不再重新分配Keyword
 	// client模式下不调用该方法
-	SpiderPrepare(original []*spider.Spider, keywords string) App
+	SpiderPrepare(original []*spider.Spider) App
 
 	// Run()对外为阻塞运行方式，其返回时意味着当前任务已经执行完毕
 	// Run()必须在所有应当配置项配置完成后调用
@@ -64,19 +65,16 @@ type App interface {
 	// 返回当前状态
 	Status() int
 
-	// 获取当前运行模式，若返回-1则表示应用未启动
-	GetRunMode() int
-
 	// 获取全部蜘蛛种类
-	GetAllSpiders() []*spider.Spider
+	GetSpiderLib() []*spider.Spider
 
 	// 通过名字获取某蜘蛛
 	GetSpiderByName(string) *spider.Spider
 
-	// 获取执行队列中蜘蛛总数
-	SpiderQueueLen() int
+	// 获取蜘蛛队列接口实例
+	GetSpiderQueue() crawl.SpiderQueue
 
-	// 获取输出方式列表
+	// 获取全部输出方式
 	GetOutputLib() []string
 
 	// 服务器客户端模式下返回节点数
@@ -84,12 +82,8 @@ type App interface {
 }
 
 type Logic struct {
-	// 运行模式
-	RunMode int
-	// 服务器端口号
-	Port string
-	// 服务器地址（不含Port）
-	Master string
+	// 全局配置
+	*cache.AppConf
 	// 全部蜘蛛种类
 	spider.Traversal
 	// 当前任务的蜘蛛队列
@@ -100,6 +94,7 @@ type Logic struct {
 	crawl.CrawlPool
 	// socket长连接双工通信接口，json数据传输
 	teleport.Teleport
+
 	// 运行状态
 	status       int
 	finish       chan bool
@@ -107,8 +102,29 @@ type Logic struct {
 	canSocketLog bool
 }
 
+// 任务运行时公共配置
+// type AppConf struct {
+// 	Mode        int    // 节点角色
+// 	Port           int    // 主节点端口
+// 	Master         string //服务器(主节点)地址，不含端口
+// 	ThreadNum      uint
+// 	Pausetime      [2]uint //暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
+// 	OutType        string
+// 	DockerCap      uint //分段转储容器容量
+// 	DockerQueueCap uint //分段输出池容量，不小于2
+// 	// 选填项
+// 	MaxPage int
+//  Keywords string //后期split()为slice
+// }
+
 func New() App {
-	return &Logic{RunMode: status.UNSET}
+	app := &Logic{
+		AppConf:   cache.Task,
+		Traversal: spider.Menu,
+		status:    status.STOP,
+	}
+	app.AppConf.Mode = status.UNSET
+	return app
 }
 
 // 设置全局log实时显示终端
@@ -135,6 +151,37 @@ func (self *Logic) LogGoOn() App {
 	return self
 }
 
+// 获取全局参数
+func (self *Logic) GetAppConf(k ...string) interface{} {
+	defer func() {
+		if err := recover(); err != nil {
+			logs.Log.Error(fmt.Sprintf("%v", err))
+		}
+	}()
+	if len(k) == 0 {
+		return self.AppConf
+	}
+	key := strings.Title(k[0])
+	acv := reflect.ValueOf(self.AppConf).Elem()
+	return acv.FieldByName(key).Interface()
+}
+
+// 设置全局参数
+func (self *Logic) SetAppConf(k string, v interface{}) App {
+	defer func() {
+		if err := recover(); err != nil {
+			logs.Log.Error(fmt.Sprintf("%v", err))
+		}
+	}()
+	acv := reflect.ValueOf(self.AppConf).Elem()
+	key := strings.Title(k)
+	if acv.FieldByName(key).CanSet() {
+		newv := reflect.ValueOf(v)
+		acv.FieldByName(key).Set(newv)
+	}
+	return self
+}
+
 // 使用App前必须进行先Init初始化，SetLog()除外
 func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 	self.canSocketLog = false
@@ -143,30 +190,25 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 	}
 	self.LogGoOn()
 
-	cache.Task.RunMode, cache.Task.Port, cache.Task.Master = mode, port, master
-
-	self.Traversal = spider.Menu
-	self.RunMode = mode
-	self.Port = ":" + strconv.Itoa(port)
-	self.Master = master
+	self.AppConf.Mode, self.AppConf.Port, self.AppConf.Master = mode, port, master
 	self.Teleport = teleport.New()
 	self.TaskJar = distribute.NewTaskJar()
 	self.SpiderQueue = crawl.NewSpiderQueue()
 	self.CrawlPool = crawl.NewCrawlPool()
 
-	switch self.RunMode {
+	switch self.AppConf.Mode {
 	case status.SERVER:
 		if self.checkPort() {
 			logs.Log.SetStealLevel()
 			logs.Log.Informational("                                                                                               ！！当前运行模式为：[ 服务器 ] 模式！！")
-			self.Teleport.SetAPI(distribute.ServerApi(self)).Server(self.Port)
+			self.Teleport.SetAPI(distribute.ServerApi(self)).Server(":" + strconv.Itoa(self.AppConf.Port))
 		}
 
 	case status.CLIENT:
 		if self.checkAll() {
 			logs.Log.SetStealLevel()
 			logs.Log.Informational("                                                                                               ！！当前运行模式为：[ 客户端 ] 模式！！")
-			self.Teleport.SetAPI(distribute.ClientApi(self)).Client(self.Master, self.Port)
+			self.Teleport.SetAPI(distribute.ClientApi(self)).Client(self.AppConf.Master, ":"+strconv.Itoa(self.AppConf.Port))
 		}
 	case status.OFFLINE:
 		logs.Log.Informational("                                                                                               ！！当前运行模式为：[ 单机 ] 模式！！")
@@ -175,7 +217,7 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 		logs.Log.Warning(" *    ——请指定正确的运行模式！——")
 		return self
 	}
-	// 根据RunMode判断是否开启节点间log打印
+	// 根据Mode判断是否开启节点间log打印
 	self.canSocketLog = true
 	go self.socketLog()
 	return self
@@ -195,62 +237,38 @@ func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App
 	self = nil
 	// 等待结束
 	time.Sleep(2.5e9)
+	if mode == status.UNSET {
+		return New()
+	}
 	// 重新开启
 	return New().Init(mode, port, master, w...)
-}
-
-func (self *Logic) SetThreadNum(threadNum uint) App {
-	cache.Task.ThreadNum = threadNum
-	return self
-}
-
-//暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
-func (self *Logic) SetPausetime(pause [2]uint) App {
-	cache.Task.Pausetime = pause
-	return self
-}
-
-func (self *Logic) SetOutType(outType string) App {
-	cache.Task.OutType = outType
-	return self
-}
-
-func (self *Logic) SetDockerCap(dockerCap uint) App {
-	cache.Task.DockerCap = dockerCap
-	cache.AutoDockerQueueCap()
-	return self
-}
-
-func (self *Logic) SetMaxPage(maxPage int) App {
-	cache.Task.MaxPage = maxPage
-	return self
 }
 
 // SpiderPrepare()必须在设置全局运行参数之后，就Run()的前一刻执行
 // original为spider包中未有过赋值操作的原始蜘蛛种类
 // 已被显式赋值过的spider将不再重新分配Keyword
 // client模式下不调用该方法
-func (self *Logic) SpiderPrepare(original []*spider.Spider, keywords string) App {
+func (self *Logic) SpiderPrepare(original []*spider.Spider) App {
 	self.SpiderQueue.Reset()
 	// 遍历任务
 	for _, sp := range original {
 		spgost := sp.Gost()
-		spgost.SetPausetime(cache.Task.Pausetime)
-		spgost.SetMaxPage(cache.Task.MaxPage)
+		spgost.SetPausetime(self.AppConf.Pausetime)
+		spgost.SetMaxPage(self.AppConf.MaxPage)
 		self.SpiderQueue.Add(spgost)
 	}
 	// 遍历关键词
-	self.SpiderQueue.AddKeywords(keywords)
+	self.SpiderQueue.AddKeywords(self.AppConf.Keywords)
 	return self
 }
 
-// 获取输出方式列表
+// 获取全部输出方式
 func (self *Logic) GetOutputLib() []string {
 	return collector.OutputLib
 }
 
 // 获取全部蜘蛛种类
-func (self *Logic) GetAllSpiders() []*spider.Spider {
+func (self *Logic) GetSpiderLib() []*spider.Spider {
 	return self.Traversal.Get()
 }
 
@@ -260,8 +278,8 @@ func (self *Logic) GetSpiderByName(name string) *spider.Spider {
 }
 
 // 返回当前运行模式
-func (self *Logic) GetRunMode() int {
-	return self.RunMode
+func (self *Logic) GetMode() int {
+	return self.AppConf.Mode
 }
 
 // 服务器客户端模式下返回节点数
@@ -269,9 +287,9 @@ func (self *Logic) CountNodes() int {
 	return self.Teleport.CountNodes()
 }
 
-// 当前蜘蛛队列长度
-func (self *Logic) SpiderQueueLen() int {
-	return self.SpiderQueue.Len()
+// 获取蜘蛛队列接口实例
+func (self *Logic) GetSpiderQueue() crawl.SpiderQueue {
+	return self.SpiderQueue
 }
 
 // 运行任务
@@ -283,7 +301,7 @@ func (self *Logic) Run() {
 
 	// 任务执行
 	self.status = status.RUN
-	switch cache.Task.RunMode {
+	switch self.AppConf.Mode {
 	case status.OFFLINE:
 		self.offline()
 	case status.SERVER:
@@ -371,12 +389,12 @@ func (self *Logic) addNewTask() (tasksNum, spidersNum int) {
 	t := distribute.Task{}
 
 	// 从配置读取字段
-	t.ThreadNum = cache.Task.ThreadNum
-	t.Pausetime = cache.Task.Pausetime
-	t.OutType = cache.Task.OutType
-	t.DockerCap = cache.Task.DockerCap
-	t.DockerQueueCap = cache.Task.DockerQueueCap
-	t.MaxPage = cache.Task.MaxPage
+	t.ThreadNum = self.AppConf.ThreadNum
+	t.Pausetime = self.AppConf.Pausetime
+	t.OutType = self.AppConf.OutType
+	t.DockerCap = self.AppConf.DockerCap
+	t.DockerQueueCap = self.AppConf.DockerQueueCap
+	t.MaxPage = self.AppConf.MaxPage
 
 	for i, sp := range self.SpiderQueue.GetAll() {
 
@@ -454,11 +472,11 @@ func (self *Logic) taskToRun(t *distribute.Task) {
 	self.SpiderQueue.Reset()
 
 	// 更改全局配置
-	cache.Task.OutType = t.OutType
-	cache.Task.ThreadNum = t.ThreadNum
-	cache.Task.DockerCap = t.DockerCap
-	cache.Task.DockerQueueCap = t.DockerQueueCap
-	cache.Task.Pausetime = t.Pausetime
+	self.AppConf.OutType = t.OutType
+	self.AppConf.ThreadNum = t.ThreadNum
+	self.AppConf.DockerCap = t.DockerCap
+	self.AppConf.DockerQueueCap = t.DockerQueueCap
+	self.AppConf.Pausetime = t.Pausetime
 
 	// 初始化蜘蛛队列
 	for _, n := range t.Spiders {
@@ -480,7 +498,7 @@ func (self *Logic) exec() {
 	cache.ReSetPageCount()
 
 	// 初始化资源队列
-	scheduler.Init(cache.Task.ThreadNum)
+	scheduler.Init(self.AppConf.ThreadNum)
 
 	// 设置爬虫队列
 	crawlCap := self.CrawlPool.Reset(count)
@@ -489,8 +507,8 @@ func (self *Logic) exec() {
 	logs.Log.Informational(" * ")
 	logs.Log.Informational(" *     执行任务总数（任务数[*关键词数]）为 %v 个 ...\n", count)
 	logs.Log.Informational(" *     爬虫池容量为 %v ...\n", crawlCap)
-	logs.Log.Informational(" *     并发协程最多 %v 个 ...\n", cache.Task.ThreadNum)
-	logs.Log.Informational(" *     随机停顿时间为 %v~%v ms ...\n", cache.Task.Pausetime[0], cache.Task.Pausetime[0]+cache.Task.Pausetime[1])
+	logs.Log.Informational(" *     并发协程最多 %v 个 ...\n", self.AppConf.ThreadNum)
+	logs.Log.Informational(" *     随机停顿时间为 %v~%v ms ...\n", self.AppConf.Pausetime[0], self.AppConf.Pausetime[0]+self.AppConf.Pausetime[1])
 	logs.Log.Informational(" * ")
 	logs.Log.Notice(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
 	logs.Log.Informational(" * ")
@@ -500,7 +518,7 @@ func (self *Logic) exec() {
 	cache.StartTime = time.Now()
 
 	// 根据模式选择合理的并发
-	if cache.Task.RunMode == status.OFFLINE {
+	if self.AppConf.Mode == status.OFFLINE {
 		go self.goRun(count)
 	} else {
 		// 不并发是为保证接收服务端任务的同步
@@ -567,7 +585,7 @@ func (self *Logic) goRun(count int) {
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 
 	// 单机模式并发运行，需要标记任务结束
-	if cache.Task.RunMode == status.OFFLINE {
+	if self.AppConf.Mode == status.OFFLINE {
 		self.status = status.STOP
 		self.finishOnce.Do(func() { close(self.finish) })
 	}
@@ -587,13 +605,12 @@ func (self *Logic) socketLog() {
 			time.Sleep(5e7)
 			continue
 		}
-		// log.Printf("截获log: %v\n", msg)
 		self.Teleport.Request(msg, "log", "")
 	}
 }
 
 func (self *Logic) checkPort() bool {
-	if cache.Task.Port == 0 {
+	if self.AppConf.Port == 0 {
 		logs.Log.Warning(" *     —— 亲，分布式端口不能为空哦~")
 		return false
 	}
@@ -601,7 +618,7 @@ func (self *Logic) checkPort() bool {
 }
 
 func (self *Logic) checkAll() bool {
-	if cache.Task.Master == "" || !self.checkPort() {
+	if self.AppConf.Master == "" || !self.checkPort() {
 		logs.Log.Warning(" *     —— 亲，服务器地址不能为空哦~")
 		return false
 	}

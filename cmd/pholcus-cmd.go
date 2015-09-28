@@ -35,7 +35,7 @@ func Run() {
 
 	// 蜘蛛列表
 	var spiderlist string
-	for k, v := range LogicApp.GetAllSpiders() {
+	for k, v := range LogicApp.GetSpiderLib() {
 		spiderlist += "    {" + strconv.Itoa(k) + "} " + v.GetName() + "  " + v.GetDescription() + "\r\n"
 	}
 	spiderlist = "   【蜘蛛列表】   (选择多蜘蛛以\",\"间隔)\r\n\r\n" + spiderlist
@@ -87,16 +87,17 @@ func Run() {
 	}
 	for _, idx := range strings.Split(*spiderflag, ",") {
 		i, _ := strconv.Atoi(idx)
-		sps = append(sps, LogicApp.GetAllSpiders()[i])
+		sps = append(sps, LogicApp.GetSpiderLib()[i])
 	}
 	// fmt.Println("输入配置", *outputflag, *spiderflag, *goroutineflag, *dockerflag, *pasetimeflag, *keywordflag, *maxpageflag)
 
 	// 配置运行参数
-	LogicApp.SetThreadNum(*goroutineflag).
-		SetDockerCap(*dockerflag).
-		SetOutType(*outputflag).
-		SetMaxPage(*maxpageflag).
-		SetPausetime([2]uint{uint(pase[0]), uint(pase[1])}).
-		SpiderPrepare(sps, keyword).
+	LogicApp.SetAppConf("ThreadNum", *goroutineflag).
+		SetAppConf("DockerCap", *dockerflag).
+		SetAppConf("OutType", *outputflag).
+		SetAppConf("MaxPage", *maxpageflag).
+		SetAppConf("Pausetime", [2]uint{uint(pase[0]), uint(pase[1])}).
+		SetAppConf("Keywords", keyword).
+		SpiderPrepare(sps).
 		Run()
 }

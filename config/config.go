@@ -9,7 +9,7 @@ import (
 
 const (
 	// 软件版本号
-	APP_VERSION = "v0.7.0"
+	APP_VERSION = "v0.7.1"
 
 	// 软件作者
 	APP_AUTHOR = "henrylee2cn"
@@ -74,8 +74,8 @@ type MysqlOutput struct {
 
 func init() {
 	// 初始化主要的运行时参数
-	cache.Task = &cache.TaskConf{
-		RunMode:   status.OFFLINE,
+	cache.Task = &cache.AppConf{
+		Mode:      status.OFFLINE,
 		Port:      2015,
 		Master:    "127.0.0.1",
 		ThreadNum: 20,

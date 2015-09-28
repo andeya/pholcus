@@ -21,7 +21,7 @@ func Run() {
 }
 
 func Init() {
-	LogicApp.Init(Input.RunMode, Input.Port, Input.Master)
+	LogicApp.Init(Input.Mode, Input.Port, Input.Master)
 }
 
 func SetTaskConf() {
@@ -29,12 +29,12 @@ func SetTaskConf() {
 	if Input.ThreadNum == 0 {
 		Input.ThreadNum = 1
 	}
-	LogicApp.SetThreadNum(Input.ThreadNum)
-	LogicApp.SetPausetime([2]uint{Input.BaseSleeptime, Input.RandomSleepPeriod})
-	LogicApp.SetOutType(Input.OutType)
-	LogicApp.SetDockerCap(Input.DockerCap) //分段转储容器容量
-	// 选填项
-	LogicApp.SetMaxPage(Input.MaxPage)
+	LogicApp.SetAppConf("ThreadNum", Input.ThreadNum).
+		SetAppConf("Pausetime", [2]uint{Input.BaseSleeptime, Input.RandomSleepPeriod}).
+		SetAppConf("OutType", Input.OutType).
+		SetAppConf("DockerCap", Input.DockerCap).
+		SetAppConf("MaxPage", Input.MaxPage).
+		SetAppConf("Keywords", Input.Keywords)
 }
 
 func SpiderPrepare() {
@@ -42,7 +42,7 @@ func SpiderPrepare() {
 	for _, sp := range Input.Spiders {
 		sps = append(sps, sp.Spider)
 	}
-	LogicApp.SpiderPrepare(sps, Input.Keywords)
+	LogicApp.SpiderPrepare(sps)
 }
 
 func SpiderNames() (names []string) {

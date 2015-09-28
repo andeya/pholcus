@@ -103,24 +103,5 @@ func (self *mylog) Async(enable bool) Logs {
 }
 
 func Debug(open bool) {
-	if open {
-		LevelEmergency = beelogs.LevelDebug
-		LevelAlert = beelogs.LevelDebug
-		LevelCritical = beelogs.LevelDebug
-		LevelError = beelogs.LevelDebug
-		LevelWarning = beelogs.LevelDebug
-		LevelNotice = beelogs.LevelDebug
-		LevelInformational = beelogs.LevelDebug
-		LevelDebug = beelogs.LevelDebug
-	} else {
-		LevelEmergency = beelogs.LevelEmergency
-		LevelAlert = beelogs.LevelAlert
-		LevelCritical = beelogs.LevelCritical
-		LevelError = beelogs.LevelError
-		LevelWarning = beelogs.LevelWarning
-		LevelNotice = beelogs.LevelNotice
-		LevelInformational = beelogs.LevelInformational
-		LevelDebug = beelogs.LevelDebug
-	}
 	Log = NewLogs(open)
 }

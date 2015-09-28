@@ -15,9 +15,15 @@
     <script>
 	    offline = ({{.mode.offline}});
 	    server = ({{.mode.server}});
-	    client = ({{.mode.client}});
+        client = ({{.mode.client}});
+        unset = ({{.mode.unset}});
+        _unknow = ({{.status.unknow}});
+        _stop = ({{.status.stop}});
+        _run = ({{.status.run}});
+	    _pause = ({{.status.pause}});
     </script>
-    <script src="/public/js/pholcus.js"></script>
+    <script src="/public/js/tpl.js"></script>
+    <script src="/public/js/app.js"></script>
     <script src="/public/layer/layer.js"></script>
 </head>
 
@@ -26,7 +32,7 @@
         <div id="step1">
             <img src="data:image/png;base64,{{.logo}}" alt="pholcus" class="logo">
             <h1>Welcome to Pholcus</h1>
-            <form class="form-horizontal" name="step1" method="GET" onsubmit="return firstStep();" enctype="multipart/form-data">
+            <form class="form-horizontal" name="step1" method="GET" onsubmit="return Open('init');" enctype="multipart/form-data">
                 <div class="panel panel-default">
                     <div class="panel-heading">
                         <!-- Small button group -->
@@ -37,7 +43,7 @@
                                 <li><a href="javascript:selectMode({{.mode.server}});">服务端模式</a></li>
                                 <li><a href="javascript:selectMode({{.mode.client}});">客户端模式</a></li>
                             </ul>
-                            <input type="hidden" name="mode" id="mode" value="{{.mode.default}}">
+                            <input type="hidden" name="mode" id="mode" value="{{.mode.curr}}">
                         </div>
                     </div>
                     <div class="panel-body">
@@ -60,6 +66,9 @@
                 </div>
             </form>
         </div>
+        <script type="text/javascript">
+            home();
+        </script>
         <div class="footer">
             Github website: <a href="https://github.com/henrylee2cn/pholcus">Pholcus {{.version}}</a> / Author: {{.author}} / Discuss: <a href="http://shang.qq.com/wpa/qunwpa?idkey=83ee3e1a4be6bdb2b08a51a044c06ae52cf10a082f7c5cf6b36c1f78e8b03589">Go大数据群</a> / Apache License v2.
         </div>
