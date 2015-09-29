@@ -36,10 +36,6 @@ ws.onmessage = function(m) {
     switch (data.operate) {
         // 初始化运行参数
         case "init":
-            $("#init").text(" 开  启 ").css({
-                "background-color": "#337ab7",
-                "border-color": "#2e6da4"
-            });
             // 设置当前运行模式
             mode = data.mode;
             // 打开软件界面
@@ -56,6 +52,11 @@ ws.onmessage = function(m) {
             layer.full(index);
             $(".layui-layer-close1").attr("title", "退出").click(function() {
                 Close();
+            });
+
+            $("#init").text(" 开  启 ").css({
+                "background-color": "#337ab7",
+                "border-color": "#2e6da4"
             });
 
             if (data.status == _unknow || data.status == _stop) {
@@ -115,6 +116,7 @@ function selectMode(m) {
             $("#step1 .js_port").hide();
             $("#step1 .js_ip").hide();
             $("#mode").val(unset);
+            return;
     }
     $("#init").removeAttr("disabled");
 }
@@ -144,7 +146,7 @@ function Open(operate) {
     $("#init").text(" 开  启 …").css({
         "background-color": "#286090",
         "border-color": "#204d74"
-    });
+    }).attr("disabled", "disabled");
     var formJson = {
         'operate': operate,
         'mode': document.step1.elements['mode'].value,
@@ -161,7 +163,6 @@ function Close() {
         'operate': 'exit'
     });
     selectMode(unset);
-    $("#init").attr("disabled", "disabled");
 }
 
 // 开始或停止运行任务

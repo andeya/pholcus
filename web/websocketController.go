@@ -125,9 +125,9 @@ func init() {
 			wchan <- map[string]interface{}{"operate": "stop", "mode": logicApp.GetAppConf("mode").(int), "status": status.UNKNOW}
 			return
 		} else if !wchanClosed {
+			logicApp.Stop()
 			wchan <- map[string]interface{}{"operate": "stop", "mode": status.OFFLINE, "status": status.STOP}
 		}
-		logicApp.Stop()
 	}
 
 	// 终止当前任务，现仅支持单机模式

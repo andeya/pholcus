@@ -11,21 +11,16 @@ type Surfer struct {
 	download surfer.Surfer
 }
 
-func NewSurfer(useCookie bool, paseTime time.Duration, proxy ...string) *Surfer {
-	sf := surfer.New()
-	if len(proxy) != 0 {
-		sf.SetProxy(proxy[0])
-	}
-
+func NewSurfer() *Surfer {
 	return &Surfer{
-		download: sf,
+		download: surfer.New(),
 	}
 }
 
 func (self *Surfer) Download(cReq *context.Request) *context.Response {
 	cResp := context.NewResponse(nil)
 
-	resp, err := self.download.Download(cReq.GetMethod(), cReq.GetUrl(), cReq.GetReferer(), cReq.GetPostData(), cReq.GetHeader(), cReq.GetCookies())
+	resp, err := self.download.Download(cReq)
 
 	cResp.SetRequest(cReq)
 
@@ -41,8 +36,13 @@ func (self *Surfer) SetUseCookie(use bool) Downloader {
 	return self
 }
 
-func (self *Surfer) SetPaseTime(paseTime time.Duration) Downloader {
-	self.download.SetPaseTime(paseTime)
+func (self *Surfer) SetPauseTime(pauseTime time.Duration) Downloader {
+	self.download.SetPauseTime(pauseTime)
+	return self
+}
+
+func (self *Surfer) SetDeadline(deadline time.Duration) Downloader {
+	self.download.SetDeadline(deadline)
 	return self
 }
 

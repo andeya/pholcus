@@ -4,6 +4,7 @@ import (
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/logs"
+	"time"
 )
 
 const (
@@ -22,6 +23,7 @@ type Spider struct {
 	Keyword   string // 如需使用必须附初始值为常量USE
 	UseCookie bool   // 控制下载器运行模式，true:支持登录功能，false:支持大量UserAgent随机轮换
 	Proxy     string // 代理服务器 example='localhost:80'
+	Deadline  time.Duration
 }
 
 //采集规则树
@@ -126,7 +128,7 @@ func (self *Spider) GetRules() map[string]*Rule {
 	return self.RuleTree.Trunk
 }
 
-// 设置暂停时间 pause[0]~(pause[0]+pause[1])
+// 自定义暂停时间 pause[0]~(pause[0]+pause[1])，优先级高于外部传参
 // 当且仅当runtime[0]为true时可覆盖现有值
 func (self *Spider) SetPausetime(pause [2]uint, runtime ...bool) {
 	if self.Pausetime == [2]uint{} || len(runtime) > 0 && runtime[0] {
@@ -198,23 +200,15 @@ func (self *Spider) AddQueue(param map[string]interface{}) {
 }
 
 // 生成请求
-// param全部参数列表
-// req := &Request{
-// 	Url:           param["Url"].(string),     //必填
-// 	Referer:        "",                       //为输出字段，根据需要选填
-// 	Rule:          param["Rule"].(string),    //必填
-// 	Spider:        param["Spider"].(string),  //自动填写
-// 	Method:        param["Method"].(string),  //默认为GET
-// 	Header:        param["Header"],//可默认
-// 	Cookies:       param["Cookies"].([]*http.Cookie),//默认为空
-// 	PostData:      param["PostData"].(url.Values),//post方法时用，默认为空
-// 	CheckRedirect: param["CheckRedirect"].(func(req *http.Request, via []*http.Request) error),//默认为空
-// 	Temp:          param["Temp"].(map[string]interface{}),//默认为空
-// 	Priority:      param["Priority"].(int),//队列优先级，默认为0
-// }
-
 func (self *Spider) newRequest(param map[string]interface{}) *context.Request {
-	param["Spider"] = self.GetName()
+	param["Spider"] = self.Name
+	if param["PauseTime"] == 0 {
+		param["PauseTime"] = self.Pausetime
+	}
+	if param["Deadline"] == 0 {
+		param["Deadline"] = self.Deadline
+	}
+
 	req := context.NewRequest(param)
 	req.SetSpiderId(self.GetId())
 	return req

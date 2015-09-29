@@ -11,6 +11,7 @@ import (
 type Downloader interface {
 	Download(req *context.Request) *context.Response
 	SetUseCookie(use bool) Downloader
-	SetPaseTime(paseTime time.Duration) Downloader
+	SetPauseTime(paseTime time.Duration) Downloader
+	SetDeadline(deadline time.Duration) Downloader
 	SetProxy(proxy string) Downloader
 }

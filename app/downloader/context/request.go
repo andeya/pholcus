@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/henrylee2cn/pholcus/common/simplejson"
 	"github.com/henrylee2cn/pholcus/logs"
@@ -25,9 +26,10 @@ type Request struct {
 	Cookies []*http.Cookie
 	// POST values
 	PostData url.Values
-
-	//是否支持外包（分布式），根据ruleTree.Outsource确定
-	// Outsource bool
+	// timeout of connect
+	Deadline time.Duration
+	// how long pase when retry
+	PauseTime time.Duration
 
 	// Redirect function for downloader used in http.Client
 	// If CheckRedirect returns an error, the Client's Get
@@ -80,12 +82,19 @@ func NewRequest(param map[string]interface{}) *Request {
 		req.PostData = nil
 	}
 
-	// switch v := param["Outsource"].(type) {
-	// case bool:
-	// 	req.Outsource = v
-	// default:
-	// 	req.Outsource = false
-	// }
+	switch v := param["Deadline"].(type) {
+	case time.Duration:
+		req.Deadline = v
+	default:
+		req.Deadline = 0
+	}
+
+	switch v := param["PauseTime"].(type) {
+	case time.Duration:
+		req.PauseTime = v
+	default:
+		req.PauseTime = 0
+	}
 
 	switch v := param["CheckRedirect"].(type) {
 	case func(*http.Request, []*http.Request) error:
@@ -108,7 +117,6 @@ func NewRequest(param map[string]interface{}) *Request {
 		} else {
 			req.Priority = 0
 		}
-
 	default:
 		req.Priority = 0
 	}
@@ -166,16 +174,12 @@ func (self *Request) AddHeaderFile(headerFile string) *Request {
 	return self
 }
 
-func (self *Request) GetHeader() http.Header {
-	return self.Header
-}
-
-func (self *Request) GetRedirectFunc() func(req *http.Request, via []*http.Request) error {
-	return self.CheckRedirect
-}
-
 func (self *Request) GetUrl() string {
 	return self.Url
+}
+
+func (self *Request) GetMethod() string {
+	return strings.ToUpper(self.Method)
 }
 
 func (self *Request) SetUrl(url string) {
@@ -190,6 +194,26 @@ func (self *Request) SetReferer(referer string) {
 	self.Referer = referer
 }
 
+func (self *Request) GetPostData() url.Values {
+	return self.PostData
+}
+
+func (self *Request) GetCookies() []*http.Cookie {
+	return self.Cookies
+}
+
+func (self *Request) GetHeader() http.Header {
+	return self.Header
+}
+
+func (self *Request) GetDeadline() time.Duration {
+	return self.Deadline
+}
+
+func (self *Request) GetPauseTime() time.Duration {
+	return self.PauseTime
+}
+
 func (self *Request) GetRuleName() string {
 	return self.Rule
 }
@@ -201,26 +225,6 @@ func (self *Request) SetRuleName(ruleName string) {
 func (self *Request) GetSpiderName() string {
 	return self.Spider
 }
-
-func (self *Request) GetMethod() string {
-	return strings.ToUpper(self.Method)
-}
-
-func (self *Request) GetPostData() url.Values {
-	return self.PostData
-}
-
-func (self *Request) GetCookies() []*http.Cookie {
-	return self.Cookies
-}
-
-// func (self *Request) CanOutsource() bool {
-// 	return self.Outsource
-// }
-
-// func (self *Request) SetOutsource(can bool) {
-// 	self.Outsource = can
-// }
 
 func (self *Request) GetTemp(key string) interface{} {
 	return self.Temp[key]
@@ -253,4 +257,8 @@ func (self *Request) GetPriority() int {
 
 func (self *Request) SetPriority(priority int) {
 	self.Priority = priority
+}
+
+func (self *Request) GetRedirectFunc() func(req *http.Request, via []*http.Request) error {
+	return self.CheckRedirect
 }
