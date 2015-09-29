@@ -59,7 +59,7 @@ import (
     "github.com/henrylee2cn/pholcus/config"
     "github.com/henrylee2cn/pholcus/logs"
     "github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
-    // _ "path/myrule_lib" // 同样你也可以自由添加自己的规则库
+    // "path/myrule_lib" // 同样你也可以自由添加自己的规则库
 )
 
 // 自定义相关配置，将覆盖默认值
