@@ -2,17 +2,13 @@ package main
 
 import (
 	// 按界面需求选择相应版本
-	// "github.com/henrylee2cn/pholcus/web" // web版
+	"github.com/henrylee2cn/pholcus/web" // web版
 	// "github.com/henrylee2cn/pholcus/cmd" // cmd版
-	"github.com/henrylee2cn/pholcus/gui" // gui版
+	// "github.com/henrylee2cn/pholcus/gui" // gui版
 
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
-)
-
-// 导入自己的规则库（须保证最后声明，即最先导入）
-import (
-	_ "github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
+	"github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
 	// _ "path/myrule_lib" // 同样你也可以自由添加自己的规则库
 )
 
@@ -51,10 +47,13 @@ func main() {
 		}
 	}()
 
+	// 引入规则库
+	spider_lib.Import()
+
 	setConf() // 不调用则为默认值
 
 	// 开始运行
-	// web.Run() // web版
+	web.Run() // web版
 	// cmd.Run() // cmd版
-	gui.Run() // gui版
+	// gui.Run() // gui版
 }
