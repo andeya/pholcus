@@ -316,6 +316,7 @@ func (self *Logic) Run() {
 		return
 	}
 	<-self.finish
+	self.Scheduler.SaveDeduplication()
 }
 
 // Offline 模式下暂停\恢复任务
