@@ -1,15 +1,20 @@
 package main
 
+// 核心包
 import (
+	"github.com/henrylee2cn/pholcus/app/scheduler"
+	"github.com/henrylee2cn/pholcus/config"
+	"github.com/henrylee2cn/pholcus/logs"
+
 	// 按界面需求选择相应版本
 	"github.com/henrylee2cn/pholcus/web" // web版
 	// "github.com/henrylee2cn/pholcus/cmd" // cmd版
 	// "github.com/henrylee2cn/pholcus/gui" // gui版
+)
 
-	"github.com/henrylee2cn/pholcus/app/scheduler"
-	"github.com/henrylee2cn/pholcus/config"
-	"github.com/henrylee2cn/pholcus/logs"
-	"github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
+// 尝试与核心包调换位置来确保规则库正常加载
+import (
+	_ "github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
 	// "path/myrule_lib" // 同样你也可以自由添加自己的规则库
 )
 
@@ -48,9 +53,6 @@ func main() {
 		}
 		scheduler.SaveDeduplication()
 	}()
-
-	// 引入规则库
-	spider_lib.Import()
 
 	setConf() // 不调用则为默认值
 

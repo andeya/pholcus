@@ -2,6 +2,7 @@ package logs
 
 import (
 	"io"
+	"os"
 
 	"github.com/henrylee2cn/beelogs"
 )
@@ -40,8 +41,10 @@ type Logs interface {
 const (
 	// 默认日志缓存
 	MaxLogCache = 10000
+	// 存储目录
+	dir = `result/cache/`
 	// 默认日志文件
-	FileName = "pholcus.log"
+	fileName = "result/cache/pholcus.log"
 )
 
 var (
@@ -62,6 +65,14 @@ type mylog struct {
 }
 
 func NewLogs(enableFuncCallDepth ...bool) Logs {
+	// 不存在目录时创建目录
+	d, err := os.Stat(dir)
+	if err != nil || !d.IsDir() {
+		if err := os.MkdirAll(dir, 0777); err != nil {
+			// Log.Error("Error: %v\n", err)
+		}
+	}
+
 	ml := &mylog{
 		BeeLogger: beelogs.NewLogger(MaxLogCache),
 	}
@@ -78,7 +89,7 @@ func NewLogs(enableFuncCallDepth ...bool) Logs {
 	})
 
 	ml.BeeLogger.SetLogger("file", map[string]interface{}{
-		"filename": FileName,
+		"filename": fileName,
 	})
 
 	return ml
