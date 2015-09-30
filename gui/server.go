@@ -77,7 +77,7 @@ func serverWindow() {
 							VSplitter{
 								Children: []Widget{
 									Label{
-										Text: "采集页数：（选填）",
+										Text: "最大采集页数：（选填）",
 									},
 									NumberEdit{
 										Value:    Bind("MaxPage"),
@@ -147,6 +147,30 @@ func serverWindow() {
 					// 必填项错误检查
 					LineErrorPresenter{
 						AssignTo: &ep,
+					},
+
+					HSplitter{
+						MaxSize: Size{100, 50},
+						Children: []Widget{
+							ComboBox{
+								Value:         Bind("DeduplicationTarget", SelRequired{}),
+								BindingMember: "String",
+								DisplayMember: "Key",
+								Model:         GuiOpt.DeduplicationTarget,
+							},
+						},
+					},
+
+					HSplitter{
+						MaxSize: Size{150, 50},
+						Children: []Widget{
+							Label{
+								Text: "继承历史去重样本",
+							},
+							CheckBox{
+								Checked: Bind("InheritDeduplication"),
+							},
+						},
 					},
 
 					PushButton{

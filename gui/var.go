@@ -49,8 +49,9 @@ type KV struct {
 
 // 暂停时间选项及运行模式选项
 var GuiOpt = struct {
-	SleepTime []*KV
-	Mode      []*KV
+	SleepTime           []*KV
+	Mode                []*KV
+	DeduplicationTarget []*KV
 }{
 	SleepTime: []*KV{
 		{Key: "无暂停", Uint: 0},
@@ -70,6 +71,10 @@ var GuiOpt = struct {
 		{Key: "单机", Int: status.OFFLINE},
 		{Key: "服务器", Int: status.SERVER},
 		{Key: "客户端", Int: status.CLIENT},
+	},
+	DeduplicationTarget: []*KV{
+		{Key: "去重样本位置: file", String: status.FILE},
+		{Key: "去重样本位置: mgo", String: status.MGO},
 	},
 }
 

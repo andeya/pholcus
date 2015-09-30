@@ -94,6 +94,8 @@ type Logic struct {
 	crawl.CrawlPool
 	// socket长连接双工通信接口，json数据传输
 	teleport.Teleport
+	// 全局队列
+	scheduler.Scheduler
 
 	// 运行状态
 	status       int
@@ -112,6 +114,7 @@ type Logic struct {
 // 	OutType        string
 // 	DockerCap      uint //分段转储容器容量
 // 	DockerQueueCap uint //分段输出池容量，不小于2
+// 	InheritDeduplication bool //继承之前的去重记录
 // 	// 选填项
 // 	MaxPage int
 //  Keywords string //后期split()为slice
@@ -121,6 +124,7 @@ func New() App {
 	app := &Logic{
 		AppConf:   cache.Task,
 		Traversal: spider.Menu,
+		Scheduler: scheduler.Sdl,
 		status:    status.STOP,
 	}
 	app.AppConf.Mode = status.UNSET
@@ -232,7 +236,7 @@ func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App
 	}
 	self.CrawlPool.Stop()
 	if scheduler.Sdl != nil {
-		scheduler.Sdl.Stop()
+		self.Scheduler.Stop()
 	}
 	self = nil
 	// 等待结束
@@ -323,14 +327,14 @@ func (self *Logic) PauseRecover() {
 		self.status = status.PAUSE
 	}
 
-	scheduler.Sdl.PauseRecover()
+	self.Scheduler.PauseRecover()
 }
 
 // Offline 模式下中途终止任务
 func (self *Logic) Stop() {
 	self.status = status.STOP
 	self.CrawlPool.Stop()
-	scheduler.Sdl.Stop()
+	self.Scheduler.Stop()
 
 	// 总耗时
 	takeTime := time.Since(cache.StartTime).Minutes()
@@ -394,7 +398,10 @@ func (self *Logic) addNewTask() (tasksNum, spidersNum int) {
 	t.OutType = self.AppConf.OutType
 	t.DockerCap = self.AppConf.DockerCap
 	t.DockerQueueCap = self.AppConf.DockerQueueCap
+	t.InheritDeduplication = self.AppConf.InheritDeduplication
+	t.DeduplicationTarget = self.AppConf.DeduplicationTarget
 	t.MaxPage = self.AppConf.MaxPage
+	t.Keywords = self.AppConf.Keywords
 
 	for i, sp := range self.SpiderQueue.GetAll() {
 
@@ -477,6 +484,10 @@ func (self *Logic) taskToRun(t *distribute.Task) {
 	self.AppConf.DockerCap = t.DockerCap
 	self.AppConf.DockerQueueCap = t.DockerQueueCap
 	self.AppConf.Pausetime = t.Pausetime
+	self.AppConf.InheritDeduplication = t.InheritDeduplication
+	self.AppConf.DeduplicationTarget = t.DeduplicationTarget
+	self.AppConf.MaxPage = t.MaxPage
+	self.AppConf.Keywords = t.Keywords
 
 	// 初始化蜘蛛队列
 	for _, n := range t.Spiders {
@@ -498,7 +509,7 @@ func (self *Logic) exec() {
 	cache.ReSetPageCount()
 
 	// 初始化资源队列
-	scheduler.Init(self.AppConf.ThreadNum)
+	self.Scheduler.Init(self.AppConf.ThreadNum, self.AppConf.InheritDeduplication)
 
 	// 设置爬虫队列
 	crawlCap := self.CrawlPool.Reset(count)

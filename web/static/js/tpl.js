@@ -16,16 +16,22 @@ var Html = function(info) {
                     </tr>' + spidersHtml(info.spiders) + '</tbody></table></div></div>\
             <div class="form-2 box">\
               <div class="form-group">\
-                <label>Keywords ( Add " | " between multiple words )</label>\
-                <textarea name="keywords" class="form-control" rows="2" placeholder="Enter ...">'+info.keywords+'</textarea>\
+                <label>自定义输入 ( 多任务间以 " | " 隔开 )</label>\
+                <textarea name="keywords" class="form-control" rows="2" placeholder="Enter ...">' + info.keywords + '</textarea>\
               </div>\
+            <div class="inline">\
               <div class="form-group">\
-                <label>Maximum Number of Pages</label>\
-                <input name="maxPage" type="number" class="form-control" min="0" value="'+info.maxPage+'">\
-              </div><div class="inline">' + threadNumHtml(info.threadNum) + dockerCapHtml(info.dockerCap) + '</div>' +
-        '<div class="inline">' + sleepTimeHtml(info.sleepTime) + '</div>' + outputsHtml(info.outputs) + '</div>\
+                <label>最大采集页数</label>\
+                <input name="maxPage" type="number" class="form-control" min="0" value="' + info.maxPage + '">\
+              </div>' + threadNumHtml(info.threadNum) + dockerCapHtml(info.dockerCap) +
+        sleepTimeHtml(info.sleepTime) +
+        outputsHtml(info.outputs) +
+        inheritDeduplicationHtml(info.inheritDeduplication) +
+        deduplicationTargetHtml(info.deduplicationTarget) +
+        '</div>' +
+        '</div>\
             <div class="box-footer">\
-                ' + pauseHtml(info.mode,info.status) + '<button type="submit" id="btn-run" class="btn btn-primary" data-type="run">Run</button>\
+                ' + pauseHtml(info.mode, info.status) + '<button type="submit" id="btn-run" class="btn btn-primary" data-type="run">Run</button>\
             </div>\
           </form>' + logBoxHtml(info.mode) + '</div>';
 }
@@ -33,14 +39,14 @@ var Html = function(info) {
 var spidersHtml = function(spiders) {
     var html = '';
 
-    for (var i in spiders.memu) {
+    for (var i in spiders.menu) {
         html += '<tr>\
             <td>\
                 <div class="checkbox">\
                   <label for="spider-' + i + '">\
-                    <input name="spiders" id="spider-' + i + '" type="checkbox" value="' + spiders.memu[i].name + '"' +
+                    <input name="spiders" id="spider-' + i + '" type="checkbox" value="' + spiders.menu[i].name + '"' +
             function() {
-                if (spiders.curr[spiders.memu[i].name]) {
+                if (spiders.curr[spiders.menu[i].name]) {
                     return "checked";
                 }
                 return
@@ -49,8 +55,8 @@ var spidersHtml = function(spiders) {
                 </div>\
             </td>\
             <td><label for="spider-' + i + '">' + i + '</label></td>\
-            <td><label for="spider-' + i + '">' + spiders.memu[i].name + '</label></td>\
-            <td><label for="spider-' + i + '">' + spiders.memu[i].description + '</label></td>\
+            <td><label for="spider-' + i + '">' + spiders.menu[i].name + '</label></td>\
+            <td><label for="spider-' + i + '">' + spiders.menu[i].description + '</label></td>\
         <tr>'
     }
 
@@ -58,21 +64,21 @@ var spidersHtml = function(spiders) {
 }
 var threadNumHtml = function(threadNum) {
     return '<div class="form-group">\
-                <label>Large Number of Coroutine</label>\
+                <label>并发协程</label>\
                 <input name="threadNum" type="number" class="form-control" min="' + threadNum.min + '" max="' + threadNum.max + '" value="' + threadNum['default'] + '">\
               </div>';
 }
 
 var dockerCapHtml = function(dockerCap) {
     return '<div class="form-group">\
-                <label>Size of Batch Output</label>\
+                <label>分批输出大小</label>\
                 <input name="dockerCap" type="number" class="form-control" min="' + dockerCap['min'] + '" max="' + dockerCap['max'] + '" value="' + dockerCap['default'] + '">\
               </div>';
 }
 
 var sleepTimeHtml = function(sleepTime) {
     var html1 = '<div class="form-group">\
-                <label>Minimum Pause Time</label>\
+                <label>间隔基准</label>\
                 <select class="form-control" name="baseSleeptime">';
     for (var i in sleepTime.base) {
         var isSelect = ""
@@ -84,7 +90,7 @@ var sleepTimeHtml = function(sleepTime) {
     html1 += '</select></div>';
 
     var html2 = '<div class="form-group">\
-                <label>Random Pause Time</label>\
+                <label>随机延迟</label>\
                 <select class="form-control" name="randomSleepPeriod">';
     for (var i in sleepTime.random) {
         var isSelect = "";
@@ -100,19 +106,51 @@ var sleepTimeHtml = function(sleepTime) {
 
 var outputsHtml = function(outputs) {
     var html = '<div class="form-group"> \
-            <label>Mode Output</label>\
+            <label>输出方式</label>\
             <select class="form-control" name="output">';
-    for (var i in outputs.memu) {
+    for (var i in outputs.menu) {
         var isSelect = "";
-        if (outputs.curr == outputs.memu[i]) {
+        if (outputs.curr == outputs.menu[i]) {
             isSelect = " selected";
         };
-        html += '<option value="' + outputs.memu[i] + '"' + isSelect + '>' + outputs.memu[i] + '</option>';
+        html += '<option value="' + outputs.menu[i] + '"' + isSelect + '>' + outputs.menu[i] + '</option>';
     }
     return html + '</select></div>';
 }
 
-var pauseHtml = function(mode,status) {
+var deduplicationTargetHtml = function(deduplicationTarget) {
+    var html = '<div class="form-group"> \
+            <label>去重样本位置</label>\
+            <select class="form-control" name="deduplicationTarget">';
+    for (var i in deduplicationTarget.menu) {
+        var isSelect = "";
+        if (deduplicationTarget.curr == deduplicationTarget.menu[i]) {
+            isSelect = " selected";
+        };
+        html += '<option value="' + deduplicationTarget.menu[i] + '"' + isSelect + '>' + deduplicationTarget.menu[i] + '</option>';
+    }
+    return html + '</select></div>';
+}
+
+var inheritDeduplicationHtml = function(inheritDeduplication) {
+    var html = '<div class="form-group"> \
+            <label>继承历史去重</label>\
+            <select class="form-control" name="inheritDeduplication">';
+
+    var True = "";
+    var False = "";
+    if (inheritDeduplication == true) {
+        True = " selected";
+    } else {
+        False = " selected";
+    };
+
+    html += '<option value="true"' + True + '>' + "Yes" + '</option>';
+    html += '<option value="false"' + False + '>' + "No" + '</option>';
+    return html + '</select></div>';
+}
+
+var pauseHtml = function(mode, status) {
     if (parseInt(mode) != offline) {
         return "";
     }

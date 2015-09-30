@@ -42,6 +42,9 @@ type Request struct {
 
 	// 即将加入哪个优先级的队列当中，默认为0，最小优先级为0
 	Priority int
+
+	// 是否可以被重复下载（即不被去重）
+	Duplicatable bool
 }
 
 // NewRequest returns initialized Request object.
@@ -119,6 +122,13 @@ func NewRequest(param map[string]interface{}) *Request {
 		}
 	default:
 		req.Priority = 0
+	}
+
+	switch v := param["Duplicatable"].(type) {
+	case bool:
+		req.Duplicatable = v
+	default:
+		req.Duplicatable = false
 	}
 
 	switch v := param["Header"].(type) {
@@ -224,6 +234,10 @@ func (self *Request) SetRuleName(ruleName string) {
 
 func (self *Request) GetSpiderName() string {
 	return self.Spider
+}
+
+func (self *Request) GetDuplicatable() bool {
+	return self.Duplicatable
 }
 
 func (self *Request) GetTemp(key string) interface{} {

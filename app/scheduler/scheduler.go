@@ -3,16 +3,17 @@ package scheduler
 import (
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/common/deduplicate"
+	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 	"sync"
 )
 
 type Scheduler interface {
-	// 采集非重复url并返回对比结果，重复为true
-	Compare(string) bool
+	Init(capacity uint, inheritDeduplication bool)
 	PauseRecover() // 暂停\恢复所有爬行任务
 	Stop()
 	IsStop() bool
+
 	SrcManager
 	// // 存入
 	// Push(*context.Request)
@@ -26,57 +27,78 @@ type Scheduler interface {
 
 	// // 情况全部队列
 	// ClearAll()
+
+	// 对比是否存在重复项
+	Deduplicate(key interface{}) bool
+	// 保存去重记录
+	SaveDeduplication()
+	// 读取去重记录
+	ReadDeduplication()
+	// 取消指定去重样本
+	DelDeduplication(key interface{})
 }
 
 type scheduler struct {
 	*SrcManage
 	*deduplicate.Deduplication
-	status int
+	pushMutex sync.Mutex
+	status    int
 }
 
 // 定义全局调度
 var Sdl Scheduler
 
-func Init(capacity uint) {
-	Sdl = newScheduler(capacity)
-}
-
-func newScheduler(capacity uint) Scheduler {
-	return &scheduler{
-		SrcManage:     NewSrcManage(capacity).(*SrcManage),
+func init() {
+	Sdl = &scheduler{
 		Deduplication: deduplicate.New().(*deduplicate.Deduplication),
 		status:        status.RUN,
 	}
+	Sdl.ReadDeduplication()
 }
 
-var pushMutex sync.Mutex
+func SaveDeduplication() {
+	Sdl.SaveDeduplication()
+}
+
+func (self *scheduler) Init(capacity uint, inheritDeduplication bool) {
+	self.SrcManage = NewSrcManage(capacity).(*SrcManage)
+	self.status = status.RUN
+	if !inheritDeduplication {
+		self.Deduplication.Reset()
+	}
+}
 
 // 添加请求到队列
 func (self *scheduler) Push(req *context.Request) {
-	pushMutex.Lock()
-	defer func() {
-		pushMutex.Unlock()
-	}()
+	self.pushMutex.Lock()
+	defer self.pushMutex.Unlock()
 
 	if self.status == status.STOP {
 		return
 	}
 
-	// 有重复则返回
-	if self.Compare(req.GetUrl() + req.GetMethod()) {
+	// 当req不可重复时，有重复则返回
+	if !req.GetDuplicatable() && self.Deduplicate(req.GetUrl()+req.GetMethod()) {
 		return
 	}
-
-	// 留作未来分发请求用
-	// if pholcus.Self.GetRunMode() == config.SERVER || req.CanOutsource() {
-	// 	return
-	// }
 
 	self.SrcManage.Push(req)
 }
 
-func (self *scheduler) Compare(url string) bool {
-	return self.Deduplication.Compare(url)
+func (self *scheduler) Deduplicate(key interface{}) bool {
+	return self.Deduplication.Compare(key)
+}
+
+func (self *scheduler) DelDeduplication(key interface{}) {
+	self.Deduplication.Remove(key)
+}
+
+func (self *scheduler) SaveDeduplication() {
+	self.Deduplication.Write(cache.Task.DeduplicationTarget)
+}
+
+func (self *scheduler) ReadDeduplication() {
+	self.Deduplication.Read(cache.Task.DeduplicationTarget)
 }
 
 func (self *scheduler) Use(spiderId int) (req *context.Request) {

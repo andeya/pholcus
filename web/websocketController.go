@@ -43,9 +43,6 @@ func wsHandle(conn *ws.Conn) {
 
 	go func(conn *ws.Conn) {
 		var err error
-		defer func() {
-			// logs.Log.Debug("websocket发送出错断开 (%v) !", err)
-		}()
 		for info := range wchan {
 			if _, err = ws.JSON.Send(conn, info); err != nil {
 				return
@@ -163,7 +160,7 @@ func tplData(mode int) map[string]interface{} {
 
 	// 蜘蛛家族清单
 	info["spiders"] = map[string]interface{}{
-		"memu": spiderMenu,
+		"menu": spiderMenu,
 		"curr": func() interface{} {
 			l := logicApp.GetSpiderQueue().Len()
 			if l == 0 {
@@ -180,7 +177,7 @@ func tplData(mode int) map[string]interface{} {
 
 	// 输出方式清单
 	info["outputs"] = map[string]interface{}{
-		"memu": logicApp.GetOutputLib(),
+		"menu": logicApp.GetOutputLib(),
 		"curr": logicApp.GetAppConf("OutType"),
 	}
 
@@ -205,7 +202,13 @@ func tplData(mode int) map[string]interface{} {
 	info["maxPage"] = logicApp.GetAppConf("maxPage")
 	// 关键词
 	info["keywords"] = logicApp.GetAppConf("Keywords")
-
+	// 继承之前的去重记录
+	info["inheritDeduplication"] = logicApp.GetAppConf("InheritDeduplication")
+	// 去重记录保存位置,"file"或"mgo"
+	info["deduplicationTarget"] = map[string]interface{}{
+		"menu": []string{status.FILE, status.MGO},
+		"curr": logicApp.GetAppConf("DeduplicationTarget"),
+	}
 	// 运行状态
 	info["status"] = logicApp.Status()
 
@@ -225,7 +228,14 @@ func setConf(req map[string]interface{}) bool {
 		SetAppConf("OutType", util.Atoa(req["output"])).
 		SetAppConf("DockerCap", util.Atoui(req["dockerCap"])).
 		SetAppConf("MaxPage", util.Atoi(req["maxPage"])).
-		SetAppConf("Keywords", util.Atoa(req["keywords"]))
+		SetAppConf("Keywords", util.Atoa(req["keywords"])).
+		SetAppConf("DeduplicationTarget", req["deduplicationTarget"])
+
+	var inheritDeduplication bool
+	if req["inheritDeduplication"] == "true" {
+		inheritDeduplication = true
+	}
+	logicApp.SetAppConf("InheritDeduplication", inheritDeduplication)
 
 	if !setSpiderQueue(req) {
 		return false
@@ -258,10 +268,6 @@ func setSpiderQueue(req map[string]interface{}) bool {
 // log发送api
 func wsLogHandle(conn *ws.Conn) {
 	var err error
-	defer func() {
-		// logs.Log.Debug("websocket log发送出错断开 (%v) !", err)
-	}()
-
 	// 新建web前端log输出
 	Log.Open()
 

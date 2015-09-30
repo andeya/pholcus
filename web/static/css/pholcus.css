@@ -124,16 +124,18 @@ h1 {
     clear: both;
     border-top-color: #00a65a;
 }
-.client.log.box{
-	z-index: -1;
-	height: 100%;
-	border-bottom: 3px solid #00a65a;
-	border-top:0;
-	padding-top: 35px;
+
+.client.log.box {
+    z-index: -1;
+    height: 100%;
+    border-bottom: 3px solid #00a65a;
+    border-top: 0;
+    padding-top: 35px;
 }
+
 #log-box {
-	height: 100%;
-	overflow-y: auto;
+    height: 100%;
+    overflow-y: auto;
 }
 
 .chat .item {
@@ -230,6 +232,9 @@ h1 {
     width: 47%;
 }
 
+.form-group label {
+    font-family: "微软雅黑";
+}
 
 .box-footer {
     position: fixed;
@@ -245,6 +250,6 @@ h1 {
     margin-left: 10px;
 }
 
-#btn-pause{
+#btn-pause {
     display: none;
 }

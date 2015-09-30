@@ -34,6 +34,23 @@ func NewRSS(src map[string]string, level []float64) *RSS {
 
 func (self *RSS) Wait(src string) {
 	self.Flag[src] = make(chan bool)
+	defer func() {
+		if err := recover(); err != nil {
+			logs.Log.Error("rss: %v", err)
+		}
+		select {
+		case <-self.Flag[src]:
+			self.T[src] = self.T[src] / 1.2
+			if self.T[src] < self.Level[0] {
+				self.T[src] = self.Level[0]
+			}
+		default:
+			self.T[src] = self.T[src] * 1.2
+			if self.T[src] > self.Level[len(self.Level)-1] {
+				self.T[src] = self.Level[len(self.Level)-1]
+			}
+		}
+	}()
 	for k, v := range self.Level {
 		if v < self.T[src] {
 			continue
@@ -47,27 +64,17 @@ func (self *RSS) Wait(src string) {
 		break
 	}
 	close(self.Flag[src])
-	select {
-	case <-self.Flag[src]:
-		self.T[src] = self.T[src] / 1.2
-		if self.T[src] < self.Level[0] {
-			self.T[src] = self.Level[0]
-		}
-	default:
-		self.T[src] = self.T[src] * 1.2
-		if self.T[src] > self.Level[len(self.Level)-1] {
-			self.T[src] = self.Level[len(self.Level)-1]
-		}
-	}
 }
 
 func (self *RSS) Update(src string) {
-	defer func() {
-		recover()
+	go func() {
+		defer func() {
+			recover()
+		}()
+		select {
+		case self.Flag[src] <- true:
+		default:
+			return
+		}
 	}()
-	select {
-	case self.Flag[src] <- true:
-	default:
-		return
-	}
 }

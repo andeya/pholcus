@@ -6,6 +6,7 @@ import (
 	// "github.com/henrylee2cn/pholcus/cmd" // cmd版
 	// "github.com/henrylee2cn/pholcus/gui" // gui版
 
+	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
@@ -45,6 +46,7 @@ func main() {
 		if err := recover(); err != nil {
 			logs.Log.Emergency("%v", err)
 		}
+		scheduler.SaveDeduplication()
 	}()
 
 	// 引入规则库

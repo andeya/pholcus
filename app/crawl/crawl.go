@@ -105,11 +105,7 @@ func (self *crawler) Process(req *context.Request) {
 
 	defer func() {
 		if err := recover(); err != nil { // do not affect other
-			if strerr, ok := err.(string); ok {
-				logs.Log.Error("%v", strerr)
-			} else {
-				logs.Log.Error(" *     Process error: %v", err)
-			}
+			logs.Log.Error(" *     Process panic: %v", err)
 		}
 	}()
 	// logs.Log.Debug("**************断点 1 ***********")
@@ -117,7 +113,10 @@ func (self *crawler) Process(req *context.Request) {
 	resp := self.Downloader.Download(req)
 
 	// logs.Log.Debug("**************断点 2 ***********")
-	if resp.GetError() != nil { // if fail do not need process
+	// if fail do not need process
+	if resp.GetError() != nil {
+		// 取消该请求的去重样本
+		scheduler.Sdl.DelDeduplication(req.GetUrl() + req.GetMethod())
 		logs.Log.Error(" *     %v", resp.GetError())
 		// 统计下载失败的页数
 		cache.PageFailCount()

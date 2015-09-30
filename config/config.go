@@ -75,12 +75,14 @@ type MysqlOutput struct {
 func init() {
 	// 初始化主要的运行时参数
 	cache.Task = &cache.AppConf{
-		Mode:      status.OFFLINE,
-		Port:      2015,
-		Master:    "127.0.0.1",
-		ThreadNum: 20,
-		Pausetime: [2]uint{100, 300},
-		DockerCap: 10000,
+		Mode:                 status.OFFLINE,
+		Port:                 2015,
+		Master:               "127.0.0.1",
+		ThreadNum:            20,
+		Pausetime:            [2]uint{100, 300},
+		DockerCap:            10000,
+		InheritDeduplication: true,
+		DeduplicationTarget:  "file", //"file"或"mgo"
 
 		MaxPage: 100,
 	}
