@@ -23,8 +23,10 @@ var Html = function(info) {
               <div class="form-group">\
                 <label>最大采集页数</label>\
                 <input name="maxPage" type="number" class="form-control" min="0" value="' + info.maxPage + '">\
-              </div>' + threadNumHtml(info.threadNum) + dockerCapHtml(info.dockerCap) +
+              </div>' +
+        threadNumHtml(info.threadNum) +
         sleepTimeHtml(info.sleepTime) +
+        dockerCapHtml(info.dockerCap) +
         outputsHtml(info.outputs) +
         inheritDeduplicationHtml(info.inheritDeduplication) +
         deduplicationTargetHtml(info.deduplicationTarget) +
