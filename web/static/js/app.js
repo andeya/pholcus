@@ -1,11 +1,24 @@
 // websocket
 var wsUri = "ws://" + location.hostname + ":" + location.port + "/ws";
 var ws = null;
+var wsLogUri = "ws://" + location.hostname + ":" + location.port + "/ws/log";
+var wslog = null;
 if ('WebSocket' in window) {
     ws = new WebSocket(wsUri);
+    wslog = new WebSocket(wsLogUri);
 } else if ('MozWebSocket' in window) {
     ws = new MozWebSocket(wsUri);
+    wslog = new MozWebSocket(wsLogUri);
 }
+
+window.onbeforeunload = function() {
+    ws.close();
+    wslog.close();
+    console.log("关闭连接");
+    return
+}
+
+// ********************************* 业务控制 ************************************** \\
 
 ws.onopen = function() {
     console.log("connected to " + wsUri);
@@ -33,9 +46,15 @@ ws.onsend = function(data) {
 ws.onmessage = function(m) {
     var data = JSON.parse(m.data)
     console.log(data);
+
     switch (data.operate) {
         // 初始化运行参数
         case "init":
+            if (!data.initiative) {
+                // window.location.href = window.location.href;
+                location = location;
+                return
+            };
             // 设置当前运行模式
             mode = data.mode;
             // 打开软件界面
@@ -59,15 +78,16 @@ ws.onmessage = function(m) {
                 "border-color": "#2e6da4"
             });
 
-            if (data.status == _unknow || data.status == _stop) {
-                break;
-            };
+            // if (data.status == _unknow || data.status == _stop) {
+            break;
+            // };
 
             // 任务开始通知
         case "run":
             if (data.status == _unknow) {
                 return
             };
+
             $("#btn-run").text("Stop").attr("data-type", "stop");
 
             if (data.mode == offline) {
@@ -84,6 +104,19 @@ ws.onmessage = function(m) {
                 $("#btn-pause").hide();
             };
             break;
+
+            // 暂停与恢复
+        case "pauseRecover":
+            if ($("#btn-pause").text() == "Pause") {
+                $("#btn-pause").text("Go on...").addClass("btn-info").removeClass("btn-warning");
+            } else {
+                $("#btn-pause").text("Pause").addClass("btn-warning").removeClass("btn-info");
+            };
+            break;
+
+        case "exit":
+            layer.closeAll();
+            selectMode(unset);
     }
 }
 
@@ -138,7 +171,7 @@ function home() {
             $("#init").attr("disabled", "disabled");
             return;
     }
-    Open('goon');
+    Open('refresh');
 }
 
 // 按模式启动Pholcus
@@ -147,12 +180,14 @@ function Open(operate) {
         "background-color": "#286090",
         "border-color": "#204d74"
     }).attr("disabled", "disabled");
+
     var formJson = {
         'operate': operate,
         'mode': document.step1.elements['mode'].value,
         'port': document.step1.elements['port'].value,
         'ip': document.step1.elements['ip'].value,
     };
+
     ws.onsend(formJson);
     return false;
 }
@@ -208,28 +243,14 @@ function getSpiders() {
 };
 
 // 暂停恢复运行
-function pauseRecover(self) {
+function pauseRecover() {
     ws.onsend({
         'operate': 'pauseRecover'
     });
-    if ($(self).text() == "Pause") {
-        $(self).text("Go on...").addClass("btn-info").removeClass("btn-warning");
-    } else {
-        $(self).text("Pause").addClass("btn-warning").removeClass("btn-info");
-    };
-    return false;
 };
 
 // ********************************* 打印log信息 ************************************** \\
-var wsLogUri = "ws://" + location.hostname + ":" + location.port + "/ws/log";
-var wslog = null;
 
-
-if ('WebSocket' in window) {
-    wslog = new WebSocket(wsLogUri);
-} else if ('MozWebSocket' in window) {
-    wslog = new MozWebSocket(wsLogUri);
-}
 
 wslog.onopen = function() {
     console.log("connected to " + wsLogUri);
@@ -247,10 +268,4 @@ wslog.onmessage = function(m) {
     div.innerHTML = '<p class="message">' + m.data.replace(/\s/g, '&nbsp;') + '</p>';
     document.getElementById('log-box').appendChild(div);
     document.getElementById('log-box').scrollTop = document.getElementById('log-box').scrollHeight;
-};
-
-
-window.onbeforeunload = function() {
-    wslog.close();
-    ws.close();
 };

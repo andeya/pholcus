@@ -4,13 +4,26 @@ import (
 	"net/http"
 	"text/template"
 
+	"github.com/henrylee2cn/pholcus/common/session"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
+var (
+	globalSessions *session.Manager
+)
+
+func init() {
+	globalSessions, _ = session.NewManager("memory", `{"cookieName":"pholcusSession", "enableSetCookie,omitempty": true, "secure": false, "sessionIDHashFunc": "sha1", "sessionIDHashKey": "", "cookieLifeTime": 0, "providerConfig": ""}`)
+	// go globalSessions.GC()
+}
+
 // 处理web页面请求
-func pholcus(rw http.ResponseWriter, req *http.Request) {
+func web(rw http.ResponseWriter, req *http.Request) {
+	sess, _ := globalSessions.SessionStart(rw, req)
+	defer sess.SessionRelease(rw)
+
 	t, err := template.ParseFiles("web/views/index.html") //解析模板文件
 	if err != nil {
 		logs.Log.Error("%v", err)

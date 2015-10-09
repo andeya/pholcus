@@ -33,8 +33,8 @@ var Html = function(info) {
         '</div>' +
         '</div>\
             <div class="box-footer">\
-                ' + pauseHtml(info.mode, info.status) + '<button type="submit" id="btn-run" class="btn btn-primary" data-type="run">Run</button>\
-            </div>\
+                ' + btnHtml(info.mode, info.status) + 
+            '</div>\
           </form>' + logBoxHtml(info.mode) + '</div>';
 }
 
@@ -152,11 +152,21 @@ var inheritDeduplicationHtml = function(inheritDeduplication) {
     return html + '</select></div>';
 }
 
-var pauseHtml = function(mode, status) {
+var btnHtml = function(mode, status) {
     if (parseInt(mode) != offline) {
-        return "";
+        return '<button type="submit" id="btn-run" class="btn btn-primary" data-type="run">Run</button>';
     }
-    return '<button type="button" id="btn-pause" class="btn btn-warning" onclick="pauseRecover(this)" disabled="disabled">Pause</button>';
+    switch (status) {
+        case _stop:
+            return '<button type="button" id="btn-pause" class="btn btn-warning" onclick="pauseRecover()" disabled="disabled">Pause</button>\
+            <button type="submit" id="btn-run" class="btn btn-primary" data-type="run">Run</button>';
+        case _run:
+            return '<button type="button" id="btn-pause" class="btn btn-warning" onclick="pauseRecover()" style="display:inline-block;" >Pause</button>\
+            <button type="submit" id="btn-run" class="btn btn-danger" data-type="stop">Stop</button>';
+        case _pause:
+            return '<button type="button" id="btn-pause" class="btn btn-info" onclick="pauseRecover()" style="display:inline-block;" >Go on...</button>\
+            <button type="submit" id="btn-run" class="btn btn-danger" data-type="stop">Stop</button>';
+    }
 }
 
 var logBoxHtml = function(m) {

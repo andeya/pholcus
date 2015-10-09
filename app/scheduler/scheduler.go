@@ -120,6 +120,9 @@ func (self *scheduler) PauseRecover() {
 
 func (self *scheduler) Stop() {
 	self.status = status.STOP
+	if self.SrcManage == nil {
+		return
+	}
 	self.SrcManage.ClearAll()
 }
 

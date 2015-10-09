@@ -1,6 +1,8 @@
 package web
 
 import (
+	"sync"
+
 	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/common/util"
@@ -11,11 +13,7 @@ import (
 )
 
 var (
-	wchan       chan interface{}
-	wchanClosed bool
-	isRunning   bool
-
-	logicApp   = app.New().SetLog(Log).AsyncLog(true)
+	logicApp   = app.New().SetLog(Lsc).AsyncLog(true)
 	spiderMenu = func() (spmenu []map[string]string) {
 		// 获取蜘蛛家族
 		for _, sp := range logicApp.GetSpiderLib() {
@@ -23,32 +21,113 @@ var (
 		}
 		return spmenu
 	}()
+)
 
-	wsApi = map[string]func(*ws.Conn, map[string]interface{}){}
+type SocketController struct {
+	connPool  map[string]*ws.Conn
+	wchanPool map[string]*Wchan
+	rwMutex   sync.RWMutex
+}
+
+func (self *SocketController) Add(sessID string, conn *ws.Conn) {
+	self.rwMutex.Lock()
+	defer self.rwMutex.Unlock()
+
+	self.connPool[sessID] = conn
+	self.wchanPool[sessID] = newWchan()
+}
+
+func (self *SocketController) Remove(sessID string, conn *ws.Conn) {
+	self.rwMutex.Lock()
+	defer self.rwMutex.Unlock()
+
+	if self.connPool[sessID] == nil {
+		return
+	}
+	wc := self.wchanPool[sessID]
+	close(wc.wchan)
+	conn.Close()
+	delete(self.connPool, sessID)
+	delete(self.wchanPool, sessID)
+}
+
+func (self *SocketController) Write(sessID string, void map[string]interface{}, to ...int) {
+	self.rwMutex.RLock()
+	defer self.rwMutex.RUnlock()
+
+	// to为1时，只向当前连接发送；to为-1时，向除当前连接外的其他所有连接发送；to为0时或为空时，向所有连接发送
+	var t int = 0
+	if len(to) > 0 {
+		t = to[0]
+	}
+
+	void["mode"] = logicApp.GetAppConf("mode").(int)
+
+	switch t {
+	case 1:
+		wc := self.wchanPool[sessID]
+		if wc == nil {
+			return
+		}
+		void["initiative"] = true
+		wc.wchan <- void
+
+	case 0, -1:
+		l := len(self.wchanPool)
+		for _sessID, wc := range self.wchanPool {
+			if t == -1 && _sessID == sessID {
+				continue
+			}
+			_void := make(map[string]interface{}, l)
+			for k, v := range void {
+				_void[k] = v
+			}
+			if _sessID == sessID {
+				_void["initiative"] = true
+			} else {
+				_void["initiative"] = false
+			}
+			wc.wchan <- _void
+		}
+	}
+}
+
+type Wchan struct {
+	wchan chan interface{}
+}
+
+func newWchan() *Wchan {
+	return &Wchan{
+		wchan: make(chan interface{}, 1024),
+	}
+}
+
+var (
+	Sc = &SocketController{
+		connPool:  make(map[string]*ws.Conn),
+		wchanPool: make(map[string]*Wchan),
+	}
+
+	wsApi = map[string]func(string, map[string]interface{}){}
 )
 
 func wsHandle(conn *ws.Conn) {
-	wchanClosed = false
-	defer func() {
-		// 连接断开前关闭正在运行的任务
-		// if isRunning {
-		// 	isRunning = false
-		// 	logicApp.LogRest().Stop()
-		// }
-		wchanClosed = true
-		close(wchan)
-		conn.Close()
-	}()
-	wchan = make(chan interface{}, 1024)
+	sess, _ := globalSessions.SessionStart(nil, conn.Request())
+	sessID := sess.SessionID()
+	if Sc.connPool[sessID] == nil {
+		Sc.Add(sessID, conn)
+	}
 
-	go func(conn *ws.Conn) {
+	defer Sc.Remove(sessID, conn)
+
+	go func() {
 		var err error
-		for info := range wchan {
+		for info := range Sc.wchanPool[sessID].wchan {
 			if _, err = ws.JSON.Send(conn, info); err != nil {
 				return
 			}
 		}
-	}(conn)
+	}()
 
 	for {
 		var req map[string]interface{}
@@ -59,27 +138,26 @@ func wsHandle(conn *ws.Conn) {
 		}
 
 		// log.Log.Debug("Received from web: %v", req)
-		wsApi[util.Atoa(req["operate"])](conn, req)
+		wsApi[util.Atoa(req["operate"])](sessID, req)
 	}
 }
 
 func init() {
+
 	// 初始化运行
-	wsApi["goon"] = func(conn *ws.Conn, req map[string]interface{}) {
+	wsApi["refresh"] = func(sessID string, req map[string]interface{}) {
 		// 写入发送通道
-		if !wchanClosed {
-			wchan <- tplData(logicApp.GetAppConf("mode").(int))
-		}
+		Sc.Write(sessID, tplData(logicApp.GetAppConf("mode").(int)), 1)
 	}
 
 	// 初始化运行
-	wsApi["init"] = func(conn *ws.Conn, req map[string]interface{}) {
+	wsApi["init"] = func(sessID string, req map[string]interface{}) {
 		var mode = util.Atoi(req["mode"])
 		var port = util.Atoi(req["port"])
 		var master = util.Atoa(req["ip"]) //服务器(主节点)地址，不含端口
 		currMode := logicApp.GetAppConf("mode").(int)
 		if currMode == status.UNSET {
-			logicApp.Init(mode, port, master, Log) // 运行模式初始化，设置log输出目标
+			logicApp.Init(mode, port, master, Lsc) // 运行模式初始化，设置log输出目标
 		} else {
 			logicApp = logicApp.ReInit(mode, port, master) // 切换运行模式
 		}
@@ -89,54 +167,52 @@ func init() {
 		}
 
 		// 写入发送通道
-		if !wchanClosed {
-			wchan <- tplData(mode)
-		}
+		Sc.Write(sessID, tplData(mode))
 	}
 
-	wsApi["run"] = func(conn *ws.Conn, req map[string]interface{}) {
-		if logicApp.GetAppConf("mode").(int) != status.CLIENT && !wchanClosed {
+	wsApi["run"] = func(sessID string, req map[string]interface{}) {
+		if logicApp.GetAppConf("mode").(int) != status.CLIENT {
 			if !setConf(req) {
-				wchan <- map[string]interface{}{"mode": logicApp.GetAppConf("mode").(int), "status": status.UNKNOW}
+				// Sc.Write(sessID, map[string]interface{}{"operate": "stop", "mode": logicApp.GetAppConf("mode").(int), "status": status.UNKNOW}, 1)
 				return
 			}
 		}
 
-		if logicApp.GetAppConf("mode").(int) == status.OFFLINE && !wchanClosed {
-			wchan <- map[string]interface{}{"operate": "run", "mode": status.OFFLINE, "status": status.RUN}
+		if logicApp.GetAppConf("mode").(int) == status.OFFLINE {
+			Sc.Write(sessID, map[string]interface{}{"operate": "run", "status": status.RUN})
 		}
 
 		go func() {
-			isRunning = true
 			logicApp.Run()
-			if logicApp.GetAppConf("mode").(int) == status.OFFLINE && !wchanClosed {
-				isRunning = false
-				wchan <- map[string]interface{}{"operate": "stop", "mode": status.OFFLINE, "status": status.STOP}
+			if logicApp.GetAppConf("mode").(int) == status.OFFLINE {
+				Sc.Write(sessID, map[string]interface{}{"operate": "stop", "status": status.STOP})
 			}
 		}()
 	}
 
 	// 终止当前任务，现仅支持单机模式
-	wsApi["stop"] = func(conn *ws.Conn, req map[string]interface{}) {
-		if logicApp.GetAppConf("mode").(int) != status.OFFLINE && !wchanClosed {
-			wchan <- map[string]interface{}{"operate": "stop", "mode": logicApp.GetAppConf("mode").(int), "status": status.UNKNOW}
+	wsApi["stop"] = func(sessID string, req map[string]interface{}) {
+		if logicApp.GetAppConf("mode").(int) != status.OFFLINE {
+			Sc.Write(sessID, map[string]interface{}{"operate": "stop"})
 			return
-		} else if !wchanClosed {
+		} else {
 			logicApp.Stop()
-			wchan <- map[string]interface{}{"operate": "stop", "mode": status.OFFLINE, "status": status.STOP}
+			Sc.Write(sessID, map[string]interface{}{"operate": "stop"})
 		}
 	}
 
 	// 终止当前任务，现仅支持单机模式
-	wsApi["pauseRecover"] = func(conn *ws.Conn, req map[string]interface{}) {
+	wsApi["pauseRecover"] = func(sessID string, req map[string]interface{}) {
 		if logicApp.GetAppConf("mode").(int) != status.OFFLINE {
 			return
 		}
 		logicApp.PauseRecover()
+		Sc.Write(sessID, map[string]interface{}{"operate": "pauseRecover"})
 	}
 
 	// 退出当前模式
-	wsApi["exit"] = func(conn *ws.Conn, req map[string]interface{}) {
+	wsApi["exit"] = func(sessID string, req map[string]interface{}) {
+		Sc.Write(sessID, map[string]interface{}{"operate": "exit"})
 		logicApp = logicApp.ReInit(status.UNSET, 0, "")
 	}
 }
@@ -263,32 +339,4 @@ func setSpiderQueue(req map[string]interface{}) bool {
 		return false
 	}
 	return true
-}
-
-// log发送api
-func wsLogHandle(conn *ws.Conn) {
-	var err error
-	// 新建web前端log输出
-	Log.Open()
-
-	go func(conn *ws.Conn) {
-		defer func() {
-			// 关闭web前端log输出
-			Log.Close()
-			// 关闭websocket连接
-			conn.Close()
-		}()
-		for {
-			if err := ws.JSON.Receive(conn, nil); err != nil {
-				// logs.Log.Debug("websocket log接收出错断开 (%v) !", err)
-				return
-			}
-		}
-	}(conn)
-
-	for msg := range Log.logChan {
-		if _, err = ws.Message.Send(conn, msg); err != nil {
-			return
-		}
-	}
 }
