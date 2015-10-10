@@ -201,7 +201,7 @@ func init() {
 		}
 	}
 
-	// 终止当前任务，现仅支持单机模式
+	// 任务暂停与恢复，目前仅支持单机模式
 	wsApi["pauseRecover"] = func(sessID string, req map[string]interface{}) {
 		if logicApp.GetAppConf("mode").(int) != status.OFFLINE {
 			return
