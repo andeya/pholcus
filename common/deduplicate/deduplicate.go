@@ -2,6 +2,7 @@ package deduplicate
 
 import (
 	"encoding/json"
+	// "fmt"
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
@@ -23,12 +24,14 @@ const (
 type Deduplicate interface {
 	// 采集非重复样本并返回对比结果，重复为true
 	Compare(obj interface{}) bool
-	// 保存去重记录到target(status.FILE or status.MGO)
-	Write(target string)
-	// 从target(status.FILE or status.MGO)读取去重记录
-	Read(target string)
+	// 保存去重记录到provider(status.FILE or status.MGO)
+	Write(provider string)
+	// 从provider(status.FILE or status.MGO)读取去重记录
+	ReRead(provider string)
 	// 取消指定去重样本
 	Remove(obj interface{})
+	// 清空样本记录
+	CleanRead()
 }
 
 type Deduplication struct {
@@ -66,8 +69,8 @@ func (self *Deduplication) Remove(obj interface{}) {
 	}
 }
 
-func (self *Deduplication) Write(target string) {
-	switch strings.ToLower(target) {
+func (self *Deduplication) Write(provider string) {
+	switch strings.ToLower(provider) {
 	case status.MGO:
 		var docs = make([]map[string]interface{}, len(self.sampling))
 		var i int
@@ -100,8 +103,10 @@ func (self *Deduplication) Write(target string) {
 	}
 }
 
-func (self *Deduplication) Read(target string) {
-	switch strings.ToLower(target) {
+func (self *Deduplication) ReRead(provider string) {
+	self.CleanRead()
+
+	switch strings.ToLower(provider) {
 	case status.MGO:
 		docs, err := mgo.Mgo("find", map[string]interface{}{
 			"Database":   config.MGO_OUTPUT.DefaultDB,
@@ -124,10 +129,11 @@ func (self *Deduplication) Read(target string) {
 		}
 		defer f.Close()
 		b, _ := ioutil.ReadAll(f)
-		json.Unmarshal(b, self.sampling)
+		json.Unmarshal(b, &self.sampling)
 	}
+	// fmt.Printf("%#v", self.sampling)
 }
 
-func (self *Deduplication) Reset() {
+func (self *Deduplication) CleanRead() {
 	self.sampling = make(map[string]bool)
 }

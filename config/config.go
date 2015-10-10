@@ -82,7 +82,7 @@ func init() {
 		Pausetime:            [2]uint{100, 300},
 		DockerCap:            10000,
 		InheritDeduplication: true,
-		DeduplicationTarget:  "file", //"file"或"mgo"
+		DeduplicationTarget:  status.FILE, //"file"或"mgo"
 
 		MaxPage: 100,
 	}

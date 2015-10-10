@@ -9,7 +9,7 @@ import (
 )
 
 type Scheduler interface {
-	Init(capacity uint, inheritDeduplication bool)
+	Init(capacity uint, inheritDeduplication bool, deduplicationTarget string)
 	PauseRecover() // 暂停\恢复所有爬行任务
 	Stop()
 	IsStop() bool
@@ -32,17 +32,16 @@ type Scheduler interface {
 	Deduplicate(key interface{}) bool
 	// 保存去重记录
 	SaveDeduplication()
-	// 读取去重记录
-	ReadDeduplication()
 	// 取消指定去重样本
 	DelDeduplication(key interface{})
 }
 
 type scheduler struct {
 	*SrcManage
-	*deduplicate.Deduplication
-	pushMutex sync.Mutex
-	status    int
+	deduplication       deduplicate.Deduplicate
+	deduplicationTarget string
+	pushMutex           sync.Mutex
+	status              int
 }
 
 // 定义全局调度
@@ -50,21 +49,27 @@ var Sdl Scheduler
 
 func init() {
 	Sdl = &scheduler{
-		Deduplication: deduplicate.New().(*deduplicate.Deduplication),
+		deduplication: deduplicate.New(),
 		status:        status.RUN,
 	}
-	Sdl.ReadDeduplication()
 }
 
 func SaveDeduplication() {
 	Sdl.SaveDeduplication()
 }
 
-func (self *scheduler) Init(capacity uint, inheritDeduplication bool) {
+func (self *scheduler) Init(capacity uint, inheritDeduplication bool, deduplicationTarget string) {
 	self.SrcManage = NewSrcManage(capacity).(*SrcManage)
 	self.status = status.RUN
-	if !inheritDeduplication {
-		self.Deduplication.Reset()
+	if inheritDeduplication {
+		if self.deduplicationTarget == deduplicationTarget {
+			return
+		}
+		self.deduplicationTarget = deduplicationTarget
+		self.deduplication.ReRead(deduplicationTarget)
+	} else {
+		self.deduplication.CleanRead()
+		self.deduplicationTarget = ""
 	}
 }
 
@@ -86,19 +91,15 @@ func (self *scheduler) Push(req *context.Request) {
 }
 
 func (self *scheduler) Deduplicate(key interface{}) bool {
-	return self.Deduplication.Compare(key)
+	return self.deduplication.Compare(key)
 }
 
 func (self *scheduler) DelDeduplication(key interface{}) {
-	self.Deduplication.Remove(key)
+	self.deduplication.Remove(key)
 }
 
 func (self *scheduler) SaveDeduplication() {
-	self.Deduplication.Write(cache.Task.DeduplicationTarget)
-}
-
-func (self *scheduler) ReadDeduplication() {
-	self.Deduplication.Read(cache.Task.DeduplicationTarget)
+	self.deduplication.Write(cache.Task.DeduplicationTarget)
 }
 
 func (self *scheduler) Use(spiderId int) (req *context.Request) {
