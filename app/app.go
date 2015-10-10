@@ -22,6 +22,9 @@ import (
 	"github.com/henrylee2cn/teleport"
 )
 
+// 全局唯一的核心接口实例
+var LogicApp = New()
+
 type App interface {
 	// 设置全局log实时显示终端
 	SetLog(io.Writer) App

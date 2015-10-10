@@ -7,37 +7,49 @@ import (
 	"flag"
 	"log"
 	"net/http"
-	"runtime"
 	"strconv"
 
+	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
 var (
-	ip   string
-	port string
-	addr string
+	ip         string
+	port       string
+	addr       string
+	spiderMenu []map[string]string
 )
 
-func init() {
+// 执行入口
+func Run() {
+	appInit()
+
 	// web服务器端口号
 	ip := flag.String("ip", "0.0.0.0", "   <Web Server IP>\n")
 	port := flag.Int("port", 9090, "   <Web Server Port>\n")
 	flag.Parse()
 
+	// web服务器地址
 	addr = *ip + ":" + strconv.Itoa(*port)
-}
-
-func Run() {
-	// 开启最大核心数运行
-	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	// 预绑定路由
 	Router()
+
 	// 监听端口
 	log.Printf("[pholcus] server Running on %v\n", addr)
 	err := http.ListenAndServe(addr, nil) //设置监听的端口
 	if err != nil {
 		logs.Log.Emergency("ListenAndServe: %v", err)
 	}
+}
+
+func appInit() {
+	app.LogicApp = app.New().SetLog(Lsc).AsyncLog(true)
+	spiderMenu = func() (spmenu []map[string]string) {
+		// 获取蜘蛛家族
+		for _, sp := range app.LogicApp.GetSpiderLib() {
+			spmenu = append(spmenu, map[string]string{"name": sp.GetName(), "description": sp.GetDescription()})
+		}
+		return spmenu
+	}()
 }

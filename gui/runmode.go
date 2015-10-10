@@ -39,28 +39,20 @@ func runmodeWindow() {
 				AssignTo: &host,
 				MaxSize:  Size{0, 120},
 				Children: []Widget{
-					VSplitter{
-						Children: []Widget{
-							Label{
-								Text: "分布式端口：（单机模式不填）",
-							},
-							NumberEdit{
-								Value:    Bind("Port"),
-								Suffix:   "",
-								Decimals: 0,
-							},
-						},
+					Label{
+						Text: "分布式端口：（单机模式不填）",
+					},
+					NumberEdit{
+						Value:    Bind("Port"),
+						Suffix:   "",
+						Decimals: 0,
 					},
 
-					VSplitter{
-						Children: []Widget{
-							Label{
-								Text: "主节点 URL：（客户端模式必填）",
-							},
-							LineEdit{
-								Text: Bind("Master"),
-							},
-						},
+					Label{
+						Text: "主节点 URL：（客户端模式必填）",
+					},
+					LineEdit{
+						Text: Bind("Master"),
 					},
 				},
 			},

@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/config"
 	. "github.com/lxn/walk/declarative"
 )
@@ -40,7 +41,7 @@ func clientWindow() {
 	Init()
 
 	// 执行任务
-	go LogicApp.Run()
+	go app.LogicApp.Run()
 
 	// 运行窗体程序
 	mw.Run()

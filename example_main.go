@@ -1,25 +1,27 @@
 package main
 
-// 核心包
 import (
-	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/config"
+	"github.com/henrylee2cn/pholcus/exec"
 	"github.com/henrylee2cn/pholcus/logs"
 
-	// 按界面需求选择相应版本
-	"github.com/henrylee2cn/pholcus/web" // web版
-	// "github.com/henrylee2cn/pholcus/cmd" // cmd版
-	// "github.com/henrylee2cn/pholcus/gui" // gui版
+	_ "github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
+	// _ "path/myrule_lib"               // 同样你也可以自由添加自己的规则库
 )
 
-// 尝试与核心包调换位置来确保规则库正常加载
-import (
-	_ "github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
-	// "path/myrule_lib" // 同样你也可以自由添加自己的规则库
-)
+func main() {
+	// 允许日志打印行号
+	logs.ShowLineNum()
+
+	// 初始化配置，不调用则为默认值
+	SetConf()
+
+	// 开始运行，参数："web"/"gui"/"cmd"
+	exec.Run("web")
+}
 
 // 自定义相关配置，将覆盖默认值
-func setConf() {
+func SetConf() {
 	//mongodb服务器地址
 	config.MGO_OUTPUT.Host = "127.0.0.1:27017"
 	// mongodb输出时的内容分类
@@ -41,23 +43,4 @@ func setConf() {
 	config.MYSQL_OUTPUT.User = "root"
 	//mysql密码
 	config.MYSQL_OUTPUT.Password = ""
-}
-
-func main() {
-	// 开启错误日志调试功能（打印行号及Debug信息）
-	logs.Debug(true)
-
-	defer func() {
-		if err := recover(); err != nil {
-			logs.Log.Emergency("%v", err)
-		}
-		scheduler.SaveDeduplication()
-	}()
-
-	setConf() // 不调用则为默认值
-
-	// 开始运行
-	web.Run() // web版
-	// cmd.Run() // cmd版
-	// gui.Run() // gui版
 }

@@ -5,23 +5,35 @@ package gui
 
 import (
 	"log"
-	"runtime"
 
 	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/app/spider"
+	. "github.com/henrylee2cn/pholcus/gui/model"
 	"github.com/lxn/walk"
+	"github.com/lxn/walk/declarative"
 )
 
-var LogicApp = app.New().AsyncLog(true)
-
+// 执行入口
 func Run() {
-	// 开启最大核心数运行
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	app.LogicApp.AsyncLog(true)
+
+	outputList = func() (o []declarative.RadioButton) {
+		// 设置默认选择
+		Input.AppConf.OutType = app.LogicApp.GetOutputLib()[0]
+		// 获取输出选项
+		for _, out := range app.LogicApp.GetOutputLib() {
+			o = append(o, declarative.RadioButton{Text: out, Value: out})
+		}
+		return
+	}()
+
+	spiderMenu = NewSpiderMenu(spider.Menu)
+
 	runmodeWindow()
 }
 
 func Init() {
-	LogicApp.Init(Input.Mode, Input.Port, Input.Master)
+	app.LogicApp.Init(Input.Mode, Input.Port, Input.Master)
 }
 
 func SetTaskConf() {
@@ -29,7 +41,7 @@ func SetTaskConf() {
 	if Input.ThreadNum == 0 {
 		Input.ThreadNum = 1
 	}
-	LogicApp.SetAppConf("ThreadNum", Input.ThreadNum).
+	app.LogicApp.SetAppConf("ThreadNum", Input.ThreadNum).
 		SetAppConf("Pausetime", [2]uint{Input.BaseSleeptime, Input.RandomSleepPeriod}).
 		SetAppConf("OutType", Input.OutType).
 		SetAppConf("DockerCap", Input.DockerCap).
@@ -42,7 +54,7 @@ func SpiderPrepare() {
 	for _, sp := range Input.Spiders {
 		sps = append(sps, sp.Spider)
 	}
-	LogicApp.SpiderPrepare(sps)
+	app.LogicApp.SpiderPrepare(sps)
 }
 
 func SpiderNames() (names []string) {
@@ -58,7 +70,7 @@ func setWindow() {
 	if err != nil {
 		panic(err)
 	}
-	LogicApp.SetLog(lv)
+	app.LogicApp.SetLog(lv)
 	log.SetOutput(lv)
 	// 设置左上角图标
 	if icon, err := walk.NewIconFromResource("ICON"); err == nil {

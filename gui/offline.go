@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/status"
@@ -213,23 +214,23 @@ func offlineWindow() {
 
 // 暂停\恢复
 func offlinePauseRecover() {
-	switch LogicApp.Status() {
+	switch app.LogicApp.Status() {
 	case status.RUN:
 		pauseRecoverBtn.SetText("恢复运行")
 	case status.PAUSE:
 		pauseRecoverBtn.SetText("暂停")
 	}
-	LogicApp.PauseRecover()
+	app.LogicApp.PauseRecover()
 }
 
 // 开始\停止控制
 func offlineRunStop() {
-	if LogicApp.Status() != status.STOP {
+	if app.LogicApp.Status() != status.STOP {
 		runStopBtn.SetEnabled(false)
 		runStopBtn.SetText("停止中…")
 		pauseRecoverBtn.SetVisible(false)
 		pauseRecoverBtn.SetText("暂停")
-		LogicApp.Stop()
+		app.LogicApp.Stop()
 		offlineResetBtn()
 		return
 	}
@@ -258,7 +259,7 @@ func offlineRunStop() {
 	go func() {
 		pauseRecoverBtn.SetText("暂停")
 		pauseRecoverBtn.SetVisible(true)
-		LogicApp.Run()
+		app.LogicApp.Run()
 		offlineResetBtn()
 		pauseRecoverBtn.SetVisible(false)
 		pauseRecoverBtn.SetText("暂停")

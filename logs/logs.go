@@ -113,6 +113,6 @@ func (self *mylog) Async(enable bool) Logs {
 	return self
 }
 
-func Debug(open bool) {
-	Log = NewLogs(open)
+func ShowLineNum() {
+	Log = NewLogs(true)
 }

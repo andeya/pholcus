@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"text/template"
 
+	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/common/session"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
@@ -39,7 +40,7 @@ func web(rw http.ResponseWriter, req *http.Request) {
 			"server":  status.SERVER,
 			"client":  status.CLIENT,
 			"unset":   status.UNSET,
-			"curr":    logicApp.GetAppConf("mode").(int),
+			"curr":    app.LogicApp.GetAppConf("mode").(int),
 		},
 		"status": map[string]int{
 			"unknow": status.UNKNOW,
@@ -47,8 +48,8 @@ func web(rw http.ResponseWriter, req *http.Request) {
 			"run":    status.RUN,
 			"pause":  status.PAUSE,
 		},
-		"port": logicApp.GetAppConf("port").(int),
-		"ip":   logicApp.GetAppConf("master").(string),
+		"port": app.LogicApp.GetAppConf("port").(int),
+		"ip":   app.LogicApp.GetAppConf("master").(string),
 	}
 	t.Execute(rw, data) //执行模板的merger操作
 }

@@ -3,6 +3,7 @@ package gui
 import (
 	"strconv"
 
+	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/lxn/walk"
@@ -220,7 +221,7 @@ func serverStart() {
 	SpiderPrepare()
 
 	// 生成分发任务
-	LogicApp.Run()
+	app.LogicApp.Run()
 
 	serverCount++
 

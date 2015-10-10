@@ -8,7 +8,6 @@ import (
 	// "bufio"
 	// "os"
 	// "fmt"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -18,11 +17,9 @@ import (
 	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
-var LogicApp = app.New().Init(status.OFFLINE, 0, "")
-
+// 执行入口
 func Run() {
-	// 开启最大核心数运行
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	app.LogicApp.Init(status.OFFLINE, 0, "")
 
 	// //运行模式
 	// modeflag := flag.Int("运行模式", 0, "*运行模式: [0] 单机    [1] 服务端    [2] 客户端\r\n")
@@ -35,7 +32,7 @@ func Run() {
 
 	// 蜘蛛列表
 	var spiderlist string
-	for k, v := range LogicApp.GetSpiderLib() {
+	for k, v := range app.LogicApp.GetSpiderLib() {
 		spiderlist += "    {" + strconv.Itoa(k) + "} " + v.GetName() + "  " + v.GetDescription() + "\r\n"
 	}
 	spiderlist = "   【蜘蛛列表】   (选择多蜘蛛以\",\"间隔)\r\n\r\n" + spiderlist
@@ -43,12 +40,12 @@ func Run() {
 
 	// 输出方式
 	var outputlib string
-	for _, v := range LogicApp.GetOutputLib() {
+	for _, v := range app.LogicApp.GetOutputLib() {
 		outputlib += "{" + v + "} " + v + "    "
 	}
 	outputlib = strings.TrimRight(outputlib, "    ") + "\r\n"
 	outputlib = "   【输出方式】   " + outputlib
-	outputflag := flag.String("output", LogicApp.GetOutputLib()[0], outputlib)
+	outputflag := flag.String("output", app.LogicApp.GetOutputLib()[0], outputlib)
 
 	// 并发协程数
 	goroutineflag := flag.Uint("go", 20, "   【并发协程】   {1~99999}\r\n")
@@ -93,12 +90,12 @@ func Run() {
 	}
 	for _, idx := range strings.Split(*spiderflag, ",") {
 		i, _ := strconv.Atoi(idx)
-		sps = append(sps, LogicApp.GetSpiderLib()[i])
+		sps = append(sps, app.LogicApp.GetSpiderLib()[i])
 	}
 	// fmt.Println("输入配置", *outputflag, *spiderflag, *goroutineflag, *dockerflag, *pasetimeflag, *keywordflag, *maxpageflag)
 
 	// 配置运行参数
-	LogicApp.SetAppConf("ThreadNum", *goroutineflag).
+	app.LogicApp.SetAppConf("ThreadNum", *goroutineflag).
 		SetAppConf("DockerCap", *dockerflag).
 		SetAppConf("OutType", *outputflag).
 		SetAppConf("MaxPage", *maxpageflag).

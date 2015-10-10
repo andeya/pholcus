@@ -9,7 +9,7 @@ import (
 
 const (
 	// 软件版本号
-	APP_VERSION = "v0.7.1"
+	APP_VERSION = "v0.7.2"
 
 	// 软件作者
 	APP_AUTHOR = "henrylee2cn"

@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"github.com/henrylee2cn/pholcus/app/spider"
 	. "github.com/henrylee2cn/pholcus/gui/model"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
@@ -19,7 +18,7 @@ var (
 	ep              walk.ErrorPresenter
 	mode            *walk.GroupBox
 	host            *walk.Splitter
-	spiderMenu      = NewSpiderMenu(spider.Menu)
+	spiderMenu      *SpiderMenu
 )
 
 // GUI输入
@@ -79,12 +78,4 @@ var GuiOpt = struct {
 }
 
 // 输出选项
-var outputList = func() (o []declarative.RadioButton) {
-	// 设置默认选择
-	Input.AppConf.OutType = LogicApp.GetOutputLib()[0]
-	// 获取输出选项
-	for _, out := range LogicApp.GetOutputLib() {
-		o = append(o, declarative.RadioButton{Text: out, Value: out})
-	}
-	return
-}()
+var outputList []declarative.RadioButton
