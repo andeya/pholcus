@@ -141,10 +141,10 @@ func (self *Response) GetText() string {
 
 // GetBodyStr returns plain string crawled.
 func (self *Response) initText() {
+	defer self.Response.Body.Close()
 	// get converter to utf-8
 	self.text = changeCharsetEncodingAuto(self.Response.Body, self.Response.Header.Get("Content-Type"))
 	//fmt.Printf("utf-8 body %v \r\n", bodyStr)
-	defer self.Response.Body.Close()
 }
 
 // GetHtmlParser returns goquery object binded to target crawl result.
