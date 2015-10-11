@@ -37,7 +37,10 @@ func init() {
 				continue
 			}
 			// 添加工作表
-			sheet = file.AddSheet(util.ExcelSheetNameReplace(Name))
+			sheet, err = file.AddSheet(util.ExcelSheetNameReplace(Name))
+			if err != nil {
+				logs.Log.Error("%v", err)
+			}
 			// 写入表头
 			row = sheet.AddRow()
 			for _, title := range Rule.GetOutFeild() {

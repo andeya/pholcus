@@ -16,7 +16,8 @@ func main() {
 	// 初始化配置，不调用则为默认值
 	SetConf()
 
-	// 开始运行，参数："web"/"gui"/"cmd"
+	// 开始运行，参数："web"/"gui"/"cmd"，默认为web版
+	// 其中gui版仅支持Windows系统
 	exec.Run("web")
 }
 
