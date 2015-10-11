@@ -19,12 +19,47 @@ type Spider struct {
 	//以下为可选成员
 	Description  string
 	Pausetime    [2]uint // 暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
+	EnableCookie bool    //是否启用cookie记录
 	MaxPage      int     // UI传参而来，可在涉及采集页数控制时使用
 	Keyword      string  // 如需使用必须附初始值为常量USE
-	EnableCookie bool    //是否启用cookie记录
 
 	proxys    []string // 代理服务器列表 example='localhost:80'
 	currProxy int      //当前服务器索引
+}
+
+// 返回一个自身复制品
+func (self *Spider) Gost() *Spider {
+	gost := &Spider{}
+	gost.Id = self.Id
+	gost.Name = self.Name
+
+	gost.RuleTree = &RuleTree{
+		Root:  self.Root,
+		Trunk: make(map[string]*Rule, len(self.RuleTree.Trunk)),
+	}
+	for k, v := range self.RuleTree.Trunk {
+		nv := *v
+		gost.RuleTree.Trunk[k] = &nv
+		gost.RuleTree.Trunk[k].OutFeild = make([]string, len(self.RuleTree.Trunk[k].OutFeild))
+		for k2, v2 := range self.RuleTree.Trunk[k].OutFeild {
+			gost.RuleTree.Trunk[k].OutFeild[k2] = v2
+		}
+	}
+
+	gost.Description = self.Description
+	gost.Pausetime = self.Pausetime
+	gost.EnableCookie = self.EnableCookie
+	gost.MaxPage = self.MaxPage
+	gost.Keyword = self.Keyword
+
+	gost.proxys = make([]string, len(self.proxys))
+	for k, v := range self.proxys {
+		gost.proxys[k] = v
+	}
+
+	gost.currProxy = self.currProxy
+
+	return gost
 }
 
 // 生成并添加请求至队列
@@ -180,30 +215,6 @@ func (self *Spider) SetEnableCookie(enableCookie bool) {
 // 开始执行蜘蛛
 func (self *Spider) Start(sp *Spider) {
 	sp.RuleTree.Root(sp)
-}
-
-// 返回一个自身的复制品
-func (self *Spider) Gost() *Spider {
-	gost := &Spider{}
-	gost.Id = self.Id
-	gost.Name = self.Name
-	gost.Description = self.Description
-	gost.Pausetime = self.Pausetime
-	gost.EnableCookie = self.EnableCookie
-	gost.MaxPage = self.MaxPage
-	gost.Keyword = self.Keyword
-	gost.proxys = self.proxys
-	gost.RuleTree = &RuleTree{
-		Root:  self.Root,
-		Trunk: map[string]*Rule{},
-	}
-
-	for k, v := range self.RuleTree.Trunk {
-		nv := *v
-		gost.RuleTree.Trunk[k] = &nv
-		gost.RuleTree.Trunk[k].OutFeild = self.RuleTree.Trunk[k].OutFeild
-	}
-	return gost
 }
 
 // 根据响应流运行指定解析Rule，仅用于crawl模块，Rule中请使用Parse()代替
