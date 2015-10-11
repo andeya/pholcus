@@ -34,7 +34,7 @@ func New(id int) Crawler {
 	return &crawler{
 		id:         id,
 		Pipeline:   pipeline.New(),
-		Downloader: downloader.NewSurfer(),
+		Downloader: downloader.SurferDownloader,
 		srcManage:  [2]uint{},
 	}
 }
@@ -42,17 +42,12 @@ func New(id int) Crawler {
 func (self *crawler) Init(sp *spider.Spider) Crawler {
 	self.Pipeline.Init(sp)
 	self.Spider = sp
-	self.Downloader.SetUseCookie(self.Spider.UseCookie)
-	self.Downloader.SetPauseTime(time.Duration((self.Spider.Pausetime[1]+self.Spider.Pausetime[0])/2) * time.Millisecond)
-	self.Downloader.SetDeadline(self.Spider.Deadline)
-	self.Downloader.SetProxy(self.Spider.Proxy)
 	self.srcManage = [2]uint{}
 	return self
 }
 
 // 任务执行入口
 func (self *crawler) Start() {
-
 	// 预先开启输出管理协程
 	self.Pipeline.Start()
 

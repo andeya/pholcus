@@ -2,8 +2,8 @@ package common
 
 import (
 	"github.com/PuerkitoBio/goquery"
+	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	. "github.com/henrylee2cn/pholcus/app/spider"
-	// "github.com/henrylee2cn/surfer/errors"
 	"net/url"
 	"strings"
 )
@@ -110,28 +110,28 @@ func (self *Form) send(buttonName, buttonValue string) bool {
 	}
 
 	if self.Method() == "GET" {
-		self.spider.AddQueue(map[string]interface{}{
-			"Rule":   self.rule,
-			"Url":    self.Action() + "?" + values.Encode(),
-			"Method": self.Method(),
+		self.spider.AddQueue(&context.Request{
+			Rule:   self.rule,
+			Url:    self.Action() + "?" + values.Encode(),
+			Method: self.Method(),
 		})
 		return true
 	} else {
 		enctype, _ := self.selection.Attr("enctype")
 		if enctype == "multipart/form-data" {
-			self.spider.AddQueue(map[string]interface{}{
-				"Rule":     self.rule,
-				"Url":      self.Action(),
-				"PostData": values,
-				"Method":   "POST-M",
+			self.spider.AddQueue(&context.Request{
+				Rule:     self.rule,
+				Url:      self.Action(),
+				PostData: values,
+				Method:   "POST-M",
 			})
 			return true
 		}
-		self.spider.AddQueue(map[string]interface{}{
-			"Rule":     self.rule,
-			"Url":      self.Action(),
-			"PostData": values,
-			"Method":   self.Method(),
+		self.spider.AddQueue(&context.Request{
+			Rule:     self.rule,
+			Url:      self.Action(),
+			PostData: values,
+			Method:   self.Method(),
 		})
 		return true
 	}

@@ -1,41 +1,52 @@
 package context
 
 import (
-	"io/ioutil"
+	"github.com/henrylee2cn/pholcus/common/util"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
+)
 
-	"github.com/henrylee2cn/pholcus/common/simplejson"
-	"github.com/henrylee2cn/pholcus/logs"
+const (
+	DefaultDialTimeout = 10 * time.Second // 默认请求服务器超时
+	DefaultDeadline    = 30 * time.Second // 默认下载超时
+	DefaultTryTimes    = 3                // 默认最大下载次数
+	DefaultRetryPause  = 1 * time.Second  // 默认重新下载前停顿时长
 )
 
 // Request represents object waiting for being crawled.
 type Request struct {
-	Url     string
+	Spider string // *规则中无需手动指定
+
+	Url  string // *必须设置
+	Rule string // *必须设置
+
 	Referer string
-	Rule    string
-	Spider  string
 	// GET POST POST-M HEAD
 	Method string
 	// http header
 	Header http.Header
-	// http cookies
+	// enable http cookies
+	EnableCookie bool
+	// http cookies, when Cookies equal nil, the UserAgent auto changes
 	Cookies []*http.Cookie
 	// POST values
 	PostData url.Values
+	// timeout of dial
+	DialTimeout time.Duration
 	// timeout of connect
 	Deadline time.Duration
-	// how long pase when retry
-	PauseTime time.Duration
-
-	// Redirect function for downloader used in http.Client
-	// If CheckRedirect returns an error, the Client's Get
-	// method returns both the previous Response.
-	// If CheckRedirect returns error.New("normal"), the error process after client.Do will ignore the error.
-	CheckRedirect func(req *http.Request, via []*http.Request) error
+	// the max times of download
+	TryTimes int
+	// how long pause when retry
+	RetryPause time.Duration
+	// max redirect times
+	// when RedirectTimes equal 0, redirect times is ∞
+	// when RedirectTimes less than 0, redirect times is 0
+	RedirectTimes int
+	// the download ProxyHost
+	Proxy string
 
 	// 标记临时数据，通过temp[x]==nil判断是否有值存入，所以请存入带类型的值，如[]int(nil)等
 	Temp map[string]interface{}
@@ -47,141 +58,43 @@ type Request struct {
 	Duplicatable bool
 }
 
-// NewRequest returns initialized Request object.
-
-func NewRequest(param map[string]interface{}) *Request {
-	req := &Request{
-		Url:    param["Url"].(string),    //必填
-		Rule:   param["Rule"].(string),   //必填
-		Spider: param["Spider"].(string), //必填
+// 发送请求前的准备工作，设置一系列默认值
+// Request.Url与Request.Rule必须设置
+// Request.Spider无需手动设置(由系统自动设置)
+// Request.EnableCookie在Spider字段中统一设置，规则请求中指定的无效
+// 其他字段可选，其中Request.Deadline<0时不限制下载超时，Request.RedirectTimes<0时可禁止重定向跳转，Request.RedirectTimes==0时不限制重定向次数
+func (self *Request) Prepare() *Request {
+	if self.Method == "" {
+		self.Method = "GET"
 	}
 
-	// 若有必填
-	switch v := param["Referer"].(type) {
-	case string:
-		req.Referer = v
-	default:
-		req.Referer = ""
+	if self.DialTimeout == 0 {
+		self.DialTimeout = DefaultDialTimeout
 	}
 
-	switch v := param["Method"].(type) {
-	case string:
-		req.Method = v
-	default:
-		req.Method = "GET"
+	if self.Deadline < 0 {
+		self.Deadline = 0
+	} else if self.Deadline == 0 {
+		self.Deadline = DefaultDeadline
 	}
 
-	switch v := param["Cookies"].(type) {
-	case []*http.Cookie:
-		req.Cookies = v
-	default:
-		req.Cookies = nil
+	if self.TryTimes == 0 {
+		self.TryTimes = DefaultTryTimes
 	}
 
-	switch v := param["PostData"].(type) {
-	case url.Values:
-		req.PostData = v
-	default:
-		req.PostData = nil
+	if self.RetryPause == 0 {
+		self.RetryPause = DefaultRetryPause
 	}
 
-	switch v := param["Deadline"].(type) {
-	case time.Duration:
-		req.Deadline = v
-	default:
-		req.Deadline = 0
+	if self.Priority < 0 {
+		self.Priority = 0
 	}
-
-	switch v := param["PauseTime"].(type) {
-	case time.Duration:
-		req.PauseTime = v
-	default:
-		req.PauseTime = 0
-	}
-
-	switch v := param["CheckRedirect"].(type) {
-	case func(*http.Request, []*http.Request) error:
-		req.CheckRedirect = v
-	default:
-		req.CheckRedirect = nil
-	}
-
-	switch v := param["Temp"].(type) {
-	case map[string]interface{}:
-		req.Temp = v
-	default:
-		req.Temp = map[string]interface{}{}
-	}
-
-	switch v := param["Priority"].(type) {
-	case int:
-		if v > 0 {
-			req.Priority = v
-		} else {
-			req.Priority = 0
-		}
-	default:
-		req.Priority = 0
-	}
-
-	switch v := param["Duplicatable"].(type) {
-	case bool:
-		req.Duplicatable = v
-	default:
-		req.Duplicatable = false
-	}
-
-	switch v := param["Header"].(type) {
-	case string:
-		_, err := os.Stat(v)
-		if err == nil {
-			req.Header = readHeaderFromFile(v)
-		}
-	case http.Header:
-		req.Header = v
-	default:
-		req.Header = nil
-	}
-
-	return req
-}
-
-func readHeaderFromFile(headerFile string) http.Header {
-	//read file , parse the header and cookies
-	b, err := ioutil.ReadFile(headerFile)
-	if err != nil {
-		//make be:  share access error
-		logs.Log.Error("%v", err)
-		return nil
-	}
-	js, _ := simplejson.NewJson(b)
-	//constructed to header
-
-	h := make(http.Header)
-	h.Add("User-Agent", js.Get("User-Agent").MustString())
-	h.Add("Referer", js.Get("Referer").MustString())
-	h.Add("Cookie", js.Get("Cookie").MustString())
-	h.Add("Cache-Control", "max-age=0")
-	h.Add("Connection", "keep-alive")
-	return h
-}
-
-//point to a json file
-// xxx.json
-// {
-// 	"User-Agent":"curl/7.19.3 (i386-pc-win32) libcurl/7.19.3 OpenSSL/1.0.0d",
-// 	"Referer":"http://weixin.sogou.com/gzh?openid=oIWsFt6Sb7aZmuI98AU7IXlbjJps",
-// 	"Cookie":""
-// }
-
-func (self *Request) AddHeaderFile(headerFile string) *Request {
-	_, err := os.Stat(headerFile)
-	if err != nil {
-		return self
-	}
-	h := readHeaderFromFile(headerFile)
-	self.Header = h
 	return self
+}
+
+// 请求的序列化
+func (self *Request) Serialization() string {
+	return util.JsonString(self)
 }
 
 func (self *Request) GetUrl() string {
@@ -192,48 +105,81 @@ func (self *Request) GetMethod() string {
 	return strings.ToUpper(self.Method)
 }
 
-func (self *Request) SetUrl(url string) {
+func (self *Request) SetUrl(url string) *Request {
 	self.Url = url
+	return self
 }
 
 func (self *Request) GetReferer() string {
 	return self.Referer
 }
 
-func (self *Request) SetReferer(referer string) {
+func (self *Request) SetReferer(referer string) *Request {
 	self.Referer = referer
+	return self
 }
 
 func (self *Request) GetPostData() url.Values {
 	return self.PostData
 }
 
+func (self *Request) GetHeader() http.Header {
+	return self.Header
+}
+
+func (self *Request) GetEnableCookie() bool {
+	return self.EnableCookie
+}
+
+func (self *Request) SetEnableCookie(enableCookie bool) *Request {
+	self.EnableCookie = enableCookie
+	return self
+}
+
 func (self *Request) GetCookies() []*http.Cookie {
 	return self.Cookies
 }
 
-func (self *Request) GetHeader() http.Header {
-	return self.Header
+func (self *Request) GetDialTimeout() time.Duration {
+	return self.DialTimeout
 }
 
 func (self *Request) GetDeadline() time.Duration {
 	return self.Deadline
 }
 
-func (self *Request) GetPauseTime() time.Duration {
-	return self.PauseTime
+func (self *Request) GetTryTimes() int {
+	return self.TryTimes
+}
+
+func (self *Request) GetRetryPause() time.Duration {
+	return self.RetryPause
+}
+
+func (self *Request) GetProxy() string {
+	return self.Proxy
+}
+
+func (self *Request) GetRedirectTimes() int {
+	return self.RedirectTimes
 }
 
 func (self *Request) GetRuleName() string {
 	return self.Rule
 }
 
-func (self *Request) SetRuleName(ruleName string) {
+func (self *Request) SetRuleName(ruleName string) *Request {
 	self.Rule = ruleName
+	return self
 }
 
 func (self *Request) GetSpiderName() string {
 	return self.Spider
+}
+
+func (self *Request) SetSpiderName(spiderName string) *Request {
+	self.Spider = spiderName
+	return self
 }
 
 func (self *Request) GetDuplicatable() bool {
@@ -248,12 +194,14 @@ func (self *Request) GetTemps() map[string]interface{} {
 	return self.Temp
 }
 
-func (self *Request) SetTemp(key string, value interface{}) {
+func (self *Request) SetTemp(key string, value interface{}) *Request {
 	self.Temp[key] = value
+	return self
 }
 
-func (self *Request) SetAllTemps(temp map[string]interface{}) {
+func (self *Request) SetAllTemps(temp map[string]interface{}) *Request {
 	self.Temp = temp
+	return self
 }
 
 func (self *Request) GetSpiderId() (int, bool) {
@@ -261,18 +209,19 @@ func (self *Request) GetSpiderId() (int, bool) {
 	return value.(int), ok
 }
 
-func (self *Request) SetSpiderId(spiderId int) {
+func (self *Request) SetSpiderId(spiderId int) *Request {
+	if self.Temp == nil {
+		self.Temp = map[string]interface{}{}
+	}
 	self.Temp["__SPIDER_ID__"] = spiderId
+	return self
 }
 
 func (self *Request) GetPriority() int {
 	return self.Priority
 }
 
-func (self *Request) SetPriority(priority int) {
+func (self *Request) SetPriority(priority int) *Request {
 	self.Priority = priority
-}
-
-func (self *Request) GetRedirectFunc() func(req *http.Request, via []*http.Request) error {
-	return self.CheckRedirect
+	return self
 }
