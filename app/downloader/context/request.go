@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	DefaultDialTimeout = 10 * time.Second  // 默认请求服务器超时
-	DefaultDeadline    = 180 * time.Second // 默认下载超时
-	DefaultTryTimes    = 3                 // 默认最大下载次数
-	DefaultRetryPause  = 1 * time.Second   // 默认重新下载前停顿时长
+	DefaultDialTimeout = 2 * time.Minute // 默认请求服务器超时
+	DefaultConnTimeout = 2 * time.Minute // 默认下载超时
+	DefaultTryTimes    = 3               // 默认最大下载次数
+	DefaultRetryPause  = 2 * time.Second // 默认重新下载前停顿时长
 )
 
 // Request represents object waiting for being crawled.
@@ -33,10 +33,10 @@ type Request struct {
 	Cookies []*http.Cookie
 	// POST values
 	PostData url.Values
-	// timeout of dial
+	// dial tcp: i/o timeout
 	DialTimeout time.Duration
-	// timeout of connect
-	Deadline time.Duration
+	// WSARecv tcp: i/o timeout
+	ConnTimeout time.Duration
 	// the max times of download
 	TryTimes int
 	// how long pause when retry
@@ -65,7 +65,7 @@ type Request struct {
 // 以下字段有默认值，可不设置:
 // Request.Method默认为GET方法;
 // Request.DialTimeout默认为常量DefaultDialTimeout，小于0时不限制等待响应时长;
-// Request.Deadline默认为常量DefaultDeadline，小于0时不限制下载超时;
+// Request.ConnTimeout默认为常量DefaultConnTimeout，小于0时不限制下载超时;
 // Request.TryTimes默认为常量DefaultTryTimes;
 // Request.RedirectTimes默认不限制重定向次数，小于0时可禁止重定向跳转;
 // Request.RetryPause默认为常量DefaultRetryPause.
@@ -80,10 +80,10 @@ func (self *Request) Prepare() *Request {
 		self.DialTimeout = DefaultDialTimeout
 	}
 
-	if self.Deadline < 0 {
-		self.Deadline = 0
-	} else if self.Deadline == 0 {
-		self.Deadline = DefaultDeadline
+	if self.ConnTimeout < 0 {
+		self.ConnTimeout = 0
+	} else if self.ConnTimeout == 0 {
+		self.ConnTimeout = DefaultConnTimeout
 	}
 
 	if self.TryTimes <= 0 {
@@ -152,8 +152,8 @@ func (self *Request) GetDialTimeout() time.Duration {
 	return self.DialTimeout
 }
 
-func (self *Request) GetDeadline() time.Duration {
-	return self.Deadline
+func (self *Request) GetConnTimeout() time.Duration {
+	return self.ConnTimeout
 }
 
 func (self *Request) GetTryTimes() int {
