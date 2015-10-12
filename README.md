@@ -113,7 +113,6 @@ go build (可选参数： -ip 0.0.0.0 -port 9090)
 
 #### GUI版编译运行
 
-<span> 1. 编译</span>
 ```
 go install -ldflags="-H windowsgui"
 ```
@@ -121,10 +120,6 @@ go install -ldflags="-H windowsgui"
 ```
 go build -ldflags="-H windowsgui"
 ```
-
-<span> 2. 添加ICON</span>
-
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/addicon.jpg)
 
 > *<font size="2">(下图为GUI选择模式界面图例)*
 

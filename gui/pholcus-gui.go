@@ -73,7 +73,7 @@ func setWindow() {
 	app.LogicApp.SetLog(lv)
 	log.SetOutput(lv)
 	// 设置左上角图标
-	if icon, err := walk.NewIconFromResource("ICON"); err == nil {
+	if icon, err := walk.NewIconFromResourceId(3); err == nil {
 		mw.SetIcon(icon)
 	}
 }

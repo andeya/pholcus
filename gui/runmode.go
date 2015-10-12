@@ -85,7 +85,7 @@ func runmodeWindow() {
 		panic(err)
 	}
 
-	if icon, err := walk.NewIconFromResource("ICON"); err == nil {
+	if icon, err := walk.NewIconFromResourceId(3); err == nil {
 		mw.SetIcon(icon)
 	}
 	// 运行窗体程序

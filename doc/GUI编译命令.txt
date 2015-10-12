@@ -1,5 +1,5 @@
 #go get github.com/akavel/rsrc
-#rsrc -manifest test.manifest -o rsrc.syso
+#rsrc -manifest guimain.manifest -o rsrc.syso -ico ICON.ico
 
 #go build
 
