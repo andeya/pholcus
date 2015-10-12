@@ -3,9 +3,11 @@ package exec
 
 import (
 	"os"
+	"os/exec"
 	"os/signal"
 
 	"github.com/henrylee2cn/pholcus/app/scheduler"
+	"github.com/henrylee2cn/pholcus/config"
 
 	"github.com/henrylee2cn/pholcus/cmd" // cmd版
 	"github.com/henrylee2cn/pholcus/gui" // gui版
@@ -13,6 +15,7 @@ import (
 )
 
 func Run(which string) {
+	exec.Command("cmd.exe", "/c", "title", config.APP_FULL_NAME).Start()
 	defer func() {
 		scheduler.SaveDeduplication()
 	}()
