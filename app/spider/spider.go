@@ -38,12 +38,13 @@ func (self *Spider) Gost() *Spider {
 		Trunk: make(map[string]*Rule, len(self.RuleTree.Trunk)),
 	}
 	for k, v := range self.RuleTree.Trunk {
-		nv := *v
-		gost.RuleTree.Trunk[k] = &nv
-		gost.RuleTree.Trunk[k].OutFeild = make([]string, len(self.RuleTree.Trunk[k].OutFeild))
-		for k2, v2 := range self.RuleTree.Trunk[k].OutFeild {
-			gost.RuleTree.Trunk[k].OutFeild[k2] = v2
-		}
+		gost.RuleTree.Trunk[k] = new(Rule)
+
+		gost.RuleTree.Trunk[k].OutFeild = make([]string, len(v.OutFeild))
+		copy(gost.RuleTree.Trunk[k].OutFeild, v.OutFeild)
+
+		gost.RuleTree.Trunk[k].ParseFunc = v.ParseFunc
+		gost.RuleTree.Trunk[k].AidFunc = v.AidFunc
 	}
 
 	gost.Description = self.Description
@@ -53,9 +54,7 @@ func (self *Spider) Gost() *Spider {
 	gost.Keyword = self.Keyword
 
 	gost.proxys = make([]string, len(self.proxys))
-	for k, v := range self.proxys {
-		gost.proxys[k] = v
-	}
+	copy(gost.proxys, self.proxys)
 
 	gost.currProxy = self.currProxy
 
@@ -66,7 +65,13 @@ func (self *Spider) Gost() *Spider {
 // Request.Url与Request.Rule必须设置
 // Request.Spider无需手动设置(由系统自动设置)
 // Request.EnableCookie在Spider字段中统一设置，规则请求中指定的无效
-// 其他字段可选，其中Request.Deadline<0时不限制下载超时，Request.RedirectTimes<0时可禁止重定向跳转，Request.RedirectTimes==0时不限制重定向次数
+// 以下字段有默认值，可不设置:
+// Request.Method默认为GET方法;
+// Request.DialTimeout默认为常量DefaultDialTimeout，小于0时不限制等待响应时长;
+// Request.Deadline默认为常量DefaultDeadline，小于0时不限制下载超时;
+// Request.TryTimes默认为常量DefaultTryTimes;
+// Request.RedirectTimes默认不限制重定向次数，小于0时可禁止重定向跳转;
+// Request.RetryPause默认为常量DefaultRetryPause.
 func (self *Spider) AddQueue(req *context.Request) {
 	req.
 		SetSpiderName(self.Name).

@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	DefaultDialTimeout = 10 * time.Second // 默认请求服务器超时
-	DefaultDeadline    = 30 * time.Second // 默认下载超时
-	DefaultTryTimes    = 3                // 默认最大下载次数
-	DefaultRetryPause  = 1 * time.Second  // 默认重新下载前停顿时长
+	DefaultDialTimeout = 10 * time.Second  // 默认请求服务器超时
+	DefaultDeadline    = 180 * time.Second // 默认下载超时
+	DefaultTryTimes    = 3                 // 默认最大下载次数
+	DefaultRetryPause  = 1 * time.Second   // 默认重新下载前停顿时长
 )
 
 // Request represents object waiting for being crawled.
@@ -62,13 +62,21 @@ type Request struct {
 // Request.Url与Request.Rule必须设置
 // Request.Spider无需手动设置(由系统自动设置)
 // Request.EnableCookie在Spider字段中统一设置，规则请求中指定的无效
-// 其他字段可选，其中Request.Deadline<0时不限制下载超时，Request.RedirectTimes<0时可禁止重定向跳转，Request.RedirectTimes==0时不限制重定向次数
+// 以下字段有默认值，可不设置:
+// Request.Method默认为GET方法;
+// Request.DialTimeout默认为常量DefaultDialTimeout，小于0时不限制等待响应时长;
+// Request.Deadline默认为常量DefaultDeadline，小于0时不限制下载超时;
+// Request.TryTimes默认为常量DefaultTryTimes;
+// Request.RedirectTimes默认不限制重定向次数，小于0时可禁止重定向跳转;
+// Request.RetryPause默认为常量DefaultRetryPause.
 func (self *Request) Prepare() *Request {
 	if self.Method == "" {
 		self.Method = "GET"
 	}
 
-	if self.DialTimeout == 0 {
+	if self.DialTimeout < 0 {
+		self.DialTimeout = 0
+	} else if self.DialTimeout == 0 {
 		self.DialTimeout = DefaultDialTimeout
 	}
 
