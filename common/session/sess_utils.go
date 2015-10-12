@@ -26,10 +26,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	r "math/rand"
 	"strconv"
 	"time"
-
-	"github.com/astaxie/beego/utils"
 )
 
 func init() {
@@ -71,9 +70,36 @@ func DecodeGob(encoded []byte) (map[interface{}]interface{}, error) {
 func generateRandomKey(strength int) []byte {
 	k := make([]byte, strength)
 	if n, err := io.ReadFull(rand.Reader, k); n != strength || err != nil {
-		return utils.RandomCreateBytes(strength)
+		return randomCreateBytes(strength)
 	}
 	return k
+}
+
+// RandomCreateBytes generate random []byte by specify chars.
+func randomCreateBytes(n int, alphabets ...byte) []byte {
+	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	var bytes = make([]byte, n)
+	var randby bool
+	if num, err := rand.Read(bytes); num != n || err != nil {
+		r.Seed(time.Now().UnixNano())
+		randby = true
+	}
+	for i, b := range bytes {
+		if len(alphabets) == 0 {
+			if randby {
+				bytes[i] = alphanum[r.Intn(len(alphanum))]
+			} else {
+				bytes[i] = alphanum[b%byte(len(alphanum))]
+			}
+		} else {
+			if randby {
+				bytes[i] = alphabets[r.Intn(len(alphabets))]
+			} else {
+				bytes[i] = alphabets[b%byte(len(alphabets))]
+			}
+		}
+	}
+	return bytes
 }
 
 // Encryption -----------------------------------------------------------------
