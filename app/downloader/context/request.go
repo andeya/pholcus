@@ -86,11 +86,11 @@ func (self *Request) Prepare() *Request {
 		self.Deadline = DefaultDeadline
 	}
 
-	if self.TryTimes == 0 {
+	if self.TryTimes <= 0 {
 		self.TryTimes = DefaultTryTimes
 	}
 
-	if self.RetryPause == 0 {
+	if self.RetryPause <= 0 {
 		self.RetryPause = DefaultRetryPause
 	}
 
