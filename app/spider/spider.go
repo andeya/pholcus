@@ -3,11 +3,12 @@ package spider
 import (
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
+	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
 const (
-	USE = "\r\t\n" //若使用Keyword，则Keyword初始值必须为USE
+	USE = util.USE_KEYWORD //若使用Keyword，则Keyword初始值必须为USE
 )
 
 // 蜘蛛规则

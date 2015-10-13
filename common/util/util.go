@@ -154,6 +154,11 @@ func CheckErr(err error) {
 	}
 }
 
+const (
+	// Spider中启用Keyword的初始值
+	USE_KEYWORD = "\r\t\n"
+)
+
 // 将文件名非法字符替换为相似字符
 func FileNameReplace(fileName string) (rfn string) {
 	// 替换`""`为`“”`
@@ -183,6 +188,7 @@ func FileNameReplace(fileName string) (rfn string) {
 	rfn = strings.Replace(rfn, `/`, `／`, -1)
 	rfn = strings.Replace(rfn, `|`, `∣`, -1)
 	rfn = strings.Replace(rfn, `\`, `╲`, -1)
+	rfn = strings.Replace(rfn, USE_KEYWORD, ``, -1)
 	return
 }
 
@@ -199,6 +205,8 @@ func ExcelSheetNameReplace(fileName string) (rfn string) {
 	rfn = strings.Replace(rfn, `╲`, `_`, -1)
 	rfn = strings.Replace(rfn, `]`, `_`, -1)
 	rfn = strings.Replace(rfn, `[`, `_`, -1)
+	rfn = strings.Replace(rfn, USE_KEYWORD, ``, -1)
+
 	return
 }
 
