@@ -2,14 +2,13 @@ package common
 
 import (
 	"github.com/henrylee2cn/pholcus/logs"
+	"sort"
 	"time"
 )
 
 type RSS struct {
-	// RSS爬虫重新访问的５个级别（分钟）
+	// RSS爬虫重新访问的时间(min)级别，由小到大排序
 	Level []float64
-	//RSS源的权重,<len(Level),起到调整更新时间级别的规则。如当一个RSS在Level[5]，但是它的Rank是3，那么更新时间调整为Level[5-3] = Level[2] = 180分钟。
-	// Rank map[string]float64
 	// RSS源对应的间歇采集时间T，取整就得到Level
 	T map[string]float64
 	// RSS源
@@ -19,12 +18,15 @@ type RSS struct {
 }
 
 func NewRSS(src map[string]string, level []float64) *RSS {
+	if len(level) == 0 {
+		level = []float64{60 * 24}
+	}
+	sort.Float64s(level)
 	rss := &RSS{
 		Level: level,
-		// Level: []float64{20, 60, 180, 360, 720, 1400},
-		T:    make(map[string]float64),
-		Src:  src,
-		Flag: make(map[string]chan bool),
+		T:     make(map[string]float64),
+		Src:   src,
+		Flag:  make(map[string]chan bool),
 	}
 	for k, _ := range src {
 		rss.T[k] = rss.Level[0]
@@ -60,7 +62,7 @@ func (self *RSS) Wait(src string) {
 			k--
 		}
 		logs.Log.Critical("************************ ……当前RSS <%s> 的更新周期为 %v 分钟……************************", src, self.Level[k])
-		time.Sleep(time.Minute * time.Duration(self.Level[k]))
+		time.Sleep(time.Duration(self.Level[k]) * time.Minute)
 		break
 	}
 	close(self.Flag[src])
