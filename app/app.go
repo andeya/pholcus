@@ -131,7 +131,6 @@ func New() App {
 		Scheduler: scheduler.Sdl,
 		status:    status.STOP,
 	}
-	app.AppConf.Mode = status.UNSET
 	return app
 }
 

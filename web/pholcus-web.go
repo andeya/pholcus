@@ -11,6 +11,7 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/logs"
+	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
 var (
@@ -44,7 +45,8 @@ func Run() {
 }
 
 func appInit() {
-	app.LogicApp = app.New().SetLog(Lsc).AsyncLog(true)
+	app.LogicApp = app.New().SetLog(Lsc).AsyncLog(true).SetAppConf("Mode", status.UNSET)
+
 	spiderMenu = func() (spmenu []map[string]string) {
 		// 获取蜘蛛家族
 		for _, sp := range app.LogicApp.GetSpiderLib() {
