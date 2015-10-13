@@ -9,13 +9,14 @@ import (
 	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/app/spider"
 	. "github.com/henrylee2cn/pholcus/gui/model"
+	"github.com/henrylee2cn/pholcus/runtime/status"
 	"github.com/lxn/walk"
 	"github.com/lxn/walk/declarative"
 )
 
 // 执行入口
 func Run() {
-	app.LogicApp.AsyncLog(true)
+	app.LogicApp.AsyncLog(true).SetAppConf("Mode", status.OFFLINE)
 
 	outputList = func() (o []declarative.RadioButton) {
 		// 设置默认选择

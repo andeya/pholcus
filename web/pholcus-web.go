@@ -45,7 +45,7 @@ func Run() {
 }
 
 func appInit() {
-	app.LogicApp = app.New().SetLog(Lsc).AsyncLog(true).SetAppConf("Mode", status.UNSET)
+	app.LogicApp.SetLog(Lsc).AsyncLog(true).SetAppConf("Mode", status.UNSET)
 
 	spiderMenu = func() (spmenu []map[string]string) {
 		// 获取蜘蛛家族

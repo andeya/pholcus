@@ -75,7 +75,6 @@ type MysqlOutput struct {
 func init() {
 	// 初始化主要的运行时参数
 	cache.Task = &cache.AppConf{
-		Mode:                 status.OFFLINE,
 		Port:                 2015,
 		Master:               "127.0.0.1",
 		ThreadNum:            20,

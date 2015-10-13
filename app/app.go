@@ -126,10 +126,14 @@ type Logic struct {
 
 func New() App {
 	app := &Logic{
-		AppConf:   cache.Task,
-		Traversal: spider.Menu,
-		Scheduler: scheduler.Sdl,
-		status:    status.STOP,
+		AppConf:     cache.Task,
+		Traversal:   spider.Menu,
+		Scheduler:   scheduler.Sdl,
+		status:      status.STOP,
+		Teleport:    teleport.New(),
+		TaskJar:     distribute.NewTaskJar(),
+		SpiderQueue: crawl.NewSpiderQueue(),
+		CrawlPool:   crawl.NewCrawlPool(),
 	}
 	return app
 }
