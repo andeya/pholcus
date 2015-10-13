@@ -1,4 +1,4 @@
-// 通用资源池，动态增加池成员。
+// 通用对象池，动态增加对象。
 package pool
 
 import (
@@ -7,15 +7,15 @@ import (
 	"time"
 )
 
-// 资源池
+// 对象池
 type Pool struct {
 	Cap  int
 	Src  map[Fish]bool // Fish须为指针类型
-	Fish               // 池成员接口
+	Fish               // 对象接口
 	sync.Mutex
 }
 
-// 新建一个资源池，默认容量为1024
+// 新建一个对象池，默认容量为1024
 func NewPool(fish Fish, size ...int) *Pool {
 	if len(size) == 0 {
 		size = append(size, 1024)
@@ -27,32 +27,30 @@ func NewPool(fish Fish, size ...int) *Pool {
 	}
 }
 
-// 池成员接口
+// 对象接口
 type Fish interface {
-	// 返回指针类型的资源实例
+	// 返回指针类型的对象实例
 	New() Fish
-	// 自毁方法，在被资源池删除时调用
+	// 自毁方法，在被对象池删除时调用
 	Close()
-	// 释放至资源池之前，清理重置自身
+	// 释放至对象池之前，清理重置自身
 	Clean()
-	// 判断资源是否可用
+	// 判断对象是否可用
 	Usable() bool
 }
 
-// 默认池成员，自定义池成员可包含该结构体
+// 默认对象，自定义对象可包含该结构体
 type Default struct{}
 
 func (Default) New() Fish {
-	log.Println("池成员无效，尚未自定义 New()Fish 方法！")
+	log.Println("对象无效，尚未自定义 New()Fish 方法！")
 	return nil
 }
-func (Default) Close() {}
-func (Default) Clean() {}
-func (Default) Usable() bool {
-	return true
-}
+func (Default) Close()       {}
+func (Default) Clean()       {}
+func (Default) Usable() bool { return true }
 
-// 并发安全地获取一个资源
+// 并发安全地获取一个对象
 func (self *Pool) GetOne() Fish {
 	self.Mutex.Lock()
 	defer self.Mutex.Unlock()
@@ -85,7 +83,7 @@ func (self *Pool) Free(m ...Fish) {
 	}
 }
 
-// 关闭并删除指定资源
+// 关闭并删除指定对象
 func (self *Pool) Remove(m ...Fish) {
 	for _, c := range m {
 		c.Close()
@@ -93,7 +91,7 @@ func (self *Pool) Remove(m ...Fish) {
 	}
 }
 
-// 重置资源池
+// 重置对象池
 func (self *Pool) Reset() {
 	for k, _ := range self.Src {
 		k.Close()
@@ -101,9 +99,7 @@ func (self *Pool) Reset() {
 	}
 }
 
-// 根据情况自动动态增加资源
+// 根据情况自动动态增加对象
 func (self *Pool) increment() {
-	if len(self.Src) < self.Cap {
-		self.Src[self.Fish.New()] = false
-	}
+	self.Src[self.Fish.New()] = false
 }

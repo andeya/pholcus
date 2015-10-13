@@ -34,6 +34,7 @@ var (
 		DefaultDB: "pholcus",
 		DBClass:   make(map[string]string),
 		TableFmt:  "d",
+		MaxConns:  1024,
 	}
 
 	// mysql数据库输出配置
@@ -42,6 +43,7 @@ var (
 		DefaultDB: "pholcus",
 		User:      "root",
 		Password:  "",
+		MaxConns:  1024,
 	}
 )
 
@@ -58,6 +60,8 @@ type MgoOutput struct {
 	// h: 精确到小时 (格式 2015-08-28-09)
 	// d: 精确到天 (格式 2015-08-28)
 	TableFmt string
+	// 连接池容量
+	MaxConns int
 }
 
 // mysql数据库输出配置
@@ -70,6 +74,8 @@ type MysqlOutput struct {
 	User string
 	// 密码
 	Password string
+	// 连接池容量
+	MaxConns int
 }
 
 func init() {

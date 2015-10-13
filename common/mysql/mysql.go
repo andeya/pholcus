@@ -10,7 +10,7 @@ import (
 )
 
 /************************ Mysql 输出 ***************************/
-var MysqlPool = pool.NewPool(new(MysqlFish), 1024)
+var MysqlPool = pool.NewPool(new(MysqlFish), config.MYSQL_OUTPUT.MaxConns)
 
 type MysqlFish struct {
 	*sql.DB

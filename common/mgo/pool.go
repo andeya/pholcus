@@ -13,7 +13,7 @@ type MgoFish struct {
 	*mgo.Session
 }
 
-var MgoPool = pool.NewPool(new(MgoFish), 1024)
+var MgoPool = pool.NewPool(new(MgoFish), config.MGO_OUTPUT.MaxConns)
 
 // 新建数据库连接
 func (*MgoFish) New() pool.Fish {

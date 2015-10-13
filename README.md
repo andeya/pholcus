@@ -85,6 +85,8 @@ func SetConf() {
     // h: 精确到小时 (格式 2015-08-28-09)
     // d: 精确到天 (格式 2015-08-28)
     config.MGO_OUTPUT.TableFmt = "d"
+    //mysql连接池容量
+    config.MGO_OUTPUT.MaxConns = 1024
 
     //mysql服务器地址
     config.MYSQL_OUTPUT.Host = "127.0.0.1:3306"
@@ -94,6 +96,8 @@ func SetConf() {
     config.MYSQL_OUTPUT.User = "root"
     //mysql密码
     config.MYSQL_OUTPUT.Password = ""
+    //mysql连接池容量
+    config.MYSQL_OUTPUT.MaxConns = 1024
 }
 ```
 &nbsp;
