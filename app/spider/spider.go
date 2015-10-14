@@ -28,40 +28,6 @@ type Spider struct {
 	currProxy int      //当前服务器索引
 }
 
-// 返回一个自身复制品
-func (self *Spider) Gost() *Spider {
-	gost := &Spider{}
-	gost.Id = self.Id
-	gost.Name = self.Name
-
-	gost.RuleTree = &RuleTree{
-		Root:  self.Root,
-		Trunk: make(map[string]*Rule, len(self.RuleTree.Trunk)),
-	}
-	for k, v := range self.RuleTree.Trunk {
-		gost.RuleTree.Trunk[k] = new(Rule)
-
-		gost.RuleTree.Trunk[k].OutFeild = make([]string, len(v.OutFeild))
-		copy(gost.RuleTree.Trunk[k].OutFeild, v.OutFeild)
-
-		gost.RuleTree.Trunk[k].ParseFunc = v.ParseFunc
-		gost.RuleTree.Trunk[k].AidFunc = v.AidFunc
-	}
-
-	gost.Description = self.Description
-	gost.Pausetime = self.Pausetime
-	gost.EnableCookie = self.EnableCookie
-	gost.MaxPage = self.MaxPage
-	gost.Keyword = self.Keyword
-
-	gost.proxys = make([]string, len(self.proxys))
-	copy(gost.proxys, self.proxys)
-
-	gost.currProxy = self.currProxy
-
-	return gost
-}
-
 // 生成并添加请求至队列
 // Request.Url与Request.Rule必须设置
 // Request.Spider无需手动设置(由系统自动设置)
@@ -90,53 +56,78 @@ func (self *Spider) BulkAddQueue(urls []string, req *context.Request) {
 	}
 }
 
-// 调用指定Rule下解析函数ParseFunc()，解析响应流
-func (self *Spider) Parse(ruleName string, resp *context.Response) {
+// 输出文本结果
+// item允许的类型为map[int]interface{}或map[string]interface{}
+func (self *Spider) Output(ruleName string, resp *context.Response, item interface{}) {
 	resp.SetRuleName(ruleName)
-	self.ExecParse(resp)
+	switch item2 := item.(type) {
+	case map[int]interface{}:
+		resp.AddItem(self.CreatItem(ruleName, item2))
+	case map[string]interface{}:
+		resp.AddItem(item2)
+	}
+}
+
+// 输出文件结果
+func (self *Spider) FileOutput(resp *context.Response, name ...string) {
+	resp.AddFile(name...)
+}
+
+// 生成文本结果
+func (self *Spider) CreatItem(ruleName string, item map[int]interface{}) map[string]interface{} {
+	var item2 = make(map[string]interface{}, len(item))
+	for k, v := range item {
+		item2[self.IndexOutFeild(ruleName, k)] = v
+	}
+	return item2
+}
+
+// 添加自身到蜘蛛菜单
+func (self *Spider) Register() {
+	Menu.Add(self)
 }
 
 // 调用指定Rule下辅助函数AidFunc()
 func (self *Spider) Aid(ruleName string, aid map[string]interface{}) interface{} {
-	rule := self.RuleTree.Trunk[ruleName]
-	return rule.AidFunc(self, aid)
+	return self.GetRule(ruleName).AidFunc(self, aid)
 }
 
-// 获取Rule采集语义字段
-// respOrRuleName接受*Response或string两种类型，为*Response类型时指定当前Rule
-func (self *Spider) OutFeild(respOrRuleName interface{}, index int) string {
-	var ruleName string
-	switch rn := respOrRuleName.(type) {
-	case *context.Response:
-		ruleName = rn.GetRuleName()
-	case string:
-		ruleName = rn
-	default:
-		logs.Log.Error("error：参数 %v 的类型应为*Response或string！", respOrRuleName)
-		return ""
-	}
-	return self.RuleTree.Trunk[ruleName].OutFeild[index]
-}
-
-// 为指定Rule动态追加采集语义字段，速度不如静态字段快
-// respOrRuleName接受*Response或string两种类型，为*Response类型时指定当前Rule
-func (self *Spider) AddOutFeild(respOrRuleName interface{}, feild string) {
-	var ruleName string
-	switch rn := respOrRuleName.(type) {
-	case *context.Response:
-		ruleName = rn.GetRuleName()
-	case string:
-		ruleName = rn
-	default:
-		logs.Log.Error("error：参数 %v 的类型应为*Response或string！", respOrRuleName)
+// 指定ruleName时，调用相应ParseFunc()解析响应流
+// 未指定ruleName时或ruleName为空时，调用Root()
+func (self *Spider) Parse(resp *context.Response, ruleName ...string) {
+	if len(ruleName) == 0 || ruleName[0] == "" {
+		if resp != nil {
+			resp.SetRuleName("")
+		}
+		self.RuleTree.Root(self, resp)
 		return
 	}
-	for _, v := range self.RuleTree.Trunk[ruleName].OutFeild {
+
+	resp.SetRuleName(ruleName[0])
+	self.GetRule(ruleName[0]).ParseFunc(self, resp)
+}
+
+// 返回采集语义字段
+func (self *Spider) IndexOutFeild(ruleName string, index int) string {
+	rule := self.GetRule(ruleName)
+	if rule == nil {
+		return "？？？"
+	}
+	if len(rule.OutFeild)-1 < index {
+		logs.Log.Error("蜘蛛规则 %s - %s 不存在索引为 %v 的输出字段", self.GetName(), ruleName, index)
+		return "？？？"
+	}
+	return rule.OutFeild[index]
+}
+
+// 为指定Rule动态追加采集语义字段
+func (self *Spider) AddOutFeild(ruleName string, feild string) {
+	for _, v := range self.GetRule(ruleName).OutFeild {
 		if v == feild {
 			return
 		}
 	}
-	self.RuleTree.Trunk[ruleName].AddOutFeild(feild)
+	self.GetRule(ruleName).AddOutFeild(feild)
 }
 
 // 设置代理服务器列表
@@ -205,6 +196,15 @@ func (self *Spider) GetRules() map[string]*Rule {
 	return self.RuleTree.Trunk
 }
 
+// 返回指定规则
+func (self *Spider) GetRule(ruleName string) *Rule {
+	rule, ok := self.RuleTree.Trunk[ruleName]
+	if !ok {
+		logs.Log.Error("蜘蛛 %s 不存在规则名 %s", self.GetName(), ruleName)
+	}
+	return rule
+}
+
 // 自定义暂停时间 pause[0]~(pause[0]+pause[1])，优先级高于外部传参
 // 当且仅当runtime[0]为true时可覆盖现有值
 func (self *Spider) SetPausetime(pause [2]uint, runtime ...bool) {
@@ -220,30 +220,54 @@ func (self *Spider) SetEnableCookie(enableCookie bool) {
 
 // 开始执行蜘蛛
 func (self *Spider) Start(sp *Spider) {
-	sp.RuleTree.Root(sp)
+	sp.RuleTree.Root(sp, nil)
 }
 
-// 根据响应流运行指定解析Rule，仅用于crawl模块，Rule中请使用Parse()代替
-func (self *Spider) ExecParse(resp *context.Response) {
-	self.RuleTree.Trunk[resp.GetRuleName()].ParseFunc(self, resp)
-}
+// 返回一个自身复制品
+func (self *Spider) Gost() *Spider {
+	gost := &Spider{}
+	gost.Id = self.Id
+	gost.Name = self.Name
 
-// 添加自身到蜘蛛菜单
-func (self *Spider) Register() {
-	Menu.Add(self)
+	gost.RuleTree = &RuleTree{
+		Root:  self.Root,
+		Trunk: make(map[string]*Rule, len(self.RuleTree.Trunk)),
+	}
+	for k, v := range self.RuleTree.Trunk {
+		gost.RuleTree.Trunk[k] = new(Rule)
+
+		gost.RuleTree.Trunk[k].OutFeild = make([]string, len(v.OutFeild))
+		copy(gost.RuleTree.Trunk[k].OutFeild, v.OutFeild)
+
+		gost.RuleTree.Trunk[k].ParseFunc = v.ParseFunc
+		gost.RuleTree.Trunk[k].AidFunc = v.AidFunc
+	}
+
+	gost.Description = self.Description
+	gost.Pausetime = self.Pausetime
+	gost.EnableCookie = self.EnableCookie
+	gost.MaxPage = self.MaxPage
+	gost.Keyword = self.Keyword
+
+	gost.proxys = make([]string, len(self.proxys))
+	copy(gost.proxys, self.proxys)
+
+	gost.currProxy = self.currProxy
+
+	return gost
 }
 
 //采集规则树
 type RuleTree struct {
 	// 执行入口（树根）
-	Root func(*Spider)
+	Root func(*Spider, *context.Response)
 	// 执行解析过程（树干）
 	Trunk map[string]*Rule
 }
 
 // 采集规则单元
 type Rule struct {
-	//输出字段，注意：有无该字段与是否输出须保持一致
+	//输出字段
 	OutFeild []string
 	// 内容解析函数
 	ParseFunc func(*Spider, *context.Response)

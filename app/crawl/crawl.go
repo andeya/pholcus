@@ -120,7 +120,7 @@ func (self *crawler) Process(req *context.Request) {
 
 	// logs.Log.Debug("**************断点 3 ***********")
 	// 过程处理，提炼数据
-	self.Spider.ExecParse(resp)
+	self.Spider.Parse(resp, resp.GetRuleName())
 	// logs.Log.Debug("**************断点 5 ***********")
 	// 该条请求文本结果存入pipeline
 	for _, data := range resp.GetItems() {
