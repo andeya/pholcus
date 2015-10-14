@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/logs"
 	"io"
 	"os"
@@ -18,7 +19,7 @@ func (self *Collector) SaveFile() {
 			self.setFileSum(1)
 
 			// 路径： file/"RuleName"/"time"/"Name"
-			dir := `result/file/` + self.Spider.GetName() + `/` + file["RuleName"].(string) + `/` + self.startTime.Format("2006年01月02日 15时04分05秒") + `/`
+			dir := `result/file/` + self.Spider.GetName() + `/` + util.FileNameReplace(file["RuleName"].(string)) + `/` + self.startTime.Format("2006年01月02日 15时04分05秒") + `/`
 
 			// 创建/打开目录
 			d, err := os.Stat(dir)
@@ -29,14 +30,15 @@ func (self *Collector) SaveFile() {
 			}
 
 			// 创建文件
-			f, _ := os.Create(dir + file["Name"].(string))
+			fileName := dir + util.FileNameReplace(file["Name"].(string))
+			f, _ := os.Create(fileName)
 			io.Copy(f, file["Body"].(io.ReadCloser))
 			f.Close()
 			file["Body"].(io.ReadCloser).Close()
 
 			// 打印报告
 			logs.Log.Informational(" * ")
-			logs.Log.Notice(" *     [任务：%v | 关键词：%v]   成功下载文件： %v \n", self.Spider.GetName(), self.Spider.GetKeyword(), dir+file["Name"].(string))
+			logs.Log.Notice(" *     [任务：%v | 关键词：%v]   成功下载文件： %v \n", self.Spider.GetName(), self.Spider.GetKeyword(), fileName)
 			logs.Log.Informational(" * ")
 
 			self.outCount[3]++
