@@ -5,15 +5,15 @@ import (
 	"time"
 )
 
-type Timer map[string][3]int //map["src_1"][3]int{"24h","m","s"}
+type DailyTimer map[string][3]int //map["src_1"][3]int{"24h","m","s"}
 
-func (self Timer) Wait(src string) {
+func (self DailyTimer) Wait(src string) {
 	tdl := self.deadline(src)
 	logs.Log.Critical("************************ ……当前src<%s> 下次定时更新时间为 %v ……************************", src, tdl.Format("2006-01-02 15:04:05"))
 	time.Sleep(tdl.Sub(time.Now()))
 }
 
-func (self Timer) deadline(src string) time.Time {
+func (self DailyTimer) deadline(src string) time.Time {
 	t := time.Now()
 	if t.Hour() > self[src][0] {
 		t = t.Add(24 * time.Hour)
