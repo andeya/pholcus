@@ -11,7 +11,7 @@ func init() {
 	Output["mgo"] = func(self *Collector, dataIndex int) {
 		var err error
 		//连接数据库
-		mgoSession := mgo.MgoPool.GetOne().(*mgo.MgoFish)
+		mgoSession := mgo.MgoPool.GetOne().(*mgo.MgoSrc)
 		defer mgo.MgoPool.Free(mgoSession)
 
 		dbname, tabname := dbOrTabName(self)

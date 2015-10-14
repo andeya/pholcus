@@ -9,7 +9,7 @@ import (
 
 func init() {
 	Output["mysql"] = func(self *Collector, dataIndex int) {
-		db := mysql.MysqlPool.GetOne().(*mysql.MysqlFish)
+		db := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
 		defer mysql.MysqlPool.Free(db)
 
 		var newMysql = new(mysql.MyTable)

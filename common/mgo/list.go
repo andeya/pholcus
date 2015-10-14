@@ -9,7 +9,7 @@ type List struct {
 }
 
 func (self *List) Exec() (interface{}, error) {
-	s := MgoPool.GetOne().(*MgoFish)
+	s := MgoPool.GetOne().(*MgoSrc)
 	defer MgoPool.Free(s)
 	var err error
 	var dbs []string

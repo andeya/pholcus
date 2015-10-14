@@ -10,34 +10,34 @@ import (
 )
 
 /************************ Mysql 输出 ***************************/
-var MysqlPool = pool.NewPool(new(MysqlFish), config.MYSQL_OUTPUT.MaxConns)
+var MysqlPool = pool.NewPool(new(MysqlSrc), config.MYSQL_OUTPUT.MaxConns)
 
-type MysqlFish struct {
+type MysqlSrc struct {
 	*sql.DB
 }
 
-func (self *MysqlFish) New() pool.Fish {
+func (self *MysqlSrc) New() pool.Src {
 	db, err := sql.Open("mysql", config.MYSQL_OUTPUT.User+":"+config.MYSQL_OUTPUT.Password+"@tcp("+config.MYSQL_OUTPUT.Host+")/"+config.MYSQL_OUTPUT.DefaultDB+"?charset=utf8")
 	if err != nil {
 		panic(err)
 	}
-	return &MysqlFish{DB: db}
+	return &MysqlSrc{DB: db}
 }
 
-// 判断连接有效性
-func (self *MysqlFish) Usable() bool {
+// 判断连接是否失效
+func (self *MysqlSrc) Expired() bool {
 	if self.DB.Ping() != nil {
-		return false
+		return true
 	}
-	return true
+	return false
 }
 
 // 自毁方法，在被资源池删除时调用
-func (self *MysqlFish) Close() {
+func (self *MysqlSrc) Close() {
 	self.DB.Close()
 }
 
-func (*MysqlFish) Clean() {}
+func (*MysqlSrc) Clean() {}
 
 //sql转换结构体
 type MyTable struct {

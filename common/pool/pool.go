@@ -1,73 +1,66 @@
-// 通用对象池，动态增加对象。
+// 通用资源池，动态增加资源。
 package pool
 
 import (
-	"log"
 	"sync"
 	"time"
 )
 
-// 对象池
+// 资源接口
+type Src interface {
+	// 返回指针类型的资源实例
+	New() Src
+	// 自毁方法，在被资源池删除时调用
+	Close()
+	// 释放至资源池之前，清理重置自身
+	Clean()
+	// 判断资源是否已过期
+	Expired() bool
+}
+
+// 资源池
 type Pool struct {
-	Cap  int
-	Src  map[Fish]bool // Fish须为指针类型
-	Fish               // 对象接口
+	Src                    // 资源接口
+	srcMap   map[Src]bool  // Src须为指针类型
+	capacity int           // 资源池容量
+	gctime   time.Duration // 回收监测间隔
 	sync.Mutex
 }
 
-// 新建一个对象池，默认容量为1024
-func NewPool(fish Fish, size ...int) *Pool {
-	if len(size) == 0 {
-		size = append(size, 1024)
+// 新建一个资源池
+func NewPool(src Src, size int, gctime ...time.Duration) *Pool {
+	if len(gctime) == 0 {
+		gctime = append(gctime, 60e9)
 	}
-	return &Pool{
-		Cap:  size[0],
-		Src:  make(map[Fish]bool),
-		Fish: fish,
+	pool := &Pool{
+		Src:      src,
+		srcMap:   make(map[Src]bool),
+		capacity: size,
+		gctime:   gctime[0],
 	}
+	go pool.gc()
+
+	return pool
 }
 
-// 对象接口
-type Fish interface {
-	// 返回指针类型的对象实例
-	New() Fish
-	// 自毁方法，在被对象池删除时调用
-	Close()
-	// 释放至对象池之前，清理重置自身
-	Clean()
-	// 判断对象是否可用
-	Usable() bool
-}
-
-// 默认对象，自定义对象可包含该结构体
-type Default struct{}
-
-func (Default) New() Fish {
-	log.Println("对象无效，尚未自定义 New()Fish 方法！")
-	return nil
-}
-func (Default) Close()       {}
-func (Default) Clean()       {}
-func (Default) Usable() bool { return true }
-
-// 并发安全地获取一个对象
-func (self *Pool) GetOne() Fish {
+// 并发安全地获取一个资源
+func (self *Pool) GetOne() Src {
 	self.Mutex.Lock()
 	defer self.Mutex.Unlock()
 
 	for {
-		for k, v := range self.Src {
+		for k, v := range self.srcMap {
 			if v {
 				continue
 			}
-			if !k.Usable() {
+			if k.Expired() {
 				self.Remove(k)
 				continue
 			}
-			self.Src[k] = true
+			self.use(k)
 			return k
 		}
-		if len(self.Src) <= self.Cap {
+		if len(self.srcMap) <= self.capacity {
 			self.increment()
 		} else {
 			time.Sleep(5e8)
@@ -76,30 +69,48 @@ func (self *Pool) GetOne() Fish {
 	return nil
 }
 
-func (self *Pool) Free(m ...Fish) {
+func (self *Pool) Free(m ...Src) {
 	for i, count := 0, len(m); i < count; i++ {
 		m[i].Clean()
-		self.Src[m[i]] = false
+		self.srcMap[m[i]] = false
 	}
 }
 
-// 关闭并删除指定对象
-func (self *Pool) Remove(m ...Fish) {
+// 关闭并删除指定资源
+func (self *Pool) Remove(m ...Src) {
 	for _, c := range m {
 		c.Close()
-		delete(self.Src, c)
+		delete(self.srcMap, c)
 	}
 }
 
-// 重置对象池
+// 重置资源池
 func (self *Pool) Reset() {
-	for k, _ := range self.Src {
+	for k, _ := range self.srcMap {
 		k.Close()
-		delete(self.Src, k)
+		delete(self.srcMap, k)
 	}
 }
 
-// 根据情况自动动态增加对象
+// 根据情况自动动态增加资源
 func (self *Pool) increment() {
-	self.Src[self.Fish.New()] = false
+	self.srcMap[self.Src.New()] = false
+}
+
+func (self *Pool) use(m Src) {
+	self.srcMap[m] = true
+}
+
+// 空闲资源回收
+func (self *Pool) gc() {
+	for {
+		self.Mutex.Lock()
+		for k, v := range self.srcMap {
+			if !v {
+				self.Remove(k)
+			}
+		}
+		self.Mutex.Unlock()
+		time.Sleep(self.gctime)
+	}
 }
