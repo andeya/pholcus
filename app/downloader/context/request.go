@@ -66,7 +66,7 @@ type Request struct {
 // Request.Method默认为GET方法;
 // Request.DialTimeout默认为常量DefaultDialTimeout，小于0时不限制等待响应时长;
 // Request.ConnTimeout默认为常量DefaultConnTimeout，小于0时不限制下载超时;
-// Request.TryTimes默认为常量DefaultTryTimes;
+// Request.TryTimes默认为常量DefaultTryTimes，小于0时不限制失败重载次数;
 // Request.RedirectTimes默认不限制重定向次数，小于0时可禁止重定向跳转;
 // Request.RetryPause默认为常量DefaultRetryPause.
 func (self *Request) Prepare() *Request {
@@ -86,7 +86,7 @@ func (self *Request) Prepare() *Request {
 		self.ConnTimeout = DefaultConnTimeout
 	}
 
-	if self.TryTimes <= 0 {
+	if self.TryTimes == 0 {
 		self.TryTimes = DefaultTryTimes
 	}
 
