@@ -124,6 +124,7 @@ func (self *CountdownTimer) RemoveRoutine(routine string) *CountdownTimer {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 	delete(self.Routines, routine)
+	delete(self.Flag, routine)
 	return self
 }
 
