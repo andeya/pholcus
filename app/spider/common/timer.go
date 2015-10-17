@@ -96,6 +96,11 @@ func (self *CountdownTimer) Wait(routine string) {
 }
 
 func (self *CountdownTimer) Update(routine string) {
+	self.RWMutex.RLock()
+	defer self.RWMutex.RUnlock()
+	if _, ok := self.Routines[routine]; !ok {
+		return
+	}
 	go func() {
 		defer func() {
 			recover()
@@ -108,14 +113,21 @@ func (self *CountdownTimer) Update(routine string) {
 	}()
 }
 
-func (self *CountdownTimer) AddRoutine(routine string, t float64) *CountdownTimer {
+func (self *CountdownTimer) SetRoutine(routine string, t float64) *CountdownTimer {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 	self.Routines[routine] = t
 	return self
 }
 
-func (self *CountdownTimer) ReSetLevel(level []float64) *CountdownTimer {
+func (self *CountdownTimer) RemoveRoutine(routine string) *CountdownTimer {
+	self.RWMutex.Lock()
+	defer self.RWMutex.Unlock()
+	delete(self.Routines, routine)
+	return self
+}
+
+func (self *CountdownTimer) SetLevel(level []float64) *CountdownTimer {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 	self.Level = level
