@@ -56,6 +56,7 @@ func NewCountdownTimer(level []float64, routine []string) *CountdownTimer {
 	return ct
 }
 
+// 需在执行Update()的协程执行之后调用
 func (self *CountdownTimer) Wait(routine string) {
 	self.RWMutex.RLock()
 	defer self.RWMutex.RUnlock()
@@ -95,22 +96,23 @@ func (self *CountdownTimer) Wait(routine string) {
 	close(self.Flag[routine])
 }
 
+// 需在Wait()方法执行之前，在新的协程调用
 func (self *CountdownTimer) Update(routine string) {
 	self.RWMutex.RLock()
-	defer self.RWMutex.RUnlock()
+	defer func() {
+		recover()
+		self.RWMutex.RUnlock()
+	}()
+
 	if _, ok := self.Routines[routine]; !ok {
 		return
 	}
-	go func() {
-		defer func() {
-			recover()
-		}()
-		select {
-		case self.Flag[routine] <- true:
-		default:
-			return
-		}
-	}()
+
+	select {
+	case self.Flag[routine] <- true:
+	default:
+		return
+	}
 }
 
 func (self *CountdownTimer) SetRoutine(routine string, t float64) *CountdownTimer {
