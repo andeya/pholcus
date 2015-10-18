@@ -1,6 +1,7 @@
 package mgo
 
 import (
+	"fmt"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -9,31 +10,45 @@ type Insert struct {
 	Database   string                   // 数据库
 	Collection string                   // 集合
 	Docs       []map[string]interface{} // 文档
-	// Result     struct {
-	// 	Ids []string
-	// }
 }
 
-func (self *Insert) Exec() (interface{}, error) {
+func (self *Insert) Exec(resultPtr interface{}) (err error) {
+	defer func() {
+		if re := recover(); re != nil {
+			err = fmt.Errorf("%v", re)
+		}
+	}()
+	var resultPtr2 *[]string
+	if resultPtr != nil {
+		resultPtr2 = resultPtr.(*[]string)
+		*resultPtr2 = []string{}
+	}
+
 	s, c, err := Open(self.Database, self.Collection)
 	defer Close(s)
 	if err != nil || c == nil {
-		return nil, err
+		return err
 	}
-	result := []string{}
+
 	var docs []interface{}
-	for i, _ := range self.Docs {
+	for _, doc := range self.Docs {
 		var _id string
-		if self.Docs[i]["_id"] == nil || self.Docs[i]["_id"] == interface{}("") || self.Docs[i]["_id"] == interface{}(0) {
+		if doc["_id"] == nil || doc["_id"] == interface{}("") || doc["_id"] == interface{}(0) {
 			objId := bson.NewObjectId()
 			_id = objId.Hex()
-			self.Docs[i]["_id"] = objId
+			doc["_id"] = objId
 		} else {
-			_id = self.Docs[i]["_id"].(string)
+			_id = doc["_id"].(string)
 		}
-		result = append(result, _id)
-		docs = append(docs, self.Docs[i])
+
+		if resultPtr != nil {
+			*resultPtr2 = append(*resultPtr2, _id)
+		}
+
+		docs = append(docs, doc)
 	}
+
 	err = c.Insert(docs...)
-	return result, err
+
+	return err
 }

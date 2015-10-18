@@ -1,7 +1,7 @@
 package mgo
 
 import (
-	"errors"
+	"fmt"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -12,20 +12,23 @@ type Remove struct {
 	Selector   map[string]interface{} // 文档选择器
 }
 
-func (self *Remove) Exec() (interface{}, error) {
+func (self *Remove) Exec(_ interface{}) error {
 	s, c, err := Open(self.Database, self.Collection)
 	defer Close(s)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if id, ok := self.Selector["_id"]; ok {
 		if idStr, ok2 := id.(string); !ok2 {
-			return nil, errors.New("参数 _id 必须为string类型！")
+			err = fmt.Errorf("%v", "参数 _id 必须为 string 类型！")
+			return err
 		} else {
 			self.Selector["_id"] = bson.ObjectIdHex(idStr)
 		}
 	}
 
-	return nil, c.Remove(self.Selector)
+	err = c.Remove(self.Selector)
+
+	return err
 }

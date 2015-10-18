@@ -78,7 +78,7 @@ func (self *Deduplication) Write(provider string) {
 			docs[i] = map[string]interface{}{"_id": key}
 			i++
 		}
-		mgo.Mgo("insert", map[string]interface{}{
+		mgo.Mgo(nil, "insert", map[string]interface{}{
 			"Database":   config.MGO_OUTPUT.DefaultDB,
 			"Collection": collection,
 			"Docs":       docs,
@@ -108,7 +108,8 @@ func (self *Deduplication) ReRead(provider string) {
 
 	switch strings.ToLower(provider) {
 	case status.MGO:
-		docs, err := mgo.Mgo("find", map[string]interface{}{
+		var docs = map[string]interface{}{}
+		err := mgo.Mgo(&docs, "find", map[string]interface{}{
 			"Database":   config.MGO_OUTPUT.DefaultDB,
 			"Collection": collection,
 		})
@@ -116,7 +117,7 @@ func (self *Deduplication) ReRead(provider string) {
 			logs.Log.Error("去重读取mgo: %v", err)
 			return
 		}
-		for _, v := range docs.(map[string]interface{})["Docs"].([]interface{}) {
+		for _, v := range docs["Docs"].([]interface{}) {
 			self.sampling[v.(bson.M)["_id"].(string)] = true
 		}
 

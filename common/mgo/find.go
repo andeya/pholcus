@@ -1,7 +1,7 @@
 package mgo
 
 import (
-	"errors"
+	"fmt"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -20,26 +20,33 @@ type Find struct {
 	// }
 }
 
-func (self *Find) Exec() (interface{}, error) {
+func (self *Find) Exec(resultPtr interface{}) (err error) {
+	defer func() {
+		if re := recover(); re != nil {
+			err = fmt.Errorf("%v", re)
+		}
+	}()
+	resultPtr2 := resultPtr.(*map[string]interface{})
+	*resultPtr2 = map[string]interface{}{}
+
 	s, c, err := Open(self.Database, self.Collection)
 	defer Close(s)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if id, ok := self.Query["_id"]; ok {
 		if idStr, ok2 := id.(string); !ok2 {
-			return nil, errors.New("参数 _id 必须为 string 类型！")
+			err = fmt.Errorf("%v", "参数 _id 必须为 string 类型！")
+			return err
 		} else {
 			self.Query["_id"] = bson.ObjectIdHex(idStr)
 		}
 	}
 
-	var result = make(map[string]interface{})
-
 	q := c.Find(self.Query)
 
-	result["Total"], _ = q.Count()
+	(*resultPtr2)["Total"], _ = q.Count()
 
 	if len(self.Sort) > 0 {
 		q.Sort(self.Sort...)
@@ -58,6 +65,8 @@ func (self *Find) Exec() (interface{}, error) {
 	}
 	r := []interface{}{}
 	err = q.All(&r)
-	result["Docs"] = r
-	return result, err
+
+	(*resultPtr2)["Docs"] = r
+
+	return err
 }

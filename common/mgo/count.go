@@ -1,7 +1,8 @@
 package mgo
 
+//基础查询
 import (
-	"errors"
+	"fmt"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -12,19 +13,31 @@ type Count struct {
 	Query      map[string]interface{} // 查询语句
 }
 
-func (self *Count) Exec() (result interface{}, err error) {
+func (self *Count) Exec(resultPtr interface{}) (err error) {
+	defer func() {
+		if re := recover(); re != nil {
+			err = fmt.Errorf("%v", re)
+		}
+	}()
+	resultPtr2 := resultPtr.(*int)
+	*resultPtr2 = 0
+
 	s, c, err := Open(self.Database, self.Collection)
 	defer Close(s)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if id, ok := self.Query["_id"]; ok {
 		if idStr, ok2 := id.(string); !ok2 {
-			return nil, errors.New("参数 _id 必须为string类型！")
+			err = fmt.Errorf("%v", "参数 _id 必须为 string 类型！")
+			return err
 		} else {
 			self.Query["_id"] = bson.ObjectIdHex(idStr)
 		}
 	}
-	return c.Find(self.Query).Count()
+
+	*resultPtr2, err = c.Find(self.Query).Count()
+
+	return err
 }
