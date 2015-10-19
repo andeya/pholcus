@@ -34,24 +34,33 @@ type CountdownTimer struct {
 	// 倒计时的时间(min)级别，由小到大排序
 	Level []float64
 	// 倒计时对象的非正式计时表
-	Routines map[string]float64
+	Routines map[string]*routineTime
 	//更新标记
 	Flag map[string]chan bool
 	sync.RWMutex
 }
 
-func NewCountdownTimer(level []float64, routine []string) *CountdownTimer {
+type routineTime struct {
+	Min  float64
+	Curr float64
+}
+
+// 参数routines为 map[string]float64{倒计时对象UID: 最小等待的参考时间}
+func NewCountdownTimer(level []float64, routines map[string]float64) *CountdownTimer {
 	if len(level) == 0 {
 		level = []float64{60 * 24}
 	}
 	sort.Float64s(level)
 	ct := &CountdownTimer{
 		Level:    level,
-		Routines: make(map[string]float64),
+		Routines: make(map[string]*routineTime),
 		Flag:     make(map[string]chan bool),
 	}
-	for _, v := range routine {
-		ct.Routines[v] = ct.Level[0]
+	for routine, minTime := range routines {
+		ct.Routines[routine] = &routineTime{
+			Curr: ct.Level[0],
+			Min:  minTime,
+		}
 	}
 	return ct
 }
@@ -70,23 +79,32 @@ func (self *CountdownTimer) Wait(routine string) {
 		}
 		select {
 		case <-self.Flag[routine]:
-			self.Routines[routine] = self.Routines[routine] / 1.2
-			if self.Routines[routine] < self.Level[0] {
-				self.Routines[routine] = self.Level[0]
+			n := self.Routines[routine].Curr / 1.2
+			if n > self.Routines[routine].Min {
+				self.Routines[routine].Curr = n
+			} else {
+				// 等待时间不能小于设定时间
+				self.Routines[routine].Curr = self.Routines[routine].Min
+			}
+
+			if self.Routines[routine].Curr < self.Level[0] {
+				// 等待时间不能小于最小水平
+				self.Routines[routine].Curr = self.Level[0]
 			}
 		default:
-			self.Routines[routine] = self.Routines[routine] * 1.2
-			if self.Routines[routine] > self.Level[len(self.Level)-1] {
-				self.Routines[routine] = self.Level[len(self.Level)-1]
+			self.Routines[routine].Curr = self.Routines[routine].Curr * 1.2
+			if self.Routines[routine].Curr > self.Level[len(self.Level)-1] {
+				// 等待时间不能大于最大水平
+				self.Routines[routine].Curr = self.Level[len(self.Level)-1]
 			}
 		}
 	}()
 	for k, v := range self.Level {
-		if v < self.Routines[routine] {
+		if v < self.Routines[routine].Curr {
 			continue
 		}
 
-		if k != 0 && v != self.Routines[routine] {
+		if k != 0 && v != self.Routines[routine].Curr {
 			k--
 		}
 		logs.Log.Critical("************************ ……<%s> 倒计时等待 %v 分钟……************************", routine, self.Level[k])
@@ -115,10 +133,13 @@ func (self *CountdownTimer) Update(routine string) {
 	}
 }
 
-func (self *CountdownTimer) SetRoutine(routine string, t float64) *CountdownTimer {
+func (self *CountdownTimer) SetRoutine(routine string, minTime float64) *CountdownTimer {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
-	self.Routines[routine] = t
+	self.Routines[routine] = &routineTime{
+		Curr: self.Level[0],
+		Min:  minTime,
+	}
 	return self
 }
 
