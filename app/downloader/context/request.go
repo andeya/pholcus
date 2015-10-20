@@ -56,6 +56,9 @@ type Request struct {
 
 	// 是否可以被重复下载（即不被去重）
 	Duplicatable bool
+
+	//是否使用PhantomJS下载器，特点破防力强，速度慢
+	UsePhantomJS bool
 }
 
 // 发送请求前的准备工作，设置一系列默认值
@@ -68,7 +71,8 @@ type Request struct {
 // Request.ConnTimeout默认为常量DefaultConnTimeout，小于0时不限制下载超时;
 // Request.TryTimes默认为常量DefaultTryTimes，小于0时不限制失败重载次数;
 // Request.RedirectTimes默认不限制重定向次数，小于0时可禁止重定向跳转;
-// Request.RetryPause默认为常量DefaultRetryPause.
+// Request.RetryPause默认为常量DefaultRetryPause;
+// Request.UsePhantomJS为true时，使用PhantomJS下载器下载，破防力强，速度慢，暂不支持图片下载。
 func (self *Request) Prepare() *Request {
 	if self.Method == "" {
 		self.Method = "GET"
@@ -232,4 +236,8 @@ func (self *Request) GetPriority() int {
 func (self *Request) SetPriority(priority int) *Request {
 	self.Priority = priority
 	return self
+}
+
+func (self *Request) GetUsePhantomJS() bool {
+	return self.UsePhantomJS
 }

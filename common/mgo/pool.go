@@ -12,11 +12,11 @@ type MgoSrc struct {
 	*mgo.Session
 }
 
-var MgoPool = pool.NewPool(new(MgoSrc), config.MGO_OUTPUT.MaxConns)
+var MgoPool = pool.NewPool(new(MgoSrc), config.MGO_OUTPUT.MAX_CONNS)
 
 // 新建数据库连接
 func (*MgoSrc) New() pool.Src {
-	session, err := mgo.Dial(config.MGO_OUTPUT.Host)
+	session, err := mgo.Dial(config.MGO_OUTPUT.HOST)
 	if err != nil {
 		logs.Log.Error("%v", err)
 	}

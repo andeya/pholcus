@@ -1,11 +1,13 @@
 package collector
 
 import (
-	"github.com/henrylee2cn/pholcus/common/util"
-	"github.com/henrylee2cn/pholcus/logs"
 	"io"
 	"os"
 	"time"
+
+	"github.com/henrylee2cn/pholcus/common/util"
+	"github.com/henrylee2cn/pholcus/config"
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 //文件输出管理
@@ -19,7 +21,7 @@ func (self *Collector) SaveFile() {
 			self.setFileSum(1)
 
 			// 路径： file/"RuleName"/"time"/"Name"
-			dir := `result/file/` + self.Spider.GetName() + `/` + util.FileNameReplace(file["RuleName"].(string)) + `/` + self.startTime.Format("2006年01月02日 15时04分05秒") + `/`
+			dir := config.COMM_PATH.FILE + `/` + self.Spider.GetName() + `/` + util.FileNameReplace(file["RuleName"].(string)) + `/` + self.startTime.Format("2006年01月02日 15时04分05秒") + `/`
 
 			// 创建/打开目录
 			d, err := os.Stat(dir)

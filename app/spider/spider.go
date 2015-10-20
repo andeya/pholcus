@@ -38,7 +38,8 @@ type Spider struct {
 // Request.ConnTimeout默认为常量context.DefaultConnTimeout，小于0时不限制下载超时;
 // Request.TryTimes默认为常量context.DefaultTryTimes，小于0时不限制失败重载次数;
 // Request.RedirectTimes默认不限制重定向次数，小于0时可禁止重定向跳转;
-// Request.RetryPause默认为常量context.DefaultRetryPause.
+// Request.RetryPause默认为常量context.DefaultRetryPause;
+// Request.UsePhantomJS为true时，使用PhantomJS下载器下载，破防力强，速度慢，暂不支持图片下载。
 func (self *Spider) AddQueue(req *context.Request) {
 	req.
 		SetSpiderName(self.Name).

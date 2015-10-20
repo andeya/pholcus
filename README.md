@@ -4,7 +4,7 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重�
 
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/icon.png)
 
-* 稳定版： [Version 0.7.2 (Oct 11, 2015)](https://github.com/henrylee2cn/pholcus/releases)
+* 稳定版： [Version 0.7.3 (Oct 20, 2015)](https://github.com/henrylee2cn/pholcus/releases)
 
 * 官方QQ群：Go大数据 42731170    [![Go大数据群](http://pub.idqqimg.com/wpa/images/group.png)](http://shang.qq.com/wpa/qunwpa?idkey=83ee3e1a4be6bdb2b08a51a044c06ae52cf10a082f7c5cf6b36c1f78e8b03589)
 
@@ -56,7 +56,7 @@ import (
     "github.com/henrylee2cn/pholcus/logs"
 
     _ "github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
-    // _ "path/myrule_lib"               // 同样你也可以自由添加自己的规则库
+    // _ "github.com/pholcus/spider_lib_pte" // 同样你也可以自由添加自己的规则库
 )
 
 func main() {
@@ -74,30 +74,35 @@ func main() {
 // 自定义相关配置，将覆盖默认值
 func SetConf() {
     //mongodb服务器地址
-    config.MGO_OUTPUT.Host = "127.0.0.1:27017"
+    config.MGO_OUTPUT.HOST = "127.0.0.1:27017"
+    // mongodb数据库
+    config.MGO_OUTPUT.DB = "pholcus"
     // mongodb输出时的内容分类
     // key:蜘蛛规则清单
     // value:数据库名
-    config.MGO_OUTPUT.DBClass = map[string]string{
+    config.MGO_OUTPUT.DB_CLASS = map[string]string{
         "百度RSS新闻": "1_1",
     }
     // mongodb输出时非默认数据库时以当前时间为集合名
     // h: 精确到小时 (格式 2015-08-28-09)
     // d: 精确到天 (格式 2015-08-28)
-    config.MGO_OUTPUT.TableFmt = "d"
+    config.MGO_OUTPUT.COLLECTION_FMT = "d"
     //mysql连接池容量
-    config.MGO_OUTPUT.MaxConns = 1024
+    config.MGO_OUTPUT.MAX_CONNS = 1024
 
     //mysql服务器地址
-    config.MYSQL_OUTPUT.Host = "127.0.0.1:3306"
+    config.MYSQL_OUTPUT.HOST = "127.0.0.1:3306"
     //msyql数据库
-    config.MYSQL_OUTPUT.DefaultDB = "pholcus"
+    config.MYSQL_OUTPUT.DB = "pholcus"
     //mysql用户
-    config.MYSQL_OUTPUT.User = "root"
+    config.MYSQL_OUTPUT.USER = "root"
     //mysql密码
-    config.MYSQL_OUTPUT.Password = ""
+    config.MYSQL_OUTPUT.PASSWORD = ""
     //mysql连接池容量
-    config.MYSQL_OUTPUT.MaxConns = 1024
+    config.MYSQL_OUTPUT.MAX_CONNS = 1024
+
+    // Surfer-Phantom下载器配置
+    config.SURFER_PHANTOM.FULL_APP_NAME = "phantomjs" //phantomjs软件相对路径与名称
 }
 ```
 &nbsp;

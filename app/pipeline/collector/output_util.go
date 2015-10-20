@@ -9,8 +9,8 @@ import (
 
 // 返回数据库及集合名称
 func dbOrTabName(c *Collector) (dbName, tableName string) {
-	if v, ok := config.MGO_OUTPUT.DBClass[c.Spider.GetName()]; ok {
-		switch config.MGO_OUTPUT.TableFmt {
+	if v, ok := config.MGO_OUTPUT.DB_CLASS[c.Spider.GetName()]; ok {
+		switch config.MGO_OUTPUT.COLLECTION_FMT {
 		case "h":
 			return v, time.Now().Format("2006-01-02-15")
 		case "d":
@@ -19,7 +19,7 @@ func dbOrTabName(c *Collector) (dbName, tableName string) {
 			return v, time.Now().Format("2006-01-02")
 		}
 	}
-	return config.MGO_OUTPUT.DefaultDB, ""
+	return config.MGO_OUTPUT.DB, ""
 }
 
 // 当输出数据库为config.MGO_OUTPUT.DefaultDB时，使用tabName获取table名

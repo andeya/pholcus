@@ -2,7 +2,6 @@ package deduplicate
 
 import (
 	"encoding/json"
-	// "fmt"
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
@@ -11,14 +10,9 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 	"sync"
-)
-
-const (
-	dir        = `result/cache/`
-	fileName   = "deduplication"
-	collection = "deduplication_log"
 )
 
 type Deduplicate interface {
@@ -79,24 +73,25 @@ func (self *Deduplication) Write(provider string) {
 			i++
 		}
 		mgo.Mgo(nil, "insert", map[string]interface{}{
-			"Database":   config.MGO_OUTPUT.DefaultDB,
-			"Collection": collection,
+			"Database":   config.DEDUPLICATION.DB,
+			"Collection": config.DEDUPLICATION.COLLECTION,
 			"Docs":       docs,
 		})
 
 	case status.FILE:
 		fallthrough
 	default:
+		p, _ := path.Split(config.DEDUPLICATION.FULL_FILE_NAME)
 		// 创建/打开目录
-		d, err := os.Stat(dir)
+		d, err := os.Stat(p)
 		if err != nil || !d.IsDir() {
-			if err := os.MkdirAll(dir, 0777); err != nil {
+			if err := os.MkdirAll(p, 0777); err != nil {
 				logs.Log.Error("Error: %v\n", err)
 			}
 		}
 
 		// 创建并写入文件
-		f, _ := os.Create(dir + fileName)
+		f, _ := os.Create(config.DEDUPLICATION.FULL_FILE_NAME)
 		b, _ := json.Marshal(self.sampling)
 		f.Write(b)
 		f.Close()
@@ -110,8 +105,8 @@ func (self *Deduplication) ReRead(provider string) {
 	case status.MGO:
 		var docs = map[string]interface{}{}
 		err := mgo.Mgo(&docs, "find", map[string]interface{}{
-			"Database":   config.MGO_OUTPUT.DefaultDB,
-			"Collection": collection,
+			"Database":   config.DEDUPLICATION.DB,
+			"Collection": config.DEDUPLICATION.COLLECTION,
 		})
 		if err != nil {
 			logs.Log.Error("去重读取mgo: %v", err)
@@ -124,7 +119,7 @@ func (self *Deduplication) ReRead(provider string) {
 	case status.FILE:
 		fallthrough
 	default:
-		f, err := os.Open(dir + fileName)
+		f, err := os.Open(config.DEDUPLICATION.FULL_FILE_NAME)
 		if err != nil {
 			return
 		}

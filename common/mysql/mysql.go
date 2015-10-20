@@ -10,14 +10,14 @@ import (
 )
 
 /************************ Mysql 输出 ***************************/
-var MysqlPool = pool.NewPool(new(MysqlSrc), config.MYSQL_OUTPUT.MaxConns)
+var MysqlPool = pool.NewPool(new(MysqlSrc), config.MYSQL_OUTPUT.MAX_CONNS)
 
 type MysqlSrc struct {
 	*sql.DB
 }
 
 func (self *MysqlSrc) New() pool.Src {
-	db, err := sql.Open("mysql", config.MYSQL_OUTPUT.User+":"+config.MYSQL_OUTPUT.Password+"@tcp("+config.MYSQL_OUTPUT.Host+")/"+config.MYSQL_OUTPUT.DefaultDB+"?charset=utf8")
+	db, err := sql.Open("mysql", config.MYSQL_OUTPUT.USER+":"+config.MYSQL_OUTPUT.PASSWORD+"@tcp("+config.MYSQL_OUTPUT.HOST+")/"+config.MYSQL_OUTPUT.DB+"?charset=utf8")
 	if err != nil {
 		panic(err)
 	}

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/henrylee2cn/pholcus/common/util"
+	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
@@ -18,14 +19,13 @@ func init() {
 			}
 		}()
 
-		folder1 := "result/data"
-		folder2 := folder1 + "/" + self.startTime.Format("2006年01月02日 15时04分05秒")
-		filenameBase := folder2 + "/" + util.FileNameReplace(self.Spider.GetName()+"_"+self.Spider.GetKeyword()+" "+fmt.Sprintf("%v", self.sum[0])+"-"+fmt.Sprintf("%v", self.sum[1]))
+		folder := config.COMM_PATH.TEXT + "/" + self.startTime.Format("2006年01月02日 15时04分05秒")
+		filenameBase := folder + "/" + util.FileNameReplace(self.Spider.GetName()+"_"+self.Spider.GetKeyword()+" "+fmt.Sprintf("%v", self.sum[0])+"-"+fmt.Sprintf("%v", self.sum[1]))
 
 		// 创建/打开目录
-		f2, err := os.Stat(folder2)
+		f2, err := os.Stat(folder)
 		if err != nil || !f2.IsDir() {
-			if err := os.MkdirAll(folder2, 0777); err != nil {
+			if err := os.MkdirAll(folder, 0777); err != nil {
 				logs.Log.Error("Error: %v\n", err)
 			}
 		}
