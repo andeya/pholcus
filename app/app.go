@@ -99,12 +99,16 @@ type Logic struct {
 	teleport.Teleport
 	// 全局队列
 	scheduler.Scheduler
-
+	//执行计数
+	sum [2]uint64
+	// 执行计时
+	takeTime float64
 	// 运行状态
 	status       int
 	finish       chan bool
 	finishOnce   sync.Once
 	canSocketLog bool
+	sync.RWMutex
 }
 
 // 任务运行时公共配置
@@ -237,7 +241,7 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 // 切换运行模式时使用
 func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App {
 	self.LogRest()
-	self.status = status.STOP
+	self.setStatus(status.STOP)
 	if self.Teleport != nil {
 		self.Teleport.Close()
 	}
@@ -309,9 +313,12 @@ func (self *Logic) Run() {
 	self.LogGoOn()
 	self.finish = make(chan bool)
 	self.finishOnce = sync.Once{}
-
+	// 重置计数
+	self.sum[0], self.sum[1] = 0, 0
+	// 重置计时
+	self.takeTime = 0
 	// 任务执行
-	self.status = status.RUN
+	self.setStatus(status.RUN)
 	switch self.AppConf.Mode {
 	case status.OFFLINE:
 		self.offline()
@@ -328,11 +335,11 @@ func (self *Logic) Run() {
 
 // Offline 模式下暂停\恢复任务
 func (self *Logic) PauseRecover() {
-	switch self.status {
+	switch self.Status() {
 	case status.PAUSE:
-		self.status = status.RUN
+		self.setStatus(status.RUN)
 	case status.RUN:
-		self.status = status.PAUSE
+		self.setStatus(status.PAUSE)
 	}
 
 	self.Scheduler.PauseRecover()
@@ -340,29 +347,23 @@ func (self *Logic) PauseRecover() {
 
 // Offline 模式下中途终止任务
 func (self *Logic) Stop() {
-	self.status = status.STOP
+	self.setStatus(status.STOP)
 	self.CrawlPool.Stop()
 	self.Scheduler.Stop()
-
-	// 总耗时
-	takeTime := time.Since(cache.StartTime).Minutes()
-
-	// 打印总结报告
-	logs.Log.Informational(` *********************************************************************************************************************************** `)
-	logs.Log.Informational(" * ")
-	logs.Log.Notice(" *                               ！！任务取消：下载页面 %v 个，耗时：%.5f 分钟！！", cache.GetPageCount(0), takeTime)
-	logs.Log.Informational(" * ")
-	logs.Log.Informational(` *********************************************************************************************************************************** `)
-
-	self.LogRest()
-
-	// 标记结束
-	self.finishOnce.Do(func() { close(self.finish) })
 }
 
 // 返回当前运行状态
 func (self *Logic) Status() int {
+	self.RWMutex.RLock()
+	defer self.RWMutex.RUnlock()
 	return self.status
+}
+
+// 返回当前运行状态
+func (self *Logic) setStatus(status int) {
+	self.RWMutex.Lock()
+	defer self.RWMutex.Unlock()
+	self.status = status
 }
 
 // ******************************************** 私有方法 ************************************************* \\
@@ -375,7 +376,7 @@ func (self *Logic) offline() {
 func (self *Logic) server() {
 	// 标记结束
 	defer func() {
-		self.status = status.STOP
+		self.setStatus(status.STOP)
 		self.finishOnce.Do(func() { close(self.finish) })
 	}()
 
@@ -443,7 +444,7 @@ func (self *Logic) addNewTask() (tasksNum, spidersNum int) {
 func (self *Logic) client() {
 	// 标记结束
 	defer func() {
-		self.status = status.STOP
+		self.setStatus(status.STOP)
 		self.finishOnce.Do(func() { close(self.finish) })
 	}()
 
@@ -453,6 +454,11 @@ func (self *Logic) client() {
 
 		// 准备运行
 		self.taskToRun(t)
+
+		// 重置计数
+		self.sum[0], self.sum[1] = 0, 0
+		// 重置计时
+		self.takeTime = 0
 
 		// 执行任务
 		self.exec()
@@ -538,19 +544,21 @@ func (self *Logic) exec() {
 
 	// 根据模式选择合理的并发
 	if self.AppConf.Mode == status.OFFLINE {
+		// 可控制执行状态
 		go self.goRun(count)
 	} else {
-		// 不并发是为保证接收服务端任务的同步
+		// 保证接收服务端任务的同步
 		self.goRun(count)
 	}
 }
 
 // 任务执行
 func (self *Logic) goRun(count int) {
-	for i := 0; i < count && self.status != status.STOP; i++ {
-		if self.status == status.PAUSE {
+	for i := 0; i < count && self.Status() != status.STOP; i++ {
+	wait:
+		if self.Status() == status.PAUSE {
 			time.Sleep(1e9)
-			continue
+			goto wait
 		}
 		// 从爬行队列取出空闲蜘蛛，并发执行
 		c := self.CrawlPool.Use()
@@ -565,8 +573,7 @@ func (self *Logic) goRun(count int) {
 	}
 
 	// 监控结束任务
-	sum := [2]uint{} //数据总数
-	for i := 0; i < count; i++ {
+	for i := 0; i < count && self.Status() != status.STOP; i++ {
 		s := <-cache.ReportChan
 		if (s.DataNum == 0) && (s.FileNum == 0) {
 			continue
@@ -582,30 +589,36 @@ func (self *Logic) goRun(count int) {
 		}
 		logs.Log.Informational(" * ")
 
-		sum[0] += s.DataNum
-		sum[1] += s.FileNum
+		self.sum[0] += s.DataNum
+		self.sum[1] += s.FileNum
 	}
 
 	// 总耗时
-	takeTime := time.Since(cache.StartTime).Minutes()
-
+	self.takeTime = time.Since(cache.StartTime).Minutes()
+	var prefix = func() string {
+		if self.Status() == status.STOP {
+			return "任务中途取消："
+		}
+		return "本次"
+	}()
 	// 打印总结报告
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 	logs.Log.Informational(" * ")
 	switch {
-	case sum[0] > 0 && sum[1] == 0:
-		logs.Log.Notice(" *                            —— 本次合计抓取 %v 条数据，下载页面 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum[0], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
-	case sum[0] == 0 && sum[1] > 0:
-		logs.Log.Notice(" *                            —— 本次合计抓取 %v 个文件，下载页面 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
+	case self.sum[0] > 0 && self.sum[1] == 0:
+		logs.Log.Notice(" *                            —— %s合计输出 %v 条数据，实爬URL %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", prefix, self.sum[0], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), self.takeTime)
+	case self.sum[0] == 0 && self.sum[1] > 0:
+		logs.Log.Notice(" *                            —— %s合计输出 %v 个文件，实爬URL %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", prefix, self.sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), self.takeTime)
 	default:
-		logs.Log.Notice(" *                            —— 本次合计抓取 %v 条数据 + %v 个文件，下载网页 %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", sum[0], sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), takeTime)
+		logs.Log.Notice(" *                            —— %s合计输出 %v 条数据 + %v 个文件，实爬URL %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", prefix, self.sum[0], self.sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), self.takeTime)
 	}
 	logs.Log.Informational(" * ")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 
 	// 单机模式并发运行，需要标记任务结束
 	if self.AppConf.Mode == status.OFFLINE {
-		self.status = status.STOP
+		self.setStatus(status.STOP)
+		self.LogRest()
 		self.finishOnce.Do(func() { close(self.finish) })
 	}
 }

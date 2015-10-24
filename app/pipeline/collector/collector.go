@@ -18,8 +18,8 @@ type Collector struct {
 	ctrl      chan bool //长度为零时退出并输出
 	startTime time.Time
 	outType   string
-	sum       [3]uint //收集的数据总数[文本过去，文本现在，文件],非并发安全
-	outCount  [4]uint //[文本输出开始，文本输出结束，文件输出开始，文件输出结束]
+	sum       [3]uint64 //收集的数据总数[文本过去，文本现在，文件],非并发安全
+	outCount  [4]uint   //[文本输出开始，文本输出结束，文件输出开始，文件输出结束]
 }
 
 func NewCollector() *Collector {
@@ -39,7 +39,7 @@ func (self *Collector) Init(sp *spider.Spider) {
 	self.FileChan = make(chan FileCell, 512)
 	self.DockerQueue = NewDockerQueue()
 	self.ctrl = make(chan bool, 1)
-	self.sum = [3]uint{}
+	self.sum = [3]uint64{}
 	self.outCount = [4]uint{}
 	self.startTime = cache.StartTime
 }
@@ -123,22 +123,22 @@ func (self *Collector) goOutput(dataIndex int) {
 }
 
 // 获取文本数据总量
-func (self *Collector) dataSum() uint {
+func (self *Collector) dataSum() uint64 {
 	return self.sum[1]
 }
 
 // 更新文本数据总量
-func (self *Collector) setDataSum(add uint) {
+func (self *Collector) setDataSum(add uint64) {
 	self.sum[0], self.sum[1] = self.sum[1], self.sum[1]+add
 }
 
 // 获取文件数据总量
-func (self *Collector) fileSum() uint {
+func (self *Collector) fileSum() uint64 {
 	return self.sum[2]
 }
 
 // 更新文件数据总量
-func (self *Collector) setFileSum(add uint) {
+func (self *Collector) setFileSum(add uint64) {
 	self.sum[2] = self.sum[2] + add
 }
 

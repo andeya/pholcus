@@ -110,6 +110,10 @@ func (self *SrcManage) IsAllEmpty() bool {
 	return true
 }
 
+func (self *SrcManage) GetQueue() map[int]map[int][]*context.Request {
+	return self.queue
+}
+
 func (self *SrcManage) ClearAll() {
 	self.count = make(chan bool, cap(self.count))
 	self.queue = make(map[int]map[int][]*context.Request)

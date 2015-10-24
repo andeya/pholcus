@@ -29,7 +29,7 @@ func (self *Collector) Output(dataIndex int) {
 	}
 
 	// 输出数据统计
-	self.setDataSum(uint(dataLen))
+	self.setDataSum(uint64(dataLen))
 
 	// 执行输出
 	Output[self.outType](self, dataIndex)

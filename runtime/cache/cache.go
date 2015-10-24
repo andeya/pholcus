@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -50,8 +50,8 @@ func AutoDockerQueueCap() {
 type Report struct {
 	SpiderName string
 	Keyword    string
-	DataNum    uint
-	FileNum    uint
+	DataNum    uint64
+	FileNum    uint64
 	Time       string
 }
 
@@ -61,44 +61,35 @@ var (
 	// 文本数据小结报告
 	ReportChan chan *Report
 	// 请求页面总数[]uint{总数，失败数}
-	pageSum [2]uint
+	pageSum [2]uint64
 )
 
 // 重置页面计数
 func ReSetPageCount() {
-	pageSum = [2]uint{}
+	pageSum = [2]uint64{}
 }
 
 // 0 返回总下载页数，负数 返回失败数，正数 返回成功数
-func GetPageCount(i int) uint {
-	if i > 0 {
+func GetPageCount(i int) uint64 {
+	switch {
+	case i > 0:
 		// 返回成功数
-		return pageSum[0] - pageSum[1]
-	}
-	if i < 0 {
+		return pageSum[0]
+	case i < 0:
 		// 返回失败数
 		return pageSum[1]
+	case i == 0:
 	}
 	// 返回总数
-	return pageSum[0]
+	return pageSum[0] + pageSum[1]
 }
 
-// 统计页面总下载数
-var pageMutex sync.Mutex
-
-func PageCount() {
-	pageMutex.Lock()
-	defer pageMutex.Unlock()
-	pageSum[0]++
+func PageSuccCount() {
+	atomic.AddUint64(&pageSum[0], 1)
 }
-
-// 统计下载失败数
-var pageFailMutex sync.Mutex
 
 func PageFailCount() {
-	pageFailMutex.Lock()
-	defer pageFailMutex.Unlock()
-	pageSum[1]++
+	atomic.AddUint64(&pageSum[1], 1)
 }
 
 //****************************************节点通信数据*******************************************\\

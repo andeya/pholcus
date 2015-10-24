@@ -40,8 +40,8 @@ type scheduler struct {
 	*SrcManage
 	deduplication       deduplicate.Deduplicate
 	deduplicationTarget string
-	pushMutex           sync.Mutex
-	status              int
+	sync.RWMutex
+	status int
 }
 
 // 定义全局调度
@@ -75,8 +75,8 @@ func (self *scheduler) Init(capacity uint, inheritDeduplication bool, deduplicat
 
 // 添加请求到队列
 func (self *scheduler) Push(req *context.Request) {
-	self.pushMutex.Lock()
-	defer self.pushMutex.Unlock()
+	self.RWMutex.RLock()
+	defer self.RWMutex.RUnlock()
 
 	if self.status == status.STOP {
 		return
@@ -103,6 +103,9 @@ func (self *scheduler) SaveDeduplication() {
 }
 
 func (self *scheduler) Use(spiderId int) (req *context.Request) {
+	self.RWMutex.RLock()
+	defer self.RWMutex.RUnlock()
+
 	if self.status != status.RUN {
 		return nil
 	}
@@ -111,6 +114,9 @@ func (self *scheduler) Use(spiderId int) (req *context.Request) {
 
 // 暂停\恢复所有爬行任务
 func (self *scheduler) PauseRecover() {
+	self.RWMutex.Lock()
+	defer self.RWMutex.Unlock()
+
 	switch self.status {
 	case status.PAUSE:
 		self.status = status.RUN
@@ -120,13 +126,28 @@ func (self *scheduler) PauseRecover() {
 }
 
 func (self *scheduler) Stop() {
+	self.RWMutex.Lock()
+	defer self.RWMutex.Unlock()
+
 	self.status = status.STOP
 	if self.SrcManage == nil {
 		return
 	}
+	// 删除队列中未执行的请求的去重记录
+	for _, v := range self.SrcManage.GetQueue() {
+		for _, vv := range v {
+			for _, req := range vv {
+				self.DelDeduplication(req.GetUrl() + req.GetMethod())
+			}
+		}
+	}
+	// 清空队列
 	self.SrcManage.ClearAll()
 }
 
 func (self *scheduler) IsStop() bool {
+	self.RWMutex.RLock()
+	defer self.RWMutex.RUnlock()
+
 	return self.status == status.STOP
 }

@@ -6,10 +6,9 @@ import (
 	"github.com/henrylee2cn/pholcus/app/pipeline"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/app/spider"
+	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 
-	// "fmt"
-	"github.com/henrylee2cn/pholcus/logs"
 	"io"
 	"math/rand"
 	"sync"
@@ -57,7 +56,6 @@ func (self *crawler) Start() {
 	// logs.Log.Debug("**************爬虫：%v***********", self.GetId())
 	// 通知输出模块输出未输出的数据
 	self.Pipeline.CtrlR()
-	// logs.Log.Debug("**************断点 11 ***********")
 }
 
 func (self *crawler) Run() {
@@ -71,9 +69,10 @@ func (self *crawler) Run() {
 		// 队列退出及空请求调控
 		if req == nil {
 			if self.canStop() {
-				// logs.Log.Debug("**************退出队列************")
-				break
+				// 停止任务
+				return
 			} else {
+				// 继续等待请求
 				continue
 			}
 		}
@@ -81,15 +80,12 @@ func (self *crawler) Run() {
 		// 自身资源统计
 		self.RequestIn()
 
-		// 全局统计下载总页数
-		cache.PageCount()
-
 		go func(req *context.Request) {
 			defer func() {
 				self.FreeOne()
 				self.RequestOut()
 			}()
-			logs.Log.Informational(" *     crawl: %v", req.GetUrl())
+			// logs.Log.Informational(" *     start: %v", req.GetUrl())
 			self.Process(req)
 		}(req)
 	}
@@ -97,31 +93,36 @@ func (self *crawler) Run() {
 
 // core processer
 func (self *crawler) Process(req *context.Request) {
-
 	defer func() {
-		if err := recover(); err != nil { // do not affect other
-			logs.Log.Error(" *     Process panic: %v", err)
+		if err := recover(); err != nil {
+			// do not affect other
+			scheduler.Sdl.DelDeduplication(req.GetUrl() + req.GetMethod())
+			// 统计失败数
+			cache.PageFailCount()
+			// 提示错误
+			logs.Log.Error(" *     Fail [process panic]: %v", err)
 		}
 	}()
-	// logs.Log.Debug("**************断点 1 ***********")
 	// download page
 	resp := self.Downloader.Download(req)
 
-	// logs.Log.Debug("**************断点 2 ***********")
 	// if fail do not need process
 	if resp.GetError() != nil {
-		// 取消该请求的去重样本
+		// 删除该请求的去重样本
 		scheduler.Sdl.DelDeduplication(req.GetUrl() + req.GetMethod())
-		logs.Log.Error(" *     %v", resp.GetError())
-		// 统计下载失败的页数
+		// 统计失败数
 		cache.PageFailCount()
+		// 提示错误
+		logs.Log.Error(" *     Fail [download]: %v", resp.GetError())
 		return
 	}
 
-	// logs.Log.Debug("**************断点 3 ***********")
 	// 过程处理，提炼数据
 	self.Spider.Parse(resp, resp.GetRuleName())
-	// logs.Log.Debug("**************断点 5 ***********")
+	// 统计成功页数
+	cache.PageSuccCount()
+	// 提示抓取成功
+	logs.Log.Informational(" *     Success: %v", req.GetUrl())
 	// 该条请求文本结果存入pipeline
 	for _, data := range resp.GetItems() {
 		self.Pipeline.CollectData(
@@ -141,8 +142,6 @@ func (self *crawler) Process(req *context.Request) {
 			img["Body"].(io.ReadCloser),
 		)
 	}
-
-	// logs.Log.Debug("**************断点 end ***********")
 }
 
 // 常用基础方法
@@ -180,7 +179,6 @@ func (self *crawler) RequestOut() {
 
 //判断调度中是否还有属于自己的资源运行
 func (self *crawler) canStop() bool {
-	// logs.Log.Debug("**************", self.srcManage[0], self.srcManage[1], "***********")
 	return (self.srcManage[0] == self.srcManage[1] && scheduler.Sdl.IsEmpty(self.Spider.GetId())) || scheduler.Sdl.IsStop()
 }
 
