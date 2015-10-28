@@ -109,7 +109,7 @@ func (self *Spider) Parse(resp *context.Response, ruleName ...string) {
 }
 
 // 返回采集语义字段
-func (self *Spider) IndexOutFeild(ruleName string, index int) string {
+func (self *Spider) IndexOutFeild(ruleName string, index int) (feild string) {
 	rule := self.GetRule(ruleName)
 	if rule == nil {
 		return "？？？"
@@ -121,14 +121,30 @@ func (self *Spider) IndexOutFeild(ruleName string, index int) string {
 	return rule.OutFeild[index]
 }
 
-// 为指定Rule动态追加采集语义字段
-func (self *Spider) AddOutFeild(ruleName string, feild string) {
-	for _, v := range self.GetRule(ruleName).OutFeild {
+// 返回采集语义字段的索引位置，不存在时返回-1
+func (self *Spider) FindOutFeild(ruleName string, feild string) (index int) {
+	rule := self.GetRule(ruleName)
+	if rule == nil {
+		return -1
+	}
+	for i, key := range rule.OutFeild {
+		if feild == key {
+			return i
+		}
+	}
+	return -1
+}
+
+// 为指定Rule动态追加采集语义字段，并返回索引位置
+// 已存在时返回原来索引位置
+func (self *Spider) AddOutFeild(ruleName string, feild string) (index int) {
+	for i, v := range self.GetRule(ruleName).OutFeild {
 		if v == feild {
-			return
+			return i
 		}
 	}
 	self.GetRule(ruleName).AddOutFeild(feild)
+	return len(self.GetRule(ruleName).OutFeild) - 1
 }
 
 // 设置代理服务器列表

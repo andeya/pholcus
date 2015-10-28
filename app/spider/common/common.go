@@ -1,12 +1,7 @@
 package common
 
 import (
-	// "bytes"
 	"github.com/henrylee2cn/mahonia"
-	// "golang.org/x/text/encoding/simplifiedchinese"
-	// "golang.org/x/text/transform"
-	// "io/ioutil"
-	// "github.com/henrylee2cn/pholcus/downloader/context"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -14,6 +9,7 @@ import (
 	"strings"
 )
 
+// 清除标签
 func CleanHtml(str string, depth int) string {
 	if depth > 0 {
 		//将HTML标签全转换成小写
@@ -41,6 +37,17 @@ func CleanHtml(str string, depth int) string {
 		str = re.ReplaceAllString(str, "\n")
 	}
 	return str
+}
+
+// 替换常见转义字符
+func ReplaceScrap(s string, sep string) string {
+	s = strings.Replace(s, "\n", sep, -1)
+	s = strings.Replace(s, "\r", sep, -1)
+	s = strings.Replace(s, "\t", sep, -1)
+	s = strings.Replace(s, `\n`, sep, -1)
+	s = strings.Replace(s, `\r`, sep, -1)
+	s = strings.Replace(s, `\t`, sep, -1)
+	return s
 }
 
 // cookies字符串转[]*http.Cookie，（如"mt=ci%3D-1_0; thw=cn; sec=5572dc7c40ce07d4e8c67e4879a; v=0;"）
