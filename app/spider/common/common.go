@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/henrylee2cn/mahonia"
+	"math"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -39,15 +40,31 @@ func CleanHtml(str string, depth int) string {
 	return str
 }
 
-// 替换常见转义字符
-func ReplaceScrap(s string, sep string) string {
-	s = strings.Replace(s, "\n", sep, -1)
-	s = strings.Replace(s, "\r", sep, -1)
-	s = strings.Replace(s, "\t", sep, -1)
-	s = strings.Replace(s, `\n`, sep, -1)
-	s = strings.Replace(s, `\r`, sep, -1)
-	s = strings.Replace(s, `\t`, sep, -1)
+// 去除常见转义字符
+func Deprive(s string) string {
+	s = strings.Replace(s, "\n", "", -1)
+	s = strings.Replace(s, "\r", "", -1)
+	s = strings.Replace(s, "\t", "", -1)
+	s = strings.Replace(s, ` `, "", -1)
 	return s
+}
+
+// 去除常见转义字符
+func Deprive2(s string) string {
+	s = strings.Replace(s, "\n", "", -1)
+	s = strings.Replace(s, "\r", "", -1)
+	s = strings.Replace(s, "\t", "", -1)
+	s = strings.Replace(s, `\n`, "", -1)
+	s = strings.Replace(s, `\r`, "", -1)
+	s = strings.Replace(s, `\t`, "", -1)
+	s = strings.Replace(s, ` `, "", -1)
+	return s
+}
+
+// 舍去尾数
+func Floor(f float64, n int) float64 {
+	pow10_n := math.Pow10(n)
+	return math.Trunc((f)*pow10_n) / pow10_n
 }
 
 // cookies字符串转[]*http.Cookie，（如"mt=ci%3D-1_0; thw=cn; sec=5572dc7c40ce07d4e8c67e4879a; v=0;"）
