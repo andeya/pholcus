@@ -37,7 +37,7 @@ type CountdownTimer struct {
 	Routines map[string]*routineTime
 	//更新标记
 	Flag map[string]chan bool
-	sync.RWMutex
+	sync.Mutex
 }
 
 type routineTime struct {
@@ -67,11 +67,12 @@ func NewCountdownTimer(level []float64, routines map[string]float64) *CountdownT
 
 // 需在执行Update()的协程执行之后调用
 func (self *CountdownTimer) Wait(routine string) {
-	self.RWMutex.RLock()
-	defer self.RWMutex.RUnlock()
+	// 保存指针
 	if _, ok := self.Routines[routine]; !ok {
 		return
 	}
+	rt := self.Routines[routine]
+
 	self.Flag[routine] = make(chan bool)
 	defer func() {
 		if err := recover(); err != nil {
@@ -79,32 +80,32 @@ func (self *CountdownTimer) Wait(routine string) {
 		}
 		select {
 		case <-self.Flag[routine]:
-			n := self.Routines[routine].Curr / 1.2
-			if n > self.Routines[routine].Min {
-				self.Routines[routine].Curr = n
+			n := rt.Curr / 1.2
+			if n > rt.Min {
+				rt.Curr = n
 			} else {
 				// 等待时间不能小于设定时间
-				self.Routines[routine].Curr = self.Routines[routine].Min
+				rt.Curr = rt.Min
 			}
 
-			if self.Routines[routine].Curr < self.Level[0] {
+			if rt.Curr < self.Level[0] {
 				// 等待时间不能小于最小水平
-				self.Routines[routine].Curr = self.Level[0]
+				rt.Curr = self.Level[0]
 			}
 		default:
-			self.Routines[routine].Curr = self.Routines[routine].Curr * 1.2
-			if self.Routines[routine].Curr > self.Level[len(self.Level)-1] {
+			rt.Curr = rt.Curr * 1.2
+			if rt.Curr > self.Level[len(self.Level)-1] {
 				// 等待时间不能大于最大水平
-				self.Routines[routine].Curr = self.Level[len(self.Level)-1]
+				rt.Curr = self.Level[len(self.Level)-1]
 			}
 		}
 	}()
 	for k, v := range self.Level {
-		if v < self.Routines[routine].Curr {
+		if v < rt.Curr {
 			continue
 		}
 
-		if k != 0 && v != self.Routines[routine].Curr {
+		if k != 0 && v != rt.Curr {
 			k--
 		}
 		logs.Log.Critical("************************ ……<%s> 倒计时等待 %v 分钟……************************", routine, self.Level[k])
@@ -116,10 +117,8 @@ func (self *CountdownTimer) Wait(routine string) {
 
 // 需在Wait()方法执行之前，在新的协程调用
 func (self *CountdownTimer) Update(routine string) {
-	self.RWMutex.RLock()
 	defer func() {
 		recover()
-		self.RWMutex.RUnlock()
 	}()
 
 	if _, ok := self.Routines[routine]; !ok {
@@ -134,8 +133,8 @@ func (self *CountdownTimer) Update(routine string) {
 }
 
 func (self *CountdownTimer) SetRoutine(routine string, minTime float64) *CountdownTimer {
-	self.RWMutex.Lock()
-	defer self.RWMutex.Unlock()
+	self.Mutex.Lock()
+	defer self.Mutex.Unlock()
 	self.Routines[routine] = &routineTime{
 		Curr: self.Level[0],
 		Min:  minTime,
@@ -144,16 +143,16 @@ func (self *CountdownTimer) SetRoutine(routine string, minTime float64) *Countdo
 }
 
 func (self *CountdownTimer) RemoveRoutine(routine string) *CountdownTimer {
-	self.RWMutex.Lock()
-	defer self.RWMutex.Unlock()
+	self.Mutex.Lock()
+	defer self.Mutex.Unlock()
 	delete(self.Routines, routine)
 	delete(self.Flag, routine)
 	return self
 }
 
 func (self *CountdownTimer) SetLevel(level []float64) *CountdownTimer {
-	self.RWMutex.Lock()
-	defer self.RWMutex.Unlock()
+	self.Mutex.Lock()
+	defer self.Mutex.Unlock()
 	self.Level = level
 	return self
 }
