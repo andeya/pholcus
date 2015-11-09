@@ -24,7 +24,6 @@ func (self *Collector) Output(dataIndex int) {
 
 	dataLen := len(self.DockerQueue.Dockers[dataIndex])
 	if dataLen == 0 {
-		// log.Println("没有抓到结果！！！")
 		return
 	}
 

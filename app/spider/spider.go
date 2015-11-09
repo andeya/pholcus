@@ -26,6 +26,11 @@ type Spider struct {
 
 	proxys    []string // 代理服务器列表 example='localhost:80'
 	currProxy int      //当前服务器索引
+
+	// 命名空间相对于数据库名，不依赖具体数据内容，可选
+	Namespace func(*Spider) string
+	// 子命名空间相对于表名，可依赖具体数据内容，可选
+	SubNamespace func(self *Spider, dataCell map[string]interface{}) string
 }
 
 // 生成并添加请求至队列
@@ -265,6 +270,9 @@ func (self *Spider) Gost() *Spider {
 	gost.EnableCookie = self.EnableCookie
 	gost.MaxPage = self.MaxPage
 	gost.Keyword = self.Keyword
+
+	gost.Namespace = self.Namespace
+	gost.SubNamespace = self.SubNamespace
 
 	gost.proxys = make([]string, len(self.proxys))
 	copy(gost.proxys, self.proxys)

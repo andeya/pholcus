@@ -3,7 +3,7 @@ package collector
 import (
 	"io"
 	"os"
-	"time"
+	"runtime"
 
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
@@ -21,7 +21,7 @@ func (self *Collector) SaveFile() {
 			self.setFileSum(1)
 
 			// 路径： file/"RuleName"/"time"/"Name"
-			dir := config.COMM_PATH.FILE + `/` + self.Spider.GetName() + `/` + util.FileNameReplace(file["RuleName"].(string)) + `/` + self.startTime.Format("2006年01月02日 15时04分05秒") + `/`
+			dir := config.COMM_PATH.FILE + `/` + util.FileNameReplace(self.namespace()) + "__" + self.startTime.Format("2006年01月02日 15时04分05秒") + `/`
 
 			// 创建/打开目录
 			d, err := os.Stat(dir)
@@ -45,7 +45,7 @@ func (self *Collector) SaveFile() {
 
 			self.outCount[3]++
 		default:
-			time.Sleep(1e7) //0.1秒
+			runtime.Gosched()
 		}
 	}
 }

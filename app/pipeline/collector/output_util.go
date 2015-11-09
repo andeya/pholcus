@@ -1,32 +1,20 @@
 package collector
 
-import (
-	"github.com/henrylee2cn/pholcus/config"
-	"time"
-)
-
-/************************ for database output ***************************/
-
-// 返回数据库及集合名称
-func dbOrTabName(c *Collector) (dbName, tableName string) {
-	if v, ok := config.MGO_OUTPUT.DB_CLASS[c.Spider.GetName()]; ok {
-		switch config.MGO_OUTPUT.COLLECTION_FMT {
-		case "h":
-			return v, time.Now().Format("2006-01-02-15")
-		case "d":
-			fallthrough
-		default:
-			return v, time.Now().Format("2006-01-02")
+// 命名空间相对于数据库名，不依赖具体数据内容，可选
+func (self *Collector) namespace() string {
+	if self.Spider.Namespace == nil {
+		if self.Spider.GetKeyword() == "" {
+			return self.Spider.GetName()
 		}
+		return self.Spider.GetName() + "__" + self.Spider.GetKeyword()
 	}
-	return config.MGO_OUTPUT.DB, ""
+	return self.Spider.Namespace(self.Spider)
 }
 
-// 当输出数据库为config.MGO_OUTPUT.DefaultDB时，使用tabName获取table名
-func tabName(c *Collector, ruleName string) string {
-	var k = c.Spider.GetKeyword()
-	if k != "" {
-		k = "-" + k
+// 子命名空间相对于表名，可依赖具体数据内容，可选
+func (self *Collector) subNamespace(dataCell map[string]interface{}) string {
+	if self.Spider.SubNamespace == nil {
+		return dataCell["RuleName"].(string)
 	}
-	return c.Spider.GetName() + "-" + ruleName + k
+	return self.Spider.SubNamespace(self.Spider, dataCell)
 }

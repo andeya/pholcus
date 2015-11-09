@@ -54,34 +54,30 @@ var (
 	}
 
 	// mongodb数据库输出配置
-	MGO_OUTPUT = &struct {
-		HOST           string            // 数据库服务器地址
-		DB             string            // 默认数据库
-		DB_CLASS       map[string]string // key:蜘蛛规则清单，value:数据库名
-		COLLECTION_FMT string            // 非默认数据库时以当前时间为集合名，h: 精确到小时 (格式 2015-08-28-09)，d: 精确到天 (格式 2015-08-28)
-		MAX_CONNS      int               // 连接池容量
+	MGO = &struct {
+		CONN_STR  string // 链接字符串(user:password@host:port)
+		DB        string // 默认数据库
+		MAX_CONNS int    // 链接池容量
 	}{
 		"127.0.0.1:27017",
 		APP_TAG,
-		make(map[string]string),
-		"d",
 		1024,
 	}
 
 	// mysql数据库输出配置
-	MYSQL_OUTPUT = &struct {
-		HOST      string // 数据库服务器地址
+	MYSQL = &struct {
+		CONN_STR  string // 链接字符串，例：user:password@tcp(host:port)
 		DB        string // 默认数据库
-		USER      string // 用户名
-		PASSWORD  string // 密码
-		MAX_CONNS int    // 连接池容量
+		MAX_CONNS int    // 链接池容量
 	}{
-		"127.0.0.1:3306",
+		"root:@tcp(127.0.0.1:3306)",
 		APP_TAG,
-		"root",
-		"",
 		1024,
 	}
+)
+
+const (
+	DB_NAME = APP_TAG
 )
 
 func init() {
@@ -101,7 +97,7 @@ func init() {
 
 const (
 	// 软件版本号
-	APP_VERSION = "v0.7.3"
+	APP_VERSION = "v0.7.4"
 	// 软件作者
 	APP_AUTHOR = "henrylee2cn"
 	//软件名

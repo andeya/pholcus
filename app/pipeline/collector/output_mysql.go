@@ -12,42 +12,35 @@ func init() {
 		db := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
 		defer mysql.MysqlPool.Free(db)
 
-		var newMysql = new(mysql.MyTable)
+		var mysqls = make(map[string]*mysql.MyTable)
+		var namespace = util.FileNameReplace(self.namespace())
 
-		for Name, Rule := range self.GetRules() {
-			//跳过不输出的数据
-			if len(Rule.GetOutFeild()) == 0 {
-				continue
+		for _, datacell := range self.DockerQueue.Dockers[dataIndex] {
+			subNamespace := util.FileNameReplace(self.subNamespace(datacell))
+			if _, ok := mysqls[subNamespace]; !ok {
+				mysqls[subNamespace] = mysql.New(db.DB)
+				mysqls[subNamespace].SetTableName("`" + namespace + "__" + subNamespace + "`")
+				for _, title := range self.GetRule(datacell["RuleName"].(string)).GetOutFeild() {
+					mysqls[subNamespace].AddColumn(title)
+				}
+
+				mysqls[subNamespace].
+					AddColumn("Url", "ParentUrl", "DownloadTime").
+					Create()
 			}
 
-			newMysql.SetTableName("`" + tabName(self, Name) + "`")
-
-			for _, title := range Rule.GetOutFeild() {
-				newMysql.AddColumn(title)
-			}
-
-			newMysql.AddColumn("当前连接", "上级链接", "下载时间").
-				Create(db.DB)
-
-			num := 0 //小计
-
-			for _, datacell := range self.DockerQueue.Dockers[dataIndex] {
-				if datacell["RuleName"].(string) == Name {
-					for _, title := range Rule.GetOutFeild() {
-						vd := datacell["Data"].(map[string]interface{})
-						if v, ok := vd[title].(string); ok || vd[title] == nil {
-							newMysql.AddRow(v)
-						} else {
-							newMysql.AddRow(util.JsonString(vd[title]))
-						}
-					}
-					newMysql.AddRow(datacell["Url"].(string), datacell["ParentUrl"].(string), datacell["DownloadTime"].(string)).
-						Update(db.DB)
-
-					num++
+			for _, title := range self.GetRule(datacell["RuleName"].(string)).GetOutFeild() {
+				vd := datacell["Data"].(map[string]interface{})
+				if v, ok := vd[title].(string); ok || vd[title] == nil {
+					mysqls[subNamespace].AddRow(v)
+				} else {
+					mysqls[subNamespace].AddRow(util.JsonString(vd[title]))
 				}
 			}
-			newMysql = new(mysql.MyTable)
+
+			mysqls[subNamespace].
+				AddRow(datacell["Url"].(string), datacell["ParentUrl"].(string), datacell["DownloadTime"].(string)).
+				Update()
 		}
 	}
 }

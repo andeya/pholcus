@@ -6,20 +6,21 @@ import (
 	"github.com/henrylee2cn/pholcus/common/pool"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
+	"github.com/henrylee2cn/pholcus/logs"
 	"strings"
 )
 
 /************************ Mysql 输出 ***************************/
-var MysqlPool = pool.NewPool(new(MysqlSrc), config.MYSQL_OUTPUT.MAX_CONNS)
+var MysqlPool = pool.NewPool(new(MysqlSrc), config.MYSQL.MAX_CONNS)
 
 type MysqlSrc struct {
 	*sql.DB
 }
 
 func (self *MysqlSrc) New() pool.Src {
-	db, err := sql.Open("mysql", config.MYSQL_OUTPUT.USER+":"+config.MYSQL_OUTPUT.PASSWORD+"@tcp("+config.MYSQL_OUTPUT.HOST+")/"+config.MYSQL_OUTPUT.DB+"?charset=utf8")
+	db, err := sql.Open("mysql", config.MYSQL.CONN_STR+"/"+config.MYSQL.DB+"?charset=utf8")
 	if err != nil {
-		panic(err)
+		logs.Log.Error("%v", err)
 	}
 	return &MysqlSrc{DB: db}
 }
@@ -45,6 +46,13 @@ type MyTable struct {
 	columnNames []string
 	rowValues   []string
 	sqlCode     string
+	*sql.DB
+}
+
+func New(db *sql.DB) *MyTable {
+	return &MyTable{
+		DB: db,
+	}
 }
 
 //设置表名
@@ -60,7 +68,7 @@ func (self *MyTable) AddColumn(name ...string) *MyTable {
 }
 
 //生成"创建表单"的语句，执行前须保证SetTableName()、AddColumn()已经执行
-func (self *MyTable) Create(db *sql.DB) {
+func (self *MyTable) Create() {
 	if self.tableName != "" {
 		self.sqlCode = `create table if not exists ` + self.tableName + `(`
 		self.sqlCode += ` id int(8) not null primary key auto_increment`
@@ -72,7 +80,7 @@ func (self *MyTable) Create(db *sql.DB) {
 		}
 		self.sqlCode += `);`
 	}
-	stmt, err := db.Prepare(self.sqlCode)
+	stmt, err := self.DB.Prepare(self.sqlCode)
 	util.CheckErr(err)
 
 	_, err = stmt.Exec()
@@ -87,7 +95,7 @@ func (self *MyTable) AddRow(value ...string) *MyTable {
 
 //向sqlCode添加"插入1行数据"的语句，执行前须保证Create()、AddRow()已经执行
 //insert into table1(field1,field2) values(rowValues[0],rowValues[1])
-func (self *MyTable) Update(db *sql.DB) {
+func (self *MyTable) Update() {
 	if self.tableName != "" {
 		self.sqlCode = `insert into ` + self.tableName + `(`
 		if self.columnNames != nil {
@@ -107,7 +115,7 @@ func (self *MyTable) Update(db *sql.DB) {
 		}
 	}
 
-	stmt, err := db.Prepare(self.sqlCode)
+	stmt, err := self.DB.Prepare(self.sqlCode)
 	util.CheckErr(err)
 
 	_, err = stmt.Exec()
