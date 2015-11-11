@@ -131,22 +131,6 @@ func (self *Response) GetHeader() http.Header {
 	return self.Response.Header
 }
 
-// GetBodyStr returns plain string crawled.
-func (self *Response) GetText() string {
-	if self.text == "" {
-		self.initText()
-	}
-	return self.text
-}
-
-// GetBodyStr returns plain string crawled.
-func (self *Response) initText() {
-	defer self.Response.Body.Close()
-	// get converter to utf-8
-	self.text = changeCharsetEncodingAuto(self.Response.Body, self.Response.Header.Get("Content-Type"))
-	//fmt.Printf("utf-8 body %v \r\n", bodyStr)
-}
-
 // GetHtmlParser returns goquery object binded to target crawl result.
 func (self *Response) GetDom() *goquery.Document {
 	if self.dom == nil {
@@ -165,6 +149,22 @@ func (self *Response) initDom() *goquery.Document {
 		panic(err.Error())
 	}
 	return self.dom
+}
+
+// GetBodyStr returns plain string crawled.
+func (self *Response) GetText() string {
+	if self.text == "" {
+		self.initText()
+	}
+	return self.text
+}
+
+// GetBodyStr returns plain string crawled.
+func (self *Response) initText() {
+	defer self.Response.Body.Close()
+	// get converter to utf-8
+	self.text = changeCharsetEncodingAuto(self.Response.Body, self.Response.Header.Get("Content-Type"))
+	//fmt.Printf("utf-8 body %v \r\n", bodyStr)
 }
 
 // Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8

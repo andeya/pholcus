@@ -22,15 +22,12 @@ type Request struct {
 	Url  string // *必须设置
 	Rule string // *必须设置
 
-	Referer string
 	// GET POST POST-M HEAD
 	Method string
 	// http header
 	Header http.Header
-	// enable http cookies
+	// 是否使用cookies，在Spider的EnableCookie设置
 	EnableCookie bool
-	// http cookies, when Cookies equal nil, the UserAgent auto changes
-	Cookies []*http.Cookie
 	// POST values
 	PostData url.Values
 	// dial tcp: i/o timeout
@@ -129,11 +126,11 @@ func (self *Request) SetUrl(url string) *Request {
 }
 
 func (self *Request) GetReferer() string {
-	return self.Referer
+	return self.Header.Get("Referer")
 }
 
 func (self *Request) SetReferer(referer string) *Request {
-	self.Referer = referer
+	self.Header.Set("Referer", referer)
 	return self
 }
 
@@ -154,8 +151,13 @@ func (self *Request) SetEnableCookie(enableCookie bool) *Request {
 	return self
 }
 
-func (self *Request) GetCookies() []*http.Cookie {
-	return self.Cookies
+func (self *Request) GetCookies() string {
+	return self.Header.Get("Cookie")
+}
+
+func (self *Request) SetCookies(cookie string) *Request {
+	self.Header.Set("Cookie", cookie)
+	return self
 }
 
 func (self *Request) GetDialTimeout() time.Duration {

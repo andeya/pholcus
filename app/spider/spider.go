@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	USE = util.USE_KEYWORD //若使用Keyword，则Keyword初始值必须为USE
+	USE = util.USE_KEYWORD // 若使用Keyword，则Keyword初始值必须为USE
 )
 
 // 蜘蛛规则
@@ -20,12 +20,12 @@ type Spider struct {
 	//以下为可选成员
 	Description  string
 	Pausetime    [2]uint // 暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
-	EnableCookie bool    //是否启用cookie记录
+	EnableCookie bool    // 是否启用cookie记录
 	MaxPage      int     // UI传参而来，可在涉及采集页数控制时使用
 	Keyword      string  // 如需使用必须附初始值为常量USE
 
 	proxys    []string // 代理服务器列表 example='localhost:80'
-	currProxy int      //当前服务器索引
+	currProxy int      // 当前服务器索引
 
 	// 命名空间相对于数据库名，不依赖具体数据内容，可选
 	Namespace func(*Spider) string

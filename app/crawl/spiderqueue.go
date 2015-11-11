@@ -46,6 +46,10 @@ func (self *sq) AddAll(list []*Spider) {
 
 // 添加keyword，遍历蜘蛛队列得到新的队列（已被显式赋值过的spider将不再重新分配Keyword）
 func (self *sq) AddKeywords(keywords string) error {
+	keywords = strings.Trim(keywords, " ")
+	keywords = strings.Trim(keywords, "\n")
+	keywords = strings.Trim(keywords, "\r")
+	keywords = strings.Trim(keywords, "\t")
 	if keywords == "" {
 		return errors.New("遍历关键词失败：keywords 不能为空！")
 	}

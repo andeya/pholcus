@@ -1,8 +1,8 @@
 package mgo
 
 import (
-	"encoding/json"
 	"errors"
+	"reflect"
 	"strings"
 )
 
@@ -19,14 +19,13 @@ func Mgo(resultPtr interface{}, operate string, option map[string]interface{}) e
 		return errors.New("the db-operate " + operate + " does not exist!")
 	}
 
-	b, err := json.Marshal(option)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(b, o)
-	if err != nil {
-		return err
+	v := reflect.ValueOf(o).Elem()
+	for key, val := range option {
+		value := v.FieldByName(key)
+		if value == (reflect.Value{}) || !value.CanSet() {
+			continue
+		}
+		value.Set(reflect.ValueOf(val))
 	}
 
 	return o.Exec(resultPtr)
