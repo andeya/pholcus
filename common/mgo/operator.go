@@ -39,28 +39,36 @@ type Operator interface {
 // 增删改查操作列表
 func getOperator(operate string) Operator {
 	switch strings.ToLower(operate) {
+	// 传入数据库列表 | 返回数据库及其集合树
 	case "list":
-		// 传入数据库列表 | 返回数据库及其集合树
 		return new(List)
 
+	// 传入数据库与集合名 | 返回文档总数
 	case "count":
-		// 传入数据库与集合名 | 返回文档总数
 		return new(Count)
 
+	// 在指定集合进行条件查询
 	case "find":
-		// 在指定集合进行条件查询
 		return new(Find)
 
+	// 插入新数据
 	case "insert":
-		// 插入新数据
 		return new(Insert)
 
+	// 更新第一个匹配的数据
 	case "update":
-		// 更新数据
 		return new(Update)
 
+	// 更新全部匹配的数据
+	case "update_all":
+		return new(UpdateAll)
+
+	// 更新第一个匹配的数据，若无匹配项则插入
+	case "upsert":
+		return new(Upsert)
+
+	// 删除数据
 	case "remove":
-		// 删除数据
 		return new(Remove)
 
 	default:

@@ -5,15 +5,23 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-// 更新第一个匹配的数据
-type Update struct {
+// 更新第一个匹配的数据，若无匹配项则插入
+type Upsert struct {
 	Database   string                 // 数据库
 	Collection string                 // 集合
 	Selector   map[string]interface{} // 文档选择器
 	Change     map[string]interface{} // 文档更新内容
 }
 
-func (self *Update) Exec(_ interface{}) error {
+func (self *Upsert) Exec(resultPtr interface{}) (err error) {
+	defer func() {
+		if re := recover(); re != nil {
+			err = fmt.Errorf("%v", re)
+		}
+	}()
+	resultPtr2 := resultPtr.(*map[string]interface{})
+	*resultPtr2 = map[string]interface{}{}
+
 	s, c, err := Open(self.Database, self.Collection)
 	defer Close(s)
 	if err != nil {
@@ -29,6 +37,14 @@ func (self *Update) Exec(_ interface{}) error {
 		}
 	}
 
-	err = c.Update(self.Selector, self.Change)
+	info, err := c.Upsert(self.Selector, self.Change)
+	if err != nil {
+		return err
+	}
+
+	(*resultPtr2)["Updated"] = info.Updated
+	(*resultPtr2)["Removed"] = info.Removed
+	(*resultPtr2)["UpsertedId"] = info.UpsertedId
+
 	return err
 }
