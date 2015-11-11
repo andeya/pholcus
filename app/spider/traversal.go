@@ -1,5 +1,9 @@
 package spider
 
+import (
+	"github.com/henrylee2cn/pholcus/common/pinyin"
+)
+
 // 蜘蛛种类接口
 type Traversal interface {
 	Add(*Spider)
@@ -9,7 +13,8 @@ type Traversal interface {
 
 // 蜘蛛种类清单
 type menu struct {
-	list []*Spider
+	list   []*Spider
+	sorted bool
 }
 
 func newTraversal() Traversal {
@@ -27,6 +32,20 @@ func (self *menu) Add(sp *Spider) {
 
 // 获取全部蜘蛛种类
 func (self *menu) Get() []*Spider {
+	if !self.sorted {
+		l := len(self.list)
+		initials := make([]string, l)
+		newlist := map[string]*Spider{}
+		for i := 0; i < l; i++ {
+			initials[i] = self.list[i].GetName()
+			newlist[initials[i]] = self.list[i]
+		}
+		pinyin.SortInitials(initials)
+		for i := 0; i < l; i++ {
+			self.list[i] = newlist[initials[i]]
+		}
+		self.sorted = true
+	}
 	return self.list
 }
 
