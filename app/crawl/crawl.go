@@ -51,7 +51,7 @@ func (self *crawler) Start() {
 	self.Pipeline.Start()
 
 	// 开始运行
-	self.Spider.Start(self.Spider)
+	self.Spider.Start()
 	self.Run()
 	// logs.Log.Debug("**************爬虫：%v***********", self.GetId())
 	// 通知输出模块输出未输出的数据
@@ -118,11 +118,13 @@ func (self *crawler) Process(req *context.Request) {
 	}
 
 	// 过程处理，提炼数据
-	self.Spider.Parse(resp, resp.GetRuleName())
+	spider.NewContext(self.Spider, resp).Parse(resp.GetRuleName())
+
 	// 统计成功页数
 	cache.PageSuccCount()
 	// 提示抓取成功
 	logs.Log.Informational(" *     Success: %v", req.GetUrl())
+
 	// 该条请求文本结果存入pipeline
 	for _, data := range resp.GetItems() {
 		self.Pipeline.CollectData(

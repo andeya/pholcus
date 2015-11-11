@@ -10,7 +10,7 @@ import (
 
 // Form is the default form element.
 type Form struct {
-	spider    *Spider
+	ctx       *Context
 	rule      string
 	selection *goquery.Selection
 	method    string
@@ -20,7 +20,7 @@ type Form struct {
 }
 
 // NewForm creates and returns a *Form type.
-func NewForm(sp *Spider, rule string, u string, form *goquery.Selection, schemeAndHost ...string) *Form {
+func NewForm(ctx *Context, rule string, u string, form *goquery.Selection, schemeAndHost ...string) *Form {
 	fields, buttons := serializeForm(form)
 	if len(schemeAndHost) == 0 {
 		aurl, _ := url.Parse(u)
@@ -34,7 +34,7 @@ func NewForm(sp *Spider, rule string, u string, form *goquery.Selection, schemeA
 		method = "GET"
 	}
 	return &Form{
-		spider:    sp,
+		ctx:       ctx,
 		rule:      rule,
 		selection: form,
 		method:    method,
@@ -110,7 +110,7 @@ func (self *Form) send(buttonName, buttonValue string) bool {
 	}
 
 	if self.Method() == "GET" {
-		self.spider.AddQueue(&context.Request{
+		self.ctx.AddQueue(&context.Request{
 			Rule:   self.rule,
 			Url:    self.Action() + "?" + values.Encode(),
 			Method: self.Method(),
@@ -119,7 +119,7 @@ func (self *Form) send(buttonName, buttonValue string) bool {
 	} else {
 		enctype, _ := self.selection.Attr("enctype")
 		if enctype == "multipart/form-data" {
-			self.spider.AddQueue(&context.Request{
+			self.ctx.AddQueue(&context.Request{
 				Rule:     self.rule,
 				Url:      self.Action(),
 				PostData: values,
@@ -127,7 +127,7 @@ func (self *Form) send(buttonName, buttonValue string) bool {
 			})
 			return true
 		}
-		self.spider.AddQueue(&context.Request{
+		self.ctx.AddQueue(&context.Request{
 			Rule:     self.rule,
 			Url:      self.Action(),
 			PostData: values,

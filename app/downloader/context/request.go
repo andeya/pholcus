@@ -77,6 +77,10 @@ func (self *Request) Prepare() *Request {
 		self.Method = "GET"
 	}
 
+	if self.Header == nil {
+		self.Header = make(http.Header)
+	}
+
 	if self.DialTimeout < 0 {
 		self.DialTimeout = 0
 	} else if self.DialTimeout == 0 {

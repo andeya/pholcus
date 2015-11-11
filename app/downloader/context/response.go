@@ -167,6 +167,11 @@ func (self *Response) initText() {
 	//fmt.Printf("utf-8 body %v \r\n", bodyStr)
 }
 
+func (self *Response) SetText(s string) *Response {
+	self.text = s
+	return self
+}
+
 // Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8
 func changeCharsetEncodingAuto(sor io.ReadCloser, contentTypeStr string) string {
 	var err error

@@ -1,8 +1,6 @@
 package spider
 
 import (
-	"github.com/henrylee2cn/pholcus/app/downloader/context"
-	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/logs"
 )
@@ -20,7 +18,7 @@ type Spider struct {
 	//以下为可选成员
 	Description  string
 	Pausetime    [2]uint // 暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
-	EnableCookie bool    // 是否启用cookie记录
+	EnableCookie bool    // 控制所有请求是否使用cookie记录
 	MaxPage      int     // UI传参而来，可在涉及采集页数控制时使用
 	Keyword      string  // 如需使用必须附初始值为常量USE
 
@@ -33,84 +31,9 @@ type Spider struct {
 	SubNamespace func(self *Spider, dataCell map[string]interface{}) string
 }
 
-// 生成并添加请求至队列
-// Request.Url与Request.Rule必须设置
-// Request.Spider无需手动设置(由系统自动设置)
-// Request.EnableCookie在Spider字段中统一设置，规则请求中指定的无效
-// 以下字段有默认值，可不设置:
-// Request.Method默认为GET方法;
-// Request.DialTimeout默认为常量context.DefaultDialTimeout，小于0时不限制等待响应时长;
-// Request.ConnTimeout默认为常量context.DefaultConnTimeout，小于0时不限制下载超时;
-// Request.TryTimes默认为常量context.DefaultTryTimes，小于0时不限制失败重载次数;
-// Request.RedirectTimes默认不限制重定向次数，小于0时可禁止重定向跳转;
-// Request.RetryPause默认为常量context.DefaultRetryPause;
-// Request.DownloaderID指定下载器ID，0为默认的Surf高并发下载器，功能完备，1为PhantomJS下载器，特点破防力强，速度慢，低并发。
-func (self *Spider) AddQueue(req *context.Request) {
-	req.
-		SetSpiderName(self.Name).
-		SetSpiderId(self.GetId()).
-		SetEnableCookie(self.EnableCookie).
-		Prepare()
-	scheduler.Sdl.Push(req)
-}
-
-// 批量url生成请求，并添加至队列
-func (self *Spider) BulkAddQueue(urls []string, req *context.Request) {
-	for _, url := range urls {
-		req.SetUrl(url)
-		self.AddQueue(req)
-	}
-}
-
-// 输出文本结果
-// item允许的类型为map[int]interface{}或map[string]interface{}
-func (self *Spider) Output(ruleName string, resp *context.Response, item interface{}) {
-	resp.SetRuleName(ruleName)
-	switch item2 := item.(type) {
-	case map[int]interface{}:
-		resp.AddItem(self.CreatItem(ruleName, item2))
-	case map[string]interface{}:
-		resp.AddItem(item2)
-	}
-}
-
-// 输出文件结果
-func (self *Spider) FileOutput(resp *context.Response, name ...string) {
-	resp.AddFile(name...)
-}
-
-// 生成文本结果
-func (self *Spider) CreatItem(ruleName string, item map[int]interface{}) map[string]interface{} {
-	var item2 = make(map[string]interface{}, len(item))
-	for k, v := range item {
-		item2[self.IndexOutFeild(ruleName, k)] = v
-	}
-	return item2
-}
-
 // 添加自身到蜘蛛菜单
 func (self *Spider) Register() {
 	Menu.Add(self)
-}
-
-// 调用指定Rule下辅助函数AidFunc()
-func (self *Spider) Aid(ruleName string, aid map[string]interface{}) interface{} {
-	return self.GetRule(ruleName).AidFunc(self, aid)
-}
-
-// 指定ruleName时，调用相应ParseFunc()解析响应流
-// 未指定ruleName时或ruleName为空时，调用Root()
-func (self *Spider) Parse(resp *context.Response, ruleName ...string) {
-	if len(ruleName) == 0 || ruleName[0] == "" {
-		if resp != nil {
-			resp.SetRuleName("")
-		}
-		self.RuleTree.Root(self, resp)
-		return
-	}
-
-	resp.SetRuleName(ruleName[0])
-	self.GetRule(ruleName[0]).ParseFunc(self, resp)
 }
 
 // 返回采集语义字段
@@ -213,6 +136,11 @@ func (self *Spider) SetMaxPage(max int) {
 	self.MaxPage = max
 }
 
+// 控制所有请求是否使用cookie
+func (self *Spider) GetEnableCookie() bool {
+	return self.EnableCookie
+}
+
 // 返回规则树
 func (self *Spider) GetRules() map[string]*Rule {
 	return self.RuleTree.Trunk
@@ -235,14 +163,9 @@ func (self *Spider) SetPausetime(pause [2]uint, runtime ...bool) {
 	}
 }
 
-// 设置是否启用cookie
-func (self *Spider) SetEnableCookie(enableCookie bool) {
-	self.EnableCookie = enableCookie
-}
-
 // 开始执行蜘蛛
-func (self *Spider) Start(sp *Spider) {
-	sp.RuleTree.Root(sp, nil)
+func (self *Spider) Start() {
+	self.RuleTree.Root(NewContext(self, nil))
 }
 
 // 返回一个自身复制品
@@ -285,9 +208,18 @@ func (self *Spider) Gost() *Spider {
 //采集规则树
 type RuleTree struct {
 	// 执行入口（树根）
-	Root func(*Spider, *context.Response)
+	Root func(*Context)
 	// 执行解析过程（树干）
 	Trunk map[string]*Rule
+}
+
+// 返回指定规则
+func (self *RuleTree) GetRule(ruleName string) *Rule {
+	rule, ok := self.Trunk[ruleName]
+	if !ok {
+		logs.Log.Error("不存在规则名 %s", ruleName)
+	}
+	return rule
 }
 
 // 采集规则单元
@@ -295,9 +227,9 @@ type Rule struct {
 	//输出字段
 	OutFeild []string
 	// 内容解析函数
-	ParseFunc func(*Spider, *context.Response)
+	ParseFunc func(*Context)
 	// 通用辅助函数
-	AidFunc func(*Spider, map[string]interface{}) interface{}
+	AidFunc func(*Context, map[string]interface{}) interface{}
 }
 
 // 获取全部输出字段
