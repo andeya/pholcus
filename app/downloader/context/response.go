@@ -126,6 +126,11 @@ func (self *Response) GetRequest() *Request {
 	return self.Request
 }
 
+// 返回请求后的Url，与请求前Url相比，可能键值对顺序不同
+func (self *Response) GetUrl() string {
+	return self.Response.Request.URL.String()
+}
+
 // GetHeader ruturns header of Response.
 func (self *Response) GetHeader() http.Header {
 	return self.Response.Header

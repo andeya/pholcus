@@ -49,7 +49,7 @@ func (self *Context) AddQueue(req *context.Request) *Context {
 		Prepare()
 
 	if req.GetReferer() == "" && self.Response != nil {
-		req.SetReferer(self.Response.Response.Request.URL.String())
+		req.SetReferer(self.Response.GetUrl())
 	}
 
 	scheduler.Sdl.Push(req)
@@ -275,8 +275,9 @@ func (self *Context) GetRequest() *context.Request {
 	return self.Response.GetRequest()
 }
 
+// 返回响应流中的Url
 func (self *Context) GetUrl() string {
-	return self.Request.GetUrl()
+	return self.Response.GetUrl()
 }
 
 func (self *Context) GetMethod() string {

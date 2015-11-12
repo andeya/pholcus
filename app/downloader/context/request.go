@@ -116,6 +116,7 @@ func (self *Request) Serialization() string {
 	return util.JsonString(self)
 }
 
+// 返回请求前的Url，与请求后Url相比，可能键值对顺序不同
 func (self *Request) GetUrl() string {
 	return self.Url
 }
