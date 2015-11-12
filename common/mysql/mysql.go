@@ -11,7 +11,7 @@ import (
 )
 
 /************************ Mysql 输出 ***************************/
-var MysqlPool = pool.NewPool(new(MysqlSrc), config.MYSQL.MAX_CONNS)
+var MysqlPool = pool.NewPool(new(MysqlSrc), config.MYSQL.MAX_CONNS, 10)
 
 type MysqlSrc struct {
 	*sql.DB
@@ -20,14 +20,15 @@ type MysqlSrc struct {
 func (self *MysqlSrc) New() pool.Src {
 	db, err := sql.Open("mysql", config.MYSQL.CONN_STR+"/"+config.MYSQL.DB+"?charset=utf8")
 	if err != nil {
-		logs.Log.Error("%v", err)
+		logs.Log.Error("Mysql：%v", err)
+		return nil
 	}
 	return &MysqlSrc{DB: db}
 }
 
 // 判断连接是否失效
 func (self *MysqlSrc) Expired() bool {
-	if self.DB.Ping() != nil {
+	if self.DB == nil || self.DB.Ping() != nil {
 		return true
 	}
 	return false
@@ -35,6 +36,9 @@ func (self *MysqlSrc) Expired() bool {
 
 // 自毁方法，在被资源池删除时调用
 func (self *MysqlSrc) Close() {
+	if self.DB == nil {
+		return
+	}
 	self.DB.Close()
 }
 

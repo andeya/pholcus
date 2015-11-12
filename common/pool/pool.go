@@ -23,20 +23,25 @@ type Pool struct {
 	Src                    // 资源接口
 	srcMap   map[Src]bool  // Src须为指针类型
 	capacity int           // 资源池容量
+	tryTimes int           // 创建新资源时，重试次数，0为默认10次，小于0为无限次
 	gctime   time.Duration // 回收监测间隔
 	sync.Mutex
 }
 
 // 新建一个资源池
-func NewPool(src Src, size int, gctime ...time.Duration) *Pool {
+func NewPool(src Src, size int, tryTimes int, gctime ...time.Duration) *Pool {
 	if len(gctime) == 0 {
 		gctime = append(gctime, 60e9)
+	}
+	if tryTimes <= 0 {
+		tryTimes = 10
 	}
 	pool := &Pool{
 		Src:      src,
 		srcMap:   make(map[Src]bool),
 		capacity: size,
 		gctime:   gctime[0],
+		tryTimes: tryTimes,
 	}
 	go pool.gc()
 
@@ -48,7 +53,7 @@ func (self *Pool) GetOne() Src {
 	self.Mutex.Lock()
 	defer self.Mutex.Unlock()
 
-	for {
+	for i := 0; i < self.tryTimes; i++ {
 		for k, v := range self.srcMap {
 			if v {
 				continue
@@ -70,6 +75,9 @@ func (self *Pool) GetOne() Src {
 }
 
 func (self *Pool) Free(m ...Src) {
+	defer func() {
+		recover()
+	}()
 	for i, count := 0, len(m); i < count; i++ {
 		m[i].Clean()
 		self.srcMap[m[i]] = false
@@ -78,6 +86,9 @@ func (self *Pool) Free(m ...Src) {
 
 // 关闭并删除指定资源
 func (self *Pool) Remove(m ...Src) {
+	defer func() {
+		recover()
+	}()
 	for _, c := range m {
 		c.Close()
 		delete(self.srcMap, c)
@@ -86,6 +97,9 @@ func (self *Pool) Remove(m ...Src) {
 
 // 重置资源池
 func (self *Pool) Reset() {
+	defer func() {
+		recover()
+	}()
 	for k, _ := range self.srcMap {
 		k.Close()
 		delete(self.srcMap, k)
@@ -94,7 +108,11 @@ func (self *Pool) Reset() {
 
 // 根据情况自动动态增加资源
 func (self *Pool) increment() {
-	self.srcMap[self.Src.New()] = false
+	src := self.Src.New()
+	if src == nil {
+		return
+	}
+	self.srcMap[src] = false
 }
 
 func (self *Pool) use(m Src) {
@@ -103,6 +121,9 @@ func (self *Pool) use(m Src) {
 
 // 空闲资源回收
 func (self *Pool) gc() {
+	defer func() {
+		recover()
+	}()
 	for {
 		self.Mutex.Lock()
 		for k, v := range self.srcMap {

@@ -14,7 +14,11 @@ func init() {
 	Output["mgo"] = func(self *Collector, dataIndex int) {
 		var err error
 		//连接数据库
-		mgoSession := mgo.MgoPool.GetOne().(*mgo.MgoSrc)
+		mgoSession, ok := mgo.MgoPool.GetOne().(*mgo.MgoSrc)
+		if !ok || mgoSession == nil {
+			logs.Log.Error("链接MongoDB服务器超时，无法输出！")
+			return
+		}
 		defer mgo.MgoPool.Free(mgoSession)
 
 		var db = mgoSession.DB(config.MGO.DB)

@@ -12,20 +12,21 @@ type MgoSrc struct {
 	*mgo.Session
 }
 
-var MgoPool = pool.NewPool(new(MgoSrc), config.MGO.MAX_CONNS)
+var MgoPool = pool.NewPool(new(MgoSrc), config.MGO.MAX_CONNS, 10)
 
 // 新建数据库连接
 func (*MgoSrc) New() pool.Src {
 	session, err := mgo.Dial(config.MGO.CONN_STR)
 	if err != nil {
-		logs.Log.Error("%v", err)
+		logs.Log.Error("MongoDB： %v", err)
+		return nil
 	}
 	return &MgoSrc{Session: session}
 }
 
 // 判断连接是否失效
 func (self *MgoSrc) Expired() bool {
-	if self.Session.Ping() != nil {
+	if self.Session == nil || self.Session.Ping() != nil {
 		return true
 	}
 	return false
@@ -33,6 +34,9 @@ func (self *MgoSrc) Expired() bool {
 
 // 自毁方法，在被资源池删除时调用
 func (self *MgoSrc) Close() {
+	if self.Session == nil {
+		return
+	}
 	self.Session.Close()
 }
 
@@ -41,6 +45,9 @@ func (*MgoSrc) Clean() {}
 // 打开指定数据库的集合
 func Open(database, collection string) (s *MgoSrc, c *mgo.Collection, err error) {
 	s = MgoPool.GetOne().(*MgoSrc)
+	if s == nil {
+		return nil, nil, errors.New("链接数据库超时！")
+	}
 	db := s.DB(database)
 	if db == nil {
 		Close(s)

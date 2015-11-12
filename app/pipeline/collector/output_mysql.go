@@ -3,13 +3,18 @@ package collector
 import (
 	"github.com/henrylee2cn/pholcus/common/mysql"
 	"github.com/henrylee2cn/pholcus/common/util"
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 /************************ Mysql 输出 ***************************/
 
 func init() {
 	Output["mysql"] = func(self *Collector, dataIndex int) {
-		db := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
+		db, ok := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
+		if !ok || db == nil {
+			logs.Log.Error("链接Mysql数据库超时，无法输出！")
+			return
+		}
 		defer mysql.MysqlPool.Free(db)
 
 		var mysqls = make(map[string]*mysql.MyTable)
