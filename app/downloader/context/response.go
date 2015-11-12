@@ -126,7 +126,8 @@ func (self *Response) GetRequest() *Request {
 	return self.Request
 }
 
-// 返回请求后的Url，与请求前Url相比，可能键值对顺序不同
+// 返回请求后的Url
+// 在downloader模块已被重置为请求前的Url，从而确保请求前后Url字符串相等，且中文不被编码
 func (self *Response) GetUrl() string {
 	return self.Response.Request.URL.String()
 }

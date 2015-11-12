@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"net/http"
+	"net/url"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/config"
@@ -36,13 +37,16 @@ func (self *Surfer) Download(cReq *context.Request) *context.Response {
 		resp, err = self.phantom.Download(cReq)
 	}
 
+	if resp != nil {
+		// 确保Response与Request中的Url字符串相等
+		resp.Request.URL, _ = url.Parse(cReq.GetUrl())
+	}
+
 	cResp.SetRequest(cReq)
 
 	cResp.SetResponse(resp)
 
 	cResp.SetError(err)
-
-	cReq.SetUrl(cResp.GetUrl()) // 确保url字符串相等
 
 	return cResp
 }

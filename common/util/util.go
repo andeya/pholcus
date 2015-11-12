@@ -1,4 +1,3 @@
-// Package util contains some common functions of GO_SPIDER project.
 package util
 
 import (

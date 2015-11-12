@@ -72,7 +72,15 @@ type Request struct {
 // Request.RedirectTimes默认不限制重定向次数，小于0时可禁止重定向跳转;
 // Request.RetryPause默认为常量DefaultRetryPause;
 // Request.DownloaderID指定下载器ID，0为默认的Surf高并发下载器，功能完备，1为PhantomJS下载器，特点破防力强，速度慢，低并发。
-func (self *Request) Prepare() *Request {
+func (self *Request) Prepare() error {
+	// 确保url正确，且和Response中Url字符串相等
+	URL, err := url.Parse(self.Url)
+	if err != nil {
+		return err
+	} else {
+		self.Url = URL.String()
+	}
+
 	if self.Method == "" {
 		self.Method = "GET"
 	}
@@ -108,7 +116,7 @@ func (self *Request) Prepare() *Request {
 	if self.DownloaderID < 0 || self.DownloaderID > 1 {
 		self.DownloaderID = 0
 	}
-	return self
+	return nil
 }
 
 // 请求的序列化
@@ -116,7 +124,8 @@ func (self *Request) Serialization() string {
 	return util.JsonString(self)
 }
 
-// 返回请求前的Url，与请求后Url相比，可能键值对顺序不同
+// 返回请求前的Url
+// 请求后的Url将会在downloader模块被重置为该Url，从而确保请求前后Url字符串相等，且中文不被编码
 func (self *Request) GetUrl() string {
 	return self.Url
 }
