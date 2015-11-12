@@ -40,7 +40,7 @@ func NewContext(sp *Spider, resp *context.Response) *Context {
 // Request.RedirectTimes默认不限制重定向次数，小于0时可禁止重定向跳转;
 // Request.RetryPause默认为常量context.DefaultRetryPause;
 // Request.DownloaderID指定下载器ID，0为默认的Surf高并发下载器，功能完备，1为PhantomJS下载器，特点破防力强，速度慢，低并发。
-// 默认自动添加Referer
+// 默认自动补填Referer
 func (self *Context) AddQueue(req *context.Request) *Context {
 	req.
 		SetSpiderName(self.Spider.GetName()).
@@ -49,7 +49,7 @@ func (self *Context) AddQueue(req *context.Request) *Context {
 		Prepare()
 
 	if req.GetReferer() == "" && self.Response != nil {
-		req.SetReferer(self.Request.GetUrl())
+		req.SetReferer(self.Response.Response.Request.URL.String())
 	}
 
 	scheduler.Sdl.Push(req)
@@ -67,6 +67,7 @@ func (self *Context) BulkAddQueue(urls []string, req *context.Request) *Context 
 
 // 输出文本结果
 // item允许的类型为map[int]interface{}或map[string]interface{}
+// 用ruleName指定匹配的OutFeild字段，为空时默认当前规则
 func (self *Context) Output(item interface{}, ruleName ...string) *Context {
 	if len(ruleName) == 0 {
 		if self.Request == nil {
@@ -86,13 +87,15 @@ func (self *Context) Output(item interface{}, ruleName ...string) *Context {
 	return self
 }
 
-// 输出文件结果
+// 输出文件
+// name指定文件名，为空时默认保持原文件名不变
 func (self *Context) FileOutput(name ...string) *Context {
 	self.Response.AddFile(name...)
 	return self
 }
 
 // 生成文本结果
+// 用ruleName指定匹配的OutFeild字段，为空时默认当前规则
 func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map[string]interface{} {
 	if len(ruleName) == 0 {
 		if self.Request == nil {
@@ -109,6 +112,7 @@ func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map
 }
 
 // 调用指定Rule下辅助函数AidFunc()
+// 用ruleName指定匹配的AidFunc，为空时默认当前规则
 func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interface{} {
 	if len(ruleName) == 0 {
 		if self.Request == nil {
@@ -120,8 +124,8 @@ func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interfa
 	return self.Spider.GetRule(ruleName[0]).AidFunc(self, aid)
 }
 
-// 指定ruleName时，调用相应ParseFunc()解析响应流
-// 未指定ruleName时或ruleName为空时，调用Root()
+// 解析响应流
+// 用ruleName指定匹配的ParseFunc字段，为空时默认调用Root()
 func (self *Context) Parse(ruleName ...string) *Context {
 	if len(ruleName) == 0 || ruleName[0] == "" {
 		if self.Response != nil {
@@ -136,6 +140,7 @@ func (self *Context) Parse(ruleName ...string) *Context {
 }
 
 // 返回采集语义字段
+// 用ruleName指定匹配的OutFeild字段，为空时默认当前规则
 func (self *Context) IndexOutFeild(index int, ruleName ...string) (feild string) {
 	if len(ruleName) == 0 {
 		if self.Request == nil {
@@ -148,6 +153,7 @@ func (self *Context) IndexOutFeild(index int, ruleName ...string) (feild string)
 }
 
 // 返回采集语义字段的索引位置，不存在时返回-1
+// 用ruleName指定匹配的OutFeild字段，为空时默认当前规则
 func (self *Context) FindOutFeild(feild string, ruleName ...string) (index int) {
 	if len(ruleName) == 0 {
 		if self.Request == nil {
@@ -161,6 +167,7 @@ func (self *Context) FindOutFeild(feild string, ruleName ...string) (index int) 
 
 // 为指定Rule动态追加采集语义字段，并返回索引位置
 // 已存在时返回原来索引位置
+// 用ruleName指定匹配的OutFeild字段，为空时默认当前规则
 func (self *Context) AddOutFeild(feild string, ruleName ...string) (index int) {
 	if len(ruleName) == 0 {
 		if self.Request == nil {

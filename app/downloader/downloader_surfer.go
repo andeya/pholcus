@@ -36,6 +36,8 @@ func (self *Surfer) Download(cReq *context.Request) *context.Response {
 		resp, err = self.phantom.Download(cReq)
 	}
 
+	cReq.SetUrl(resp.Request.URL.String()) // 确保url字符串相等
+
 	cResp.SetRequest(cReq)
 
 	cResp.SetResponse(resp)
