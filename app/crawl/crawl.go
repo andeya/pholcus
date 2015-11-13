@@ -11,7 +11,7 @@ import (
 
 	"io"
 	"math/rand"
-	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -26,7 +26,7 @@ type crawler struct {
 	*spider.Spider
 	downloader.Downloader
 	pipeline.Pipeline
-	srcManage [2]uint
+	srcManage int32
 }
 
 func New(id int) Crawler {
@@ -34,14 +34,14 @@ func New(id int) Crawler {
 		id:         id,
 		Pipeline:   pipeline.New(),
 		Downloader: downloader.SurferDownloader,
-		srcManage:  [2]uint{},
+		srcManage:  0,
 	}
 }
 
 func (self *crawler) Init(sp *spider.Spider) Crawler {
 	self.Pipeline.Init(sp)
 	self.Spider = sp
-	self.srcManage = [2]uint{}
+	self.srcManage = 0
 	return self
 }
 
@@ -166,22 +166,16 @@ func (self *crawler) FreeOne() {
 }
 
 func (self *crawler) RequestIn() {
-	self.srcManage[0]++
+	atomic.AddInt32(&self.srcManage, 1)
 }
 
-var requestOutMutex sync.Mutex
-
 func (self *crawler) RequestOut() {
-	requestOutMutex.Lock()
-	defer func() {
-		requestOutMutex.Unlock()
-	}()
-	self.srcManage[1]++
+	atomic.AddInt32(&self.srcManage, -1)
 }
 
 //判断调度中是否还有属于自己的资源运行
 func (self *crawler) canStop() bool {
-	return (self.srcManage[0] == self.srcManage[1] && scheduler.Sdl.IsEmpty(self.Spider.GetId())) || scheduler.Sdl.IsStop()
+	return (self.srcManage == 0 && scheduler.Sdl.IsEmpty(self.Spider.GetId())) || scheduler.Sdl.IsStop()
 }
 
 func (self *crawler) SetId(id int) {
