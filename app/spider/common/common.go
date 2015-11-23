@@ -111,8 +111,27 @@ func UnicodeToUTF8(str string) string {
 
 	for k, s := range strSlice {
 		if i, err := strconv.Atoi(s); err == nil {
-			// r := rune(i)
 			strSlice[k] = string(i)
+		}
+	}
+	return strings.Join(strSlice, "")
+}
+
+//将`{"area":[["quanguo","\u5168\u56fd\u8054\u9500"]]｝`转为`{"area":[["quanguo","全国联销"]]｝`
+func Unicode16ToUTF8(str string) string {
+	i := 0
+	if strings.Index(str, `\u`) > 0 {
+		i = 1
+	}
+	strSlice := strings.Split(str, `\u`)
+	last := len(strSlice) - 1
+	if len(strSlice[last]) > 4 {
+		strSlice = append(strSlice, string(strSlice[last][4:]))
+		strSlice[last] = string(strSlice[last][:4])
+	}
+	for ; i <= last; i++ {
+		if x, err := strconv.ParseInt(strSlice[i], 16, 32); err == nil {
+			strSlice[i] = string(x)
 		}
 	}
 	return strings.Join(strSlice, "")
