@@ -65,9 +65,6 @@ func Run() {
 	// 继承之前的去重记录
 	inheritDeduplicationflag := flag.Bool("inheritDeduplication", true, "   【继承之前的去重记录】\r\n")
 
-	// 去重记录保存位置,"file"或"mgo"
-	deduplicationTargetflag := flag.String("deduplicationTarget", status.FILE, "   【去重记录保存位置,<file>或<mgo>】\r\n")
-
 	// 备注说明
 	flag.String("z", "", "   【说明<非参数>】   各项参数值请参考{}中内容，同一参数包含多个值时以\",\"隔开\r\n\r\n  example：pholcus-cmd.exe -spider=3,8 -output=csv -go=500 -docker=5000 -pase=1000,3000 -kw=pholcus,golang -page=100\r\n")
 
@@ -92,7 +89,6 @@ func Run() {
 		i, _ := strconv.Atoi(idx)
 		sps = append(sps, app.LogicApp.GetSpiderLib()[i])
 	}
-	// fmt.Println("输入配置", *outputflag, *spiderflag, *goroutineflag, *dockerflag, *pasetimeflag, *keywordflag, *maxpageflag)
 
 	// 配置运行参数
 	app.LogicApp.SetAppConf("ThreadNum", *goroutineflag).
@@ -102,7 +98,6 @@ func Run() {
 		SetAppConf("Pausetime", [2]uint{uint(pase[0]), uint(pase[1])}).
 		SetAppConf("Keywords", keyword).
 		SetAppConf("InheritDeduplication", *inheritDeduplicationflag).
-		SetAppConf("DeduplicationTarget", *deduplicationTargetflag).
 		SpiderPrepare(sps).
 		Run()
 }

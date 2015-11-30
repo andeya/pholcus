@@ -71,10 +71,6 @@ var GuiOpt = struct {
 		{Key: "服务器", Int: status.SERVER},
 		{Key: "客户端", Int: status.CLIENT},
 	},
-	DeduplicationTarget: []*KV{
-		{Key: "去重样本位置: file", String: status.FILE},
-		{Key: "去重样本位置: mgo", String: status.MGO},
-	},
 }
 
 // 输出选项

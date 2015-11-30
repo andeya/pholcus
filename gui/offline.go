@@ -151,18 +151,6 @@ func offlineWindow() {
 					},
 
 					HSplitter{
-						MaxSize: Size{100, 50},
-						Children: []Widget{
-							ComboBox{
-								Value:         Bind("DeduplicationTarget", SelRequired{}),
-								BindingMember: "String",
-								DisplayMember: "Key",
-								Model:         GuiOpt.DeduplicationTarget,
-							},
-						},
-					},
-
-					HSplitter{
 						MaxSize: Size{150, 50},
 						Children: []Widget{
 							Label{

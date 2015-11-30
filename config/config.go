@@ -2,7 +2,6 @@ package config
 
 import (
 	"github.com/henrylee2cn/pholcus/runtime/cache"
-	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
 // 相关默认值，可在main中重新定义
@@ -34,13 +33,12 @@ var (
 	}
 
 	// 去重模块相关配置
+	// 输出方式为文件时，保存路径为COMM_PATH.CACHE下的FILE_NAME文件
+	// 输出方式为数据库时，保存路径为相应数据库下的FILE_NAME表单
 	DEDUPLICATION = &struct {
-		FULL_FILE_NAME string //去重文件完整文件名
-		DB             string //去重保存在mongodb的数据库名
-		COLLECTION     string //去重保存在mongodb的集合名
+		//去重记录的文件名或表名
+		FILE_NAME string
 	}{
-		COMM_PATH.CACHE + "/deduplication",
-		APP_TAG,
 		"deduplication_log",
 	}
 
@@ -89,7 +87,7 @@ func init() {
 		Pausetime:            [2]uint{100, 300},
 		DockerCap:            10000,
 		InheritDeduplication: true,
-		DeduplicationTarget:  status.FILE, //"file"或"mgo"
+		// RealTimeDeduplicate:  true, //是否实时保存
 
 		MaxPage: 100,
 	}

@@ -27,9 +27,3 @@ const (
 	RUN
 	PAUSE
 )
-
-// 去重位置
-const (
-	FILE = "file"
-	MGO  = "mgo"
-)

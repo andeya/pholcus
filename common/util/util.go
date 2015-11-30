@@ -7,11 +7,11 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/henrylee2cn/pholcus/logs"
 	"golang.org/x/net/html/charset"
 	"hash/crc32"
 	"hash/fnv"
 	"io"
-	"log"
 	r "math/rand"
 	"os"
 	"regexp"
@@ -149,7 +149,7 @@ func JsonString(obj interface{}) string {
 //检查并打印错误
 func CheckErr(err error) {
 	if err != nil {
-		log.Println(err)
+		logs.Log.Error("%v", err)
 	}
 }
 

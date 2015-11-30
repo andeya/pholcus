@@ -29,7 +29,7 @@ var Html = function(info) {
         dockerCapHtml(info.dockerCap) +
         outputsHtml(info.outputs) +
         inheritDeduplicationHtml(info.inheritDeduplication) +
-        deduplicationTargetHtml(info.deduplicationTarget) +
+        // deduplicationTargetHtml(info.deduplicationTarget) +
         '</div>' +
         '</div>\
             <div class="box-footer">\
@@ -120,19 +120,19 @@ var outputsHtml = function(outputs) {
     return html + '</select></div>';
 }
 
-var deduplicationTargetHtml = function(deduplicationTarget) {
-    var html = '<div class="form-group"> \
-            <label>去重样本位置</label>\
-            <select class="form-control" name="deduplicationTarget">';
-    for (var i in deduplicationTarget.menu) {
-        var isSelect = "";
-        if (deduplicationTarget.curr == deduplicationTarget.menu[i]) {
-            isSelect = " selected";
-        };
-        html += '<option value="' + deduplicationTarget.menu[i] + '"' + isSelect + '>' + deduplicationTarget.menu[i] + '</option>';
-    }
-    return html + '</select></div>';
-}
+// var deduplicationTargetHtml = function(deduplicationTarget) {
+//     var html = '<div class="form-group"> \
+//             <label>去重样本位置</label>\
+//             <select class="form-control" name="deduplicationTarget">';
+//     for (var i in deduplicationTarget.menu) {
+//         var isSelect = "";
+//         if (deduplicationTarget.curr == deduplicationTarget.menu[i]) {
+//             isSelect = " selected";
+//         };
+//         html += '<option value="' + deduplicationTarget.menu[i] + '"' + isSelect + '>' + deduplicationTarget.menu[i] + '</option>';
+//     }
+//     return html + '</select></div>';
+// }
 
 var inheritDeduplicationHtml = function(inheritDeduplication) {
     var html = '<div class="form-group"> \

@@ -9,7 +9,7 @@ import (
 )
 
 type Scheduler interface {
-	Init(capacity uint, inheritDeduplication bool, deduplicationTarget string)
+	Init()
 	PauseRecover() // 暂停\恢复所有爬行任务
 	Stop()
 	IsStop() bool
@@ -23,7 +23,6 @@ type Scheduler interface {
 	// Free()
 	// // 资源队列是否闲置
 	// IsEmpty(int) bool
-	// IsAllEmpty() bool
 
 	// // 情况全部队列
 	// ClearAll()
@@ -38,8 +37,7 @@ type Scheduler interface {
 
 type scheduler struct {
 	*SrcManage
-	deduplication       deduplicate.Deduplicate
-	deduplicationTarget string
+	deduplication deduplicate.Deduplicate
 	sync.RWMutex
 	status int
 }
@@ -58,18 +56,13 @@ func SaveDeduplication() {
 	Sdl.SaveDeduplication()
 }
 
-func (self *scheduler) Init(capacity uint, inheritDeduplication bool, deduplicationTarget string) {
-	self.SrcManage = NewSrcManage(capacity).(*SrcManage)
+func (self *scheduler) Init() {
+	self.SrcManage = NewSrcManage(cache.Task.ThreadNum).(*SrcManage)
 	self.status = status.RUN
-	if inheritDeduplication {
-		if self.deduplicationTarget == deduplicationTarget {
-			return
-		}
-		self.deduplicationTarget = deduplicationTarget
-		self.deduplication.ReRead(deduplicationTarget)
+	if cache.Task.InheritDeduplication {
+		self.deduplication.Update(cache.Task.OutType)
 	} else {
-		self.deduplication.CleanRead()
-		self.deduplicationTarget = ""
+		self.deduplication.CleanCache()
 	}
 }
 
@@ -99,7 +92,7 @@ func (self *scheduler) DelDeduplication(key interface{}) {
 }
 
 func (self *scheduler) SaveDeduplication() {
-	self.deduplication.Write(cache.Task.DeduplicationTarget)
+	self.deduplication.Submit(cache.Task.OutType)
 }
 
 func (self *scheduler) Use(spiderId int) (req *context.Request) {

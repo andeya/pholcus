@@ -408,7 +408,6 @@ func (self *Logic) addNewTask() (tasksNum, spidersNum int) {
 	t.DockerCap = self.AppConf.DockerCap
 	t.DockerQueueCap = self.AppConf.DockerQueueCap
 	t.InheritDeduplication = self.AppConf.InheritDeduplication
-	t.DeduplicationTarget = self.AppConf.DeduplicationTarget
 	t.MaxPage = self.AppConf.MaxPage
 	t.Keywords = self.AppConf.Keywords
 
@@ -499,7 +498,6 @@ func (self *Logic) taskToRun(t *distribute.Task) {
 	self.AppConf.DockerQueueCap = t.DockerQueueCap
 	self.AppConf.Pausetime = t.Pausetime
 	self.AppConf.InheritDeduplication = t.InheritDeduplication
-	self.AppConf.DeduplicationTarget = t.DeduplicationTarget
 	self.AppConf.MaxPage = t.MaxPage
 	self.AppConf.Keywords = t.Keywords
 
@@ -523,7 +521,7 @@ func (self *Logic) exec() {
 	cache.ReSetPageCount()
 
 	// 初始化资源队列
-	self.Scheduler.Init(self.AppConf.ThreadNum, self.AppConf.InheritDeduplication, self.AppConf.DeduplicationTarget)
+	self.Scheduler.Init()
 
 	// 设置爬虫队列
 	crawlCap := self.CrawlPool.Reset(count)

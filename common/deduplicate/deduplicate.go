@@ -3,33 +3,33 @@ package deduplicate
 import (
 	"encoding/json"
 	"github.com/henrylee2cn/pholcus/common/mgo"
+	"github.com/henrylee2cn/pholcus/common/mysql"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
-	"github.com/henrylee2cn/pholcus/runtime/status"
 	"gopkg.in/mgo.v2/bson"
 	"io/ioutil"
 	"os"
 	"path"
-	"strings"
 	"sync"
 )
 
 type Deduplicate interface {
 	// 采集非重复样本并返回对比结果，重复为true
 	Compare(obj interface{}) bool
-	// 保存去重记录到provider(status.FILE or status.MGO)
-	Write(provider string)
-	// 从provider(status.FILE or status.MGO)读取去重记录
-	ReRead(provider string)
+	// 提交去重记录至指定输出方式(数据库或文件)
+	Submit(provider ...string)
+	// 从指定输出方式(数据库或文件)读取更新去重记录
+	Update(provider ...string)
 	// 取消指定去重样本
 	Remove(obj interface{})
-	// 清空样本记录
-	CleanRead()
+	// 清空样本缓存
+	CleanCache()
 }
 
 type Deduplication struct {
 	sampling map[string]bool
+	provider string
 	sync.Mutex
 }
 
@@ -63,25 +63,45 @@ func (self *Deduplication) Remove(obj interface{}) {
 	}
 }
 
-func (self *Deduplication) Write(provider string) {
-	switch strings.ToLower(provider) {
-	case status.MGO:
+func (self *Deduplication) Submit(provider ...string) {
+	if len(provider) > 0 && provider[0] != "" {
+		self.provider = provider[0]
+	}
+	if len(self.sampling) == 0 {
+		return
+	}
+	switch self.provider {
+	case "mgo":
 		var docs = make([]map[string]interface{}, len(self.sampling))
 		var i int
 		for key := range self.sampling {
 			docs[i] = map[string]interface{}{"_id": key}
 			i++
 		}
+		// fmt.Println(docs)
 		mgo.Mgo(nil, "insert", map[string]interface{}{
-			"Database":   config.DEDUPLICATION.DB,
-			"Collection": config.DEDUPLICATION.COLLECTION,
+			"Database":   config.MGO.DB,
+			"Collection": config.DEDUPLICATION.FILE_NAME,
 			"Docs":       docs,
 		})
 
-	case status.FILE:
-		fallthrough
+	case "mysql":
+		db, ok := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
+		if !ok || db == nil {
+			logs.Log.Error("链接Mysql数据库超时，无法保存去重记录！")
+			return
+		}
+		defer mysql.MysqlPool.Free(db)
+		table := mysql.New(db.DB).
+			SetTableName(config.DEDUPLICATION.FILE_NAME).
+			CustomPrimaryKey(`id VARCHAR(255) not null primary key`).
+			Create()
+		for key := range self.sampling {
+			table.AddRow(key).Update()
+		}
+
 	default:
-		p, _ := path.Split(config.DEDUPLICATION.FULL_FILE_NAME)
+		p, _ := path.Split(config.COMM_PATH.CACHE + "/" + config.DEDUPLICATION.FILE_NAME)
 		// 创建/打开目录
 		d, err := os.Stat(p)
 		if err != nil || !d.IsDir() {
@@ -91,22 +111,25 @@ func (self *Deduplication) Write(provider string) {
 		}
 
 		// 创建并写入文件
-		f, _ := os.Create(config.DEDUPLICATION.FULL_FILE_NAME)
+		f, _ := os.Create(config.COMM_PATH.CACHE + "/" + config.DEDUPLICATION.FILE_NAME)
 		b, _ := json.Marshal(self.sampling)
 		f.Write(b)
 		f.Close()
 	}
 }
 
-func (self *Deduplication) ReRead(provider string) {
-	self.CleanRead()
+func (self *Deduplication) Update(provider ...string) {
+	if len(provider) > 0 && provider[0] != self.provider {
+		self.provider = provider[0]
+		self.CleanCache()
+	}
 
-	switch strings.ToLower(provider) {
-	case status.MGO:
+	switch self.provider {
+	case "mgo":
 		var docs = map[string]interface{}{}
 		err := mgo.Mgo(&docs, "find", map[string]interface{}{
-			"Database":   config.DEDUPLICATION.DB,
-			"Collection": config.DEDUPLICATION.COLLECTION,
+			"Database":   config.MGO.DB,
+			"Collection": config.DEDUPLICATION.FILE_NAME,
 		})
 		if err != nil {
 			logs.Log.Error("去重读取mgo: %v", err)
@@ -116,10 +139,29 @@ func (self *Deduplication) ReRead(provider string) {
 			self.sampling[v.(bson.M)["_id"].(string)] = true
 		}
 
-	case status.FILE:
-		fallthrough
+	case "mysql":
+		db, ok := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
+		if !ok || db == nil {
+			logs.Log.Error("链接Mysql数据库超时，无法读取去重记录！")
+			return
+		}
+		defer mysql.MysqlPool.Free(db)
+		rows, err := mysql.New(db.DB).
+			SetTableName("`" + config.DEDUPLICATION.FILE_NAME + "`").
+			SelectAll()
+		if err != nil {
+			// logs.Log.Error("读取Mysql数据库中去重记录失败：%v", err)
+			return
+		}
+
+		for rows.Next() {
+			var id string
+			err = rows.Scan(&id)
+			self.sampling[id] = true
+		}
+
 	default:
-		f, err := os.Open(config.DEDUPLICATION.FULL_FILE_NAME)
+		f, err := os.Open(config.COMM_PATH.CACHE + "/" + config.DEDUPLICATION.FILE_NAME)
 		if err != nil {
 			return
 		}
@@ -127,9 +169,8 @@ func (self *Deduplication) ReRead(provider string) {
 		b, _ := ioutil.ReadAll(f)
 		json.Unmarshal(b, &self.sampling)
 	}
-	// fmt.Printf("%#v", self.sampling)
 }
 
-func (self *Deduplication) CleanRead() {
+func (self *Deduplication) CleanCache() {
 	self.sampling = make(map[string]bool)
 }

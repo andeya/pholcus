@@ -269,11 +269,6 @@ func tplData(mode int) map[string]interface{} {
 	info["keywords"] = app.LogicApp.GetAppConf("Keywords")
 	// 继承之前的去重记录
 	info["inheritDeduplication"] = app.LogicApp.GetAppConf("InheritDeduplication")
-	// 去重记录保存位置,"file"或"mgo"
-	info["deduplicationTarget"] = map[string]interface{}{
-		"menu": []string{status.FILE, status.MGO},
-		"curr": app.LogicApp.GetAppConf("DeduplicationTarget"),
-	}
 	// 运行状态
 	info["status"] = app.LogicApp.Status()
 
