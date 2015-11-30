@@ -2,6 +2,7 @@ package deduplicate
 
 import (
 	"encoding/json"
+	// "fmt"
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
 	"github.com/henrylee2cn/pholcus/common/util"
@@ -116,13 +117,15 @@ func (self *Deduplication) Submit(provider ...string) {
 		f.Write(b)
 		f.Close()
 	}
+	// fmt.Printf(" *     新增 %v 条去重样本\n", len(self.sampling))
 }
 
 func (self *Deduplication) Update(provider ...string) {
-	if len(provider) > 0 && provider[0] != self.provider {
-		self.provider = provider[0]
-		self.CleanCache()
+	if len(provider) == 0 || provider[0] == self.provider {
+		return
 	}
+	self.CleanCache()
+	self.provider = provider[0]
 
 	switch self.provider {
 	case "mgo":
@@ -169,6 +172,7 @@ func (self *Deduplication) Update(provider ...string) {
 		b, _ := ioutil.ReadAll(f)
 		json.Unmarshal(b, &self.sampling)
 	}
+	// fmt.Printf(" *     读出 %v 条去重样本\n", len(self.sampling))
 }
 
 func (self *Deduplication) CleanCache() {

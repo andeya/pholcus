@@ -58,12 +58,12 @@ func SaveDeduplication() {
 
 func (self *scheduler) Init() {
 	self.SrcManage = NewSrcManage(cache.Task.ThreadNum).(*SrcManage)
-	self.status = status.RUN
 	if cache.Task.InheritDeduplication {
 		self.deduplication.Update(cache.Task.OutType)
 	} else {
 		self.deduplication.CleanCache()
 	}
+	self.status = status.RUN
 }
 
 // 添加请求到队列
