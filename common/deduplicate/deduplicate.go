@@ -2,7 +2,6 @@ package deduplicate
 
 import (
 	"encoding/json"
-	// "fmt"
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
 	"github.com/henrylee2cn/pholcus/common/util"
@@ -29,28 +28,40 @@ type Deduplicate interface {
 }
 
 type Deduplication struct {
-	sampling map[string]bool
+	sampling struct {
+		new map[string]bool
+		old map[string]bool
+	}
 	provider string
 	sync.Mutex
 }
 
 func New() Deduplicate {
 	return &Deduplication{
-		sampling: make(map[string]bool),
+		sampling: struct {
+			new map[string]bool
+			old map[string]bool
+		}{
+			new: make(map[string]bool),
+			old: make(map[string]bool),
+		},
 	}
 }
 
 // 对比是否已存在，不存在则采样
-func (self *Deduplication) Compare(obj interface{}) bool {
+func (self *Deduplication) Compare(obj interface{}) (duplicate bool) {
 	self.Mutex.Lock()
 	defer self.Unlock()
 
 	s := util.MakeUnique(obj)
-	if !self.sampling[s] {
-		self.sampling[s] = true
-		return false
+	if self.sampling.old[s] {
+		return true
 	}
-	return true
+	if self.sampling.new[s] {
+		return true
+	}
+	self.sampling.new[s] = true
+	return false
 }
 
 // 取消指定去重样本
@@ -59,8 +70,8 @@ func (self *Deduplication) Remove(obj interface{}) {
 	defer self.Unlock()
 
 	s := util.MakeUnique(obj)
-	if self.sampling[s] {
-		delete(self.sampling, s)
+	if self.sampling.new[s] {
+		delete(self.sampling.new, s)
 	}
 }
 
@@ -68,18 +79,22 @@ func (self *Deduplication) Submit(provider ...string) {
 	if len(provider) > 0 && provider[0] != "" {
 		self.provider = provider[0]
 	}
-	if len(self.sampling) == 0 {
+	if len(self.sampling.new) == 0 {
 		return
 	}
+
+	self.Mutex.Lock()
+	defer self.Unlock()
+
 	switch self.provider {
 	case "mgo":
-		var docs = make([]map[string]interface{}, len(self.sampling))
+		var docs = make([]map[string]interface{}, len(self.sampling.new))
 		var i int
-		for key := range self.sampling {
+		for key := range self.sampling.new {
 			docs[i] = map[string]interface{}{"_id": key}
+			self.sampling.old[key] = true
 			i++
 		}
-		// fmt.Println(docs)
 		mgo.Mgo(nil, "insert", map[string]interface{}{
 			"Database":   config.MGO.DB,
 			"Collection": config.DEDUPLICATION.FILE_NAME,
@@ -97,8 +112,9 @@ func (self *Deduplication) Submit(provider ...string) {
 			SetTableName(config.DEDUPLICATION.FILE_NAME).
 			CustomPrimaryKey(`id VARCHAR(255) not null primary key`).
 			Create()
-		for key := range self.sampling {
+		for key := range self.sampling.new {
 			table.AddRow(key).Update()
+			self.sampling.old[key] = true
 		}
 
 	default:
@@ -111,13 +127,19 @@ func (self *Deduplication) Submit(provider ...string) {
 			}
 		}
 
-		// 创建并写入文件
-		f, _ := os.Create(config.COMM_PATH.CACHE + "/" + config.DEDUPLICATION.FILE_NAME)
-		b, _ := json.Marshal(self.sampling)
-		f.Write(b)
+		f, _ := os.OpenFile(config.COMM_PATH.CACHE+"/"+config.DEDUPLICATION.FILE_NAME, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
+
+		b, _ := json.Marshal(self.sampling.new)
+		b[0] = ','
+		f.Write(b[:len(b)-1])
 		f.Close()
+
+		for key := range self.sampling.new {
+			self.sampling.old[key] = true
+		}
 	}
-	// fmt.Printf(" *     新增 %v 条去重样本\n", len(self.sampling))
+	logs.Log.Informational(" *     新增 %v 条去重样本\n", len(self.sampling.new))
+	self.sampling.new = make(map[string]bool)
 }
 
 func (self *Deduplication) Update(provider ...string) {
@@ -139,7 +161,7 @@ func (self *Deduplication) Update(provider ...string) {
 			return
 		}
 		for _, v := range docs["Docs"].([]interface{}) {
-			self.sampling[v.(bson.M)["_id"].(string)] = true
+			self.sampling.old[v.(bson.M)["_id"].(string)] = true
 		}
 
 	case "mysql":
@@ -160,7 +182,7 @@ func (self *Deduplication) Update(provider ...string) {
 		for rows.Next() {
 			var id string
 			err = rows.Scan(&id)
-			self.sampling[id] = true
+			self.sampling.old[id] = true
 		}
 
 	default:
@@ -170,11 +192,18 @@ func (self *Deduplication) Update(provider ...string) {
 		}
 		defer f.Close()
 		b, _ := ioutil.ReadAll(f)
-		json.Unmarshal(b, &self.sampling)
+		b[0] = '{'
+		json.Unmarshal(
+			append(b, '}'),
+			&self.sampling.old,
+		)
 	}
-	// fmt.Printf(" *     读出 %v 条去重样本\n", len(self.sampling))
+	logs.Log.Informational(" *     读出 %v 条去重样本\n", len(self.sampling.old))
 }
 
 func (self *Deduplication) CleanCache() {
-	self.sampling = make(map[string]bool)
+	self.Mutex.Lock()
+	defer self.Unlock()
+	self.sampling.old = make(map[string]bool)
+	self.sampling.new = make(map[string]bool)
 }
