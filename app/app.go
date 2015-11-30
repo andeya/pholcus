@@ -129,7 +129,11 @@ type Logic struct {
 // }
 
 func New() App {
-	app := &Logic{
+	return newLogic()
+}
+
+func newLogic() *Logic {
+	return &Logic{
 		AppConf:     cache.Task,
 		Traversal:   spider.Menu,
 		Scheduler:   scheduler.Sdl,
@@ -139,7 +143,6 @@ func New() App {
 		SpiderQueue: crawl.NewSpiderQueue(),
 		CrawlPool:   crawl.NewCrawlPool(),
 	}
-	return app
 }
 
 // 设置全局log实时显示终端
@@ -249,14 +252,16 @@ func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App
 	if scheduler.Sdl != nil {
 		self.Scheduler.Stop()
 	}
-	self = nil
 	// 等待结束
-	time.Sleep(2.5e9)
+	// time.Sleep(2.5e9)
 	if mode == status.UNSET {
-		return New()
+		self = newLogic()
+		self.AppConf.Mode = status.UNSET
+		return self
 	}
 	// 重新开启
-	return New().Init(mode, port, master, w...)
+	self = newLogic().Init(mode, port, master, w...).(*Logic)
+	return self
 }
 
 // SpiderPrepare()必须在设置全局运行参数之后，就Run()的前一刻执行

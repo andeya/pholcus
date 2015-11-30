@@ -52,6 +52,9 @@ func (self *LogSocketController) Add(sessID string, conn *ws.Conn) {
 }
 
 func (self *LogSocketController) Remove(sessID string, conn *ws.Conn) {
+	defer func() {
+		recover()
+	}()
 	if self.connPool[sessID] == nil {
 		return
 	}

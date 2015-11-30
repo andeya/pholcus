@@ -197,7 +197,6 @@ function Close() {
     ws.onsend({
         'operate': 'exit'
     });
-    selectMode(unset);
 }
 
 // 开始或停止运行任务

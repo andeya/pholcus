@@ -201,8 +201,8 @@ func init() {
 
 	// 退出当前模式
 	wsApi["exit"] = func(sessID string, req map[string]interface{}) {
-		Sc.Write(sessID, map[string]interface{}{"operate": "exit"})
 		app.LogicApp = app.LogicApp.ReInit(status.UNSET, 0, "")
+		Sc.Write(sessID, map[string]interface{}{"operate": "exit"})
 	}
 }
 
