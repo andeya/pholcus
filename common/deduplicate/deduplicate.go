@@ -143,11 +143,13 @@ func (self *Deduplication) Submit(provider ...string) {
 }
 
 func (self *Deduplication) Update(provider ...string) {
-	if len(provider) == 0 || provider[0] == self.provider {
+	if len(provider) == 0 {
 		return
 	}
-	self.CleanCache()
-	self.provider = provider[0]
+	if provider[0] != self.provider {
+		self.CleanCache()
+		self.provider = provider[0]
+	}
 
 	switch self.provider {
 	case "mgo":
