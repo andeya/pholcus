@@ -39,10 +39,10 @@ func New(id int) Crawler {
 }
 
 func (self *crawler) Init(sp *spider.Spider) Crawler {
-	self.Pipeline.Init(sp)
-	self.Spider = sp
 	self.srcManage = 0
+	self.Spider = sp
 	scheduler.Sdl.RegSpider(sp.GetId())
+	self.Pipeline.Init(sp)
 	return self
 }
 
@@ -57,6 +57,7 @@ func (self *crawler) Start() {
 	// logs.Log.Debug("**************爬虫：%v***********", self.GetId())
 	// 通知输出模块输出未输出的数据
 	self.Pipeline.CtrlR()
+	scheduler.Sdl.CancelSpider(self.Spider.GetId())
 }
 
 func (self *crawler) Run() {
