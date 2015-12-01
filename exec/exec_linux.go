@@ -15,7 +15,9 @@ import (
 func Run(which string) {
 	exec.Command("/bin/sh", "-c", "title", config.APP_FULL_NAME).Start()
 	defer func() {
-		scheduler.SaveDeduplication()
+		if cache.Task.InheritDeduplication {
+			scheduler.SaveDeduplication()
+		}
 	}()
 
 	// 选择运行界面

@@ -18,9 +18,9 @@ type Deduplicate interface {
 	// 采集非重复样本并返回对比结果，重复为true
 	Compare(obj interface{}) bool
 	// 提交去重记录至指定输出方式(数据库或文件)
-	Submit(provider ...string)
+	Submit(provider string)
 	// 从指定输出方式(数据库或文件)读取更新去重记录
-	Update(provider ...string)
+	Update(provider string, inherit bool)
 	// 取消指定去重样本
 	Remove(obj interface{})
 	// 清空样本缓存
@@ -32,7 +32,8 @@ type Deduplication struct {
 		new map[string]bool
 		old map[string]bool
 	}
-	provider string
+	provider      string
+	lastIsInherit bool
 	sync.Mutex
 }
 
@@ -75,16 +76,15 @@ func (self *Deduplication) Remove(obj interface{}) {
 	}
 }
 
-func (self *Deduplication) Submit(provider ...string) {
-	if len(provider) > 0 && provider[0] != "" {
-		self.provider = provider[0]
-	}
+func (self *Deduplication) Submit(provider string) {
+	self.Mutex.Lock()
+	defer self.Unlock()
+
+	self.provider = provider
+
 	if len(self.sampling.new) == 0 {
 		return
 	}
-
-	self.Mutex.Lock()
-	defer self.Unlock()
 
 	switch self.provider {
 	case "mgo":
@@ -142,13 +142,28 @@ func (self *Deduplication) Submit(provider ...string) {
 	self.sampling.new = make(map[string]bool)
 }
 
-func (self *Deduplication) Update(provider ...string) {
-	if len(provider) == 0 {
+func (self *Deduplication) Update(provider string, inherit bool) {
+	self.Mutex.Lock()
+	defer self.Unlock()
+
+	self.provider = provider
+
+	if !inherit {
+		// 不继承历史记录时
+		self.sampling.old = make(map[string]bool)
+		self.sampling.new = make(map[string]bool)
+		self.lastIsInherit = false
 		return
-	}
-	if provider[0] != self.provider {
-		self.CleanCache()
-		self.provider = provider[0]
+
+	} else if self.lastIsInherit {
+		// 本次与上次均继承历史记录时
+		return
+
+	} else {
+		// 上次没有继承历史记录，但本次继承时
+		self.sampling.old = make(map[string]bool)
+		self.sampling.new = make(map[string]bool)
+		self.lastIsInherit = true
 	}
 
 	switch self.provider {

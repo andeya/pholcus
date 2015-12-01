@@ -75,11 +75,7 @@ func (self *scheduler) Init() {
 	self.index = make(map[int][]int)
 	self.rwMutexes = make(map[int]*sync.RWMutex)
 
-	if cache.Task.InheritDeduplication {
-		self.deduplication.Update(cache.Task.OutType)
-	} else {
-		self.deduplication.CleanCache()
-	}
+	self.deduplication.Update(cache.Task.OutType, cache.Task.InheritDeduplication)
 
 	self.status = status.RUN
 }

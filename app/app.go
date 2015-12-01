@@ -243,17 +243,16 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 
 // 切换运行模式时使用
 func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App {
+	if scheduler.Sdl != nil {
+		self.Scheduler.Stop()
+	}
 	self.LogRest()
 	self.setStatus(status.STOP)
 	if self.Teleport != nil {
 		self.Teleport.Close()
 	}
 	self.CrawlPool.Stop()
-	if scheduler.Sdl != nil {
-		self.Scheduler.Stop()
-	}
 	// 等待结束
-	// time.Sleep(2.5e9)
 	if mode == status.UNSET {
 		self = newLogic()
 		self.AppConf.Mode = status.UNSET
@@ -335,7 +334,10 @@ func (self *Logic) Run() {
 		return
 	}
 	<-self.finish
-	self.Scheduler.SaveDeduplication()
+	if self.AppConf.InheritDeduplication {
+		// 继承了历史去重则保存去重记录，否则不保存
+		self.Scheduler.SaveDeduplication()
+	}
 }
 
 // Offline 模式下暂停\恢复任务
@@ -352,9 +354,9 @@ func (self *Logic) PauseRecover() {
 
 // Offline 模式下中途终止任务
 func (self *Logic) Stop() {
+	self.Scheduler.Stop()
 	self.setStatus(status.STOP)
 	self.CrawlPool.Stop()
-	self.Scheduler.Stop()
 }
 
 // 返回当前运行状态
