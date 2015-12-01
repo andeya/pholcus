@@ -42,6 +42,7 @@ func (self *crawler) Init(sp *spider.Spider) Crawler {
 	self.Pipeline.Init(sp)
 	self.Spider = sp
 	self.srcManage = 0
+	scheduler.Sdl.RegSpider(sp.GetId())
 	return self
 }
 

@@ -15,6 +15,8 @@ type Scheduler interface {
 	IsStop() bool
 
 	SrcManager
+	// // 注册资源队列
+	// RegSpider(spiderId int)
 	// // 存入
 	// Push(*context.Request)
 	// // 取出

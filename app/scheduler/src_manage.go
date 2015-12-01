@@ -9,6 +9,8 @@ import (
 
 // SrcManage is an interface that who want implement an management object can realize these functions.
 type SrcManager interface {
+	// 注册资源队列
+	RegSpider(spiderId int)
 	// 存入
 	Push(*context.Request)
 	// 取出
@@ -18,7 +20,6 @@ type SrcManager interface {
 	// 资源队列是否闲置
 	IsEmpty(int) bool
 	// IsAllEmpty() bool
-
 	// 情况全部队列
 	ClearAll()
 }
@@ -45,14 +46,18 @@ func NewSrcManage(capacity uint) SrcManager {
 	}
 }
 
+// 注册资源队列
+func (self *SrcManage) RegSpider(spiderId int) {
+	if !self.foundSpider(spiderId) {
+		self.addSpider(spiderId)
+	}
+}
+
 func (self *SrcManage) Push(req *context.Request) {
 	// 初始化该蜘蛛的队列
 	spiderId, ok := req.GetSpiderId()
 	if !ok {
 		return
-	}
-	if !self.foundSpider(spiderId) {
-		self.addSpider(spiderId)
 	}
 
 	// 初始化该蜘蛛下该优先级队列
@@ -66,10 +71,6 @@ func (self *SrcManage) Push(req *context.Request) {
 }
 
 func (self *SrcManage) Use(spiderId int) (req *context.Request) {
-	if !self.foundSpider(spiderId) {
-		self.addSpider(spiderId)
-	}
-
 	self.rwMutex[spiderId].Lock()
 	defer self.rwMutex[spiderId].Unlock()
 	// 按优先级从高到低取出请求
