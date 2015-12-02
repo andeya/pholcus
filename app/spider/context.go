@@ -277,10 +277,14 @@ func (self *Context) GetDom() *goquery.Document {
 
 // GetRequest returns request oject of self page.
 func (self *Context) GetRequest() *context.Request {
-	return self.Response.GetRequest()
+	return self.Request
 }
 
-// 返回Url。
+// GetResponse returns response oject of self page.
+func (self *Context) GetResponse() *context.Response {
+	return self.Response
+}
+
 func (self *Context) GetUrl() string {
 	return self.Response.GetUrl() // 与self.Request.GetUrl()完全相等
 }
@@ -305,12 +309,32 @@ func (self *Context) GetTemps() map[string]interface{} {
 	return self.Request.GetTemps()
 }
 
-func (self *Context) SetTemp(key string, value interface{}) *Context {
+func (self *Context) SetRequestUrl(u string) *Context {
+	self.Request.SetUrl(u)
+	return self
+}
+
+func (self *Context) SetRequestMethod(method string) *Context {
+	self.Request.SetMethod(method)
+	return self
+}
+
+func (self *Context) SetRequestReferer(referer string) *Context {
+	self.Request.SetReferer(referer)
+	return self
+}
+
+func (self *Context) SetRequestRuleName(ruleName string) *Context {
+	self.Request.SetRuleName(ruleName)
+	return self
+}
+
+func (self *Context) SetRequestTemp(key string, value interface{}) *Context {
 	self.Request.SetTemp(key, value)
 	return self
 }
 
-func (self *Context) SetAllTemps(temp map[string]interface{}) *Context {
+func (self *Context) SetRequestTemps(temp map[string]interface{}) *Context {
 	self.Request.SetAllTemps(temp)
 	return self
 }

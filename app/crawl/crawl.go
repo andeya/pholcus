@@ -125,7 +125,7 @@ func (self *crawler) Process(req *context.Request) {
 	// 统计成功页数
 	cache.PageSuccCount()
 	// 提示抓取成功
-	logs.Log.Informational(" *     Success: %v", req.GetUrl())
+	logs.Log.Informational(" *     Success: %v", resp.GetUrl())
 
 	// 该条请求文本结果存入pipeline
 	for _, data := range resp.GetItems() {

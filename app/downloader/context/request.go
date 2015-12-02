@@ -134,6 +134,11 @@ func (self *Request) GetMethod() string {
 	return strings.ToUpper(self.Method)
 }
 
+func (self *Request) SetMethod(method string) *Request {
+	self.Method = method
+	return self
+}
+
 func (self *Request) SetUrl(url string) *Request {
 	self.Url = url
 	return self
