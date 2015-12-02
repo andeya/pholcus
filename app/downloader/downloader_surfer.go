@@ -33,13 +33,12 @@ func (self *Surfer) Download(cReq *context.Request) *context.Response {
 	switch cReq.GetDownloaderID() {
 	case SURF_ID:
 		resp, err = self.surf.Download(cReq)
+		if resp != nil {
+			// 确保Response与Request中的Url字符串相等
+			resp.Request.URL, _ = url.Parse(cReq.GetUrl())
+		}
 	case PHANTOM_ID:
 		resp, err = self.phantom.Download(cReq)
-	}
-
-	if resp != nil {
-		// 确保Response与Request中的Url字符串相等
-		resp.Request.URL, _ = url.Parse(cReq.GetUrl())
 	}
 
 	cResp.SetRequest(cReq)
