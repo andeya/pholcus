@@ -153,7 +153,6 @@ go build -ldflags="-H windowsgui"
 
 ```
 go get github.com/pholcus/spider_lib
-go get github.com/henrylee2cn/surfer
 go get github.com/henrylee2cn/teleport
 go get github.com/henrylee2cn/beelogs
 go get github.com/henrylee2cn/mahonia

@@ -14,11 +14,17 @@ import (
 
 // Response represents an entity be crawled.
 type Response struct {
-	// The Body is crawl result.
-	*http.Response
-
-	// The request is crawled by spider that contains url and relevent information.
+	// 原始请求
 	*Request
+
+	// 拷贝自*Request的规则名
+	rule string
+
+	// 拷贝自*Request的临时数据，通过temp[x]==nil判断是否有值存入，所以请存入带类型的值，如[]int(nil)等
+	temp map[string]interface{}
+
+	// 响应流，其中URL拷贝自*Request
+	*http.Response
 
 	// The text is body of response
 	text string
@@ -44,6 +50,16 @@ func NewResponse(req *Request) *Response {
 		items:   []map[string]interface{}{},
 		files:   []map[string]interface{}{},
 	}
+}
+
+// 使用前的初始化工作
+func (self *Response) Prepare(resp *http.Response, req *Request) *Response {
+	self.Response = resp
+	self.Request = req
+	self.rule = self.Request.Rule
+	self.temp = self.Request.Temp
+	self.Request.Temp = make(map[string]interface{})
+	return self
 }
 
 // GetError test whether download process success or not.
@@ -109,15 +125,12 @@ func (self *Response) GetFiles() []map[string]interface{} {
 	return self.files
 }
 
-// SetRequest saves request oject of self page.
-func (self *Response) SetResponse(resp *http.Response) *Response {
-	self.Response = resp
-	return self
+func (self *Response) GetRuleName() string {
+	return self.rule
 }
 
-// SetRequest saves request oject of self page.
-func (self *Response) SetRequest(r *Request) *Response {
-	self.Request = r
+func (self *Response) SetRuleName(ruleName string) *Response {
+	self.rule = ruleName
 	return self
 }
 
@@ -132,9 +145,28 @@ func (self *Response) GetUrl() string {
 	return self.Response.Request.URL.String()
 }
 
-// GetHeader ruturns header of Response.
-func (self *Response) GetHeader() http.Header {
+func (self *Response) GetMethod() string {
+	return self.Response.Request.Method
+}
+
+func (self *Response) GetResponseHeader() http.Header {
 	return self.Response.Header
+}
+
+func (self *Response) GetRequestHeader() http.Header {
+	return self.Response.Request.Header
+}
+
+func (self *Response) GetReferer() string {
+	return self.Response.Request.Header.Get("Referer")
+}
+
+func (self *Response) GetTemp(key string) interface{} {
+	return self.temp[key]
+}
+
+func (self *Response) GetTemps() map[string]interface{} {
+	return self.temp
 }
 
 // GetHtmlParser returns goquery object binded to target crawl result.
@@ -171,11 +203,6 @@ func (self *Response) initText() {
 	// get converter to utf-8
 	self.text = changeCharsetEncodingAuto(self.Response.Body, self.Response.Header.Get("Content-Type"))
 	//fmt.Printf("utf-8 body %v \r\n", bodyStr)
-}
-
-func (self *Response) SetText(s string) *Response {
-	self.text = s
-	return self
 }
 
 // Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8

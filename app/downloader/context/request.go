@@ -83,6 +83,8 @@ func (self *Request) Prepare() error {
 
 	if self.Method == "" {
 		self.Method = "GET"
+	} else {
+		self.Method = strings.ToUpper(self.Method)
 	}
 
 	if self.Header == nil {
@@ -131,11 +133,11 @@ func (self *Request) GetUrl() string {
 }
 
 func (self *Request) GetMethod() string {
-	return strings.ToUpper(self.Method)
+	return self.Method
 }
 
 func (self *Request) SetMethod(method string) *Request {
-	self.Method = method
+	self.Method = strings.ToUpper(method)
 	return self
 }
 
@@ -159,6 +161,16 @@ func (self *Request) GetPostData() url.Values {
 
 func (self *Request) GetHeader() http.Header {
 	return self.Header
+}
+
+func (self *Request) SetHeader(key, value string) *Request {
+	self.Header.Set(key, value)
+	return self
+}
+
+func (self *Request) AddHeader(key, value string) *Request {
+	self.Header.Add(key, value)
+	return self
 }
 
 func (self *Request) GetEnableCookie() bool {
@@ -199,6 +211,11 @@ func (self *Request) GetProxy() string {
 	return self.Proxy
 }
 
+func (self *Request) SetProxy(proxy string) *Request {
+	self.Proxy = proxy
+	return self
+}
+
 func (self *Request) GetRedirectTimes() int {
 	return self.RedirectTimes
 }
@@ -223,6 +240,11 @@ func (self *Request) SetSpiderName(spiderName string) *Request {
 
 func (self *Request) GetDuplicatable() bool {
 	return self.Duplicatable
+}
+
+func (self *Request) SetDuplicatable(can bool) *Request {
+	self.Duplicatable = can
+	return self
 }
 
 func (self *Request) GetTemp(key string) interface{} {
@@ -267,4 +289,9 @@ func (self *Request) SetPriority(priority int) *Request {
 
 func (self *Request) GetDownloaderID() int {
 	return self.DownloaderID
+}
+
+func (self *Request) SetDownloaderID(id int) *Request {
+	self.DownloaderID = id
+	return self
 }

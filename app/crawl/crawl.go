@@ -1,6 +1,11 @@
 package crawl
 
 import (
+	"io"
+	"math/rand"
+	"sync/atomic"
+	"time"
+
 	"github.com/henrylee2cn/pholcus/app/downloader"
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/app/pipeline"
@@ -8,11 +13,6 @@ import (
 	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
-
-	"io"
-	"math/rand"
-	"sync/atomic"
-	"time"
 )
 
 type Crawler interface {
@@ -95,29 +95,28 @@ func (self *crawler) Run() {
 
 // core processer
 func (self *crawler) Process(req *context.Request) {
-	defer func() {
-		if err := recover(); err != nil {
-			// do not affect other
-			scheduler.Sdl.DelDeduplication(req.GetUrl() + req.GetMethod())
-			// 统计失败数
-			cache.PageFailCount()
-			// 提示错误
-			logs.Log.Error(" *     Fail [process panic]: %v", err)
-		}
-	}()
 	// download page
 	resp := self.Downloader.Download(req)
-
-	// if fail do not need process
 	if resp.GetError() != nil {
+		// if fail do not need process
 		// 删除该请求的去重样本
-		scheduler.Sdl.DelDeduplication(req.GetUrl() + req.GetMethod())
+		scheduler.Sdl.DelDeduplication(resp.GetUrl() + resp.GetMethod())
 		// 统计失败数
 		cache.PageFailCount()
 		// 提示错误
 		logs.Log.Error(" *     Fail [download]: %v", resp.GetError())
 		return
 	}
+	defer func() {
+		if err := recover(); err != nil {
+			// do not affect other
+			scheduler.Sdl.DelDeduplication(resp.GetUrl() + resp.GetMethod())
+			// 统计失败数
+			cache.PageFailCount()
+			// 提示错误
+			logs.Log.Error(" *     Fail [process panic]: %v", err)
+		}
+	}()
 
 	// 过程处理，提炼数据
 	spider.NewContext(self.Spider, resp).Parse(resp.GetRuleName())
@@ -126,7 +125,6 @@ func (self *crawler) Process(req *context.Request) {
 	cache.PageSuccCount()
 	// 提示抓取成功
 	logs.Log.Informational(" *     Success: %v", resp.GetUrl())
-
 	// 该条请求文本结果存入pipeline
 	for _, data := range resp.GetItems() {
 		self.Pipeline.CollectData(

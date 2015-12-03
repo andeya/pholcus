@@ -1,6 +1,8 @@
 package spider
 
 import (
+	"net/http"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
@@ -75,14 +77,14 @@ func (self *Context) BulkAddQueue(urls []string, req *context.Request) *Context 
 // 用ruleName指定匹配的OutFeild字段，为空时默认当前规则。
 func (self *Context) Output(item interface{}, ruleName ...string) *Context {
 	if len(ruleName) == 0 {
-		if self.Request == nil {
+		if self.Response == nil {
 			logs.Log.Error("蜘蛛 %s 空响应调用Output()，必须指定规则名！", self.Spider.GetName())
 			return self
 		}
-		ruleName = append(ruleName, self.Request.GetRuleName())
+		ruleName = append(ruleName, self.Response.GetRuleName())
 	}
 
-	self.Request.SetRuleName(ruleName[0])
+	self.Response.SetRuleName(ruleName[0])
 	switch item2 := item.(type) {
 	case map[int]interface{}:
 		self.Response.AddItem(self.CreatItem(item2, ruleName[0]))
@@ -103,11 +105,11 @@ func (self *Context) FileOutput(name ...string) *Context {
 // 用ruleName指定匹配的OutFeild字段，为空时默认当前规则。
 func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map[string]interface{} {
 	if len(ruleName) == 0 {
-		if self.Request == nil {
+		if self.Response == nil {
 			logs.Log.Error("蜘蛛 %s 空响应调用CreatItem()，必须指定规则名！", self.Spider.GetName())
 			return nil
 		}
-		ruleName = append(ruleName, self.Request.GetRuleName())
+		ruleName = append(ruleName, self.Response.GetRuleName())
 	}
 	var item2 = make(map[string]interface{}, len(item))
 	for k, v := range item {
@@ -120,11 +122,11 @@ func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map
 // 用ruleName指定匹配的AidFunc，为空时默认当前规则。
 func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interface{} {
 	if len(ruleName) == 0 {
-		if self.Request == nil {
+		if self.Response == nil {
 			logs.Log.Error("蜘蛛 %s 空响应调用Aid()，必须指定规则名！", self.Spider.GetName())
 			return nil
 		}
-		ruleName = append(ruleName, self.Request.GetRuleName())
+		ruleName = append(ruleName, self.Response.GetRuleName())
 	}
 	return self.Spider.GetRule(ruleName[0]).AidFunc(self, aid)
 }
@@ -134,12 +136,12 @@ func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interfa
 func (self *Context) Parse(ruleName ...string) *Context {
 	if len(ruleName) == 0 || ruleName[0] == "" {
 		if self.Response != nil {
-			self.Request.SetRuleName("")
+			self.Response.SetRuleName("")
 		}
 		self.Spider.RuleTree.Root(self)
 		return self
 	}
-	self.Request.SetRuleName(ruleName[0])
+	self.Response.SetRuleName(ruleName[0])
 	self.Spider.GetRule(ruleName[0]).ParseFunc(self)
 	return self
 }
@@ -148,11 +150,11 @@ func (self *Context) Parse(ruleName ...string) *Context {
 // 用ruleName指定匹配的OutFeild字段，为空时默认当前规则。
 func (self *Context) IndexOutFeild(index int, ruleName ...string) (feild string) {
 	if len(ruleName) == 0 {
-		if self.Request == nil {
+		if self.Response == nil {
 			logs.Log.Error("蜘蛛 %s 空响应调用IndexOutFeild()，必须指定规则名！", self.Spider.GetName())
 			return ""
 		}
-		ruleName = append(ruleName, self.Request.GetRuleName())
+		ruleName = append(ruleName, self.Response.GetRuleName())
 	}
 	return self.Spider.IndexOutFeild(ruleName[0], index)
 }
@@ -161,11 +163,11 @@ func (self *Context) IndexOutFeild(index int, ruleName ...string) (feild string)
 // 用ruleName指定匹配的OutFeild字段，为空时默认当前规则。
 func (self *Context) FindOutFeild(feild string, ruleName ...string) (index int) {
 	if len(ruleName) == 0 {
-		if self.Request == nil {
+		if self.Response == nil {
 			logs.Log.Error("蜘蛛 %s 空响应调用FindOutFeild()，必须指定规则名！", self.Spider.GetName())
 			return
 		}
-		ruleName = append(ruleName, self.Request.GetRuleName())
+		ruleName = append(ruleName, self.Response.GetRuleName())
 	}
 	return self.Spider.FindOutFeild(ruleName[0], feild)
 }
@@ -175,11 +177,11 @@ func (self *Context) FindOutFeild(feild string, ruleName ...string) (index int) 
 // 用ruleName指定匹配的OutFeild字段，为空时默认当前规则。
 func (self *Context) AddOutFeild(feild string, ruleName ...string) (index int) {
 	if len(ruleName) == 0 {
-		if self.Request == nil {
+		if self.Response == nil {
 			logs.Log.Error("蜘蛛 %s 空响应调用AddOutFeild()，必须指定规则名！", self.Spider.GetName())
 			return
 		}
-		ruleName = append(ruleName, self.Request.GetRuleName())
+		ruleName = append(ruleName, self.Response.GetRuleName())
 	}
 	return self.Spider.AddOutFeild(ruleName[0], feild)
 }
@@ -260,11 +262,6 @@ func (self *Context) SetPausetime(pause [2]uint, runtime ...bool) *Context {
 	return self
 }
 
-func (self *Context) SetText(s string) *Context {
-	self.Response.SetText(s)
-	return self
-}
-
 // GetBodyStr returns plain string crawled.
 func (self *Context) GetText() string {
 	return self.Response.GetText()
@@ -290,51 +287,94 @@ func (self *Context) GetUrl() string {
 }
 
 func (self *Context) GetMethod() string {
-	return self.Request.GetMethod()
+	return self.Response.GetMethod()
+}
+
+func (self *Context) GetRequestHeader() http.Header {
+	return self.Response.GetRequestHeader()
+}
+
+func (self *Context) GetResponseHeader() http.Header {
+	return self.Response.GetResponseHeader()
 }
 
 func (self *Context) GetReferer() string {
-	return self.Request.GetReferer()
+	return self.Response.GetReferer()
 }
 
 func (self *Context) GetRuleName() string {
-	return self.Request.GetRuleName()
+	return self.Response.GetRuleName()
 }
 
 func (self *Context) GetTemp(key string) interface{} {
-	return self.Request.GetTemp(key)
+	return self.Response.GetTemp(key)
 }
 
 func (self *Context) GetTemps() map[string]interface{} {
-	return self.Request.GetTemps()
+	return self.Response.GetTemps()
 }
 
-func (self *Context) SetRequestUrl(u string) *Context {
+func (self *Context) SetReqUrl(u string) *Context {
 	self.Request.SetUrl(u)
 	return self
 }
 
-func (self *Context) SetRequestMethod(method string) *Context {
+func (self *Context) SetReqMethod(method string) *Context {
 	self.Request.SetMethod(method)
 	return self
 }
 
-func (self *Context) SetRequestReferer(referer string) *Context {
+func (self *Context) ClearReqHeader() *Context {
+	self.Request.Header = make(http.Header)
+	return self
+}
+
+func (self *Context) SetReqHeader(key, value string) *Context {
+	self.Request.Header.Set(key, value)
+	return self
+}
+
+func (self *Context) AddRequestHeader(key, value string) *Context {
+	self.Request.Header.Add(key, value)
+	return self
+}
+
+func (self *Context) SetReqReferer(referer string) *Context {
 	self.Request.SetReferer(referer)
 	return self
 }
 
-func (self *Context) SetRequestRuleName(ruleName string) *Context {
-	self.Request.SetRuleName(ruleName)
+func (self *Context) SetReqProxy(proxy string) *Context {
+	self.Request.Proxy = proxy
 	return self
 }
 
-func (self *Context) SetRequestTemp(key string, value interface{}) *Context {
-	self.Request.SetTemp(key, value)
+func (self *Context) SetReqRuleName(ruleName string) *Context {
+	self.Request.Rule = ruleName
 	return self
 }
 
-func (self *Context) SetRequestTemps(temp map[string]interface{}) *Context {
-	self.Request.SetAllTemps(temp)
+func (self *Context) SetReqPriority(priority int) *Context {
+	self.Request.Priority = priority
+	return self
+}
+
+func (self *Context) SetReqDownloaderID(id int) *Context {
+	self.Request.DownloaderID = id
+	return self
+}
+
+func (self *Context) SetReqDuplicatable(can bool) *Context {
+	self.Request.Duplicatable = can
+	return self
+}
+
+func (self *Context) SetReqTemp(key string, value interface{}) *Context {
+	self.Request.Temp[key] = value
+	return self
+}
+
+func (self *Context) SetReqTemps(temp map[string]interface{}) *Context {
+	self.Request.Temp = temp
 	return self
 }

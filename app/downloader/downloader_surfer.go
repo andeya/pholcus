@@ -2,11 +2,10 @@ package downloader
 
 import (
 	"net/http"
-	"net/url"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/downloader/surfer"
 	"github.com/henrylee2cn/pholcus/config"
-	"github.com/henrylee2cn/surfer"
 )
 
 const (
@@ -33,17 +32,12 @@ func (self *Surfer) Download(cReq *context.Request) *context.Response {
 	switch cReq.GetDownloaderID() {
 	case SURF_ID:
 		resp, err = self.surf.Download(cReq)
-		if resp != nil {
-			// 确保Response与Request中的Url字符串相等
-			resp.Request.URL, _ = url.Parse(cReq.GetUrl())
-		}
+
 	case PHANTOM_ID:
 		resp, err = self.phantom.Download(cReq)
 	}
 
-	cResp.SetRequest(cReq)
-
-	cResp.SetResponse(resp)
+	cResp.Prepare(resp, cReq)
 
 	cResp.SetError(err)
 
