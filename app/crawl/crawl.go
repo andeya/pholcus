@@ -105,7 +105,7 @@ func (self *crawler) Process(req *context.Request) {
 		// 统计失败数
 		cache.PageFailCount()
 		// 提示错误
-		logs.Log.Error(" *     Fail [download]: %v", resp.GetError())
+		logs.Log.Error(" *     Fail [download][%v]: %v", downUrl, resp.GetError())
 		return
 	}
 
@@ -116,7 +116,7 @@ func (self *crawler) Process(req *context.Request) {
 			// 统计失败数
 			cache.PageFailCount()
 			// 提示错误
-			logs.Log.Error(" *     Fail [process panic]: %v", err)
+			logs.Log.Error(" *     Fail [process][%v]: %v", downUrl, err)
 		}
 	}()
 
