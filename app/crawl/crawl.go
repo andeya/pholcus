@@ -97,20 +97,22 @@ func (self *crawler) Run() {
 func (self *crawler) Process(req *context.Request) {
 	// download page
 	resp := self.Downloader.Download(req)
+	downUrl := resp.GetUrl()
 	if resp.GetError() != nil {
 		// if fail do not need process
 		// 删除该请求的去重样本
-		scheduler.Sdl.DelDeduplication(resp.GetUrl() + resp.GetMethod())
+		scheduler.Sdl.DelDeduplication(downUrl + resp.GetMethod())
 		// 统计失败数
 		cache.PageFailCount()
 		// 提示错误
 		logs.Log.Error(" *     Fail [download]: %v", resp.GetError())
 		return
 	}
+
 	defer func() {
 		if err := recover(); err != nil {
 			// do not affect other
-			scheduler.Sdl.DelDeduplication(resp.GetUrl() + resp.GetMethod())
+			scheduler.Sdl.DelDeduplication(downUrl + resp.GetMethod())
 			// 统计失败数
 			cache.PageFailCount()
 			// 提示错误
@@ -124,7 +126,7 @@ func (self *crawler) Process(req *context.Request) {
 	// 统计成功页数
 	cache.PageSuccCount()
 	// 提示抓取成功
-	logs.Log.Informational(" *     Success: %v", resp.GetUrl())
+	logs.Log.Informational(" *     Success: %v", downUrl)
 	// 该条请求文本结果存入pipeline
 	for _, data := range resp.GetItems() {
 		self.Pipeline.CollectData(
