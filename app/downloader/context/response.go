@@ -20,9 +20,6 @@ type Response struct {
 	// 拷贝自*Request的规则名
 	rule string
 
-	// 拷贝自*Request的临时数据，通过temp[x]==nil判断是否有值存入，所以请存入带类型的值，如[]int(nil)等
-	temp map[string]interface{}
-
 	// 响应流，其中URL拷贝自*Request
 	*http.Response
 
@@ -57,8 +54,6 @@ func (self *Response) Prepare(resp *http.Response, req *Request) *Response {
 	self.Response = resp
 	self.Request = req
 	self.rule = self.Request.Rule
-	self.temp = self.Request.Temp
-	self.Request.Temp = make(map[string]interface{})
 	return self
 }
 
@@ -159,14 +154,6 @@ func (self *Response) GetRequestHeader() http.Header {
 
 func (self *Response) GetReferer() string {
 	return self.Response.Request.Header.Get("Referer")
-}
-
-func (self *Response) GetTemp(key string) interface{} {
-	return self.temp[key]
-}
-
-func (self *Response) GetTemps() map[string]interface{} {
-	return self.temp
 }
 
 // GetHtmlParser returns goquery object binded to target crawl result.

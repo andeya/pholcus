@@ -306,12 +306,24 @@ func (self *Context) GetRuleName() string {
 	return self.Response.GetRuleName()
 }
 
+// 返回指定缓存数据，
+// 注：为性能考虑，该方法并不保证引用或指针类型的value值被copy，请自行实现
 func (self *Context) GetTemp(key string) interface{} {
-	return self.Response.GetTemp(key)
+	return self.Request.Temp[key]
 }
 
-func (self *Context) GetTemps() map[string]interface{} {
-	return self.Response.GetTemps()
+// 返回全部缓存数据，
+// 当Request会被复用时，为保证缓存数据的独立性，isCopy应该为true
+// 注：为性能考虑，isCopy为true并不保证引用或指针类型的value值被copy，请自行实现
+func (self *Context) GetTemps(isCopy bool) map[string]interface{} {
+	if !isCopy {
+		return self.Request.Temp
+	}
+	copyMap := make(map[string]interface{})
+	for k, v := range self.Request.Temp {
+		copyMap[k] = v
+	}
+	return copyMap
 }
 
 func (self *Context) SetReqUrl(u string) *Context {
