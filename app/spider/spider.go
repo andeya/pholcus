@@ -49,8 +49,9 @@ type Rule struct {
 }
 
 // 添加自身到蜘蛛菜单
-func (self *Spider) Register() {
+func (self *Spider) Register() *Spider {
 	Menu.Add(self)
+	return self
 }
 
 // 指定规则的获取结果的字段名列表
