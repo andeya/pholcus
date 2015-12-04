@@ -20,6 +20,9 @@ type Response struct {
 	// 拷贝自*Request的规则名
 	rule string
 
+	// 拷贝自*Request的当前链接
+	url string
+
 	// 响应流，其中URL拷贝自*Request
 	*http.Response
 
@@ -54,6 +57,7 @@ func (self *Response) Prepare(resp *http.Response, req *Request) *Response {
 	self.Response = resp
 	self.Request = req
 	self.rule = self.Request.Rule
+	self.url = self.Request.Url
 	return self
 }
 
@@ -137,7 +141,13 @@ func (self *Response) GetRequest() *Request {
 // 返回请求后的Url
 // 在downloader模块已被重置为请求前的Url，从而确保请求前后Url字符串相等，且中文不被编码
 func (self *Response) GetUrl() string {
-	return self.Response.Request.URL.String()
+	return self.url
+}
+
+// 自定义设置输出结果的"当前链接"字段
+func (self *Response) SetUrl(u string) *Response {
+	self.url = u
+	return self
 }
 
 func (self *Response) GetMethod() string {
@@ -154,6 +164,12 @@ func (self *Response) GetRequestHeader() http.Header {
 
 func (self *Response) GetReferer() string {
 	return self.Response.Request.Header.Get("Referer")
+}
+
+// 自定义设置输出结果的"上级链接"字段
+func (self *Response) SetReferer(referer string) *Response {
+	self.Response.Request.Header.Set("Referer", referer)
+	return self
 }
 
 // GetHtmlParser returns goquery object binded to target crawl result.

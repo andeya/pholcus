@@ -289,6 +289,12 @@ func (self *Context) GetUrl() string {
 	return self.Response.GetUrl() // 与self.Request.GetUrl()完全相等
 }
 
+// 自定义设置输出结果的"当前链接"字段
+func (self *Context) SetItemUrl(itemUrl string) *Context {
+	self.Response.SetUrl(itemUrl)
+	return self
+}
+
 func (self *Context) GetMethod() string {
 	return self.Response.GetMethod()
 }
@@ -303,6 +309,12 @@ func (self *Context) GetResponseHeader() http.Header {
 
 func (self *Context) GetReferer() string {
 	return self.Response.GetReferer()
+}
+
+// 自定义设置输出结果的"上级链接"字段
+func (self *Context) SetItemReferer(referer string) *Context {
+	self.Response.SetReferer(referer)
+	return self
 }
 
 func (self *Context) GetRuleName() string {

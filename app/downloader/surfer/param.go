@@ -17,7 +17,6 @@ import (
 
 type Param struct {
 	method        string
-	originUrl     *url.URL
 	url           *url.URL
 	proxy         *url.URL
 	contentType   string
@@ -34,12 +33,10 @@ type Param struct {
 
 func NewParam(req Request) (param *Param, err error) {
 	param = new(Param)
-	param.originUrl, err = url.Parse(req.GetUrl())
+	param.url, err = util.UrlEncode(req.GetUrl())
 	if err != nil {
 		return nil, err
 	}
-
-	param.url, _ = util.UrlEncode(req.GetUrl())
 
 	if req.GetProxy() != "" {
 		if param.proxy, err = url.Parse(req.GetProxy()); err != nil {
@@ -119,7 +116,6 @@ func (self *Param) writeback(resp *http.Response) *http.Response {
 		resp.Request = new(http.Request)
 	}
 
-	resp.Request.URL = self.originUrl
 	resp.Request.Method = self.method
 	resp.Request.Header = self.header
 	resp.Request.Host = self.url.Host
