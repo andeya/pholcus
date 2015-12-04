@@ -25,7 +25,7 @@ func init() {
 			if _, ok := mysqls[subNamespace]; !ok {
 				mysqls[subNamespace] = mysql.New(db.DB)
 				mysqls[subNamespace].SetTableName(namespace + "__" + subNamespace)
-				for _, title := range self.GetRule(datacell["RuleName"].(string)).GetOutFeild() {
+				for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 					mysqls[subNamespace].AddColumn(title + ` MEDIUMTEXT`)
 				}
 
@@ -34,7 +34,7 @@ func init() {
 					Create()
 			}
 
-			for _, title := range self.GetRule(datacell["RuleName"].(string)).GetOutFeild() {
+			for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 				vd := datacell["Data"].(map[string]interface{})
 				if v, ok := vd[title].(string); ok || vd[title] == nil {
 					mysqls[subNamespace].AddRow(v)

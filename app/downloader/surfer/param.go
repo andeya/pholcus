@@ -111,11 +111,20 @@ func NewParam(req Request) (param *Param, err error) {
 }
 
 // 回写Request内容
-func (self *Param) writeback(resp *http.Response) {
+func (self *Param) writeback(resp *http.Response) *http.Response {
+	if resp == nil {
+		resp = new(http.Response)
+		resp.Request = new(http.Request)
+	} else if resp.Request == nil {
+		resp.Request = new(http.Request)
+	}
+
 	resp.Request.URL = self.originUrl
 	resp.Request.Method = self.method
 	resp.Request.Header = self.header
 	resp.Request.Host = self.url.Host
+
+	return resp
 }
 
 // checkRedirect is used as the value to http.Client.CheckRedirect

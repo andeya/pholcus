@@ -45,7 +45,7 @@ func init() {
 				file.WriteString("\xEF\xBB\xBF") // 写入UTF-8 BOM
 
 				sheets[subNamespace] = csv.NewWriter(file)
-				th := self.GetRule(datacell["RuleName"].(string)).GetOutFeild()
+				th := self.MustGetRule(datacell["RuleName"].(string)).ItemFields
 				th = append(th, "当前链接", "上级链接", "下载时间")
 				sheets[subNamespace].Write(th)
 
@@ -58,7 +58,7 @@ func init() {
 			}
 
 			row := []string{}
-			for _, title := range self.GetRule(datacell["RuleName"].(string)).GetOutFeild() {
+			for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 				vd := datacell["Data"].(map[string]interface{})
 				if v, ok := vd[title].(string); ok || vd[title] == nil {
 					row = append(row, v)

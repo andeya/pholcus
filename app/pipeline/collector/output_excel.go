@@ -41,7 +41,7 @@ func init() {
 				sheets[subNamespace] = sheet
 				// 写入表头
 				row = sheets[subNamespace].AddRow()
-				for _, title := range self.GetRule(datacell["RuleName"].(string)).GetOutFeild() {
+				for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 					cell = row.AddCell()
 					cell.Value = title
 				}
@@ -54,7 +54,7 @@ func init() {
 			}
 
 			row = sheets[subNamespace].AddRow()
-			for _, title := range self.GetRule(datacell["RuleName"].(string)).GetOutFeild() {
+			for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 				cell = row.AddCell()
 				vd := datacell["Data"].(map[string]interface{})
 				if v, ok := vd[title].(string); ok || vd[title] == nil {

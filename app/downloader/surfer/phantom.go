@@ -1,6 +1,7 @@
 package surfer
 
 import (
+	"github.com/henrylee2cn/surfer/util"
 	"net/http"
 	"os"
 	"os/exec"
@@ -8,8 +9,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/henrylee2cn/pholcus/app/downloader/surfer/util"
 )
 
 // 基于Phantomjs的下载器实现，作为surfer的补充
@@ -32,15 +31,13 @@ func NewPhantom(fullPhantomjsName, fullTempJsFilePrefix string) Surfer {
 	return phantom
 }
 
-// 实现surfer下载器接口(userAgent 默认为百度爬虫)
+// 实现surfer下载器接口
 func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 	param, err := NewParam(req)
 	if err != nil {
 		return nil, err
 	}
-	resp = new(http.Response)
-	resp.Request = new(http.Request)
-	param.writeback(resp)
+	resp = param.writeback(resp)
 
 	encoding := strings.ToLower(param.header.Get("Content-Type"))
 	if idx := strings.Index(encoding, "charset="); idx != -1 {

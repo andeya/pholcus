@@ -73,22 +73,24 @@ func (self *Context) BulkAddQueue(urls []string, req *context.Request) *Context 
 }
 
 // 输出文本结果。
-// item允许的类型为map[int]interface{}或map[string]interface{}。
-// 用ruleName指定匹配的OutFeild字段，为空时默认当前规则。
+// item类型为map[int]interface{}时，根据ruleName现有的ItemFields字段进行输出，
+// item类型为map[string]interface{}时，ruleName不存在的ItemFields字段将被自动添加，
+// ruleName为空时默认当前规则。
 func (self *Context) Output(item interface{}, ruleName ...string) *Context {
-	if len(ruleName) == 0 {
-		if self.Response == nil {
-			logs.Log.Error("蜘蛛 %s 空响应调用Output()，必须指定规则名！", self.Spider.GetName())
-			return self
-		}
-		ruleName = append(ruleName, self.Response.GetRuleName())
+	_ruleName, rule, found := self.getRule(ruleName...)
+	if !found {
+		logs.Log.Error("蜘蛛 %s 调用Output()时，指定的规则名不存在！", self.Spider.GetName())
+		return self
 	}
 
-	self.Response.SetRuleName(ruleName[0])
+	self.Response.SetRuleName(_ruleName)
 	switch item2 := item.(type) {
 	case map[int]interface{}:
-		self.Response.AddItem(self.CreatItem(item2, ruleName[0]))
+		self.Response.AddItem(self.CreatItem(item2, _ruleName))
 	case map[string]interface{}:
+		for k := range item2 {
+			self.Spider.UpsertItemField(rule, k)
+		}
 		self.Response.AddItem(item2)
 	}
 	return self
@@ -101,19 +103,62 @@ func (self *Context) FileOutput(name ...string) *Context {
 	return self
 }
 
-// 生成文本结果。
-// 用ruleName指定匹配的OutFeild字段，为空时默认当前规则。
-func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map[string]interface{} {
-	if len(ruleName) == 0 {
-		if self.Response == nil {
-			logs.Log.Error("蜘蛛 %s 空响应调用CreatItem()，必须指定规则名！", self.Spider.GetName())
-			return nil
-		}
-		ruleName = append(ruleName, self.Response.GetRuleName())
+func (self *Context) GetItemFields(ruleName ...string) []string {
+	_, rule, found := self.getRule(ruleName...)
+	if !found {
+		logs.Log.Error("蜘蛛 %s 调用GetItemFields()时，指定的规则名不存在！", self.Spider.GetName())
+		return nil
 	}
+	return self.Spider.GetItemFields(rule)
+}
+
+// 返回结果字段名的值，不存在时返回空字符串
+// ruleName为空时默认当前规则。
+func (self *Context) GetItemField(index int, ruleName ...string) (field string) {
+	_, rule, found := self.getRule(ruleName...)
+	if !found {
+		logs.Log.Error("蜘蛛 %s 调用GetItemField()时，指定的规则名不存在！", self.Spider.GetName())
+		return
+	}
+	return self.Spider.GetItemField(rule, index)
+}
+
+// 返回结果字段名的索引，不存在时索引为-1
+// ruleName为空时默认当前规则。
+func (self *Context) GetItemFieldIndex(field string, ruleName ...string) (index int) {
+	_, rule, found := self.getRule(ruleName...)
+	if !found {
+		logs.Log.Error("蜘蛛 %s 调用GetItemField()时，指定的规则名不存在！", self.Spider.GetName())
+		return
+	}
+	return self.Spider.GetItemFieldIndex(rule, field)
+}
+
+// 为指定Rule动态追加结果字段名，并返回索引位置
+// 已存在时返回原来索引位置
+// ruleName为空时默认当前规则。
+func (self *Context) UpsertItemField(field string, ruleName ...string) (index int) {
+	_, rule, found := self.getRule(ruleName...)
+	if !found {
+		logs.Log.Error("蜘蛛 %s 调用UpsertItemField()时，指定的规则名不存在！", self.Spider.GetName())
+		return
+	}
+	return self.Spider.UpsertItemField(rule, field)
+}
+
+// 生成文本结果。
+// 用ruleName指定匹配的ItemFields字段，为空时默认当前规则。
+func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map[string]interface{} {
+	_, rule, found := self.getRule(ruleName...)
+	if !found {
+		logs.Log.Error("蜘蛛 %s 调用CreatItem()时，指定的规则名不存在！", self.Spider.GetName())
+		return nil
+	}
+
 	var item2 = make(map[string]interface{}, len(item))
 	for k, v := range item {
-		item2[self.Spider.IndexOutFeild(ruleName[0], k)] = v
+		field := self.Spider.GetItemField(rule, k)
+		item2[field] = v
 	}
 	return item2
 }
@@ -121,69 +166,27 @@ func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map
 // 调用指定Rule下辅助函数AidFunc()。
 // 用ruleName指定匹配的AidFunc，为空时默认当前规则。
 func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interface{} {
-	if len(ruleName) == 0 {
-		if self.Response == nil {
-			logs.Log.Error("蜘蛛 %s 空响应调用Aid()，必须指定规则名！", self.Spider.GetName())
-			return nil
-		}
-		ruleName = append(ruleName, self.Response.GetRuleName())
+	_, rule, found := self.getRule(ruleName...)
+	if !found {
+		logs.Log.Error("蜘蛛 %s 调用Aid()时，指定的规则名不存在！", self.Spider.GetName())
+		return nil
 	}
-	return self.Spider.GetRule(ruleName[0]).AidFunc(self, aid)
+
+	return rule.AidFunc(self, aid)
 }
 
 // 解析响应流。
 // 用ruleName指定匹配的ParseFunc字段，为空时默认调用Root()。
 func (self *Context) Parse(ruleName ...string) *Context {
-	if len(ruleName) == 0 || ruleName[0] == "" {
-		if self.Response != nil {
-			self.Response.SetRuleName("")
-		}
+	_ruleName, rule, found := self.getRule(ruleName...)
+	self.Response.SetRuleName(_ruleName)
+	if !found {
 		self.Spider.RuleTree.Root(self)
 		return self
 	}
-	self.Response.SetRuleName(ruleName[0])
-	self.Spider.GetRule(ruleName[0]).ParseFunc(self)
+
+	rule.ParseFunc(self)
 	return self
-}
-
-// 返回采集语义字段。
-// 用ruleName指定匹配的OutFeild字段，为空时默认当前规则。
-func (self *Context) IndexOutFeild(index int, ruleName ...string) (feild string) {
-	if len(ruleName) == 0 {
-		if self.Response == nil {
-			logs.Log.Error("蜘蛛 %s 空响应调用IndexOutFeild()，必须指定规则名！", self.Spider.GetName())
-			return ""
-		}
-		ruleName = append(ruleName, self.Response.GetRuleName())
-	}
-	return self.Spider.IndexOutFeild(ruleName[0], index)
-}
-
-// 返回采集语义字段的索引位置，不存在时返回-1。
-// 用ruleName指定匹配的OutFeild字段，为空时默认当前规则。
-func (self *Context) FindOutFeild(feild string, ruleName ...string) (index int) {
-	if len(ruleName) == 0 {
-		if self.Response == nil {
-			logs.Log.Error("蜘蛛 %s 空响应调用FindOutFeild()，必须指定规则名！", self.Spider.GetName())
-			return
-		}
-		ruleName = append(ruleName, self.Response.GetRuleName())
-	}
-	return self.Spider.FindOutFeild(ruleName[0], feild)
-}
-
-// 为指定Rule动态追加采集语义字段，并返回索引位置。
-// 已存在时返回原来索引位置。
-// 用ruleName指定匹配的OutFeild字段，为空时默认当前规则。
-func (self *Context) AddOutFeild(feild string, ruleName ...string) (index int) {
-	if len(ruleName) == 0 {
-		if self.Response == nil {
-			logs.Log.Error("蜘蛛 %s 空响应调用AddOutFeild()，必须指定规则名！", self.Spider.GetName())
-			return
-		}
-		ruleName = append(ruleName, self.Response.GetRuleName())
-	}
-	return self.Spider.AddOutFeild(ruleName[0], feild)
 }
 
 // 设置代理服务器列表。
@@ -251,7 +254,7 @@ func (self *Context) GetRules() map[string]*Rule {
 }
 
 // 返回指定规则。
-func (self *Context) GetRule(ruleName string) *Rule {
+func (self *Context) GetRule(ruleName string) (*Rule, bool) {
 	return self.Spider.GetRule(ruleName)
 }
 
@@ -389,4 +392,18 @@ func (self *Context) SetReqTemp(key string, value interface{}) *Context {
 func (self *Context) SetReqTemps(temp map[string]interface{}) *Context {
 	self.Request.Temp = temp
 	return self
+}
+
+// 获取规则
+func (self *Context) getRule(ruleName ...string) (name string, rule *Rule, found bool) {
+	if len(ruleName) == 0 {
+		if self.Response == nil {
+			return
+		}
+		name = self.Response.GetRuleName()
+	} else {
+		name = ruleName[0]
+	}
+	rule, found = self.Spider.GetRule(name)
+	return
 }
