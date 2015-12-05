@@ -98,9 +98,9 @@ func (self *Response) AddFile(name ...string) {
 	ext := path.Ext(n)
 
 	if len(name) > 0 {
-		_, n = path.Split(name[0])
+		p, n := path.Split(name[0])
 		if baseName2 := strings.Split(n, ".")[0]; baseName2 != "" {
-			baseName = baseName2
+			baseName = p + baseName2
 		}
 		if ext == "" {
 			ext = path.Ext(n)
