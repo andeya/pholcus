@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/PuerkitoBio/goquery"
 	"github.com/henrylee2cn/mahonia"
 	"math"
 	"net/http"
@@ -38,6 +39,51 @@ func CleanHtml(str string, depth int) string {
 		str = re.ReplaceAllString(str, "\n")
 	}
 	return str
+}
+
+// 提取文章页的正文
+// 思路：认为文本节点最长的标签的父标签为文章正文
+func ExtractArticle(html string) string {
+	//将HTML标签全转换成小写
+	re := regexp.MustCompile("<[\\S\\s]+?>")
+	html = re.ReplaceAllStringFunc(html, strings.ToLower)
+	//去除head
+	re = regexp.MustCompile("<head[\\S\\s]+?</head>")
+	html = re.ReplaceAllString(html, "")
+	//去除STYLE
+	re = regexp.MustCompile("<style[\\S\\s]+?</style>")
+	html = re.ReplaceAllString(html, "")
+	//去除SCRIPT
+	re = regexp.MustCompile("<script[\\S\\s]+?</script>")
+	html = re.ReplaceAllString(html, "")
+	//去除注释
+	re = regexp.MustCompile("<![\\S\\s]+?>")
+	html = re.ReplaceAllString(html, "")
+	// fmt.Println(html)
+
+	// 获取每个子标签
+	re = regexp.MustCompile("<[A-Za-z]+[^<]*>([^<>]+)</[A-Za-z]+>")
+	ss := re.FindAllStringSubmatch(html, -1)
+	// fmt.Printf("所有子标签：\n%#v\n", ss)
+
+	var maxLen int
+	var idx int
+	for k, v := range ss {
+		l := len([]rune(v[1]))
+		if l > maxLen {
+			maxLen = l
+			idx = k
+		}
+	}
+	// fmt.Println("最长段落：", ss[idx][0])
+
+	html = strings.Replace(html, ss[idx][0], `<pholcus id="pholcus">`+ss[idx][1]+`</pholcus>`, -1)
+	r := strings.NewReader(html)
+	dom, err := goquery.NewDocumentFromReader(r)
+	if err != nil {
+		return ""
+	}
+	return dom.Find("pholcus#pholcus").Parent().Text()
 }
 
 // 去除常见转义字符
