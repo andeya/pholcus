@@ -3,7 +3,6 @@ package crawl
 import (
 	"io"
 	"math/rand"
-	"sync/atomic"
 	"time"
 
 	"github.com/henrylee2cn/pholcus/app/downloader"
@@ -40,8 +39,7 @@ func New(id int) Crawler {
 
 func (self *crawler) Init(sp *spider.Spider) Crawler {
 	self.srcManage = 0
-	self.Spider = sp
-	scheduler.Sdl.RegSpider(sp.GetId())
+	self.Spider = sp.InitReqMatrix()
 	self.Pipeline.Init(sp)
 	return self
 }
@@ -50,14 +48,12 @@ func (self *crawler) Init(sp *spider.Spider) Crawler {
 func (self *crawler) Start() {
 	// 预先开启输出管理协程
 	self.Pipeline.Start()
-
 	// 开始运行
 	self.Spider.Start()
 	self.Run()
 	// logs.Log.Debug("**************爬虫：%v***********", self.GetId())
 	// 通知输出模块输出未输出的数据
 	self.Pipeline.CtrlR()
-	scheduler.Sdl.CancelSpider(self.Spider.GetId())
 }
 
 func (self *crawler) Run() {
@@ -79,13 +75,11 @@ func (self *crawler) Run() {
 			}
 		}
 
-		// 自身资源统计
-		self.RequestIn()
+		self.UseOne()
 
 		go func(req *context.Request) {
 			defer func() {
 				self.FreeOne()
-				self.RequestOut()
 			}()
 			// logs.Log.Informational(" *     start: %v", req.GetUrl())
 			self.Process(req)
@@ -101,7 +95,7 @@ func (self *crawler) Process(req *context.Request) {
 	if resp.GetError() != nil {
 		// if fail do not need process
 		// 删除该请求的去重样本
-		scheduler.Sdl.DelDeduplication(downUrl + resp.GetMethod())
+		scheduler.DelDeduplication(downUrl + resp.GetMethod())
 		// 统计失败数
 		cache.PageFailCount()
 		// 提示错误
@@ -112,7 +106,7 @@ func (self *crawler) Process(req *context.Request) {
 	defer func() {
 		if err := recover(); err != nil {
 			// do not affect other
-			scheduler.Sdl.DelDeduplication(downUrl + resp.GetMethod())
+			scheduler.DelDeduplication(downUrl + resp.GetMethod())
 			// 统计失败数
 			cache.PageFailCount()
 			// 提示错误
@@ -159,25 +153,22 @@ func (self *crawler) sleep() {
 
 // 从调度读取一个请求
 func (self *crawler) GetOne() *context.Request {
-	return scheduler.Sdl.Use(self.Spider.GetId())
+	return self.Spider.ReqMatrixPull()
+}
+
+//从调度使用一个资源空位
+func (self *crawler) UseOne() {
+	self.Spider.ReqMatrixUse()
 }
 
 //从调度释放一个资源空位
 func (self *crawler) FreeOne() {
-	scheduler.Sdl.Free()
-}
-
-func (self *crawler) RequestIn() {
-	atomic.AddInt32(&self.srcManage, 1)
-}
-
-func (self *crawler) RequestOut() {
-	atomic.AddInt32(&self.srcManage, -1)
+	self.Spider.ReqMatrixFree()
 }
 
 //判断调度中是否还有属于自己的资源运行
 func (self *crawler) canStop() bool {
-	return (self.srcManage == 0 && scheduler.Sdl.IsEmpty(self.Spider.GetId())) || scheduler.Sdl.IsStop()
+	return self.Spider.ReqMatrixCanStop() || scheduler.IsStop()
 }
 
 func (self *crawler) SetId(id int) {

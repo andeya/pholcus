@@ -1,6 +1,8 @@
 package spider
 
 import (
+	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/common/util"
 )
 
@@ -28,6 +30,9 @@ type Spider struct {
 	Namespace func(*Spider) string
 	// 子命名空间相对于表名，可依赖具体数据内容，可选
 	SubNamespace func(self *Spider, dataCell map[string]interface{}) string
+
+	// 请求矩阵
+	ReqMatrix *scheduler.Matrix
 }
 
 //采集规则树
@@ -221,4 +226,30 @@ func (self *Spider) Gost() *Spider {
 	gost.currProxy = self.currProxy
 
 	return gost
+}
+
+func (self *Spider) InitReqMatrix() *Spider {
+	self.ReqMatrix = scheduler.NewMatrix(self.Id)
+	return self
+}
+
+func (self *Spider) ReqMatrixPush(req *context.Request) {
+	self.ReqMatrix.Push(req)
+}
+
+func (self *Spider) ReqMatrixPull() *context.Request {
+	return self.ReqMatrix.Pull()
+}
+
+func (self *Spider) ReqMatrixUse() {
+	self.ReqMatrix.Use()
+}
+
+func (self *Spider) ReqMatrixFree() {
+	self.ReqMatrix.Free()
+}
+
+func (self *Spider) ReqMatrixCanStop() bool {
+	return self.ReqMatrix.CanStop()
+
 }

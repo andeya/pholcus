@@ -5,7 +5,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
-	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
@@ -59,7 +58,7 @@ func (self *Context) AddQueue(req *context.Request) *Context {
 		req.SetReferer(self.Response.GetUrl())
 	}
 
-	scheduler.Sdl.Push(req)
+	self.Spider.ReqMatrixPush(req)
 	return self
 }
 

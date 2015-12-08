@@ -265,9 +265,8 @@ func (self *Request) SetAllTemps(temp map[string]interface{}) *Request {
 	return self
 }
 
-func (self *Request) GetSpiderId() (int, bool) {
-	value, ok := self.Temp["__SPIDER_ID__"]
-	return value.(int), ok
+func (self *Request) GetSpiderId() int {
+	return self.Temp["__SPIDER_ID__"].(int)
 }
 
 func (self *Request) SetSpiderId(spiderId int) *Request {

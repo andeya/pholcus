@@ -97,8 +97,6 @@ type Logic struct {
 	crawl.CrawlPool
 	// socket长连接双工通信接口，json数据传输
 	teleport.Teleport
-	// 全局队列
-	scheduler.Scheduler
 	//执行计数
 	sum [2]uint64
 	// 执行计时
@@ -136,7 +134,6 @@ func newLogic() *Logic {
 	return &Logic{
 		AppConf:     cache.Task,
 		Traversal:   spider.Menu,
-		Scheduler:   scheduler.Sdl,
 		status:      status.STOP,
 		Teleport:    teleport.New(),
 		TaskJar:     distribute.NewTaskJar(),
@@ -243,9 +240,7 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 
 // 切换运行模式时使用
 func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App {
-	if scheduler.Sdl != nil {
-		self.Scheduler.Stop()
-	}
+	scheduler.Stop()
 	self.LogRest()
 	self.setStatus(status.STOP)
 	if self.Teleport != nil {
@@ -336,7 +331,7 @@ func (self *Logic) Run() {
 	<-self.finish
 	if self.AppConf.InheritDeduplication {
 		// 继承了历史去重则保存去重记录，否则不保存
-		self.Scheduler.SaveDeduplication()
+		scheduler.SaveDeduplication()
 	}
 }
 
@@ -349,14 +344,14 @@ func (self *Logic) PauseRecover() {
 		self.setStatus(status.PAUSE)
 	}
 
-	self.Scheduler.PauseRecover()
+	scheduler.PauseRecover()
 }
 
 // Offline 模式下中途终止任务
 func (self *Logic) Stop() {
-	self.Scheduler.Stop()
 	self.setStatus(status.STOP)
 	self.CrawlPool.Stop()
+	scheduler.Stop()
 }
 
 // 返回当前运行状态
@@ -528,7 +523,7 @@ func (self *Logic) exec() {
 	cache.ReSetPageCount()
 
 	// 初始化资源队列
-	self.Scheduler.Init()
+	scheduler.Init()
 
 	// 设置爬虫队列
 	crawlCap := self.CrawlPool.Reset(count)
@@ -559,6 +554,7 @@ func (self *Logic) exec() {
 
 // 任务执行
 func (self *Logic) goRun(count int) {
+	// 执行任务
 	for i := 0; i < count && self.Status() != status.STOP; i++ {
 	wait:
 		if self.Status() == status.PAUSE {
@@ -576,7 +572,6 @@ func (self *Logic) goRun(count int) {
 			}(i, c)
 		}
 	}
-
 	// 监控结束任务
 	for i := 0; i < count && self.Status() != status.STOP; i++ {
 		s := <-cache.ReportChan
@@ -597,7 +592,6 @@ func (self *Logic) goRun(count int) {
 		self.sum[0] += s.DataNum
 		self.sum[1] += s.FileNum
 	}
-
 	// 总耗时
 	self.takeTime = time.Since(cache.StartTime).Minutes()
 	var prefix = func() string {
