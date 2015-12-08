@@ -15,7 +15,7 @@ import (
 	"github.com/henrylee2cn/pholcus/web" // web版
 )
 
-func Run(which string) {
+func run(which string) {
 	exec.Command("cmd.exe", "/c", "title", config.APP_FULL_NAME).Start()
 	defer func() {
 		if cache.Task.InheritDeduplication {

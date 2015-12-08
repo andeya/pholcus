@@ -55,24 +55,22 @@ import (
     "github.com/henrylee2cn/pholcus/exec"
     "github.com/henrylee2cn/pholcus/logs"
 
-    _ "github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
-    // _ "github.com/pholcus/spider_lib_pte" // 同样你也可以自由添加自己的规则库
+    _ "github.com/pholcus/spider_lib"     // 此为公开维护的spider规则库
+    _ "github.com/pholcus/spider_lib_pte" // 同样你也可以自由添加自己的规则库
 )
 
 func main() {
-    // 允许日志打印行号
-    logs.ShowLineNum()
-
-    // 初始化配置，不调用则为默认值
-    SetConf()
-
-    // 开始运行，参数："web"/"gui"/"cmd"，默认为web版
-    // 其中gui版仅支持Windows系统
-    exec.Run("web")
+    // 设置运行时默认操作界面，并开始运行
+    // 运行软件前，可设置 -a_ui 参数为"web"、"gui"或"cmd"，指定本次运行的操作界面
+    // 其中"gui"仅支持Windows系统
+    exec.DefaultRun("web")
 }
 
 // 自定义相关配置，将覆盖默认值
-func SetConf() {
+func init() {
+    // 允许日志打印行号
+    logs.ShowLineNum()
+
     //mongodb链接字符串
     config.MGO.CONN_STR = "127.0.0.1:27017"
     //mongodb数据库
@@ -93,45 +91,39 @@ func SetConf() {
 ```
 &nbsp;
 
-#### Web版编译运行
+#### 编译运行
+正常编译方法
 ```
-go install (可选参数： -ip 0.0.0.0 -port 9090)
+go install 或者 go build
 ```
-或者
+Windows下隐藏cmd窗口的编译方法
 ```
-go build (可选参数： -ip 0.0.0.0 -port 9090)
+go install -ldflags="-H windowsgui" 或者 go build -ldflags="-H windowsgui"
 ```
-> *<font size="2">(注意：将 src/github.com/henrylee2cn/pholcus/web 文件夹拷贝至当前项目目录下，其中的go文件可删除)*
+查看可选参数: 
+```
+pholcus -h
+```
+![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/help.jpg)
+
+&nbsp;
+
+> *<font size="2">(注意：当运行web操作界面时请将 src/github.com/henrylee2cn/pholcus/web 文件夹拷贝至当前项目目录下，其中的go文件可删除)，Web版操作界面截图如下：*
+
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/webshow_1.jpg)
 
 &nbsp;
 
-#### GUI版编译运行
-
-```
-go install -ldflags="-H windowsgui"
-```
-或者
-```
-go build -ldflags="-H windowsgui"
-```
-
-> *<font size="2">(下图为GUI选择模式界面图例)*
+> *<font size="2">GUI版操作界面之模式选择界面截图如下*
 
 ![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_0.jpg)
 
 &nbsp;
 
-
-#### Cmd版编译运行
+> *<font size="2">Cmd版运行参数设置示例如下*
 ```
-编译命令: go install pholcus-cmd.go  或者  go build pholcus-cmd.go
-查看命令参数: pholcus-cmd.exe -h
-执行爬虫命令: pholcus-cmd.exe -spider=1,3 -output=csv -go=500 -docker=5000 -pase=1000,3000 -kw=pholcus,golang -page=100
+pholcus -a_ui=web -c_spider=3,8 -c_output=csv -c_goroutine=500 -c_docker=5000 -c_pause=1000,3000 -c_keyword=pholcus,golang -c_maxpage=100
 ```
-
-> *<font size="2">(注：花括号“{}”中为选择参数或参数格式，多个参数值之间用逗号“,”间隔，各项参数根据采集规则的需要自行设置)*
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/cmd.jpg)
 
 &nbsp;
 

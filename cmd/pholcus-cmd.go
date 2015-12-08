@@ -1,4 +1,4 @@
-// [spider frame (golang)] Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重量级爬虫软件，支持单机、服务端、客户端三种运行模式，拥有Web、GUI、命令行三种操作界面；规则简单灵活、批量任务并发、输出方式丰富（mysql/mongodb/csv/excel等）、有大量Demo共享；同时她还支持横纵向两种抓取模式，支持模拟登录和任务暂停、取消等一系列高级功能；
+﻿// [spider frame (golang)] Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重量级爬虫软件，支持单机、服务端、客户端三种运行模式，拥有Web、GUI、命令行三种操作界面；规则简单灵活、批量任务并发、输出方式丰富（mysql/mongodb/csv/excel等）、有大量Demo共享；同时她还支持横纵向两种抓取模式，支持模拟登录和任务暂停、取消等一系列高级功能；
 //（官方QQ群：Go大数据 42731170，欢迎加入我们的讨论）。
 // 命令行界面版。
 package cmd
@@ -17,6 +17,60 @@ import (
 	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
+var (
+	spiderflag             *string
+	outputflag             *string
+	goroutineflag          *uint
+	dockerflag             *uint
+	pauseflag              *string
+	keywordflag            *string
+	maxpageflag            *int
+	inheritDeduplicateflag *bool
+)
+
+// 获取外部参数
+func Flag() {
+	// 分类说明
+	flag.String("c . . . . . . . . . . . . .. . . . . . . . . . . only for cmd . . . . . . . . . . . . . .. . . . . . . . . . c", "cmd", "\r\n")
+
+	// 蜘蛛列表
+	var spiderlist string
+	for k, v := range app.LogicApp.GetSpiderLib() {
+		spiderlist += "   {" + strconv.Itoa(k) + "} " + v.GetName() + "  " + v.GetDescription() + "\r\n"
+	}
+	spiderlist = "   <蜘蛛列表 选择多蜘蛛以 \",\" 间隔>\r\n" + spiderlist
+	spiderflag = flag.String("c_spider", "", spiderlist)
+
+	// 输出方式
+	var outputlib string
+	for _, v := range app.LogicApp.GetOutputLib() {
+		outputlib += "{" + v + "} "
+	}
+	outputlib = "   <输出方式> " + strings.TrimRight(outputlib, " ")
+	outputflag = flag.String("c_output", app.LogicApp.GetOutputLib()[0], outputlib)
+
+	// 并发协程数
+	goroutineflag = flag.Uint("c_goroutine", 20, "   <并发协程> {1~99999}")
+
+	// 分批输出
+	dockerflag = flag.Uint("c_docker", 10000, "   <分批输出> {1~5000000}")
+
+	// 暂停时间
+	pauseflag = flag.String("c_pause", "1000,3000", "   <暂停时间/ms> {基准时间,随机增益} ")
+
+	// 自定义输入
+	keywordflag = flag.String("c_keyword", "", "   <自定义输入 选填 多关键词以 \",\" 隔开>")
+
+	// 采集页数
+	maxpageflag = flag.Int("c_maxpage", 0, "   <采集页数 选填>")
+
+	// 继承之前的去重记录
+	inheritDeduplicateflag = flag.Bool("c_inheritDeduplicate", true, "   <继承历史去重样本>")
+
+	// 备注说明
+	flag.String("c_z", "cmd-example", " pholcus -a_ui=web -c_spider=3,8 -c_output=csv -c_goroutine=500 -c_docker=5000 -c_pause=1000,3000 -c_keyword=pholcus,golang -c_maxpage=100\r\n")
+}
+
 // 执行入口
 func Run() {
 	app.LogicApp.Init(status.OFFLINE, 0, "")
@@ -30,54 +84,14 @@ func Run() {
 	// //主节点ip，客户端模式填写
 	// masterflag := flag.String("服务端IP", "127.0.0.1", "主节点IP: 服务端IP地址，不含端口\r\n")
 
-	// 蜘蛛列表
-	var spiderlist string
-	for k, v := range app.LogicApp.GetSpiderLib() {
-		spiderlist += "    {" + strconv.Itoa(k) + "} " + v.GetName() + "  " + v.GetDescription() + "\r\n"
-	}
-	spiderlist = "   【蜘蛛列表】   (选择多蜘蛛以\",\"间隔)\r\n\r\n" + spiderlist
-	spiderflag := flag.String("spider", "", spiderlist+"\r\n")
-
-	// 输出方式
-	var outputlib string
-	for _, v := range app.LogicApp.GetOutputLib() {
-		outputlib += "{" + v + "} " + v + "    "
-	}
-	outputlib = strings.TrimRight(outputlib, "    ") + "\r\n"
-	outputlib = "   【输出方式】   " + outputlib
-	outputflag := flag.String("output", app.LogicApp.GetOutputLib()[0], outputlib)
-
-	// 并发协程数
-	goroutineflag := flag.Uint("go", 20, "   【并发协程】   {1~99999}\r\n")
-
-	// 分批输出
-	dockerflag := flag.Uint("docker", 10000, "   【分批输出】   每 {1~5000000} 条数据输出一次\r\n")
-
-	// 暂停时间
-	pasetimeflag := flag.String("pase", "1000,3000", "   【暂停时间】   格式如 {基准时间,随机增益} (单位ms)\r\n")
-
-	// 自定义输入
-	keywordflag := flag.String("kw", "", "   【自定义输入<选填>】   多关键词以\",\"隔开\r\n")
-
-	// 采集页数
-	maxpageflag := flag.Int("page", 0, "   【采集页数<选填>】\r\n")
-
-	// 继承之前的去重记录
-	inheritDeduplicationflag := flag.Bool("inheritDeduplication", true, "   【继承之前的去重记录】\r\n")
-
-	// 备注说明
-	flag.String("z", "", "   【说明<非参数>】   各项参数值请参考{}中内容，同一参数包含多个值时以\",\"隔开\r\n\r\n  example：pholcus-cmd.exe -spider=3,8 -output=csv -go=500 -docker=5000 -pase=1000,3000 -kw=pholcus,golang -page=100\r\n")
-
-	flag.Parse()
-
 	// 转换关键词
 	keyword := strings.Replace(*keywordflag, ",", "|", -1)
 
 	// 获得暂停时间设置
-	var pase [2]uint64
-	ptf := strings.Split(*pasetimeflag, ",")
-	pase[0], _ = strconv.ParseUint(ptf[0], 10, 64)
-	pase[1], _ = strconv.ParseUint(ptf[1], 10, 64)
+	var pause [2]uint64
+	ptf := strings.Split(*pauseflag, ",")
+	pause[0], _ = strconv.ParseUint(ptf[0], 10, 64)
+	pause[1], _ = strconv.ParseUint(ptf[1], 10, 64)
 
 	// 创建蜘蛛队列
 	sps := []*spider.Spider{}
@@ -95,9 +109,9 @@ func Run() {
 		SetAppConf("DockerCap", *dockerflag).
 		SetAppConf("OutType", *outputflag).
 		SetAppConf("MaxPage", *maxpageflag).
-		SetAppConf("Pausetime", [2]uint{uint(pase[0]), uint(pase[1])}).
+		SetAppConf("Pausetime", [2]uint{uint(pause[0]), uint(pause[1])}).
 		SetAppConf("Keywords", keyword).
-		SetAppConf("InheritDeduplication", *inheritDeduplicationflag).
+		SetAppConf("InheritDeduplication", *inheritDeduplicateflag).
 		SpiderPrepare(sps).
 		Run()
 }
