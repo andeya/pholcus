@@ -2,7 +2,7 @@
 
 Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重量级爬虫软件，支持单机、服务端、客户端三种运行模式，拥有Web、GUI、命令行三种操作界面；规则简单灵活、批量任务并发、输出方式丰富（mysql/mongodb/csv/excel等）、有大量Demo共享；同时她还支持横纵向两种抓取模式，支持模拟登录和任务暂停、取消等一系列高级功能。
 
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/icon.png)
+![image](https://github.com/henrylee2cn/pholcus/raw/master/doc/icon.png)
 
 * 稳定版： [Version 0.7.5 (Dec 02, 2015)](https://github.com/henrylee2cn/pholcus/releases)
 
@@ -10,7 +10,7 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重�
 
 #### 爬虫原理
 
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/project.png)
+![image](https://github.com/henrylee2cn/pholcus/raw/master/doc/project.png)
 
 
 #### 框架特点
@@ -104,19 +104,19 @@ go install -ldflags="-H windowsgui" 或者 go build -ldflags="-H windowsgui"
 ```
 pholcus -h
 ```
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/help.jpg)
+![image](https://github.com/henrylee2cn/pholcus/raw/master/doc/help.jpg)
 
 &nbsp;
 
 > *<font size="2">(注意：当运行web操作界面时请将 src/github.com/henrylee2cn/pholcus/web 文件夹拷贝至当前项目目录下，其中的go文件可删除)，Web版操作界面截图如下：*
 
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/webshow_1.jpg)
+![image](https://github.com/henrylee2cn/pholcus/raw/master/doc/webshow_1.jpg)
 
 &nbsp;
 
 > *<font size="2">GUI版操作界面之模式选择界面截图如下*
 
-![image](https://github.com/henrylee2cn/pholcus/blob/master/doc/guishow_0.jpg)
+![image](https://github.com/henrylee2cn/pholcus/raw/master/doc/guishow_0.jpg)
 
 &nbsp;
 
@@ -155,4 +155,4 @@ go get golang.org/x/text/transform
 
 #### 开源协议
 
-Pholcus（幽灵蛛）项目采用商业应用友好的[Apache License v2](https://github.com/henrylee2cn/pholcus/blob/master/doc/license.txt).发布
+Pholcus（幽灵蛛）项目采用商业应用友好的[Apache License v2](https://github.com/henrylee2cn/pholcus/raw/master/doc/license.txt).发布
