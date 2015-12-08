@@ -68,7 +68,7 @@ func Flag() {
 	inheritDeduplicateflag = flag.Bool("c_inheritDeduplicate", true, "   <继承历史去重样本>")
 
 	// 备注说明
-	flag.String("c_z", "cmd-example", " pholcus -a_ui=web -c_spider=3,8 -c_output=csv -c_goroutine=500 -c_docker=5000 -c_pause=1000,3000 -c_keyword=pholcus,golang -c_maxpage=100\r\n")
+	flag.String("c_z", "cmd-example", " pholcus -a_ui=web -c_spider=3,8 -c_output=csv -c_goroutine=500 -c_docker=5000 -c_pause=1000,3000 -c_keyword=pholcus,golang -c_maxpage=100 -c_inheritDeduplicate=true\r\n")
 }
 
 // 执行入口
