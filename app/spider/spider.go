@@ -127,6 +127,11 @@ func (self *Spider) GetId() int {
 	return self.Id
 }
 
+// 设置蜘蛛ID
+func (self *Spider) SetId(id int) {
+	self.Id = id
+}
+
 // 获取自定义输入
 func (self *Spider) GetKeyword() string {
 	return self.Keyword
@@ -194,7 +199,6 @@ func (self *Spider) Start() {
 // 返回一个自身复制品
 func (self *Spider) Gost() *Spider {
 	gost := &Spider{}
-	gost.Id = self.Id
 	gost.Name = self.Name
 
 	gost.RuleTree = &RuleTree{
@@ -251,5 +255,4 @@ func (self *Spider) ReqMatrixFree() {
 
 func (self *Spider) ReqMatrixCanStop() bool {
 	return self.ReqMatrix.CanStop()
-
 }

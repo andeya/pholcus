@@ -34,7 +34,7 @@ func (self *sq) Reset() {
 }
 
 func (self *sq) Add(sp *Spider) {
-	sp.Id = self.Len()
+	sp.SetId(self.Len())
 	self.list = append(self.list, sp)
 }
 
