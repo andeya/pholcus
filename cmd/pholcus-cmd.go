@@ -18,14 +18,15 @@ import (
 )
 
 var (
-	spiderflag             *string
-	outputflag             *string
-	goroutineflag          *uint
-	dockerflag             *uint
-	pauseflag              *string
-	keywordflag            *string
-	maxpageflag            *int
-	inheritDeduplicateflag *bool
+	spiderflag         *string
+	outputflag         *string
+	goroutineflag      *uint
+	dockerflag         *uint
+	pauseflag          *string
+	keywordflag        *string
+	maxpageflag        *int
+	successInheritflag *bool
+	failureInheritflag *bool
 )
 
 // 获取外部参数
@@ -50,7 +51,7 @@ func Flag() {
 	outputflag = flag.String("c_output", app.LogicApp.GetOutputLib()[0], outputlib)
 
 	// 并发协程数
-	goroutineflag = flag.Uint("c_goroutine", 20, "   <并发协程> {1~99999}")
+	goroutineflag = flag.Uint("c_go", 20, "   <并发协程> {1~99999}")
 
 	// 分批输出
 	dockerflag = flag.Uint("c_docker", 10000, "   <分批输出> {1~5000000}")
@@ -65,10 +66,11 @@ func Flag() {
 	maxpageflag = flag.Int("c_maxpage", 0, "   <采集页数 选填>")
 
 	// 继承之前的去重记录
-	inheritDeduplicateflag = flag.Bool("c_inheritDeduplicate", true, "   <继承历史去重样本>")
+	successInheritflag = flag.Bool("c_inherit_y", true, "   <继承并保存成功记录>")
+	failureInheritflag = flag.Bool("c_inherit_n", true, "   <继承并保存失败记录>")
 
 	// 备注说明
-	flag.String("c_z", "cmd-example", " pholcus -a_ui=web -c_spider=3,8 -c_output=csv -c_goroutine=500 -c_docker=5000 -c_pause=1000,3000 -c_keyword=pholcus,golang -c_maxpage=100 -c_inheritDeduplicate=true\r\n")
+	flag.String("c_z", "cmd-example", " pholcus -a_ui=cmd -c_spider=3,8 -c_output=csv -c_go=500 -c_docker=5000 -c_pause=1000,3000 -c_keyword=pholcus,golang -c_maxpage=100 -c_inherit_y=true -c_inherit_n=true\r\n")
 }
 
 // 执行入口
@@ -111,7 +113,7 @@ func Run() {
 		SetAppConf("MaxPage", *maxpageflag).
 		SetAppConf("Pausetime", [2]uint{uint(pause[0]), uint(pause[1])}).
 		SetAppConf("Keywords", keyword).
-		SetAppConf("InheritDeduplication", *inheritDeduplicateflag).
+		SetAppConf("InheritDeduplication", *failureInheritflag).
 		SpiderPrepare(sps).
 		Run()
 }

@@ -1,11 +1,13 @@
 package context
 
 import (
-	"github.com/henrylee2cn/pholcus/common/util"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/henrylee2cn/pholcus/common/util"
 )
 
 const (
@@ -51,8 +53,8 @@ type Request struct {
 	// 即将加入哪个优先级的队列当中，默认为0，最小优先级为0
 	Priority int
 
-	// 是否可以被重复下载（即不被去重）
-	Duplicatable bool
+	// 是否允许重复下载
+	Reloadable bool
 
 	// 指定下载器ID
 	// 0为Surf高并发下载器，各种控制功能齐全
@@ -121,8 +123,14 @@ func (self *Request) Prepare() error {
 	return nil
 }
 
-// 请求的序列化
-func (self *Request) Serialization() string {
+// 反序列化
+func UnSerialize(s string) (*Request, error) {
+	req := new(Request)
+	return req, json.Unmarshal([]byte(s), req)
+}
+
+// 序列化
+func (self *Request) Serialize() string {
 	return util.JsonString(self)
 }
 
@@ -238,12 +246,12 @@ func (self *Request) SetSpiderName(spiderName string) *Request {
 	return self
 }
 
-func (self *Request) GetDuplicatable() bool {
-	return self.Duplicatable
+func (self *Request) IsReloadable() bool {
+	return self.Reloadable
 }
 
-func (self *Request) SetDuplicatable(can bool) *Request {
-	self.Duplicatable = can
+func (self *Request) SetReloadable(can bool) *Request {
+	self.Reloadable = can
 	return self
 }
 

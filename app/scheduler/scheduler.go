@@ -5,8 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/henrylee2cn/pholcus/app/aid/history"
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
-	"github.com/henrylee2cn/pholcus/common/deduplicate"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 )
@@ -18,23 +18,24 @@ type scheduler struct {
 	count chan bool
 	// 运行状态
 	status int
-	// 全局去重
-	deduplication deduplicate.Deduplicate
+	// 全局历史记录
+	history history.Historier
 	// 全局读写锁
 	sync.RWMutex
 }
 
 // 定义全局调度
 var sdl = &scheduler{
-	deduplication: deduplicate.New(),
-	status:        status.RUN,
-	count:         make(chan bool, cache.Task.ThreadNum),
+	history: history.New(),
+	status:  status.RUN,
+	count:   make(chan bool, cache.Task.ThreadNum),
 }
 
 func Init() {
 	sdl.matrices = make(map[int]*Matrix)
 	sdl.count = make(chan bool, cache.Task.ThreadNum)
-	sdl.deduplication.Update(cache.Task.OutType, cache.Task.InheritDeduplication)
+	sdl.history.ReadSuccess(cache.Task.OutType, cache.Task.SuccessInherit)
+	sdl.history.ReadFailure(cache.Task.OutType, cache.Task.FailureInherit)
 	sdl.status = status.RUN
 }
 
@@ -76,7 +77,7 @@ func Stop() {
 		for _, vv := range v.reqs {
 			for _, req := range vv {
 				// 删除队列中未执行请求的去重记录
-				DelDeduplication(req.GetUrl() + req.GetMethod())
+				DeleteSuccess(req)
 			}
 		}
 		v.reqs = make(map[int][]*context.Request)
@@ -89,22 +90,34 @@ func Stop() {
 	sdl.matrices = make(map[int]*Matrix)
 }
 
-func IsStop() bool {
-	sdl.RLock()
-	defer sdl.RUnlock()
-	return sdl.status == status.STOP
+func UpsertSuccess(record history.Record) bool {
+	return sdl.history.UpsertSuccess(record)
 }
 
-func Deduplicate(key interface{}) bool {
-	return sdl.deduplication.Compare(key)
+func DeleteSuccess(record history.Record) {
+	sdl.history.DeleteSuccess(record)
 }
 
-func DelDeduplication(key interface{}) {
-	sdl.deduplication.Remove(key)
+func UpsertFailure(req *context.Request) bool {
+	return sdl.history.UpsertFailure(req)
 }
 
-func SaveDeduplication() {
-	sdl.deduplication.Submit(cache.Task.OutType)
+func DeleteFailure(req *context.Request) {
+	sdl.history.DeleteFailure(req)
+}
+
+// 获取指定蜘蛛在上一次运行时失败的请求
+func PullFailure(spiderName string) []*context.Request {
+	return sdl.history.PullFailure(spiderName)
+}
+
+func TryFlushHistory() {
+	if cache.Task.SuccessInherit {
+		sdl.history.FlushSuccess(cache.Task.OutType)
+	}
+	if cache.Task.FailureInherit {
+		sdl.history.FlushFailure(cache.Task.OutType)
+	}
 }
 
 // 一个Spider实例的请求矩阵
@@ -127,8 +140,8 @@ func (self *Matrix) Push(req *context.Request) {
 	if sdl.status == status.STOP {
 		return
 	}
-	// 当req不可重复时，有重复则返回
-	if !req.GetDuplicatable() && Deduplicate(req.GetUrl()+req.GetMethod()) {
+	// 当req不可重复下载时，已存在成功记录则返回
+	if !req.IsReloadable() && !UpsertSuccess(req) {
 		return
 	}
 
@@ -177,28 +190,31 @@ func (self *Matrix) Use() {
 	atomic.AddInt32(&self.resCount, 1)
 }
 
-func (self *Matrix) CanStop() bool {
+// 返回自然与人为两种状态
+func (self *Matrix) CanStop() (natural, unnatural bool) {
 	sdl.RLock()
 	defer sdl.RUnlock()
 
 	if sdl.status == status.STOP {
-		return true
+		unnatural = true
 	}
 
 	self.RLock()
 	defer self.RUnlock()
 
 	if self.resCount != 0 {
-		return false
+		return
 	}
 
 	for i, count := 0, len(self.reqs); i < count; i++ {
 		if len(self.reqs[i]) > 0 {
-			return false
+			return
 		}
 	}
 
-	return true
+	natural = true
+
+	return
 }
 
 func (self *Matrix) Free() {

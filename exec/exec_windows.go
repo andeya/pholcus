@@ -8,7 +8,6 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/config"
-	"github.com/henrylee2cn/pholcus/runtime/cache"
 
 	"github.com/henrylee2cn/pholcus/cmd" // cmd版
 	"github.com/henrylee2cn/pholcus/gui" // gui版
@@ -18,9 +17,7 @@ import (
 func run(which string) {
 	exec.Command("cmd.exe", "/c", "title", config.APP_FULL_NAME).Start()
 	defer func() {
-		if cache.Task.InheritDeduplication {
-			scheduler.SaveDeduplication()
-		}
+		scheduler.TryFlushHistory()
 	}()
 
 	// 选择运行界面

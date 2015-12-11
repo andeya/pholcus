@@ -28,8 +28,8 @@ var Html = function(info) {
         sleepTimeHtml(info.sleepTime) +
         dockerCapHtml(info.dockerCap) +
         outputsHtml(info.outputs) +
-        inheritDeduplicationHtml(info.inheritDeduplication) +
-        // deduplicationTargetHtml(info.deduplicationTarget) +
+        successInheritHtml(info.successInherit) +
+        failureInheritHtml(info.failureInherit) +
         '</div>' +
         '</div>\
             <div class="box-footer">\
@@ -120,28 +120,32 @@ var outputsHtml = function(outputs) {
     return html + '</select></div>';
 }
 
-// var deduplicationTargetHtml = function(deduplicationTarget) {
-//     var html = '<div class="form-group"> \
-//             <label>去重样本位置</label>\
-//             <select class="form-control" name="deduplicationTarget">';
-//     for (var i in deduplicationTarget.menu) {
-//         var isSelect = "";
-//         if (deduplicationTarget.curr == deduplicationTarget.menu[i]) {
-//             isSelect = " selected";
-//         };
-//         html += '<option value="' + deduplicationTarget.menu[i] + '"' + isSelect + '>' + deduplicationTarget.menu[i] + '</option>';
-//     }
-//     return html + '</select></div>';
-// }
-
-var inheritDeduplicationHtml = function(inheritDeduplication) {
+var successInheritHtml = function(successInherit) {
     var html = '<div class="form-group"> \
-            <label>继承历史去重</label>\
-            <select class="form-control" name="inheritDeduplication">';
+            <label>继承并保存成功记录</label>\
+            <select class="form-control" name="successInherit">';
 
     var True = "";
     var False = "";
-    if (inheritDeduplication == true) {
+    if (successInherit == true) {
+        True = " selected";
+    } else {
+        False = " selected";
+    };
+
+    html += '<option value="true"' + True + '>' + "Yes" + '</option>';
+    html += '<option value="false"' + False + '>' + "No" + '</option>';
+    return html + '</select></div>';
+}
+
+var failureInheritHtml = function(failureInherit) {
+    var html = '<div class="form-group"> \
+            <label>继承并保存失败记录</label>\
+            <select class="form-control" name="failureInherit">';
+
+    var True = "";
+    var False = "";
+    if (failureInherit == true) {
         True = " selected";
     } else {
         False = " selected";

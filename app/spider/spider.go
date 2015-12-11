@@ -253,6 +253,6 @@ func (self *Spider) ReqMatrixFree() {
 	self.ReqMatrix.Free()
 }
 
-func (self *Spider) ReqMatrixCanStop() bool {
+func (self *Spider) ReqMatrixCanStop() (natural, unnatural bool) {
 	return self.ReqMatrix.CanStop()
 }

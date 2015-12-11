@@ -151,13 +151,25 @@ func serverWindow() {
 					},
 
 					HSplitter{
-						MaxSize: Size{150, 50},
+						MaxSize: Size{220, 50},
 						Children: []Widget{
 							Label{
-								Text: "继承历史去重样本",
+								Text: "继承并保存成功记录",
 							},
 							CheckBox{
-								Checked: Bind("InheritDeduplication"),
+								Checked: Bind("SuccessInherit"),
+							},
+						},
+					},
+
+					HSplitter{
+						MaxSize: Size{220, 50},
+						Children: []Widget{
+							Label{
+								Text: "继承并保存失败记录",
+							},
+							CheckBox{
+								Checked: Bind("FailureInherit"),
 							},
 						},
 					},

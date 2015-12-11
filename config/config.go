@@ -35,11 +35,11 @@ var (
 	// 去重模块相关配置
 	// 输出方式为文件时，保存路径为COMM_PATH.CACHE下的FILE_NAME文件
 	// 输出方式为数据库时，保存路径为相应数据库下的FILE_NAME表单
-	DEDUPLICATION = &struct {
+	HISTORY = &struct {
 		//去重记录的文件名或表名
 		FILE_NAME string
 	}{
-		"deduplication_log",
+		"history",
 	}
 
 	// Surfer-Phantom下载器配置
@@ -81,13 +81,13 @@ const (
 func init() {
 	// 初始化主要的运行时参数
 	cache.Task = &cache.AppConf{
-		Port:                 2015,
-		Master:               "127.0.0.1",
-		ThreadNum:            20,
-		Pausetime:            [2]uint{100, 300},
-		DockerCap:            10000,
-		InheritDeduplication: true,
-		// RealTimeDeduplicate:  true, //是否实时保存
+		Port:           2015,
+		Master:         "127.0.0.1",
+		ThreadNum:      20,
+		Pausetime:      [2]uint{100, 300},
+		DockerCap:      10000,
+		SuccessInherit: true,
+		FailureInherit: true,
 
 		MaxPage: 100,
 	}

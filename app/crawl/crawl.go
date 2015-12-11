@@ -50,6 +50,7 @@ func (self *crawler) Start() {
 	self.Pipeline.Start()
 	// 开始运行
 	self.Spider.Start()
+
 	self.Run()
 	// logs.Log.Debug("**************爬虫：%v***********", self.GetId())
 	// 通知输出模块输出未输出的数据
@@ -66,9 +67,22 @@ func (self *crawler) Run() {
 
 		// 队列退出及空请求调控
 		if req == nil {
-			if self.canStop() {
+			naturalStop, unnaturalStop := self.Spider.ReqMatrixCanStop()
+			if naturalStop {
+				if cache.Task.FailureInherit {
+					// 将上次执行的历史记录中该蜘蛛下载失败的请求加入队列
+					for _, req := range scheduler.PullFailure(self.Spider.GetName()) {
+						self.Spider.ReqMatrixPush(req.SetSpiderId(self.Spider.GetId()))
+					}
+				}
+
 				// 停止任务
 				return
+
+			} else if unnaturalStop {
+				// 停止任务
+				return
+
 			} else {
 				// 继续等待请求
 				continue
@@ -93,9 +107,10 @@ func (self *crawler) Process(req *context.Request) {
 	resp := self.Downloader.Download(req)
 	downUrl := resp.GetUrl()
 	if resp.GetError() != nil {
-		// if fail do not need process
-		// 删除该请求的去重样本
-		scheduler.DelDeduplication(downUrl + resp.GetMethod())
+		// 删除该请求的成功记录
+		scheduler.DeleteSuccess(resp)
+		// 对下载失败的请求进行失败记录
+		scheduler.UpsertFailure(req)
 		// 统计失败数
 		cache.PageFailCount()
 		// 提示错误
@@ -105,8 +120,11 @@ func (self *crawler) Process(req *context.Request) {
 
 	defer func() {
 		if err := recover(); err != nil {
-			// do not affect other
-			scheduler.DelDeduplication(downUrl + resp.GetMethod())
+			// 删除该请求的成功记录
+			scheduler.DeleteSuccess(resp)
+
+			// 页面解析失败的请求，不做失败记录
+
 			// 统计失败数
 			cache.PageFailCount()
 			// 提示错误
@@ -164,11 +182,6 @@ func (self *crawler) UseOne() {
 //从调度释放一个资源空位
 func (self *crawler) FreeOne() {
 	self.Spider.ReqMatrixFree()
-}
-
-//判断调度中是否还有属于自己的资源运行
-func (self *crawler) canStop() bool {
-	return self.Spider.ReqMatrixCanStop() || scheduler.IsStop()
 }
 
 func (self *crawler) SetId(id int) {

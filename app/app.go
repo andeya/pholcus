@@ -111,19 +111,19 @@ type Logic struct {
 
 // 任务运行时公共配置
 // type AppConf struct {
-// Mode                 int    // 节点角色
-// Port                 int    // 主节点端口
-// Master               string //服务器(主节点)地址，不含端口
-// ThreadNum            uint
-// Pausetime            [2]uint //暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
-// OutType              string
-// DockerCap            uint   //分段转储容器容量
-// DockerQueueCap       uint   //分段输出池容量，不小于2
-// InheritDeduplication bool   //继承之前的去重记录
-// DeduplicationTarget  string //去重记录保存位置,"file"或"mgo"
-// // 选填项
-// MaxPage  int
-// Keywords string //后期split()为slice
+// 	Mode           int    // 节点角色
+// 	Port           int    // 主节点端口
+// 	Master         string // 服务器(主节点)地址，不含端口
+// 	ThreadNum      uint
+// 	Pausetime      [2]uint // 暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
+// 	OutType        string
+// 	DockerCap      uint // 分段转储容器容量
+// 	DockerQueueCap uint // 分段输出池容量，不小于2
+//  SuccessInherit bool // 继承历史成功记录
+//  FailureInherit bool // 继承历史失败记录
+// 	// 选填项
+// 	MaxPage  int
+// 	Keywords string // 后期split()为slice
 // }
 
 func New() App {
@@ -329,10 +329,7 @@ func (self *Logic) Run() {
 		return
 	}
 	<-self.finish
-	if self.AppConf.InheritDeduplication {
-		// 继承了历史去重则保存去重记录，否则不保存
-		scheduler.SaveDeduplication()
-	}
+	scheduler.TryFlushHistory()
 }
 
 // Offline 模式下暂停\恢复任务
@@ -409,7 +406,8 @@ func (self *Logic) addNewTask() (tasksNum, spidersNum int) {
 	t.OutType = self.AppConf.OutType
 	t.DockerCap = self.AppConf.DockerCap
 	t.DockerQueueCap = self.AppConf.DockerQueueCap
-	t.InheritDeduplication = self.AppConf.InheritDeduplication
+	t.SuccessInherit = self.AppConf.SuccessInherit
+	t.FailureInherit = self.AppConf.FailureInherit
 	t.MaxPage = self.AppConf.MaxPage
 	t.Keywords = self.AppConf.Keywords
 
@@ -499,7 +497,8 @@ func (self *Logic) taskToRun(t *distribute.Task) {
 	self.AppConf.DockerCap = t.DockerCap
 	self.AppConf.DockerQueueCap = t.DockerQueueCap
 	self.AppConf.Pausetime = t.Pausetime
-	self.AppConf.InheritDeduplication = t.InheritDeduplication
+	self.AppConf.SuccessInherit = t.SuccessInherit
+	self.AppConf.FailureInherit = t.FailureInherit
 	self.AppConf.MaxPage = t.MaxPage
 	self.AppConf.Keywords = t.Keywords
 

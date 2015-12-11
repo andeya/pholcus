@@ -224,7 +224,8 @@ function getForm() {
         'baseSleeptime': document.pholcus.elements['baseSleeptime'].value,
         'randomSleepPeriod': document.pholcus.elements['randomSleepPeriod'].value,
         'output': document.pholcus.elements['output'].value,
-        'inheritDeduplication': document.pholcus.elements['inheritDeduplication'].value,
+        'successInherit': document.pholcus.elements['successInherit'].value,
+        'failureInherit': document.pholcus.elements['failureInherit'].value,
     }
 }
 

@@ -95,6 +95,11 @@ func (self *Context) Output(item interface{}, ruleName ...string) *Context {
 	return self
 }
 
+// 主动错误处理(如更正历史记录)
+func (self *Context) Fatal(v interface{}) {
+	panic(v)
+}
+
 // 输出文件。
 // name指定文件名，为空时默认保持原文件名不变。
 func (self *Context) FileOutput(name ...string) *Context {
@@ -390,8 +395,8 @@ func (self *Context) SetReqDownloaderID(id int) *Context {
 	return self
 }
 
-func (self *Context) SetReqDuplicatable(can bool) *Context {
-	self.Request.Duplicatable = can
+func (self *Context) SetReqReloadable(can bool) *Context {
+	self.Request.Reloadable = can
 	return self
 }
 

@@ -267,8 +267,9 @@ func tplData(mode int) map[string]interface{} {
 	info["maxPage"] = app.LogicApp.GetAppConf("maxPage")
 	// 关键词
 	info["keywords"] = app.LogicApp.GetAppConf("Keywords")
-	// 继承之前的去重记录
-	info["inheritDeduplication"] = app.LogicApp.GetAppConf("InheritDeduplication")
+	// 继承历史记录
+	info["successInherit"] = app.LogicApp.GetAppConf("SuccessInherit")
+	info["failureInherit"] = app.LogicApp.GetAppConf("FailureInherit")
 	// 运行状态
 	info["status"] = app.LogicApp.Status()
 
@@ -289,13 +290,8 @@ func setConf(req map[string]interface{}) bool {
 		SetAppConf("DockerCap", util.Atoui(req["dockerCap"])).
 		SetAppConf("MaxPage", util.Atoi(req["maxPage"])).
 		SetAppConf("Keywords", util.Atoa(req["keywords"])).
-		SetAppConf("DeduplicationTarget", req["deduplicationTarget"])
-
-	var inheritDeduplication bool
-	if req["inheritDeduplication"] == "true" {
-		inheritDeduplication = true
-	}
-	app.LogicApp.SetAppConf("InheritDeduplication", inheritDeduplication)
+		SetAppConf("SuccessInherit", req["successInherit"] == "true").
+		SetAppConf("FailureInherit", req["failureInherit"] == "true")
 
 	if !setSpiderQueue(req) {
 		return false

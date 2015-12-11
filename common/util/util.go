@@ -7,17 +7,20 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/henrylee2cn/pholcus/logs"
-	"golang.org/x/net/html/charset"
 	"hash/crc32"
 	"hash/fnv"
 	"io"
 	r "math/rand"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/html/charset"
+
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 // JsonpToJson modify jsonp string to json string
@@ -71,6 +74,31 @@ func IsFileExists(path string) bool {
 	}
 
 	panic("util isFileExists not reached")
+}
+
+// 遍历并返回指定类型范围的文件名列表
+// 默认返回所有文件
+func WalkFiles(path string, suffixes ...string) (filelist []string) {
+	path, _ = filepath.Abs(path)
+
+	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
+		if len(suffixes) == 0 {
+			filelist = append(filelist, path)
+			return nil
+		}
+		for _, suffix := range suffixes {
+			if strings.HasSuffix(path, suffix) {
+				filelist = append(filelist, path)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		logs.Log.Error("filepath.Walk() returned %v\n", err)
+	}
+
+	return
 }
 
 // The IsNum judges string is number or not.
