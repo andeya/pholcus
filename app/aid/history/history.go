@@ -218,11 +218,8 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			var id int
 			var failure string
 			err = rows.Scan(&id, &failure)
-			logs.Log.Error("Scan   %v", err)
-			logs.Log.Error("failure   %v", failure)
 			req, err := context.UnSerialize(failure)
 			if err != nil {
-				logs.Log.Error("UnSerialize   %v", err)
 				continue
 			}
 			spName := req.GetSpiderName()
