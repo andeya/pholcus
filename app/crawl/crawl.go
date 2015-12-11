@@ -25,7 +25,8 @@ type crawler struct {
 	*spider.Spider
 	downloader.Downloader
 	pipeline.Pipeline
-	srcManage int32
+	srcManage      int32
+	historyFailure []*context.Request
 }
 
 func New(id int) Crawler {
@@ -39,7 +40,7 @@ func New(id int) Crawler {
 
 func (self *crawler) Init(sp *spider.Spider) Crawler {
 	self.srcManage = 0
-	self.Spider = sp.InitReqMatrix()
+	self.Spider = sp.ReqmatrixInit()
 	self.Pipeline.Init(sp)
 	return self
 }
@@ -67,19 +68,7 @@ func (self *crawler) Run() {
 
 		// 队列退出及空请求调控
 		if req == nil {
-			naturalStop, unnaturalStop := self.Spider.ReqMatrixCanStop()
-			if naturalStop {
-				if cache.Task.FailureInherit {
-					// 将上次执行的历史记录中该蜘蛛下载失败的请求加入队列
-					for _, req := range scheduler.PullFailure(self.Spider.GetName()) {
-						self.Spider.ReqMatrixPush(req.SetSpiderId(self.Spider.GetId()))
-					}
-				}
-
-				// 停止任务
-				return
-
-			} else if unnaturalStop {
+			if self.Spider.ReqmatrixCanStop() {
 				// 停止任务
 				return
 
@@ -171,17 +160,17 @@ func (self *crawler) sleep() {
 
 // 从调度读取一个请求
 func (self *crawler) GetOne() *context.Request {
-	return self.Spider.ReqMatrixPull()
+	return self.Spider.ReqmatrixPull()
 }
 
 //从调度使用一个资源空位
 func (self *crawler) UseOne() {
-	self.Spider.ReqMatrixUse()
+	self.Spider.ReqmatrixUse()
 }
 
 //从调度释放一个资源空位
 func (self *crawler) FreeOne() {
-	self.Spider.ReqMatrixFree()
+	self.Spider.ReqmatrixFree()
 }
 
 func (self *crawler) SetId(id int) {

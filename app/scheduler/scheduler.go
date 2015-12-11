@@ -73,7 +73,6 @@ func Stop() {
 
 	sdl.status = status.STOP
 	for _, v := range sdl.matrices {
-		v.Lock()
 		for _, vv := range v.reqs {
 			for _, req := range vv {
 				// 删除队列中未执行请求的去重记录
@@ -82,7 +81,6 @@ func Stop() {
 		}
 		v.reqs = make(map[int][]*context.Request)
 		v.priorities = []int{}
-		v.Unlock()
 	}
 
 	// 清空
@@ -128,8 +126,8 @@ type Matrix struct {
 	priorities []int
 	// 资源使用情况计数
 	resCount int32
-	// 读写锁
-	sync.RWMutex
+	// 历史失败请求
+	failures []*context.Request
 }
 
 // 添加请求到队列
@@ -144,9 +142,6 @@ func (self *Matrix) Push(req *context.Request) {
 	if !req.IsReloadable() && !UpsertSuccess(req) {
 		return
 	}
-
-	self.Lock()
-	defer self.Unlock()
 
 	priority := req.GetPriority()
 
@@ -168,8 +163,6 @@ func (self *Matrix) Pull() (req *context.Request) {
 		return
 	}
 
-	self.Lock()
-	defer self.Unlock()
 	// 按优先级从高到低取出请求
 	for i := len(self.reqs) - 1; i >= 0; i-- {
 		idx := self.priorities[i]
@@ -190,34 +183,41 @@ func (self *Matrix) Use() {
 	atomic.AddInt32(&self.resCount, 1)
 }
 
-// 返回自然与人为两种状态
-func (self *Matrix) CanStop() (natural, unnatural bool) {
+func (self *Matrix) CanStop() bool {
 	sdl.RLock()
-	defer sdl.RUnlock()
-
 	if sdl.status == status.STOP {
-		unnatural = true
+		sdl.RUnlock()
+		return true
 	}
-
-	self.RLock()
-	defer self.RUnlock()
+	sdl.RUnlock()
 
 	if self.resCount != 0 {
-		return
+		return false
 	}
 
 	for i, count := 0, len(self.reqs); i < count; i++ {
 		if len(self.reqs[i]) > 0 {
-			return
+			return false
 		}
 	}
 
-	natural = true
+	if len(self.failures) > 0 {
+		// 重新下载历史记录中失败的请求
+		for _, req := range self.failures {
+			self.Push(req)
+		}
+		self.failures = []*context.Request{}
+		return false
+	}
 
-	return
+	return true
 }
 
 func (self *Matrix) Free() {
 	<-sdl.count
 	atomic.AddInt32(&self.resCount, -1)
+}
+
+func (self *Matrix) SetFailures(reqs []*context.Request) {
+	self.failures = reqs
 }

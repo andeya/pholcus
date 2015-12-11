@@ -118,7 +118,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 	case "mysql":
 		db, ok := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
 		if !ok || db == nil {
-			logs.Log.Error("链接Mysql数据库超时，无法读取成功记录！")
+			// logs.Log.Error("链接Mysql数据库超时，无法读取成功记录！")
 			return
 		}
 		defer mysql.MysqlPool.Free(db)
@@ -126,7 +126,6 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 			SetTableName("`" + SUCCESS_FILE + "`").
 			SelectAll()
 		if err != nil {
-			// logs.Log.Error("读取Mysql数据库中成功记录失败：%v", err)
 			return
 		}
 
@@ -175,16 +174,16 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 	var fLen int
 	switch provider {
 	case "mgo":
-		var docs = map[string]interface{}{}
-		err := mgo.Mgo(&docs, "find", map[string]interface{}{
-			"Database":   MGO_DB,
-			"Collection": FAILURE_FILE,
-		})
+		var docs = []interface{}{}
+		s, c, err := mgo.Open(MGO_DB, FAILURE_FILE)
 		if err != nil {
 			logs.Log.Error("从mgo读取成功记录: %v", err)
 			return
 		}
-		for _, v := range docs["Docs"].([]interface{}) {
+		c.Find(nil).All(&docs)
+		mgo.Close(s)
+
+		for _, v := range docs {
 			key := v.(bson.M)["_id"].(string)
 			req, err := context.UnSerialize(key)
 			if err != nil {
@@ -205,7 +204,6 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			logs.Log.Error("链接Mysql数据库超时，无法读取成功记录！")
 			return
 		}
-		defer mysql.MysqlPool.Free(db)
 		rows, err := mysql.New(db.DB).
 			SetTableName("`" + FAILURE_FILE + "`").
 			SelectAll()
@@ -214,11 +212,17 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			return
 		}
 
+		mysql.MysqlPool.Free(db)
+
 		for rows.Next() {
-			var id string
-			err = rows.Scan(&id)
-			req, err := context.UnSerialize(id)
+			var id int
+			var failure string
+			err = rows.Scan(&id, &failure)
+			logs.Log.Error("Scan   %v", err)
+			logs.Log.Error("failure   %v", failure)
+			req, err := context.UnSerialize(failure)
 			if err != nil {
+				logs.Log.Error("UnSerialize   %v", err)
 				continue
 			}
 			spName := req.GetSpiderName()
@@ -226,7 +230,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 				self.Failure.old[spName] = make(map[string]bool)
 				self.Failure.new[spName] = make(map[string]bool)
 			}
-			self.Failure.old[spName][id] = true
+			self.Failure.old[spName][failure] = true
 			fLen++
 		}
 
@@ -235,7 +239,6 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 		if err != nil {
 			return
 		}
-		defer f.Close()
 		b, _ := ioutil.ReadAll(f)
 		b[0] = '{'
 		json.Unmarshal(
@@ -246,6 +249,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			self.Failure.new[k] = make(map[string]bool)
 			fLen += len(v)
 		}
+		f.Close()
 	}
 	logs.Log.Informational(" *     读出 %v 条失败记录\n", fLen)
 }

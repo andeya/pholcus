@@ -58,7 +58,7 @@ func (self *Context) AddQueue(req *context.Request) *Context {
 		req.SetReferer(self.Response.GetUrl())
 	}
 
-	self.Spider.ReqMatrixPush(req)
+	self.Spider.ReqmatrixPush(req)
 	return self
 }
 
@@ -350,7 +350,7 @@ func (self *Context) SetReqUrl(u string) *Context {
 	return self
 }
 
-func (self *Context) SetReqMethod(method string) *Context {
+func (self *Context) SetReqmethod(method string) *Context {
 	self.Request.SetMethod(method)
 	return self
 }

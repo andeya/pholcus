@@ -8,7 +8,6 @@ import (
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
-	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
@@ -22,15 +21,22 @@ type Failure struct {
 
 // 获取指定蜘蛛在上一次运行时失败的请求
 func (self *Failure) PullFailure(spiderName string) (reqs []*context.Request) {
+	if len(self.old[spiderName]) == 0 {
+		return
+	}
+
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 
-	for v := range self.old[spiderName] {
+	for v, ok := range self.old[spiderName] {
+		if !ok {
+			continue
+		}
 		if req, err := context.UnSerialize(v); err == nil {
 			reqs = append(reqs, req)
 		}
 	}
-	delete(self.old, spiderName)
+	self.old[spiderName] = make(map[string]bool)
 	return
 }
 
@@ -41,7 +47,7 @@ func (self *Failure) UpsertFailure(req *context.Request) bool {
 	defer self.RWMutex.Unlock()
 
 	spName := req.GetSpiderName()
-	s := util.MakeUnique(req.Serialize())
+	s := req.Serialize()
 
 	if list, ok := self.old[spName]; !ok {
 		self.old[spName] = make(map[string]bool)
@@ -54,7 +60,7 @@ func (self *Failure) UpsertFailure(req *context.Request) bool {
 	} else if list[s] {
 		return false
 	}
-	self.new[spName][s] = false
+	self.new[spName][s] = true
 
 	return true
 }
@@ -62,7 +68,7 @@ func (self *Failure) UpsertFailure(req *context.Request) bool {
 // 删除失败记录
 func (self *Failure) DeleteFailure(req *context.Request) {
 	self.RWMutex.Lock()
-	s := util.MakeUnique(req.Serialize())
+	s := req.Serialize()
 	delete(self.new[req.GetSpiderName()], s)
 	delete(self.old[req.GetSpiderName()], s)
 	self.RWMutex.Unlock()
@@ -71,11 +77,15 @@ func (self *Failure) DeleteFailure(req *context.Request) {
 func (self *Failure) flush(provider string) (fLen int) {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
-	for keys, val := range self.new {
-		for key := range val {
-			self.old[keys][key] = true
+	for key, val := range self.new {
+		for k, v := range val {
+			if !v {
+				continue
+			}
+			self.old[key][k] = true
 			fLen++
 		}
+		self.new[key] = make(map[string]bool)
 	}
 	if fLen == 0 {
 		return
@@ -83,17 +93,20 @@ func (self *Failure) flush(provider string) (fLen int) {
 
 	switch provider {
 	case "mgo":
-		var docs = []map[string]interface{}{}
-		for _, val := range self.new {
+		s, c, err := mgo.Open(MGO_DB, FAILURE_FILE)
+		if err != nil {
+			logs.Log.Error("从mgo读取成功记录: %v", err)
+			return
+		}
+		c.DropCollection()
+		var docs = []interface{}{}
+		for _, val := range self.old {
 			for key := range val {
 				docs = append(docs, map[string]interface{}{"_id": key})
 			}
 		}
-		mgo.Mgo(nil, "insert", map[string]interface{}{
-			"Database":   MGO_DB,
-			"Collection": FAILURE_FILE,
-			"Docs":       docs,
-		})
+		c.Insert(docs...)
+		mgo.Close(s)
 
 	case "mysql":
 		db, ok := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
@@ -101,27 +114,34 @@ func (self *Failure) flush(provider string) (fLen int) {
 			logs.Log.Error("链接Mysql数据库超时，无法保存去重记录！")
 			return 0
 		}
-		defer mysql.MysqlPool.Free(db)
+
+		stmt, err := db.DB.Prepare(`DROP TABLE ` + FAILURE_FILE)
+		if err != nil {
+			return
+		}
+		_, err = stmt.Exec()
+
 		table := mysql.New(db.DB).
 			SetTableName(FAILURE_FILE).
-			CustomPrimaryKey(`id VARCHAR(255) not null primary key`).
+			AddColumn(`failure MEDIUMTEXT`).
 			Create()
-		for _, val := range self.new {
+		for _, val := range self.old {
 			for key := range val {
 				table.AddRow(key).Update()
 			}
 		}
+		mysql.MysqlPool.Free(db)
 
 	default:
 		once.Do(mkdir)
+		os.Remove(FAILURE_FILE_FULL)
 
 		f, _ := os.OpenFile(FAILURE_FILE_FULL, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
 
-		b, _ := json.Marshal(self.new)
+		b, _ := json.Marshal(self.old)
 		b[0] = ','
 		f.Write(b[:len(b)-1])
 		f.Close()
 	}
-	self.new = make(map[string]map[string]bool)
 	return
 }

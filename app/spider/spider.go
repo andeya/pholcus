@@ -232,27 +232,33 @@ func (self *Spider) Gost() *Spider {
 	return gost
 }
 
-func (self *Spider) InitReqMatrix() *Spider {
+func (self *Spider) ReqmatrixInit() *Spider {
 	self.ReqMatrix = scheduler.NewMatrix(self.Id)
+	reqs := scheduler.PullFailure(self.GetName())
+	for _, req := range reqs {
+		req.SetSpiderId(self.Id)
+	}
+	self.ReqMatrix.SetFailures(reqs)
+
 	return self
 }
 
-func (self *Spider) ReqMatrixPush(req *context.Request) {
+func (self *Spider) ReqmatrixPush(req *context.Request) {
 	self.ReqMatrix.Push(req)
 }
 
-func (self *Spider) ReqMatrixPull() *context.Request {
+func (self *Spider) ReqmatrixPull() *context.Request {
 	return self.ReqMatrix.Pull()
 }
 
-func (self *Spider) ReqMatrixUse() {
+func (self *Spider) ReqmatrixUse() {
 	self.ReqMatrix.Use()
 }
 
-func (self *Spider) ReqMatrixFree() {
+func (self *Spider) ReqmatrixFree() {
 	self.ReqMatrix.Free()
 }
 
-func (self *Spider) ReqMatrixCanStop() (natural, unnatural bool) {
+func (self *Spider) ReqmatrixCanStop() bool {
 	return self.ReqMatrix.CanStop()
 }
