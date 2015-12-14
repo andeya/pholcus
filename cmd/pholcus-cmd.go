@@ -24,7 +24,7 @@ var (
 	dockerflag         *uint
 	pauseflag          *string
 	keywordflag        *string
-	maxpageflag        *int
+	maxpageflag        *int64
 	successInheritflag *bool
 	failureInheritflag *bool
 )
@@ -63,7 +63,7 @@ func Flag() {
 	keywordflag = flag.String("c_keyword", "", "   <自定义输入 选填 多关键词以 \",\" 隔开>")
 
 	// 采集页数
-	maxpageflag = flag.Int("c_maxpage", 0, "   <采集页数 选填>")
+	maxpageflag = flag.Int64("c_maxpage", 0, "   <采集页数 选填>")
 
 	// 继承之前的去重记录
 	successInheritflag = flag.Bool("c_inherit_y", true, "   <继承并保存成功记录>")

@@ -13,22 +13,21 @@ import (
 
 type Failure struct {
 	// [spiderName][reqJson]
-	new         map[string]map[string]bool
-	old         map[string]map[string]bool
+	list        map[string]map[string]bool
 	inheritable bool
 	sync.RWMutex
 }
 
 // 获取指定蜘蛛在上一次运行时失败的请求
 func (self *Failure) PullFailure(spiderName string) (reqs []*context.Request) {
-	if len(self.old[spiderName]) == 0 {
+	if len(self.list[spiderName]) == 0 {
 		return
 	}
 
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 
-	for v, ok := range self.old[spiderName] {
+	for v, ok := range self.list[spiderName] {
 		if !ok {
 			continue
 		}
@@ -36,7 +35,7 @@ func (self *Failure) PullFailure(spiderName string) (reqs []*context.Request) {
 			reqs = append(reqs, req)
 		}
 	}
-	self.old[spiderName] = make(map[string]bool)
+	self.list[spiderName] = make(map[string]bool)
 	return
 }
 
@@ -49,19 +48,12 @@ func (self *Failure) UpsertFailure(req *context.Request) bool {
 	spName := req.GetSpiderName()
 	s := req.Serialize()
 
-	if list, ok := self.old[spName]; !ok {
-		self.old[spName] = make(map[string]bool)
-	} else if list[s] {
+	if one, ok := self.list[spName]; !ok {
+		self.list[spName] = make(map[string]bool)
+	} else if one[s] {
 		return false
 	}
-
-	if list, ok := self.new[spName]; !ok {
-		self.new[spName] = make(map[string]bool)
-	} else if list[s] {
-		return false
-	}
-	self.new[spName][s] = true
-
+	self.list[spName][s] = true
 	return true
 }
 
@@ -69,23 +61,15 @@ func (self *Failure) UpsertFailure(req *context.Request) bool {
 func (self *Failure) DeleteFailure(req *context.Request) {
 	self.RWMutex.Lock()
 	s := req.Serialize()
-	delete(self.new[req.GetSpiderName()], s)
-	delete(self.old[req.GetSpiderName()], s)
+	delete(self.list[req.GetSpiderName()], s)
 	self.RWMutex.Unlock()
 }
 
 func (self *Failure) flush(provider string) (fLen int) {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
-	for key, val := range self.new {
-		for k, v := range val {
-			if !v {
-				continue
-			}
-			self.old[key][k] = true
-			fLen++
-		}
-		self.new[key] = make(map[string]bool)
+	for _, val := range self.list {
+		fLen += len(val)
 	}
 	if fLen == 0 {
 		return
@@ -100,7 +84,7 @@ func (self *Failure) flush(provider string) (fLen int) {
 		}
 		c.DropCollection()
 		var docs = []interface{}{}
-		for _, val := range self.old {
+		for _, val := range self.list {
 			for key := range val {
 				docs = append(docs, map[string]interface{}{"_id": key})
 			}
@@ -125,7 +109,7 @@ func (self *Failure) flush(provider string) (fLen int) {
 			SetTableName(FAILURE_FILE).
 			AddColumn(`failure MEDIUMTEXT`).
 			Create()
-		for _, val := range self.old {
+		for _, val := range self.list {
 			for key := range val {
 				table.AddRow(key).Update()
 			}
@@ -138,7 +122,7 @@ func (self *Failure) flush(provider string) (fLen int) {
 
 		f, _ := os.OpenFile(FAILURE_FILE_FULL, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
 
-		b, _ := json.Marshal(self.old)
+		b, _ := json.Marshal(self.list)
 		b[0] = ','
 		f.Write(b[:len(b)-1])
 		f.Close()

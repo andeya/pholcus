@@ -1,6 +1,7 @@
 ﻿package distribute
 
 import (
+	"encoding/json"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/teleport"
 )
@@ -20,7 +21,8 @@ type task1 struct {
 }
 
 func (self *task1) Process(receive *teleport.NetData) *teleport.NetData {
-	return teleport.ReturnData(self.Out(self.CountNodes()))
+	b, _ := json.Marshal(self.Out(self.CountNodes()))
+	return teleport.ReturnData(string(b))
 }
 
 type log1 struct{}

@@ -21,13 +21,8 @@ type task2 struct {
 }
 
 func (self *task2) Process(receive *teleport.NetData) *teleport.NetData {
-	d, err := json.Marshal(receive.Body)
-	if err != nil {
-		logs.Log.Error("json编码失败 %v", receive.Body)
-		return nil
-	}
 	t := &Task{}
-	err = json.Unmarshal(d, t)
+	err := json.Unmarshal([]byte(receive.Body.(string)), t)
 	if err != nil {
 		logs.Log.Error("json解码失败 %v", receive.Body)
 		return nil

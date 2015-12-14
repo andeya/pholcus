@@ -2,6 +2,7 @@ package spider
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
@@ -10,23 +11,39 @@ import (
 
 // 规则中的上下文。
 type Context struct {
-	Spider   *Spider
-	Request  *context.Request
-	Response *context.Response
+	spider   *Spider
+	request  *context.Request
+	response *context.Response
+	sync.Once
 }
 
 func NewContext(sp *Spider, resp *context.Response) *Context {
 	if resp == nil {
 		return &Context{
-			Spider:   sp,
-			Response: resp,
+			spider:   sp,
+			response: resp,
 		}
 	}
 	return &Context{
-		Spider:   sp,
-		Request:  resp.GetRequest(),
-		Response: resp,
+		spider:   sp,
+		response: resp,
 	}
+}
+
+// 返回响应流
+func (self *Context) GetResponse() *context.Response {
+	return self.response
+}
+
+// 返回原始请求
+func (self *Context) GetRequestOriginal() *context.Request {
+	return self.response.GetRequest()
+}
+
+// 返回请求副本
+func (self *Context) GetRequestCopy() *context.Request {
+	self.copyRequest()
+	return self.request
 }
 
 // 生成并添加请求至队列。
@@ -44,9 +61,9 @@ func NewContext(sp *Spider, resp *context.Response) *Context {
 // 默认自动补填Referer。
 func (self *Context) AddQueue(req *context.Request) *Context {
 	err := req.
-		SetSpiderName(self.Spider.GetName()).
-		SetSpiderId(self.Spider.GetId()).
-		SetEnableCookie(self.Spider.GetEnableCookie()).
+		SetSpiderName(self.spider.GetName()).
+		SetSpiderId(self.spider.GetId()).
+		SetEnableCookie(self.spider.GetEnableCookie()).
 		Prepare()
 
 	if err != nil {
@@ -54,19 +71,20 @@ func (self *Context) AddQueue(req *context.Request) *Context {
 		return self
 	}
 
-	if req.GetReferer() == "" && self.Response != nil {
-		req.SetReferer(self.Response.GetUrl())
+	if req.GetReferer() == "" && self.response != nil {
+		req.SetReferer(self.response.GetUrl())
 	}
 
-	self.Spider.ReqmatrixPush(req)
+	self.spider.ReqmatrixPush(req)
 	return self
 }
 
-// 批量url生成请求，并添加至队列。
-func (self *Context) BulkAddQueue(urls []string, req *context.Request) *Context {
-	for _, url := range urls {
-		req.SetUrl(url)
-		self.AddQueue(req)
+// 将上次原始请求或其副本添加至队列
+func (self *Context) AddQueue2() *Context {
+	if self.request == nil {
+		self.AddQueue(self.response.GetRequest())
+	} else {
+		self.AddQueue(self.request)
 	}
 	return self
 }
@@ -78,42 +96,42 @@ func (self *Context) BulkAddQueue(urls []string, req *context.Request) *Context 
 func (self *Context) Output(item interface{}, ruleName ...string) *Context {
 	_ruleName, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用Output()时，指定的规则名不存在！", self.Spider.GetName())
+		logs.Log.Error("蜘蛛 %s 调用Output()时，指定的规则名不存在！", self.spider.GetName())
 		return self
 	}
 
-	self.Response.SetRuleName(_ruleName)
+	self.response.SetRuleName(_ruleName)
 	switch item2 := item.(type) {
 	case map[int]interface{}:
-		self.Response.AddItem(self.CreatItem(item2, _ruleName))
+		self.response.AddItem(self.CreatItem(item2, _ruleName))
+	case context.Temp:
+		for k := range item2 {
+			self.spider.UpsertItemField(rule, k)
+		}
+		self.response.AddItem(item2)
 	case map[string]interface{}:
 		for k := range item2 {
-			self.Spider.UpsertItemField(rule, k)
+			self.spider.UpsertItemField(rule, k)
 		}
-		self.Response.AddItem(item2)
+		self.response.AddItem(item2)
 	}
 	return self
-}
-
-// 主动错误处理(如更正历史记录)
-func (self *Context) Fatal(v interface{}) {
-	panic(v)
 }
 
 // 输出文件。
 // name指定文件名，为空时默认保持原文件名不变。
 func (self *Context) FileOutput(name ...string) *Context {
-	self.Response.AddFile(name...)
+	self.response.AddFile(name...)
 	return self
 }
 
 func (self *Context) GetItemFields(ruleName ...string) []string {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用GetItemFields()时，指定的规则名不存在！", self.Spider.GetName())
+		logs.Log.Error("蜘蛛 %s 调用GetItemFields()时，指定的规则名不存在！", self.spider.GetName())
 		return nil
 	}
-	return self.Spider.GetItemFields(rule)
+	return self.spider.GetItemFields(rule)
 }
 
 // 返回结果字段名的值，不存在时返回空字符串
@@ -121,10 +139,10 @@ func (self *Context) GetItemFields(ruleName ...string) []string {
 func (self *Context) GetItemField(index int, ruleName ...string) (field string) {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用GetItemField()时，指定的规则名不存在！", self.Spider.GetName())
+		logs.Log.Error("蜘蛛 %s 调用GetItemField()时，指定的规则名不存在！", self.spider.GetName())
 		return
 	}
-	return self.Spider.GetItemField(rule, index)
+	return self.spider.GetItemField(rule, index)
 }
 
 // 返回结果字段名的索引，不存在时索引为-1
@@ -132,10 +150,10 @@ func (self *Context) GetItemField(index int, ruleName ...string) (field string) 
 func (self *Context) GetItemFieldIndex(field string, ruleName ...string) (index int) {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用GetItemField()时，指定的规则名不存在！", self.Spider.GetName())
+		logs.Log.Error("蜘蛛 %s 调用GetItemField()时，指定的规则名不存在！", self.spider.GetName())
 		return
 	}
-	return self.Spider.GetItemFieldIndex(rule, field)
+	return self.spider.GetItemFieldIndex(rule, field)
 }
 
 // 为指定Rule动态追加结果字段名，并返回索引位置
@@ -144,10 +162,10 @@ func (self *Context) GetItemFieldIndex(field string, ruleName ...string) (index 
 func (self *Context) UpsertItemField(field string, ruleName ...string) (index int) {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用UpsertItemField()时，指定的规则名不存在！", self.Spider.GetName())
+		logs.Log.Error("蜘蛛 %s 调用UpsertItemField()时，指定的规则名不存在！", self.spider.GetName())
 		return
 	}
-	return self.Spider.UpsertItemField(rule, field)
+	return self.spider.UpsertItemField(rule, field)
 }
 
 // 生成文本结果。
@@ -155,13 +173,13 @@ func (self *Context) UpsertItemField(field string, ruleName ...string) (index in
 func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map[string]interface{} {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用CreatItem()时，指定的规则名不存在！", self.Spider.GetName())
+		logs.Log.Error("蜘蛛 %s 调用CreatItem()时，指定的规则名不存在！", self.spider.GetName())
 		return nil
 	}
 
 	var item2 = make(map[string]interface{}, len(item))
 	for k, v := range item {
-		field := self.Spider.GetItemField(rule, k)
+		field := self.spider.GetItemField(rule, k)
 		item2[field] = v
 	}
 	return item2
@@ -172,7 +190,7 @@ func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map
 func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interface{} {
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用Aid()时，指定的规则名不存在！", self.Spider.GetName())
+		logs.Log.Error("蜘蛛 %s 调用Aid()时，指定的规则名不存在！", self.spider.GetName())
 		return nil
 	}
 
@@ -183,243 +201,260 @@ func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interfa
 // 用ruleName指定匹配的ParseFunc字段，为空时默认调用Root()。
 func (self *Context) Parse(ruleName ...string) *Context {
 	_ruleName, rule, found := self.getRule(ruleName...)
-	self.Response.SetRuleName(_ruleName)
+	self.response.SetRuleName(_ruleName)
 	if !found {
-		self.Spider.RuleTree.Root(self)
+		self.spider.RuleTree.Root(self)
 		return self
 	}
-
 	rule.ParseFunc(self)
 	return self
 }
 
 // 设置代理服务器列表。
 func (self *Context) SetProxys(proxys []string) *Context {
-	self.Spider.SetProxys(proxys)
+	self.spider.SetProxys(proxys)
 	return self
 }
 
 // 添加代理服务器。
 func (self *Context) AddProxys(proxy ...string) *Context {
-	self.Spider.AddProxys(proxy...)
+	self.spider.AddProxys(proxy...)
 	return self
 }
 
 // 获取代理服务器列表。
 func (self *Context) GetProxys() []string {
-	return self.Spider.GetProxys()
+	return self.spider.GetProxys()
 }
 
 // 获取下一个代理服务器。
 func (self *Context) GetOneProxy() string {
-	return self.Spider.GetOneProxy()
+	return self.spider.GetOneProxy()
 }
 
 // 获取蜘蛛名称。
 func (self *Context) GetName() string {
-	return self.Spider.GetName()
+	return self.spider.GetName()
 }
 
 // 获取蜘蛛描述。
 func (self *Context) GetDescription() string {
-	return self.Spider.GetDescription()
+	return self.spider.GetDescription()
 }
 
 // 获取蜘蛛ID。
 func (self *Context) GetId() int {
-	return self.Spider.GetId()
+	return self.spider.GetId()
 }
 
 // 获取自定义输入。
 func (self *Context) GetKeyword() string {
-	return self.Spider.GetKeyword()
+	return self.spider.GetKeyword()
 }
 
 // 设置自定义输入。
 func (self *Context) SetKeyword(keyword string) *Context {
-	self.Spider.SetKeyword(keyword)
+	self.spider.SetKeyword(keyword)
 	return self
 }
 
 // 获取采集的最大页数。
 func (self *Context) GetMaxPage() int {
-	return self.Spider.GetMaxPage()
+	return int(self.spider.GetMaxPage())
 }
 
 // 设置采集的最大页数。
 func (self *Context) SetMaxPage(max int) *Context {
-	self.Spider.SetMaxPage(max)
+	self.spider.SetMaxPage(int64(max))
 	return self
 }
 
 // 返回规则树。
 func (self *Context) GetRules() map[string]*Rule {
-	return self.Spider.GetRules()
+	return self.spider.GetRules()
 }
 
 // 返回指定规则。
 func (self *Context) GetRule(ruleName string) (*Rule, bool) {
-	return self.Spider.GetRule(ruleName)
+	return self.spider.GetRule(ruleName)
 }
 
 // 自定义暂停时间 pause[0]~(pause[0]+pause[1])，优先级高于外部传参。
 // 当且仅当runtime[0]为true时可覆盖现有值。
 func (self *Context) SetPausetime(pause [2]uint, runtime ...bool) *Context {
-	self.Spider.SetPausetime(pause, runtime...)
+	self.spider.SetPausetime(pause, runtime...)
 	return self
 }
 
 // GetBodyStr returns plain string crawled.
 func (self *Context) GetText() string {
-	return self.Response.GetText()
+	return self.response.GetText()
 }
 
 // GetHtmlParser returns goquery object binded to target crawl result.
 func (self *Context) GetDom() *goquery.Document {
-	return self.Response.GetDom()
-}
-
-// GetRequest returns request oject of self page.
-func (self *Context) GetRequest() *context.Request {
-	return self.Request
-}
-
-// GetResponse returns response oject of self page.
-func (self *Context) GetResponse() *context.Response {
-	return self.Response
+	return self.response.GetDom()
 }
 
 func (self *Context) GetUrl() string {
-	return self.Response.GetUrl() // 与self.Request.GetUrl()完全相等
+	return self.response.GetUrl() // 与self.request.GetUrl()完全相等
 }
 
 // 自定义设置输出结果的"当前链接"字段
 func (self *Context) SetItemUrl(itemUrl string) *Context {
-	self.Response.SetUrl(itemUrl)
+	self.response.SetUrl(itemUrl)
 	return self
 }
 
 func (self *Context) GetMethod() string {
-	return self.Response.GetMethod()
+	return self.response.GetMethod()
 }
 
-func (self *Context) GetRequestHeader() http.Header {
-	return self.Response.GetRequestHeader()
+func (self *Context) GetReqHeader() http.Header {
+	return self.response.GetRequestHeader()
 }
 
-func (self *Context) GetResponseHeader() http.Header {
-	return self.Response.GetResponseHeader()
+func (self *Context) GetRespHeader() http.Header {
+	return self.response.GetResponseHeader()
 }
 
 func (self *Context) GetReferer() string {
-	return self.Response.GetReferer()
+	return self.response.GetReferer()
+}
+
+func (self *Context) GetHost() string {
+	return self.response.GetHost()
 }
 
 // 自定义设置输出结果的"上级链接"字段
 func (self *Context) SetItemReferer(referer string) *Context {
-	self.Response.SetReferer(referer)
+	self.response.SetReferer(referer)
 	return self
 }
 
 func (self *Context) GetRuleName() string {
-	return self.Response.GetRuleName()
+	return self.response.GetRuleName()
 }
 
-// 返回指定缓存数据，
-// 注：为性能考虑，该方法并不保证引用或指针类型的value值被copy，请自行实现
-func (self *Context) GetTemp(key string) interface{} {
-	return self.Request.Temp[key]
+// 返回请求中指定缓存数据
+// 强烈建议数据接收者receive为指针类型
+func (self *Context) GetTemp(key string, receive interface{}) interface{} {
+	return self.response.GetTemp(key, receive)
 }
 
-// 返回全部缓存数据，
-// 当Request会被复用时，为保证缓存数据的独立性，isCopy应该为true
-// 注：为性能考虑，isCopy为true并不保证引用或指针类型的value值被copy，请自行实现
-func (self *Context) GetTemps(isCopy bool) map[string]interface{} {
-	if !isCopy {
-		return self.Request.Temp
+func (self *Context) SetOriginTemp(key string, value interface{}) *Context {
+	self.response.SetTemp(key, value)
+	return self
+}
+
+// 返回请求中缓存数据副本
+func (self *Context) CopyTemps() context.Temp {
+	temps := make(context.Temp)
+	for k, v := range self.response.GetTemps() {
+		temps[k] = v
 	}
-	copyMap := make(map[string]interface{})
-	for k, v := range self.Request.Temp {
-		copyMap[k] = v
-	}
-	return copyMap
+	return temps
 }
 
-func (self *Context) SetReqUrl(u string) *Context {
-	self.Request.SetUrl(u)
+func (self *Context) SetCopyUrl(u string) *Context {
+	self.copyRequest()
+	self.request.SetUrl(u)
 	return self
 }
 
-func (self *Context) SetReqmethod(method string) *Context {
-	self.Request.SetMethod(method)
+func (self *Context) SetCopyMethod(method string) *Context {
+	self.copyRequest()
+	self.request.SetMethod(method)
 	return self
 }
 
-func (self *Context) ClearReqHeader() *Context {
-	self.Request.Header = make(http.Header)
+func (self *Context) EmptyCopyHeader() *Context {
+	self.copyRequest()
+	self.request.Header = make(http.Header)
 	return self
 }
 
-func (self *Context) SetReqHeader(key, value string) *Context {
-	self.Request.Header.Set(key, value)
+func (self *Context) SetCopyHeader(key, value string) *Context {
+	self.copyRequest()
+	self.request.Header.Set(key, value)
 	return self
 }
 
-func (self *Context) AddRequestHeader(key, value string) *Context {
-	self.Request.Header.Add(key, value)
+func (self *Context) AddCopyHeader(key, value string) *Context {
+	self.copyRequest()
+	self.request.Header.Add(key, value)
 	return self
 }
 
-func (self *Context) SetReqReferer(referer string) *Context {
-	self.Request.SetReferer(referer)
+func (self *Context) SetCopyReferer(referer string) *Context {
+	self.copyRequest()
+	self.request.SetReferer(referer)
 	return self
 }
 
-func (self *Context) SetReqProxy(proxy string) *Context {
-	self.Request.Proxy = proxy
+func (self *Context) SetCopyProxy(proxy string) *Context {
+	self.copyRequest()
+	self.request.Proxy = proxy
 	return self
 }
 
-func (self *Context) SetReqRuleName(ruleName string) *Context {
-	self.Request.Rule = ruleName
+func (self *Context) SetCopyRuleName(ruleName string) *Context {
+	self.copyRequest()
+	self.request.Rule = ruleName
 	return self
 }
 
-func (self *Context) SetReqPriority(priority int) *Context {
-	self.Request.Priority = priority
+func (self *Context) SetCopyPriority(priority int) *Context {
+	self.copyRequest()
+	self.request.Priority = priority
 	return self
 }
 
-func (self *Context) SetReqDownloaderID(id int) *Context {
-	self.Request.DownloaderID = id
+func (self *Context) SetCopyDownloader(id int) *Context {
+	self.copyRequest()
+	self.request.DownloaderID = id
 	return self
 }
 
-func (self *Context) SetReqReloadable(can bool) *Context {
-	self.Request.Reloadable = can
+func (self *Context) SetCopyReloadable(can bool) *Context {
+	self.copyRequest()
+	self.request.Reloadable = can
 	return self
 }
 
-func (self *Context) SetReqTemp(key string, value interface{}) *Context {
-	self.Request.Temp[key] = value
+func (self *Context) SetCopyTemp(key string, value interface{}) *Context {
+	self.copyRequest()
+	self.request.SetTemp(key, value)
 	return self
 }
 
-func (self *Context) SetReqTemps(temp map[string]interface{}) *Context {
-	self.Request.Temp = temp
+func (self *Context) SetCopyTemps(temp map[string]interface{}) *Context {
+	self.copyRequest()
+	self.request.SetTemps(temp)
 	return self
 }
 
 // 获取规则
 func (self *Context) getRule(ruleName ...string) (name string, rule *Rule, found bool) {
 	if len(ruleName) == 0 {
-		if self.Response == nil {
+		if self.response == nil {
 			return
 		}
-		name = self.Response.GetRuleName()
+		name = self.response.GetRuleName()
 	} else {
 		name = ruleName[0]
 	}
-	rule, found = self.Spider.GetRule(name)
+	rule, found = self.spider.GetRule(name)
 	return
+}
+
+func (self *Context) copyRequest() {
+	self.Once.Do(func() { self.request = self.GetRequestOriginal().Copy() })
+}
+
+func (self *Context) getRequest() *context.Request {
+	if self.request != nil {
+		return self.request
+	}
+	return self.response.GetRequest()
 }

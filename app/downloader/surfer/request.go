@@ -29,5 +29,5 @@ type Request interface {
 	// max redirect times
 	GetRedirectTimes() int
 
-	GetTemp(key string) interface{}
+	GetTemp(key string, retPtr interface{}) interface{}
 }

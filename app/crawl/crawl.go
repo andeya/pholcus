@@ -99,9 +99,11 @@ func (self *crawler) Process(req *context.Request) {
 		// 删除该请求的成功记录
 		scheduler.DeleteSuccess(resp)
 		// 对下载失败的请求进行失败记录
-		scheduler.UpsertFailure(req)
-		// 统计失败数
-		cache.PageFailCount()
+		if !self.Spider.ReqmatrixSetFailure(req) {
+			// 统计失败数
+			cache.PageFailCount()
+		}
+
 		// 提示错误
 		logs.Log.Error(" *     Fail [download][%v]: %v", downUrl, resp.GetError())
 		return
@@ -111,11 +113,12 @@ func (self *crawler) Process(req *context.Request) {
 		if err := recover(); err != nil {
 			// 删除该请求的成功记录
 			scheduler.DeleteSuccess(resp)
+			// 对下载失败的请求进行失败记录
+			if !self.Spider.ReqmatrixSetFailure(req) {
+				// 统计失败数
+				cache.PageFailCount()
+			}
 
-			// 页面解析失败的请求，不做失败记录
-
-			// 统计失败数
-			cache.PageFailCount()
 			// 提示错误
 			logs.Log.Error(" *     Fail [process][%v]: %v", downUrl, err)
 		}

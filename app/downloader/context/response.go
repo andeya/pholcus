@@ -17,12 +17,6 @@ type Response struct {
 	// 原始请求
 	*Request
 
-	// 拷贝自*Request的规则名
-	rule string
-
-	// 拷贝自*Request的当前链接
-	url string
-
 	// 响应流，其中URL拷贝自*Request
 	*http.Response
 
@@ -56,8 +50,6 @@ func NewResponse(req *Request) *Response {
 func (self *Response) Prepare(resp *http.Response, req *Request) *Response {
 	self.Response = resp
 	self.Request = req
-	self.rule = self.Request.Rule
-	self.url = self.Request.Url
 	return self
 }
 
@@ -124,34 +116,13 @@ func (self *Response) GetFiles() []map[string]interface{} {
 	return self.files
 }
 
-func (self *Response) GetRuleName() string {
-	return self.rule
-}
-
-func (self *Response) SetRuleName(ruleName string) *Response {
-	self.rule = ruleName
-	return self
-}
-
 // GetRequest returns request oject of self page.
 func (self *Response) GetRequest() *Request {
 	return self.Request
 }
 
-// 返回请求后的Url
-// 在downloader模块已被重置为请求前的Url，从而确保请求前后Url字符串相等，且中文不被编码
-func (self *Response) GetUrl() string {
-	return self.url
-}
-
-// 自定义设置输出结果的"当前链接"字段
-func (self *Response) SetUrl(u string) *Response {
-	self.url = u
-	return self
-}
-
-func (self *Response) GetMethod() string {
-	return self.Response.Request.Method
+func (self *Response) GetHost() string {
+	return self.Response.Request.URL.Host
 }
 
 func (self *Response) GetResponseHeader() http.Header {

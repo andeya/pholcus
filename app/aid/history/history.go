@@ -70,8 +70,7 @@ func New() Historier {
 			old: make(map[string]bool),
 		},
 		Failure: &Failure{
-			new: make(map[string]map[string]bool),
-			old: make(map[string]map[string]bool),
+			list: make(map[string]map[string]bool),
 		},
 	}
 }
@@ -156,8 +155,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 
 	if !inherit {
 		// 不继承历史记录时
-		self.Failure.old = make(map[string]map[string]bool)
-		self.Failure.new = make(map[string]map[string]bool)
+		self.Failure.list = make(map[string]map[string]bool)
 		self.Failure.inheritable = false
 		return
 
@@ -167,8 +165,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 
 	} else {
 		// 上次没有继承历史记录，但本次继承时
-		self.Failure.old = make(map[string]map[string]bool)
-		self.Failure.new = make(map[string]map[string]bool)
+		self.Failure.list = make(map[string]map[string]bool)
 		self.Failure.inheritable = true
 	}
 	var fLen int
@@ -190,11 +187,10 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 				continue
 			}
 			spName := req.GetSpiderName()
-			if _, ok := self.Failure.old[spName]; !ok {
-				self.Failure.old[spName] = make(map[string]bool)
-				self.Failure.new[spName] = make(map[string]bool)
+			if _, ok := self.Failure.list[spName]; !ok {
+				self.Failure.list[spName] = make(map[string]bool)
 			}
-			self.Failure.old[spName][key] = true
+			self.Failure.list[spName][key] = true
 			fLen++
 		}
 
@@ -223,11 +219,10 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 				continue
 			}
 			spName := req.GetSpiderName()
-			if _, ok := self.Failure.old[spName]; !ok {
-				self.Failure.old[spName] = make(map[string]bool)
-				self.Failure.new[spName] = make(map[string]bool)
+			if _, ok := self.Failure.list[spName]; !ok {
+				self.Failure.list[spName] = make(map[string]bool)
 			}
-			self.Failure.old[spName][failure] = true
+			self.Failure.list[spName][failure] = true
 			fLen++
 		}
 
@@ -240,10 +235,10 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 		b[0] = '{'
 		json.Unmarshal(
 			append(b, '}'),
-			&self.Failure.old,
+			&self.Failure.list,
 		)
-		for k, v := range self.Failure.old {
-			self.Failure.new[k] = make(map[string]bool)
+		for k, v := range self.Failure.list {
+			self.Failure.list[k] = make(map[string]bool)
 			fLen += len(v)
 		}
 		f.Close()
@@ -256,8 +251,7 @@ func (self *History) Empty() {
 	self.RWMutex.Lock()
 	self.Success.new = make(map[string]bool)
 	self.Success.old = make(map[string]bool)
-	self.Failure.new = make(map[string]map[string]bool)
-	self.Failure.old = make(map[string]map[string]bool)
+	self.Failure.list = make(map[string]map[string]bool)
 	self.RWMutex.Unlock()
 }
 

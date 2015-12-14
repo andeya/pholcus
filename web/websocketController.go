@@ -263,8 +263,14 @@ func tplData(mode int) map[string]interface{} {
 	}
 	// 分批输出的容量
 	info["dockerCap"] = map[string]uint{"min": 1, "max": 5000000, "default": app.LogicApp.GetAppConf("DockerCap").(uint)}
+
 	// 最大页数
-	info["maxPage"] = app.LogicApp.GetAppConf("maxPage")
+	if app.LogicApp.GetAppConf("maxPage").(int64) != spider.MAXPAGE {
+		info["maxPage"] = app.LogicApp.GetAppConf("maxPage")
+	} else {
+		info["maxPage"] = 0
+	}
+
 	// 关键词
 	info["keywords"] = app.LogicApp.GetAppConf("Keywords")
 	// 继承历史记录
@@ -288,7 +294,7 @@ func setConf(req map[string]interface{}) bool {
 		SetAppConf("Pausetime", [2]uint{(util.Atoui(req["baseSleeptime"])), util.Atoui(req["randomSleepPeriod"])}).
 		SetAppConf("OutType", util.Atoa(req["output"])).
 		SetAppConf("DockerCap", util.Atoui(req["dockerCap"])).
-		SetAppConf("MaxPage", util.Atoi(req["maxPage"])).
+		SetAppConf("MaxPage", int64(util.Atoi(req["maxPage"]))).
 		SetAppConf("Keywords", util.Atoa(req["keywords"])).
 		SetAppConf("SuccessInherit", req["successInherit"] == "true").
 		SetAppConf("FailureInherit", req["failureInherit"] == "true")
@@ -309,7 +315,7 @@ func setSpiderQueue(req map[string]interface{}) bool {
 	for _, sp := range app.LogicApp.GetSpiderLib() {
 		for _, spName := range spNames {
 			if util.Atoa(spName) == sp.GetName() {
-				spiders = append(spiders, sp.Gost())
+				spiders = append(spiders, sp.Copy())
 			}
 		}
 	}

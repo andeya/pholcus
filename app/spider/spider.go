@@ -1,13 +1,16 @@
 package spider
 
 import (
+	"math"
+
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/common/util"
 )
 
 const (
-	USE = util.USE_KEYWORD // 若使用Keyword，则Keyword初始值必须为USE
+	KEYWORD = util.USE_KEYWORD // 若使用Keyword，则Keyword初始值必须为USE_KEYWORD
+	MAXPAGE = math.MaxInt64    // 如希望在规则中自定义控制MaxPage，则MaxPage初始值必须为MAXPAGE
 )
 
 // 蜘蛛规则
@@ -20,8 +23,8 @@ type Spider struct {
 	Description  string
 	Pausetime    [2]uint // 暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
 	EnableCookie bool    // 控制所有请求是否使用cookie记录
-	MaxPage      int     // UI传参而来，可在涉及采集页数控制时使用
-	Keyword      string  // 如需使用必须附初始值为常量USE
+	MaxPage      int64   // 为负值时自动在调度中限制请求数，为正值时在规则中自定义控制
+	Keyword      string  // 如需使用必须附初始值为常量USE_KEYWORD
 
 	proxys    []string // 代理服务器列表 example='localhost:80'
 	currProxy int      // 当前服务器索引
@@ -143,12 +146,12 @@ func (self *Spider) SetKeyword(keyword string) {
 }
 
 // 获取采集的最大页数
-func (self *Spider) GetMaxPage() int {
+func (self *Spider) GetMaxPage() int64 {
 	return self.MaxPage
 }
 
 // 设置采集的最大页数
-func (self *Spider) SetMaxPage(max int) {
+func (self *Spider) SetMaxPage(max int64) {
 	self.MaxPage = max
 }
 
@@ -197,43 +200,48 @@ func (self *Spider) Start() {
 }
 
 // 返回一个自身复制品
-func (self *Spider) Gost() *Spider {
-	gost := &Spider{}
-	gost.Name = self.Name
+func (self *Spider) Copy() *Spider {
+	ghost := &Spider{}
+	ghost.Name = self.Name
 
-	gost.RuleTree = &RuleTree{
+	ghost.RuleTree = &RuleTree{
 		Root:  self.Root,
 		Trunk: make(map[string]*Rule, len(self.RuleTree.Trunk)),
 	}
 	for k, v := range self.RuleTree.Trunk {
-		gost.RuleTree.Trunk[k] = new(Rule)
+		ghost.RuleTree.Trunk[k] = new(Rule)
 
-		gost.RuleTree.Trunk[k].ItemFields = make([]string, len(v.ItemFields))
-		copy(gost.RuleTree.Trunk[k].ItemFields, v.ItemFields)
+		ghost.RuleTree.Trunk[k].ItemFields = make([]string, len(v.ItemFields))
+		copy(ghost.RuleTree.Trunk[k].ItemFields, v.ItemFields)
 
-		gost.RuleTree.Trunk[k].ParseFunc = v.ParseFunc
-		gost.RuleTree.Trunk[k].AidFunc = v.AidFunc
+		ghost.RuleTree.Trunk[k].ParseFunc = v.ParseFunc
+		ghost.RuleTree.Trunk[k].AidFunc = v.AidFunc
 	}
 
-	gost.Description = self.Description
-	gost.Pausetime = self.Pausetime
-	gost.EnableCookie = self.EnableCookie
-	gost.MaxPage = self.MaxPage
-	gost.Keyword = self.Keyword
+	ghost.Description = self.Description
+	ghost.Pausetime = self.Pausetime
+	ghost.EnableCookie = self.EnableCookie
+	ghost.MaxPage = self.MaxPage
+	ghost.Keyword = self.Keyword
 
-	gost.Namespace = self.Namespace
-	gost.SubNamespace = self.SubNamespace
+	ghost.Namespace = self.Namespace
+	ghost.SubNamespace = self.SubNamespace
 
-	gost.proxys = make([]string, len(self.proxys))
-	copy(gost.proxys, self.proxys)
+	ghost.proxys = make([]string, len(self.proxys))
+	copy(ghost.proxys, self.proxys)
 
-	gost.currProxy = self.currProxy
+	ghost.currProxy = self.currProxy
 
-	return gost
+	return ghost
 }
 
 func (self *Spider) ReqmatrixInit() *Spider {
-	self.ReqMatrix = scheduler.NewMatrix(self.Id)
+	if self.MaxPage < 0 {
+		self.ReqMatrix = scheduler.NewMatrix(self.Id, self.MaxPage)
+		self.MaxPage = 0
+	} else {
+		self.ReqMatrix = scheduler.NewMatrix(self.Id, math.MinInt64)
+	}
 	reqs := scheduler.PullFailure(self.GetName())
 	for _, req := range reqs {
 		req.SetSpiderId(self.Id)
@@ -241,6 +249,10 @@ func (self *Spider) ReqmatrixInit() *Spider {
 	self.ReqMatrix.SetFailures(reqs)
 
 	return self
+}
+
+func (self *Spider) ReqmatrixSetFailure(req *context.Request) bool {
+	return self.ReqMatrix.SetFailure(req)
 }
 
 func (self *Spider) ReqmatrixPush(req *context.Request) {

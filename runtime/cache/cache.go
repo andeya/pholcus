@@ -19,8 +19,8 @@ type AppConf struct {
 	DockerQueueCap uint // 分段输出池容量，不小于2
 	SuccessInherit bool // 继承历史成功记录
 	FailureInherit bool // 继承历史失败记录
+	MaxPage        int64
 	// 选填项
-	MaxPage  int
 	Keywords string // 后期split()为slice
 }
 

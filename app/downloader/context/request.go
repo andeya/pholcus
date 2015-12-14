@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
-
-	"github.com/henrylee2cn/pholcus/common/util"
 )
 
 const (
@@ -48,7 +47,7 @@ type Request struct {
 	Proxy string
 
 	// 标记临时数据，通过temp[x]==nil判断是否有值存入，所以请存入带类型的值，如[]int(nil)等
-	Temp map[string]interface{}
+	Temp Temp
 
 	// 即将加入哪个优先级的队列当中，默认为0，最小优先级为0
 	Priority int
@@ -131,7 +130,16 @@ func UnSerialize(s string) (*Request, error) {
 
 // 序列化
 func (self *Request) Serialize() string {
-	return util.JsonString(self)
+	b, _ := json.Marshal(self)
+	return string(b)
+}
+
+// 获取副本
+func (self *Request) Copy() *Request {
+	reqcopy := new(Request)
+	b, _ := json.Marshal(self)
+	json.Unmarshal(b, reqcopy)
+	return reqcopy
 }
 
 // 返回请求前的Url
@@ -255,33 +263,45 @@ func (self *Request) SetReloadable(can bool) *Request {
 	return self
 }
 
-func (self *Request) GetTemp(key string) interface{} {
-	return self.Temp[key]
+// 返回临时缓存数据
+// 强烈建议数据接收者receive为指针类型
+func (self *Request) GetTemp(key string, receive interface{}) interface{} {
+	b, _ := json.Marshal(self.Temp[key])
+	if reflect.ValueOf(receive).Kind() != reflect.Ptr {
+		json.Unmarshal(b, &receive)
+	} else {
+		json.Unmarshal(b, receive)
+	}
+	return receive
 }
 
-func (self *Request) GetTemps() map[string]interface{} {
+func (self *Request) GetTemps() Temp {
 	return self.Temp
 }
 
 func (self *Request) SetTemp(key string, value interface{}) *Request {
-	self.Temp[key] = value
+	b, _ := json.Marshal(value)
+	self.Temp[key] = string(b)
 	return self
 }
 
-func (self *Request) SetAllTemps(temp map[string]interface{}) *Request {
-	self.Temp = temp
+func (self *Request) SetTemps(temp map[string]interface{}) *Request {
+	self.Temp = make(Temp)
+	for k, v := range temp {
+		self.SetTemp(k, v)
+	}
 	return self
 }
 
-func (self *Request) GetSpiderId() int {
-	return self.Temp["__SPIDER_ID__"].(int)
+func (self *Request) GetSpiderId() (spiderId int) {
+	return self.GetTemp("__SPIDER_ID__", spiderId).(int)
 }
 
 func (self *Request) SetSpiderId(spiderId int) *Request {
 	if self.Temp == nil {
-		self.Temp = map[string]interface{}{}
+		self.Temp = make(Temp)
 	}
-	self.Temp["__SPIDER_ID__"] = spiderId
+	self.SetTemp("__SPIDER_ID__", spiderId)
 	return self
 }
 

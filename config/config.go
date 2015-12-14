@@ -89,7 +89,7 @@ func init() {
 		SuccessInherit: true,
 		FailureInherit: true,
 
-		MaxPage: 100,
+		MaxPage: 0,
 	}
 }
 

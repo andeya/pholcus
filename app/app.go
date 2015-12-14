@@ -185,14 +185,17 @@ func (self *Logic) GetAppConf(k ...string) interface{} {
 func (self *Logic) SetAppConf(k string, v interface{}) App {
 	defer func() {
 		if err := recover(); err != nil {
+			fmt.Println("和附加费", err)
 			logs.Log.Error(fmt.Sprintf("%v", err))
 		}
 	}()
+	if k == "MaxPage" && v.(int64) <= 0 {
+		v = int64(spider.MAXPAGE)
+	}
 	acv := reflect.ValueOf(self.AppConf).Elem()
 	key := strings.Title(k)
 	if acv.FieldByName(key).CanSet() {
-		newv := reflect.ValueOf(v)
-		acv.FieldByName(key).Set(newv)
+		acv.FieldByName(key).Set(reflect.ValueOf(v))
 	}
 	return self
 }
@@ -258,7 +261,7 @@ func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App
 	return self
 }
 
-// SpiderPrepare()必须在设置全局运行参数之后，就Run()的前一刻执行
+// SpiderPrepare()必须在设置全局运行参数之后，Run()的前一刻执行
 // original为spider包中未有过赋值操作的原始蜘蛛种类
 // 已被显式赋值过的spider将不再重新分配Keyword
 // client模式下不调用该方法
@@ -266,10 +269,14 @@ func (self *Logic) SpiderPrepare(original []*spider.Spider) App {
 	self.SpiderQueue.Reset()
 	// 遍历任务
 	for _, sp := range original {
-		spgost := sp.Gost()
-		spgost.SetPausetime(self.AppConf.Pausetime)
-		spgost.SetMaxPage(self.AppConf.MaxPage)
-		self.SpiderQueue.Add(spgost)
+		spcopy := sp.Copy()
+		spcopy.SetPausetime(self.AppConf.Pausetime)
+		if spcopy.GetMaxPage() > 0 {
+			spcopy.SetMaxPage(self.AppConf.MaxPage)
+		} else {
+			spcopy.SetMaxPage(-1 * self.AppConf.MaxPage)
+		}
+		self.SpiderQueue.Add(spcopy)
 	}
 	// 遍历关键词
 	self.SpiderQueue.AddKeywords(self.AppConf.Keywords)
@@ -389,7 +396,7 @@ func (self *Logic) server() {
 	// 打印报告
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 	logs.Log.Informational(" * ")
-	logs.Log.Notice(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, spidersNum)
+	logs.Log.Informational(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, spidersNum)
 	logs.Log.Informational(" * ")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 
@@ -409,6 +416,7 @@ func (self *Logic) addNewTask() (tasksNum, spidersNum int) {
 	t.SuccessInherit = self.AppConf.SuccessInherit
 	t.FailureInherit = self.AppConf.FailureInherit
 	t.MaxPage = self.AppConf.MaxPage
+
 	t.Keywords = self.AppConf.Keywords
 
 	for i, sp := range self.SpiderQueue.GetAll() {
@@ -504,15 +512,21 @@ func (self *Logic) taskToRun(t *distribute.Task) {
 
 	// 初始化蜘蛛队列
 	for _, n := range t.Spiders {
-		if sp := spider.Menu.GetByName(n["name"]); sp != nil {
-			spgost := sp.Gost()
-			spgost.SetPausetime(t.Pausetime)
-			spgost.SetMaxPage(t.MaxPage)
-			if v, ok := n["keyword"]; ok {
-				spgost.SetKeyword(v)
-			}
-			self.SpiderQueue.Add(spgost)
+		sp := spider.Menu.GetByName(n["name"])
+		if sp == nil {
+			continue
 		}
+		spcopy := sp.Copy()
+		spcopy.SetPausetime(t.Pausetime)
+		if spcopy.GetMaxPage() > 0 {
+			spcopy.SetMaxPage(t.MaxPage)
+		} else {
+			spcopy.SetMaxPage(-1 * t.MaxPage)
+		}
+		if v, ok := n["keyword"]; ok {
+			spcopy.SetKeyword(v)
+		}
+		self.SpiderQueue.Add(spcopy)
 	}
 }
 
