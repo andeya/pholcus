@@ -338,8 +338,9 @@ func (self *Context) GetRuleName() string {
 
 // 返回请求中指定缓存数据
 // 强烈建议数据接收者receive为指针类型
-func (self *Context) GetTemp(key string, receive interface{}) interface{} {
-	return self.response.GetTemp(key, receive)
+// receive为空时，直接输出字符串
+func (self *Context) GetTemp(key string, receive ...interface{}) interface{} {
+	return self.response.GetTemp(key, receive...)
 }
 
 func (self *Context) SetOriginTemp(key string, value interface{}) *Context {

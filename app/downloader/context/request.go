@@ -265,14 +265,23 @@ func (self *Request) SetReloadable(can bool) *Request {
 
 // 返回临时缓存数据
 // 强烈建议数据接收者receive为指针类型
-func (self *Request) GetTemp(key string, receive interface{}) interface{} {
-	b, _ := json.Marshal(self.Temp[key])
-	if reflect.ValueOf(receive).Kind() != reflect.Ptr {
-		json.Unmarshal(b, &receive)
-	} else {
-		json.Unmarshal(b, receive)
+// receive为空时，直接输出字符串
+func (self *Request) GetTemp(key string, receive ...interface{}) interface{} {
+	if _, ok := self.Temp[key]; !ok {
+		return nil
 	}
-	return receive
+	if len(receive) == 0 {
+		// 默认输出字符串格式
+		receive = append(receive, "")
+	}
+	b, _ := json.Marshal(self.Temp[key])
+	if reflect.ValueOf(receive[0]).Kind() != reflect.Ptr {
+		json.Unmarshal(b, &(receive[0]))
+	} else {
+		json.Unmarshal(b, receive[0])
+	}
+
+	return receive[0]
 }
 
 func (self *Request) GetTemps() Temp {

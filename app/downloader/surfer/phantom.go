@@ -48,7 +48,7 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 	}
 
 	jsfile, _ := self.setFile(JS_CODE)
-	if js, ok := req.GetTemp("__JS__", "").(string); ok && js != "" {
+	if js, ok := req.GetTemp("__JS__").(string); ok && js != "" {
 		if _jsfile, err := self.setFile(js); err == nil {
 			jsfile = _jsfile
 		}
