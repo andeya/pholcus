@@ -162,7 +162,6 @@ func init() {
 	wsApi["run"] = func(sessID string, req map[string]interface{}) {
 		if app.LogicApp.GetAppConf("mode").(int) != status.CLIENT {
 			if !setConf(req) {
-				// Sc.Write(sessID, map[string]interface{}{"operate": "stop", "mode": app.LogicApp.GetAppConf("mode").(int), "status": status.UNKNOW}, 1)
 				return
 			}
 		}
@@ -241,41 +240,51 @@ func tplData(mode int) map[string]interface{} {
 	}
 
 	// 输出方式清单
-	info["outputs"] = map[string]interface{}{
+	info["OutType"] = map[string]interface{}{
 		"menu": app.LogicApp.GetOutputLib(),
 		"curr": app.LogicApp.GetAppConf("OutType"),
 	}
 
 	// 并发协程上限
-	info["threadNum"] = map[string]uint{
-		"max":     999999,
-		"min":     1,
-		"default": app.LogicApp.GetAppConf("ThreadNum").(uint),
+	info["ThreadNum"] = map[string]int{
+		"max":  999999,
+		"min":  1,
+		"curr": app.LogicApp.GetAppConf("ThreadNum").(int),
 	}
-	// 暂停时间，单位ms
-	info["sleepTime"] = map[string][]uint{
-		"base":   {0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
-		"random": {0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
-		"default": func() []uint {
-			var a = app.LogicApp.GetAppConf("Pausetime").([2]uint)
-			return []uint{a[0], a[1]}
-		}(),
+
+	// 暂停区间/ms(随机: Pausetime/2 ~ Pausetime*2)
+	info["Pausetime"] = map[string][]int64{
+		"menu": {0, 100, 300, 500, 1000, 3000, 5000, 10000, 15000, 20000, 30000, 60000},
+		"curr": []int64{app.LogicApp.GetAppConf("Pausetime").(int64)},
 	}
+
+	// 代理IP更换的间隔分钟数
+	info["ProxyMinute"] = map[string][]int64{
+		"menu": {0, 1, 3, 5, 10, 15, 20, 30, 45, 60, 120, 180},
+		"curr": []int64{app.LogicApp.GetAppConf("ProxyMinute").(int64)},
+	}
+
 	// 分批输出的容量
-	info["dockerCap"] = map[string]uint{"min": 1, "max": 5000000, "default": app.LogicApp.GetAppConf("DockerCap").(uint)}
+	info["DockerCap"] = map[string]int{
+		"min":  1,
+		"max":  5000000,
+		"curr": app.LogicApp.GetAppConf("DockerCap").(int),
+	}
 
 	// 最大页数
-	if app.LogicApp.GetAppConf("maxPage").(int64) != spider.MAXPAGE {
-		info["maxPage"] = app.LogicApp.GetAppConf("maxPage")
+	if app.LogicApp.GetAppConf("MaxPage").(int64) != spider.MAXPAGE {
+		info["MaxPage"] = app.LogicApp.GetAppConf("MaxPage")
 	} else {
-		info["maxPage"] = 0
+		info["MaxPage"] = 0
 	}
 
 	// 关键词
-	info["keywords"] = app.LogicApp.GetAppConf("Keywords")
+	info["Keywords"] = app.LogicApp.GetAppConf("Keywords")
+
 	// 继承历史记录
-	info["successInherit"] = app.LogicApp.GetAppConf("SuccessInherit")
-	info["failureInherit"] = app.LogicApp.GetAppConf("FailureInherit")
+	info["SuccessInherit"] = app.LogicApp.GetAppConf("SuccessInherit")
+	info["FailureInherit"] = app.LogicApp.GetAppConf("FailureInherit")
+
 	// 运行状态
 	info["status"] = app.LogicApp.Status()
 
@@ -284,20 +293,21 @@ func tplData(mode int) map[string]interface{} {
 
 // 配置运行参数
 func setConf(req map[string]interface{}) bool {
-	if tn := util.Atoui(req["threadNum"]); tn == 0 {
-		app.LogicApp.SetAppConf("threadNum", 1)
+	if tn := util.Atoi(req["ThreadNum"]); tn == 0 {
+		app.LogicApp.SetAppConf("ThreadNum", 1)
 	} else {
-		app.LogicApp.SetAppConf("threadNum", tn)
+		app.LogicApp.SetAppConf("ThreadNum", tn)
 	}
 
 	app.LogicApp.
-		SetAppConf("Pausetime", [2]uint{(util.Atoui(req["baseSleeptime"])), util.Atoui(req["randomSleepPeriod"])}).
-		SetAppConf("OutType", util.Atoa(req["output"])).
-		SetAppConf("DockerCap", util.Atoui(req["dockerCap"])).
-		SetAppConf("MaxPage", int64(util.Atoi(req["maxPage"]))).
-		SetAppConf("Keywords", util.Atoa(req["keywords"])).
-		SetAppConf("SuccessInherit", req["successInherit"] == "true").
-		SetAppConf("FailureInherit", req["failureInherit"] == "true")
+		SetAppConf("Pausetime", int64(util.Atoi(req["Pausetime"]))).
+		SetAppConf("ProxyMinute", int64(util.Atoi(req["ProxyMinute"]))).
+		SetAppConf("OutType", util.Atoa(req["OutType"])).
+		SetAppConf("DockerCap", util.Atoi(req["DockerCap"])).
+		SetAppConf("MaxPage", int64(util.Atoi(req["MaxPage"]))).
+		SetAppConf("Keywords", util.Atoa(req["Keywords"])).
+		SetAppConf("SuccessInherit", req["SuccessInherit"] == "true").
+		SetAppConf("FailureInherit", req["FailureInherit"] == "true")
 
 	if !setSpiderQueue(req) {
 		return false

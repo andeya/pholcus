@@ -210,28 +210,6 @@ func (self *Context) Parse(ruleName ...string) *Context {
 	return self
 }
 
-// 设置代理服务器列表。
-func (self *Context) SetProxys(proxys []string) *Context {
-	self.spider.SetProxys(proxys)
-	return self
-}
-
-// 添加代理服务器。
-func (self *Context) AddProxys(proxy ...string) *Context {
-	self.spider.AddProxys(proxy...)
-	return self
-}
-
-// 获取代理服务器列表。
-func (self *Context) GetProxys() []string {
-	return self.spider.GetProxys()
-}
-
-// 获取下一个代理服务器。
-func (self *Context) GetOneProxy() string {
-	return self.spider.GetOneProxy()
-}
-
 // 获取蜘蛛名称。
 func (self *Context) GetName() string {
 	return self.spider.GetName()
@@ -279,9 +257,9 @@ func (self *Context) GetRule(ruleName string) (*Rule, bool) {
 	return self.spider.GetRule(ruleName)
 }
 
-// 自定义暂停时间 pause[0]~(pause[0]+pause[1])，优先级高于外部传参。
+// 自定义暂停区间(随机: Pausetime/2 ~ Pausetime*2)，优先级高于外部传参。
 // 当且仅当runtime[0]为true时可覆盖现有值。
-func (self *Context) SetPausetime(pause [2]uint, runtime ...bool) *Context {
+func (self *Context) SetPausetime(pause int64, runtime ...bool) *Context {
 	self.spider.SetPausetime(pause, runtime...)
 	return self
 }

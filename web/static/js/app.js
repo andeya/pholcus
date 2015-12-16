@@ -217,15 +217,15 @@ function getForm() {
     return {
         'operate': 'run',
         'spiders': getSpiders(),
-        'keywords': document.pholcus.elements['keywords'].value,
-        'threadNum': document.pholcus.elements['threadNum'].value,
-        'maxPage': document.pholcus.elements['maxPage'].value,
-        'dockerCap': document.pholcus.elements['dockerCap'].value,
-        'baseSleeptime': document.pholcus.elements['baseSleeptime'].value,
-        'randomSleepPeriod': document.pholcus.elements['randomSleepPeriod'].value,
-        'output': document.pholcus.elements['output'].value,
-        'successInherit': document.pholcus.elements['successInherit'].value,
-        'failureInherit': document.pholcus.elements['failureInherit'].value,
+        'Keywords': document.pholcus.elements['Keywords'].value,
+        'ThreadNum': document.pholcus.elements['ThreadNum'].value,
+        'MaxPage': document.pholcus.elements['MaxPage'].value,
+        'DockerCap': document.pholcus.elements['DockerCap'].value,
+        'Pausetime': document.pholcus.elements['Pausetime'].value,
+        'ProxyMinute': document.pholcus.elements['ProxyMinute'].value,
+        'OutType': document.pholcus.elements['OutType'].value,
+        'SuccessInherit': document.pholcus.elements['SuccessInherit'].value,
+        'FailureInherit': document.pholcus.elements['FailureInherit'].value,
     }
 }
 

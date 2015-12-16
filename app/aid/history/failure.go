@@ -27,11 +27,9 @@ func (self *Failure) PullFailure(spiderName string) (reqs []*context.Request) {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 
-	for v, ok := range self.list[spiderName] {
-		if !ok {
-			continue
-		}
-		if req, err := context.UnSerialize(v); err == nil {
+	for failure, _ := range self.list[spiderName] {
+		req, err := context.UnSerialize(failure)
+		if err == nil {
 			reqs = append(reqs, req)
 		}
 	}
@@ -48,11 +46,12 @@ func (self *Failure) UpsertFailure(req *context.Request) bool {
 	spName := req.GetSpiderName()
 	s := req.Serialize()
 
-	if one, ok := self.list[spName]; !ok {
+	if failures, ok := self.list[spName]; !ok {
 		self.list[spName] = make(map[string]bool)
-	} else if one[s] {
+	} else if failures[s] {
 		return false
 	}
+
 	self.list[spName][s] = true
 	return true
 }
@@ -71,9 +70,6 @@ func (self *Failure) flush(provider string) (fLen int) {
 	for _, val := range self.list {
 		fLen += len(val)
 	}
-	if fLen == 0 {
-		return
-	}
 
 	switch provider {
 	case "mgo":
@@ -82,7 +78,14 @@ func (self *Failure) flush(provider string) (fLen int) {
 			logs.Log.Error("从mgo读取成功记录: %v", err)
 			return
 		}
+		defer mgo.Close(s)
+
+		// 删除失败记录文件
 		c.DropCollection()
+		if fLen == 0 {
+			return
+		}
+
 		var docs = []interface{}{}
 		for _, val := range self.list {
 			for key := range val {
@@ -90,7 +93,6 @@ func (self *Failure) flush(provider string) (fLen int) {
 			}
 		}
 		c.Insert(docs...)
-		mgo.Close(s)
 
 	case "mysql":
 		db, ok := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
@@ -99,11 +101,15 @@ func (self *Failure) flush(provider string) (fLen int) {
 			return 0
 		}
 
+		// 删除失败记录文件
 		stmt, err := db.DB.Prepare(`DROP TABLE ` + FAILURE_FILE)
 		if err != nil {
 			return
 		}
-		_, err = stmt.Exec()
+		stmt.Exec()
+		if fLen == 0 {
+			return
+		}
 
 		table := mysql.New(db.DB).
 			SetTableName(FAILURE_FILE).
@@ -118,9 +124,13 @@ func (self *Failure) flush(provider string) (fLen int) {
 
 	default:
 		once.Do(mkdir)
+		// 删除失败记录文件
 		os.Remove(FAILURE_FILE_FULL)
+		if fLen == 0 {
+			return
+		}
 
-		f, _ := os.OpenFile(FAILURE_FILE_FULL, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
+		f, _ := os.OpenFile(FAILURE_FILE_FULL, os.O_CREATE|os.O_WRONLY, 0660)
 
 		b, _ := json.Marshal(self.list)
 		b[0] = ','

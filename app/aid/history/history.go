@@ -178,11 +178,12 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			return
 		}
 		c.Find(nil).All(&docs)
+
 		mgo.Close(s)
 
 		for _, v := range docs {
-			key := v.(bson.M)["_id"].(string)
-			req, err := context.UnSerialize(key)
+			failure := v.(bson.M)["_id"].(string)
+			req, err := context.UnSerialize(failure)
 			if err != nil {
 				continue
 			}
@@ -190,7 +191,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			if _, ok := self.Failure.list[spName]; !ok {
 				self.Failure.list[spName] = make(map[string]bool)
 			}
-			self.Failure.list[spName][key] = true
+			self.Failure.list[spName][failure] = true
 			fLen++
 		}
 
@@ -232,16 +233,17 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			return
 		}
 		b, _ := ioutil.ReadAll(f)
+		f.Close()
+
 		b[0] = '{'
 		json.Unmarshal(
 			append(b, '}'),
 			&self.Failure.list,
 		)
-		for k, v := range self.Failure.list {
-			self.Failure.list[k] = make(map[string]bool)
+		for _, v := range self.Failure.list {
 			fLen += len(v)
 		}
-		f.Close()
+
 	}
 	logs.Log.Informational(" *     读出 %v 条失败记录\n", fLen)
 }

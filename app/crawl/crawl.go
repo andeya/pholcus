@@ -23,6 +23,8 @@ type Crawler interface {
 type crawler struct {
 	id int
 	*spider.Spider
+	basePause int64
+	gainPause int64
 	downloader.Downloader
 	pipeline.Pipeline
 	srcManage      int32
@@ -42,6 +44,12 @@ func (self *crawler) Init(sp *spider.Spider) Crawler {
 	self.srcManage = 0
 	self.Spider = sp.ReqmatrixInit()
 	self.Pipeline.Init(sp)
+	self.basePause = cache.Task.Pausetime / 2
+	if self.basePause > 0 {
+		self.gainPause = self.basePause * 3
+	} else {
+		self.gainPause = 1
+	}
 	return self
 }
 
@@ -154,10 +162,8 @@ func (self *crawler) Process(req *context.Request) {
 
 // 常用基础方法
 func (self *crawler) sleep() {
-	sleeptime := int(self.Spider.Pausetime[0])
-	if self.Spider.Pausetime[1] > 0 {
-		sleeptime += rand.New(rand.NewSource(time.Now().UnixNano())).Intn(int(self.Spider.Pausetime[1]))
-	}
+	sleeptime := self.basePause + rand.New(rand.NewSource(time.Now().UnixNano())).
+		Int63n(self.gainPause)
 	time.Sleep(time.Duration(sleeptime) * time.Millisecond)
 }
 

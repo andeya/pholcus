@@ -72,6 +72,8 @@ var (
 		APP_TAG,
 		1024,
 	}
+
+	PROXY_FILE = "proxy.pholcus"
 )
 
 const (
@@ -81,15 +83,15 @@ const (
 func init() {
 	// 初始化主要的运行时参数
 	cache.Task = &cache.AppConf{
-		Port:           2015,
-		Master:         "127.0.0.1",
-		ThreadNum:      20,
-		Pausetime:      [2]uint{100, 300},
-		DockerCap:      10000,
-		SuccessInherit: true,
-		FailureInherit: true,
-
-		MaxPage: 0,
+		Port:           2015,        // 主节点端口
+		Master:         "127.0.0.1", // 服务器(主节点)地址，不含端口
+		ThreadNum:      20,          // 全局最大并发量
+		Pausetime:      300,         // 暂停时长参考/ms(随机: Pausetime/2 ~ Pausetime*2)
+		ProxyMinute:    0,           // 代理IP更换的间隔分钟数
+		DockerCap:      10000,       // 分段转储容器容量
+		SuccessInherit: true,        // 继承历史成功记录
+		FailureInherit: true,        // 继承历史失败记录
+		MaxPage:        0,           // 最大采集页数
 	}
 }
 

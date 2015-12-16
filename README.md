@@ -53,7 +53,7 @@ package main
 import (
     "github.com/henrylee2cn/pholcus/config"
     "github.com/henrylee2cn/pholcus/exec"
-    "github.com/henrylee2cn/pholcus/logs"
+    // "github.com/henrylee2cn/pholcus/logs"
 
     _ "github.com/pholcus/spider_lib"     // 此为公开维护的spider规则库
     _ "github.com/pholcus/spider_lib_pte" // 同样你也可以自由添加自己的规则库
@@ -69,7 +69,7 @@ func main() {
 // 自定义相关配置，将覆盖默认值
 func init() {
     // 允许日志打印行号
-    logs.ShowLineNum()
+    // logs.ShowLineNum()
 
     //mongodb链接字符串
     config.MGO.CONN_STR = "127.0.0.1:27017"
@@ -123,7 +123,7 @@ pholcus -h
 > *<font size="2">Cmd版运行参数设置示例如下*
 
 ```
-pholcus -a_ui=cmd -c_spider=3,8 -c_output=csv -c_go=500 -c_docker=5000 -c_pause=1000,3000 -c_keyword=pholcus,golang -c_maxpage=100 -c_inherit_y=true -c_inherit_n=true
+pholcus -a_ui=cmd -c_spider=3,8 -c_output=csv -c_thread=20 -c_docker=5000 -c_pause=300 -c_proxy=0 -c_keyword=pholcus,golang -c_maxpage=10 -c_inherit_y=true -c_inherit_n=true
 ```
 
 &nbsp;

@@ -103,10 +103,9 @@ func (self *Collector) Manage() {
 }
 
 func (self *Collector) dockerOne(data DataCell) {
-
 	self.Dockers[self.Curr] = append(self.Dockers[self.Curr], data)
 
-	if uint(len(self.Dockers[self.Curr])) >= cache.Task.DockerCap {
+	if len(self.Dockers[self.Curr]) >= cache.Task.DockerCap {
 		// curDocker存满后输出
 		self.goOutput(self.Curr)
 		// 更换一个空Docker用于curDocker

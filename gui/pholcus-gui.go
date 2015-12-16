@@ -43,7 +43,8 @@ func SetTaskConf() {
 		Input.ThreadNum = 1
 	}
 	app.LogicApp.SetAppConf("ThreadNum", Input.ThreadNum).
-		SetAppConf("Pausetime", [2]uint{Input.BaseSleeptime, Input.RandomSleepPeriod}).
+		SetAppConf("Pausetime", Input.Pausetime).
+		SetAppConf("ProxyMinute", Input.ProxyMinute).
 		SetAppConf("OutType", Input.OutType).
 		SetAppConf("DockerCap", Input.DockerCap).
 		SetAppConf("MaxPage", Input.MaxPage).

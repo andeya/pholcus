@@ -9,7 +9,7 @@ import (
 
 type DockerQueue struct {
 	Curr    int
-	Cap     uint
+	Cap     int
 	Using   map[int]bool
 	Dockers [][]DataCell
 }
@@ -19,7 +19,7 @@ func NewDocker() []DataCell {
 }
 
 func NewDockerQueue() *DockerQueue {
-	var queueCap uint = cache.Task.DockerQueueCap
+	var queueCap = cache.Task.DockerQueueCap
 	if cache.Task.DockerQueueCap < 2 {
 		queueCap = 2
 	}
@@ -65,7 +65,7 @@ func (self *DockerQueue) Recover(index int) {
 // 根据情况自动动态增加Docker
 func (self *DockerQueue) AutoAdd() {
 	count := len(self.Dockers)
-	if uint(count) < self.Cap {
+	if count < self.Cap {
 		self.Dockers = append(self.Dockers, NewDocker())
 		self.Using[count] = false
 	}

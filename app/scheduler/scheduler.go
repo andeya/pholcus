@@ -6,8 +6,10 @@ import (
 	"sync/atomic"
 
 	"github.com/henrylee2cn/pholcus/app/aid/history"
+	"github.com/henrylee2cn/pholcus/app/aid/proxy"
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/common/util"
+	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 )
@@ -19,6 +21,10 @@ type scheduler struct {
 	count chan bool
 	// 运行状态
 	status int
+	// 全局代理IP
+	proxy *proxy.Proxy
+	// 标记是否使用代理IP
+	useProxy bool
 	// 全局历史记录
 	history history.Historier
 	// 全局读写锁
@@ -30,6 +36,7 @@ var sdl = &scheduler{
 	history: history.New(),
 	status:  status.RUN,
 	count:   make(chan bool, cache.Task.ThreadNum),
+	proxy:   proxy.New(),
 }
 
 func Init() {
@@ -37,6 +44,19 @@ func Init() {
 	sdl.count = make(chan bool, cache.Task.ThreadNum)
 	sdl.history.ReadSuccess(cache.Task.OutType, cache.Task.SuccessInherit)
 	sdl.history.ReadFailure(cache.Task.OutType, cache.Task.FailureInherit)
+	if cache.Task.ProxyMinute > 0 {
+		if sdl.proxy.Count() > 0 {
+			sdl.useProxy = true
+			sdl.proxy.UpdateTicker(cache.Task.ProxyMinute)
+			logs.Log.Informational(" *     使用代理IP，代理IP更换频率为 %v 分钟\n", cache.Task.ProxyMinute)
+		} else {
+			sdl.useProxy = false
+			logs.Log.Informational(" *     代理IP列表为空，无法使用代理IP\n")
+		}
+	} else {
+		sdl.useProxy = false
+		logs.Log.Informational(" *     不使用代理IP\n")
+	}
 	sdl.status = status.RUN
 }
 
@@ -177,6 +197,12 @@ func (self *Matrix) Pull() (req *context.Request) {
 		if len(self.reqs[idx]) > 0 {
 			req = self.reqs[idx][0]
 			self.reqs[idx] = self.reqs[idx][1:]
+			if sdl.useProxy {
+				proxy, _ := sdl.proxy.GetOne()
+				req.SetProxy(proxy)
+			} else {
+				req.SetProxy("")
+			}
 			return
 		}
 	}
@@ -216,12 +242,13 @@ func (self *Matrix) CanStop() bool {
 	if len(self.failures) > 0 {
 		// 重新下载历史记录中失败的请求
 		var goon bool
-		for k, req := range self.failures {
+		for unique, req := range self.failures {
 			if req == nil {
 				continue
 			}
-			self.failures[k] = nil
+			self.failures[unique] = nil
 			goon = true
+			logs.Log.Informational(" *     失败请求重载: [%v]\n", req.GetUrl())
 			self.Push(req)
 		}
 		if goon {
@@ -239,6 +266,7 @@ func (self *Matrix) Free() {
 func (self *Matrix) SetFailures(reqs []*context.Request) {
 	for _, req := range reqs {
 		self.failures[makeUnique(req)] = req
+		logs.Log.Informational(" *     + 失败请求: [%v]\n", req.GetUrl())
 	}
 }
 
@@ -249,6 +277,7 @@ func (self *Matrix) SetFailure(req *context.Request) bool {
 	if _, ok := self.failures[unique]; !ok {
 		// 首次失败时，在任务队列末尾重新执行一次
 		self.failures[unique] = req
+		logs.Log.Informational(" *     + 失败请求: [%v]\n", req.GetUrl())
 		return true
 	}
 	// 失败两次后，加入历史失败记录

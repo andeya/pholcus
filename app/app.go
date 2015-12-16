@@ -109,22 +109,25 @@ type Logic struct {
 	sync.RWMutex
 }
 
-// 任务运行时公共配置
-// type AppConf struct {
-// 	Mode           int    // 节点角色
-// 	Port           int    // 主节点端口
-// 	Master         string // 服务器(主节点)地址，不含端口
-// 	ThreadNum      uint
-// 	Pausetime      [2]uint // 暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
-// 	OutType        string
-// 	DockerCap      uint // 分段转储容器容量
-// 	DockerQueueCap uint // 分段输出池容量，不小于2
-//  SuccessInherit bool // 继承历史成功记录
-//  FailureInherit bool // 继承历史失败记录
-// 	// 选填项
-// 	MaxPage  int
-// 	Keywords string // 后期split()为slice
-// }
+/*
+ * 任务运行时公共配置
+type AppConf struct {
+	Mode           int    // 节点角色
+	Port           int    // 主节点端口
+	Master         string // 服务器(主节点)地址，不含端口
+	ThreadNum      int    // 全局最大并发量
+	Pausetime      int64  // 暂停时长参考/ms(随机: Pausetime/2 ~ Pausetime*2)
+	OutType        string // 输出方式
+	DockerCap      int    // 分段转储容器容量
+	DockerQueueCap int    // 分段输出池容量，不小于2
+	SuccessInherit bool   // 继承历史成功记录
+	FailureInherit bool   // 继承历史失败记录
+	MaxPage        int64  // 最大采集页数
+	ProxyMinute    int64  // 代理IP更换的间隔分钟数
+	// 选填项
+	Keywords string // 后期切分为slice
+}
+*/
 
 func New() App {
 	return newLogic()
@@ -185,7 +188,6 @@ func (self *Logic) GetAppConf(k ...string) interface{} {
 func (self *Logic) SetAppConf(k string, v interface{}) App {
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Println("和附加费", err)
 			logs.Log.Error(fmt.Sprintf("%v", err))
 		}
 	}()
@@ -394,6 +396,7 @@ func (self *Logic) server() {
 	}
 
 	// 打印报告
+	logs.Log.Informational(" * ")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 	logs.Log.Informational(" * ")
 	logs.Log.Informational(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, spidersNum)
@@ -406,18 +409,8 @@ func (self *Logic) server() {
 func (self *Logic) addNewTask() (tasksNum, spidersNum int) {
 	length := self.SpiderQueue.Len()
 	t := distribute.Task{}
-
 	// 从配置读取字段
-	t.ThreadNum = self.AppConf.ThreadNum
-	t.Pausetime = self.AppConf.Pausetime
-	t.OutType = self.AppConf.OutType
-	t.DockerCap = self.AppConf.DockerCap
-	t.DockerQueueCap = self.AppConf.DockerQueueCap
-	t.SuccessInherit = self.AppConf.SuccessInherit
-	t.FailureInherit = self.AppConf.FailureInherit
-	t.MaxPage = self.AppConf.MaxPage
-
-	t.Keywords = self.AppConf.Keywords
+	self.setTask(&t)
 
 	for i, sp := range self.SpiderQueue.GetAll() {
 
@@ -500,15 +493,7 @@ func (self *Logic) taskToRun(t *distribute.Task) {
 	self.SpiderQueue.Reset()
 
 	// 更改全局配置
-	self.AppConf.OutType = t.OutType
-	self.AppConf.ThreadNum = t.ThreadNum
-	self.AppConf.DockerCap = t.DockerCap
-	self.AppConf.DockerQueueCap = t.DockerQueueCap
-	self.AppConf.Pausetime = t.Pausetime
-	self.AppConf.SuccessInherit = t.SuccessInherit
-	self.AppConf.FailureInherit = t.FailureInherit
-	self.AppConf.MaxPage = t.MaxPage
-	self.AppConf.Keywords = t.Keywords
+	self.setAppConf(t)
 
 	// 初始化蜘蛛队列
 	for _, n := range t.Spiders {
@@ -541,15 +526,11 @@ func (self *Logic) exec() {
 	// 设置爬虫队列
 	crawlCap := self.CrawlPool.Reset(count)
 
-	logs.Log.Informational(` *********************************************************************************************************************************** `)
-	logs.Log.Informational(" * ")
-	logs.Log.Informational(" *     执行任务总数（任务数[*关键词数]）为 %v 个 ...\n", count)
-	logs.Log.Informational(" *     爬虫池容量为 %v ...\n", crawlCap)
-	logs.Log.Informational(" *     并发协程最多 %v 个 ...\n", self.AppConf.ThreadNum)
-	logs.Log.Informational(" *     随机停顿时间为 %v~%v ms ...\n", self.AppConf.Pausetime[0], self.AppConf.Pausetime[0]+self.AppConf.Pausetime[1])
-	logs.Log.Informational(" * ")
+	logs.Log.Informational(" *     执行任务总数(任务数[*关键词数])为 %v 个\n", count)
+	logs.Log.Informational(" *     爬虫池容量为 %v\n", crawlCap)
+	logs.Log.Informational(" *     并发协程最多 %v 个\n", self.AppConf.ThreadNum)
+	logs.Log.Informational(" *     随机停顿区间为 %v~%v 毫秒\n", self.AppConf.Pausetime/2, self.AppConf.Pausetime*2)
 	logs.Log.Notice(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
-	logs.Log.Informational(" * ")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 
 	// 开始计时
@@ -600,7 +581,6 @@ func (self *Logic) goRun(count int) {
 		default:
 			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条 + 下载文件 %v 个，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.DataNum, s.FileNum, s.Time)
 		}
-		logs.Log.Informational(" * ")
 
 		self.sum[0] += s.DataNum
 		self.sum[1] += s.FileNum
@@ -614,15 +594,16 @@ func (self *Logic) goRun(count int) {
 		return "本次"
 	}()
 	// 打印总结报告
+	logs.Log.Informational(" * ")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 	logs.Log.Informational(" * ")
 	switch {
 	case self.sum[0] > 0 && self.sum[1] == 0:
-		logs.Log.Notice(" *                            —— %s合计输出 %v 条数据，实爬URL %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", prefix, self.sum[0], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), self.takeTime)
+		logs.Log.Notice(" *                            —— %s合计输出 %v 条数据，实爬URL %v 个[成功：%v，失败：%v]，耗时：%.5f 分钟 ——", prefix, self.sum[0], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), self.takeTime)
 	case self.sum[0] == 0 && self.sum[1] > 0:
-		logs.Log.Notice(" *                            —— %s合计输出 %v 个文件，实爬URL %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", prefix, self.sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), self.takeTime)
+		logs.Log.Notice(" *                            —— %s合计输出 %v 个文件，实爬URL %v 个[成功：%v，失败：%v]，耗时：%.5f 分钟 ——", prefix, self.sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), self.takeTime)
 	default:
-		logs.Log.Notice(" *                            —— %s合计输出 %v 条数据 + %v 个文件，实爬URL %v 个（成功：%v，失败：%v），耗时：%.5f 分钟 ——", prefix, self.sum[0], self.sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), self.takeTime)
+		logs.Log.Notice(" *                            —— %s合计输出 %v 条数据 + %v 个文件，实爬URL %v 个[成功：%v，失败：%v]，耗时：%.5f 分钟 ——", prefix, self.sum[0], self.sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), self.takeTime)
 	}
 	logs.Log.Informational(" * ")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
@@ -667,4 +648,30 @@ func (self *Logic) checkAll() bool {
 		return false
 	}
 	return true
+}
+
+// 设置任务运行时公共配置
+func (self *Logic) setAppConf(task *distribute.Task) {
+	self.AppConf.ThreadNum = task.ThreadNum
+	self.AppConf.Pausetime = task.Pausetime
+	self.AppConf.OutType = task.OutType
+	self.AppConf.DockerCap = task.DockerCap
+	self.AppConf.DockerQueueCap = task.DockerQueueCap
+	self.AppConf.SuccessInherit = task.SuccessInherit
+	self.AppConf.FailureInherit = task.FailureInherit
+	self.AppConf.MaxPage = task.MaxPage
+	self.AppConf.ProxyMinute = task.ProxyMinute
+	self.AppConf.Keywords = task.Keywords
+}
+func (self *Logic) setTask(task *distribute.Task) {
+	task.ThreadNum = self.AppConf.ThreadNum
+	task.Pausetime = self.AppConf.Pausetime
+	task.OutType = self.AppConf.OutType
+	task.DockerCap = self.AppConf.DockerCap
+	task.DockerQueueCap = self.AppConf.DockerQueueCap
+	task.SuccessInherit = self.AppConf.SuccessInherit
+	task.FailureInherit = self.AppConf.FailureInherit
+	task.MaxPage = self.AppConf.MaxPage
+	task.ProxyMinute = self.AppConf.ProxyMinute
+	task.Keywords = self.AppConf.Keywords
 }

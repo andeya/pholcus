@@ -21,13 +21,10 @@ type Spider struct {
 
 	//以下为可选成员
 	Description  string
-	Pausetime    [2]uint // 暂停区间Pausetime[0]~Pausetime[0]+Pausetime[1]
-	EnableCookie bool    // 控制所有请求是否使用cookie记录
-	MaxPage      int64   // 为负值时自动在调度中限制请求数，为正值时在规则中自定义控制
-	Keyword      string  // 如需使用必须附初始值为常量USE_KEYWORD
-
-	proxys    []string // 代理服务器列表 example='localhost:80'
-	currProxy int      // 当前服务器索引
+	Pausetime    int64  // 暂停区间(随机: Pausetime/2 ~ Pausetime*2)
+	EnableCookie bool   // 控制所有请求是否使用cookie记录
+	MaxPage      int64  // 为负值时自动在调度中限制请求数，为正值时在规则中自定义控制
+	Keyword      string // 如需使用必须附初始值为常量USE_KEYWORD
 
 	// 命名空间相对于数据库名，不依赖具体数据内容，可选
 	Namespace func(*Spider) string
@@ -162,36 +159,10 @@ func (self *Spider) GetEnableCookie() bool {
 
 // 自定义暂停时间 pause[0]~(pause[0]+pause[1])，优先级高于外部传参
 // 当且仅当runtime[0]为true时可覆盖现有值
-func (self *Spider) SetPausetime(pause [2]uint, runtime ...bool) {
-	if self.Pausetime == [2]uint{} || len(runtime) > 0 && runtime[0] {
+func (self *Spider) SetPausetime(pause int64, runtime ...bool) {
+	if self.Pausetime == 0 || len(runtime) > 0 && runtime[0] {
 		self.Pausetime = pause
 	}
-}
-
-// 设置代理服务器列表
-func (self *Spider) SetProxys(proxys []string) {
-	self.proxys = proxys
-	self.currProxy = len(proxys) - 1
-}
-
-// 添加代理服务器
-func (self *Spider) AddProxys(proxy ...string) {
-	self.proxys = append(self.proxys, proxy...)
-	self.currProxy += len(proxy) - 1
-}
-
-// 获取代理服务器列表
-func (self *Spider) GetProxys() []string {
-	return self.proxys
-}
-
-// 获取下一个代理服务器
-func (self *Spider) GetOneProxy() string {
-	self.currProxy++
-	if self.currProxy > len(self.proxys)-1 {
-		self.currProxy = 0
-	}
-	return self.proxys[self.currProxy]
 }
 
 // 开始执行蜘蛛
@@ -227,11 +198,6 @@ func (self *Spider) Copy() *Spider {
 	ghost.Namespace = self.Namespace
 	ghost.SubNamespace = self.SubNamespace
 
-	ghost.proxys = make([]string, len(self.proxys))
-	copy(ghost.proxys, self.proxys)
-
-	ghost.currProxy = self.currProxy
-
 	return ghost
 }
 
@@ -242,7 +208,9 @@ func (self *Spider) ReqmatrixInit() *Spider {
 	} else {
 		self.ReqMatrix = scheduler.NewMatrix(self.Id, math.MinInt64)
 	}
+
 	reqs := scheduler.PullFailure(self.GetName())
+
 	for _, req := range reqs {
 		req.SetSpiderId(self.Id)
 	}

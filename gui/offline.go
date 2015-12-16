@@ -62,10 +62,10 @@ func offlineWindow() {
 							VSplitter{
 								Children: []Widget{
 									Label{
-										Text: "*并发协程：（1~99999）",
+										Text: "最大采集页数：",
 									},
 									NumberEdit{
-										Value:    Bind("ThreadNum", Range{1, 99999}),
+										Value:    Bind("MaxPage"),
 										Suffix:   "",
 										Decimals: 0,
 									},
@@ -75,10 +75,10 @@ func offlineWindow() {
 							VSplitter{
 								Children: []Widget{
 									Label{
-										Text: "最大采集页数：（选填）",
+										Text: "*并发协程：（1~99999）",
 									},
 									NumberEdit{
-										Value:    Bind("MaxPage"),
+										Value:    Bind("ThreadNum", Range{1, 99999}),
 										Suffix:   "",
 										Decimals: 0,
 									},
@@ -101,13 +101,13 @@ func offlineWindow() {
 							VSplitter{
 								Children: []Widget{
 									Label{
-										Text: "*间隔基准:",
+										Text: "*暂停时长参考:",
 									},
 									ComboBox{
-										Value:         Bind("BaseSleeptime", SelRequired{}),
-										BindingMember: "Uint",
+										Value:         Bind("Pausetime", SelRequired{}),
 										DisplayMember: "Key",
-										Model:         GuiOpt.SleepTime,
+										BindingMember: "Int64",
+										Model:         GuiOpt.Pausetime,
 									},
 								},
 							},
@@ -115,13 +115,13 @@ func offlineWindow() {
 							VSplitter{
 								Children: []Widget{
 									Label{
-										Text: "*随机延迟:",
+										Text: "*代理IP更换频率:",
 									},
 									ComboBox{
-										Value:         Bind("RandomSleepPeriod", SelRequired{}),
-										BindingMember: "Uint",
+										Value:         Bind("ProxyMinute", SelRequired{}),
 										DisplayMember: "Key",
-										Model:         GuiOpt.SleepTime,
+										BindingMember: "Int64",
+										Model:         GuiOpt.ProxyMinute,
 									},
 								},
 							},

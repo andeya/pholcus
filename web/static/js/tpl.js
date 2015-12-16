@@ -17,24 +17,25 @@ var Html = function(info) {
             <div class="form-2 box">\
               <div class="form-group">\
                 <label>自定义输入 ( 多任务间以 " | " 隔开 )</label>\
-                <textarea name="keywords" class="form-control" rows="2" placeholder="Enter ...">' + info.keywords + '</textarea>\
+                <textarea name="Keywords" class="form-control" rows="2" placeholder="Enter ...">' + info.Keywords + '</textarea>\
               </div>\
             <div class="inline">\
               <div class="form-group">\
                 <label>最大采集页数</label>\
-                <input name="maxPage" type="number" class="form-control" min="0" value="' + info.maxPage + '">\
+                <input name="MaxPage" type="number" class="form-control" min="0" value="' + info.MaxPage + '">\
               </div>' +
-        threadNumHtml(info.threadNum) +
-        sleepTimeHtml(info.sleepTime) +
-        dockerCapHtml(info.dockerCap) +
-        outputsHtml(info.outputs) +
-        successInheritHtml(info.successInherit) +
-        failureInheritHtml(info.failureInherit) +
+        ThreadNumHtml(info.ThreadNum) +
+        PausetimeHtml(info.Pausetime) +
+        ProxyMinuteHtml(info.ProxyMinute) +
+        DockerCapHtml(info.DockerCap) +
+        OutTypeHtml(info.OutType) +
+        SuccessInheritHtml(info.SuccessInherit) +
+        FailureInheritHtml(info.FailureInherit) +
         '</div>' +
         '</div>\
             <div class="box-footer">\
-                ' + btnHtml(info.mode, info.status) + 
-            '</div>\
+                ' + btnHtml(info.mode, info.status) +
+        '</div>\
           </form>' + logBoxHtml(info.mode) + '</div>';
 }
 
@@ -64,70 +65,80 @@ var spidersHtml = function(spiders) {
 
     return html;
 }
-var threadNumHtml = function(threadNum) {
+var ThreadNumHtml = function(ThreadNum) {
     return '<div class="form-group">\
                 <label>并发协程</label>\
-                <input name="threadNum" type="number" class="form-control" min="' + threadNum.min + '" max="' + threadNum.max + '" value="' + threadNum['default'] + '">\
+                <input name="ThreadNum" type="number" class="form-control" min="' + ThreadNum.min + '" max="' + ThreadNum.max + '" value="' + ThreadNum.curr + '">\
               </div>';
 }
 
-var dockerCapHtml = function(dockerCap) {
+var DockerCapHtml = function(DockerCap) {
     return '<div class="form-group">\
                 <label>分批输出大小</label>\
-                <input name="dockerCap" type="number" class="form-control" min="' + dockerCap['min'] + '" max="' + dockerCap['max'] + '" value="' + dockerCap['default'] + '">\
+                <input name="DockerCap" type="number" class="form-control" min="' + DockerCap.min + '" max="' + DockerCap.max + '" value="' + DockerCap.curr + '">\
               </div>';
 }
 
-var sleepTimeHtml = function(sleepTime) {
-    var html1 = '<div class="form-group">\
-                <label>间隔基准</label>\
-                <select class="form-control" name="baseSleeptime">';
-    for (var i in sleepTime.base) {
+var PausetimeHtml = function(Pausetime) {
+    var html = '<div class="form-group">\
+                <label>暂停时长参考</label>\
+                <select class="form-control" name="Pausetime">';
+    for (var i in Pausetime.menu) {
         var isSelect = ""
-        if (sleepTime.base[i] == sleepTime['default'][0]) {
+        if (Pausetime.menu[i] == Pausetime.curr[0]) {
             isSelect = " selected";
         };
-        html1 += '<option value="' + sleepTime.base[i] + '"' + isSelect + '>' + sleepTime.base[i] + ' ms</option>';
+        if (Pausetime.menu[i] == 0) {
+            html += '<option value="' + Pausetime.menu[i] + '"' + isSelect + '>' + "无暂停" + '</option>';
+        } else {
+            html += '<option value="' + Pausetime.menu[i] + '"' + isSelect + '>' + Pausetime.menu[i] + ' ms</option>';
+        }
     };
-    html1 += '</select></div>';
-
-    var html2 = '<div class="form-group">\
-                <label>随机延迟</label>\
-                <select class="form-control" name="randomSleepPeriod">';
-    for (var i in sleepTime.random) {
-        var isSelect = "";
-        if (sleepTime.random[i] == sleepTime['default'][1]) {
-            isSelect = " selected";
-        };
-        html2 += '<option value="' + sleepTime.random[i] + '"' + isSelect + '>' + sleepTime.random[i] + ' ms</option>';
-    };
-    html2 += '</select></div>';
-
-    return html1 + html2;
+    html += '</select></div>';
+    return html;
 }
 
-var outputsHtml = function(outputs) {
-    var html = '<div class="form-group"> \
-            <label>输出方式</label>\
-            <select class="form-control" name="output">';
-    for (var i in outputs.menu) {
-        var isSelect = "";
-        if (outputs.curr == outputs.menu[i]) {
+var ProxyMinuteHtml = function(ProxyMinute) {
+    var html = '<div class="form-group">\
+                <label>代理IP更换频率</label>\
+                <select class="form-control" name="ProxyMinute">';
+    for (var i in ProxyMinute.menu) {
+        var isSelect = ""
+        if (ProxyMinute.menu[i] == ProxyMinute.curr[0]) {
             isSelect = " selected";
         };
-        html += '<option value="' + outputs.menu[i] + '"' + isSelect + '>' + outputs.menu[i] + '</option>';
+        if (ProxyMinute.menu[i] == 0) {
+            html += '<option value="' + ProxyMinute.menu[i] + '"' + isSelect + '>' + "不使用代理" + '</option>';
+        } else {
+            html += '<option value="' + ProxyMinute.menu[i] + '"' + isSelect + '>' + ProxyMinute.menu[i] + ' min</option>';
+        }
+    };
+    html += '</select></div>';
+    return html;
+}
+
+var OutTypeHtml = function(OutType) {
+    var html = '<div class="form-group"> \
+            <label>输出方式</label>\
+            <select class="form-control" name="OutType">';
+    for (var i in OutType.menu) {
+        var isSelect = "";
+        if (OutType.curr == OutType.menu[i]) {
+            isSelect = " selected";
+        };
+        html += '<option value="' + OutType.menu[i] + '"' + isSelect + '>' + OutType.menu[i] + '</option>';
     }
     return html + '</select></div>';
 }
 
-var successInheritHtml = function(successInherit) {
+var SuccessInheritHtml = function(SuccessInherit) {
     var html = '<div class="form-group"> \
             <label>继承并保存成功记录</label>\
-            <select class="form-control" name="successInherit">';
+            <select class="form-control" name="SuccessInherit">';
 
     var True = "";
     var False = "";
-    if (successInherit == true) {
+    if (SuccessInherit == true) {
         True = " selected";
     } else {
         False = " selected";
@@ -138,14 +149,14 @@ var successInheritHtml = function(successInherit) {
     return html + '</select></div>';
 }
 
-var failureInheritHtml = function(failureInherit) {
+var FailureInheritHtml = function(FailureInherit) {
     var html = '<div class="form-group"> \
             <label>继承并保存失败记录</label>\
-            <select class="form-control" name="failureInherit">';
+            <select class="form-control" name="FailureInherit">';
 
     var True = "";
     var False = "";
-    if (failureInherit == true) {
+    if (FailureInherit == true) {
         True = " selected";
     } else {
         False = " selected";
