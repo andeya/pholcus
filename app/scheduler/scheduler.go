@@ -29,6 +29,7 @@ type scheduler struct {
 	history history.Historier
 	// 全局读写锁
 	sync.RWMutex
+	sync.Once
 }
 
 // 定义全局调度
@@ -36,10 +37,14 @@ var sdl = &scheduler{
 	history: history.New(),
 	status:  status.RUN,
 	count:   make(chan bool, cache.Task.ThreadNum),
-	proxy:   proxy.New(),
+}
+
+func proxyInit() {
+	sdl.proxy = proxy.New()
 }
 
 func Init() {
+	sdl.Once.Do(proxyInit)
 	sdl.matrices = make(map[int]*Matrix)
 	sdl.count = make(chan bool, cache.Task.ThreadNum)
 	sdl.history.ReadSuccess(cache.Task.OutType, cache.Task.SuccessInherit)

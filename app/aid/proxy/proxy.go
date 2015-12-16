@@ -11,6 +11,7 @@ import (
 
 	"github.com/henrylee2cn/ping"
 
+	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 )
@@ -41,7 +42,9 @@ func (self *Proxy) Count() int {
 
 // 更新代理IP列表
 func (self *Proxy) Update() *Proxy {
-	f, err := os.Open(config.PROXY_FILE)
+	once.Do(mkdir)
+
+	f, err := os.Open(config.PROXY_FULL_FILE_NAME)
 	if err != nil {
 		// logs.Log.Error("Error: %v\n", err)
 		return self
@@ -131,4 +134,10 @@ func (self *Proxy) Less(i, j int) bool {
 func (self *Proxy) Swap(i, j int) {
 	self.speed[i], self.speed[j] = self.speed[j], self.speed[i]
 	self.timedelay[i], self.timedelay[j] = self.timedelay[j], self.timedelay[i]
+}
+
+var once = new(sync.Once)
+
+func mkdir() {
+	util.Mkdir(config.PROXY_FULL_FILE_NAME)
 }

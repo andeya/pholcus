@@ -32,12 +32,12 @@ var (
 		10000,
 	}
 
-	// 去重模块相关配置
+	// 历史记录模块相关配置
 	// 输出方式为文件时，保存路径为COMM_PATH.CACHE下的FILE_NAME文件
 	// 输出方式为数据库时，保存路径为相应数据库下的FILE_NAME表单
 	HISTORY = &struct {
-		//去重记录的文件名或表名
-		FILE_NAME string
+		// 历史记录文件名前缀
+		FILE_NAME_PREFIX string
 	}{
 		"history",
 	}
@@ -73,7 +73,8 @@ var (
 		1024,
 	}
 
-	PROXY_FILE = "proxy.pholcus"
+	// 代理IP完整文件名
+	PROXY_FULL_FILE_NAME = "proxy.pholcus"
 )
 
 const (

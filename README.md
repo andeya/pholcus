@@ -85,6 +85,12 @@ func init() {
     //mysql连接池容量
     config.MYSQL.MAX_CONNS = 1024
 
+    // 历史记录文件名前缀
+    config.HISTORY.FILE_NAME_PREFIX = "history"
+
+    // 代理IP完整文件名
+    config.PROXY_FULL_FILE_NAME = "proxy.pholcus"
+
     // Surfer-Phantom下载器配置
     config.SURFER_PHANTOM.FULL_APP_NAME = "phantomjs" //phantomjs软件相对路径与名称
 }

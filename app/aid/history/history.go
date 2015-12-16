@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
-	"path"
 	"sync"
 
 	"gopkg.in/mgo.v2/bson"
@@ -12,6 +11,7 @@ import (
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
+	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 )
@@ -49,8 +49,8 @@ type Record interface {
 var (
 	MGO_DB = config.MGO.DB
 
-	SUCCESS_FILE = config.HISTORY.FILE_NAME + "_y"
-	FAILURE_FILE = config.HISTORY.FILE_NAME + "_n"
+	SUCCESS_FILE = config.HISTORY.FILE_NAME_PREFIX + "_y"
+	FAILURE_FILE = config.HISTORY.FILE_NAME_PREFIX + "_n"
 
 	SUCCESS_FILE_FULL = config.COMM_PATH.CACHE + "/" + SUCCESS_FILE
 	FAILURE_FILE_FULL = config.COMM_PATH.CACHE + "/" + FAILURE_FILE
@@ -278,21 +278,6 @@ func (self *History) FlushFailure(provider string) {
 var once = new(sync.Once)
 
 func mkdir() {
-	p, _ := path.Split(SUCCESS_FILE_FULL)
-	// 创建/打开目录
-	d, err := os.Stat(p)
-	if err != nil || !d.IsDir() {
-		if err = os.MkdirAll(p, 0777); err != nil {
-			logs.Log.Error("Error: %v\n", err)
-		}
-	}
-
-	p, _ = path.Split(FAILURE_FILE_FULL)
-	// 创建/打开目录
-	d, err = os.Stat(p)
-	if err != nil || !d.IsDir() {
-		if err = os.MkdirAll(p, 0777); err != nil {
-			logs.Log.Error("Error: %v\n", err)
-		}
-	}
+	util.Mkdir(SUCCESS_FILE_FULL)
+	util.Mkdir(FAILURE_FILE_FULL)
 }
