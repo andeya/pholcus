@@ -16,7 +16,12 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
-const TIMEOUT = 4 //4s
+const (
+	// ping最大时长
+	TIMEOUT = 4 //4s
+	// 尝试ping的最大次数
+	PING_TIMES = 3
+)
 
 type Proxy struct {
 	usable       map[string]bool
@@ -89,6 +94,11 @@ func (self *Proxy) GetOne() (string, time.Duration) {
 
 func (self *Proxy) getOne() {
 	self.updateSort()
+	if len(self.speed) == 0 {
+		self.curProxy, self.curTimedelay = "", 0
+		logs.Log.Informational(" *     设置代理IP失败，没有可用的代理IP\n")
+		return
+	}
 	// fmt.Printf("使用前IP测试%#v\n", self.timedelay)
 	self.curProxy = self.speed[0]
 	self.curTimedelay = self.timedelay[0]
@@ -107,22 +117,30 @@ func (self *Proxy) updateSort() *Proxy {
 			self.usable[proxy] = true
 		}
 	}
-	self.speed = []string{}
-	self.timedelay = []time.Duration{}
-
-	for proxy, unused := range self.usable {
-		if unused {
-			alive, err, timedelay := ping.Ping(proxy, TIMEOUT)
-			self.speed = append(self.speed, proxy)
-			if !alive || err != nil {
-				self.timedelay = append(self.timedelay, TIMEOUT+1)
-			} else {
-				self.timedelay = append(self.timedelay, timedelay)
+	// 最多尝试ping PING_TIMES次
+	for i := PING_TIMES; i > 0; i-- {
+		self.speed = []string{}
+		self.timedelay = []time.Duration{}
+		for proxy, unused := range self.usable {
+			if unused {
+				alive, err, timedelay := ping.Ping(proxy, TIMEOUT)
+				if !alive || err != nil {
+					// 跳过无法ping通的ip
+					self.usable[proxy] = false
+				} else {
+					self.speed = append(self.speed, proxy)
+					self.timedelay = append(self.timedelay, timedelay)
+				}
 			}
 		}
+		if len(self.speed) > 0 {
+			sort.Sort(self)
+			break
+		}
+		for proxy, _ := range self.usable {
+			self.usable[proxy] = true
+		}
 	}
-
-	sort.Sort(self)
 
 	return self
 }
