@@ -53,7 +53,7 @@ type Report struct {
 	Keyword    string
 	DataNum    uint64
 	FileNum    uint64
-	Time       string
+	Time       time.Duration
 }
 
 var (

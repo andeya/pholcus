@@ -2,7 +2,6 @@
 package collector
 
 import (
-	"fmt"
 	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
@@ -149,6 +148,6 @@ func (self *Collector) Report() {
 		Keyword:    self.GetKeyword(),
 		DataNum:    self.dataSum(),
 		FileNum:    self.fileSum(),
-		Time:       fmt.Sprintf("%.5f", time.Since(cache.StartTime).Minutes()),
+		Time:       time.Since(cache.StartTime),
 	}
 }

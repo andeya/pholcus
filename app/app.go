@@ -100,7 +100,7 @@ type Logic struct {
 	//执行计数
 	sum [2]uint64
 	// 执行计时
-	takeTime float64
+	takeTime time.Duration
 	// 运行状态
 	status       int
 	finish       chan bool
@@ -575,18 +575,18 @@ func (self *Logic) goRun(count int) {
 		logs.Log.Informational(" * ")
 		switch {
 		case s.DataNum > 0 && s.FileNum == 0:
-			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.DataNum, s.Time)
+			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条，用时 %v！\n", s.SpiderName, s.Keyword, s.DataNum, s.Time)
 		case s.DataNum == 0 && s.FileNum > 0:
-			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共下载文件 %v 个，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.FileNum, s.Time)
+			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共下载文件 %v 个，用时 %v！\n", s.SpiderName, s.Keyword, s.FileNum, s.Time)
 		default:
-			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条 + 下载文件 %v 个，用时 %v 分钟！\n", s.SpiderName, s.Keyword, s.DataNum, s.FileNum, s.Time)
+			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条 + 下载文件 %v 个，用时 %v！\n", s.SpiderName, s.Keyword, s.DataNum, s.FileNum, s.Time)
 		}
 
 		self.sum[0] += s.DataNum
 		self.sum[1] += s.FileNum
 	}
 	// 总耗时
-	self.takeTime = time.Since(cache.StartTime).Minutes()
+	self.takeTime = time.Since(cache.StartTime)
 	var prefix = func() string {
 		if self.Status() == status.STOP {
 			return "任务中途取消："
@@ -599,11 +599,13 @@ func (self *Logic) goRun(count int) {
 	logs.Log.Informational(" * ")
 	switch {
 	case self.sum[0] > 0 && self.sum[1] == 0:
-		logs.Log.Notice(" *                            —— %s合计输出 %v 条数据，实爬URL %v 个[成功：%v，失败：%v]，耗时：%.5f 分钟 ——", prefix, self.sum[0], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), self.takeTime)
+		logs.Log.Notice(" *                            —— %s合计输出【数据 %v 条】， 实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——", prefix, self.sum[0], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	case self.sum[0] == 0 && self.sum[1] > 0:
-		logs.Log.Notice(" *                            —— %s合计输出 %v 个文件，实爬URL %v 个[成功：%v，失败：%v]，耗时：%.5f 分钟 ——", prefix, self.sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), self.takeTime)
+		logs.Log.Notice(" *                            —— %s合计输出【文件 %v 个】， 实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——", prefix, self.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
+	case self.sum[0] == 0 && self.sum[1] == 0:
+		logs.Log.Notice(" *                            —— %s无结果输出，实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——", prefix, cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	default:
-		logs.Log.Notice(" *                            —— %s合计输出 %v 条数据 + %v 个文件，实爬URL %v 个[成功：%v，失败：%v]，耗时：%.5f 分钟 ——", prefix, self.sum[0], self.sum[1], cache.GetPageCount(0), cache.GetPageCount(1), cache.GetPageCount(-1), self.takeTime)
+		logs.Log.Notice(" *                            —— %s合计输出【数据 %v 条 + 文件 %v 个】，实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——", prefix, self.sum[0], self.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	}
 	logs.Log.Informational(" * ")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)

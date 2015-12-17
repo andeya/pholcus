@@ -253,7 +253,7 @@ func (self *Matrix) CanStop() bool {
 			}
 			self.failures[unique] = nil
 			goon = true
-			logs.Log.Informational(" *     失败请求重载: [%v]\n", req.GetUrl())
+			logs.Log.Informational(" *     - 失败请求: [%v]\n", req.GetUrl())
 			self.Push(req)
 		}
 		if goon {

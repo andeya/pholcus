@@ -77,24 +77,27 @@ func (self *Proxy) GetOne() (string, time.Duration) {
 	if len(self.usable) == 0 {
 		return "", -1
 	}
-	self.updateSort()
 	select {
 	case <-self.ticker.C:
-		self.curProxy = self.speed[1]
-		self.curTimedelay = self.timedelay[1]
-		self.speed = self.speed[1:]
-		self.timedelay = self.timedelay[1:]
-		logs.Log.Informational(" *     设置代理IP为 [%v](%v)\n", self.curProxy, self.curTimedelay)
+		self.getOne()
 	default:
-		self.Once.Do(func() {
-			self.curProxy = self.speed[1]
-			self.curTimedelay = self.timedelay[1]
-			self.speed = self.speed[1:]
-			self.timedelay = self.timedelay[1:]
-			logs.Log.Informational(" *     设置代理IP为 [%v](%v)\n", self.curProxy, self.curTimedelay)
-		})
+		self.Once.Do(self.getOne)
 	}
+	// fmt.Printf("获取使用IP：[%v](%v)\n", self.curProxy, self.curTimedelay)
 	return self.curProxy, self.curTimedelay
+}
+
+func (self *Proxy) getOne() {
+	self.updateSort()
+	// fmt.Printf("使用前IP测试%#v\n", self.timedelay)
+	self.curProxy = self.speed[0]
+	self.curTimedelay = self.timedelay[0]
+	self.speed = self.speed[1:]
+	self.timedelay = self.timedelay[1:]
+	self.usable[self.curProxy] = false
+	logs.Log.Informational(" *     设置代理IP为 [%v](%v)\n", self.curProxy, self.curTimedelay)
+	// fmt.Printf("当前IP情况%#v\n", self.usable)
+	// fmt.Printf("当前未用IP%#v\n", self.speed)
 }
 
 // 为代理IP测试并排序
