@@ -98,7 +98,7 @@ func init() {
 
 const (
 	// 软件版本号
-	APP_VERSION = "v0.7.5"
+	APP_VERSION = "v0.7.6"
 	// 软件作者
 	APP_AUTHOR = "henrylee2cn"
 	//软件名
