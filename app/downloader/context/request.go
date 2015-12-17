@@ -136,9 +136,19 @@ func (self *Request) Serialize() string {
 
 // 获取副本
 func (self *Request) Copy() *Request {
-	reqcopy := new(Request)
+	temp := self.Temp
+	self.Temp = make(map[string]interface{})
 	b, _ := json.Marshal(self)
+
+	reqcopy := new(Request)
 	json.Unmarshal(b, reqcopy)
+	reqcopy.Temp = make(map[string]interface{})
+	for k := range temp {
+		reqcopy.Temp[k] = temp[k]
+	}
+
+	self.Temp = temp
+
 	return reqcopy
 }
 
