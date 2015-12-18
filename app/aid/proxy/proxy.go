@@ -67,6 +67,8 @@ func (self *Proxy) Update() *Proxy {
 			return
 		}
 		b, _ := ioutil.ReadAll(f)
+		f.Close()
+
 		proxys := self.proxyRegexp.FindAllString(string(b), -1)
 		for _, proxy := range proxys {
 			self.ipMap[proxy] = self.ipRegexp.FindString(proxy)
