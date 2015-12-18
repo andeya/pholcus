@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"runtime"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -29,6 +28,7 @@ const (
 
 type Proxy struct {
 	ipRegexp     *regexp.Regexp
+	proxyRegexp  *regexp.Regexp
 	ipMap        map[string]string
 	usable       map[string]bool
 	speed        []string
@@ -43,10 +43,11 @@ type Proxy struct {
 
 func New() *Proxy {
 	return (&Proxy{
-		ipRegexp: regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`),
-		ipMap:    map[string]string{},
-		usable:   map[string]bool{},
-		pingPool: make(chan bool, MAX_THREAD_NUM),
+		ipRegexp:    regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`),
+		proxyRegexp: regexp.MustCompile(`http[s]?://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`),
+		ipMap:       map[string]string{},
+		usable:      map[string]bool{},
+		pingPool:    make(chan bool, MAX_THREAD_NUM),
 	}).Update()
 }
 
@@ -66,12 +67,8 @@ func (self *Proxy) Update() *Proxy {
 			return
 		}
 		b, _ := ioutil.ReadAll(f)
-		s := strings.Replace(string(b), " ", "", -1)
-		s = strings.Replace(s, "\r", "", -1)
-		s = strings.Replace(s, "\n\n", "\n", -1)
-		s = strings.Trim(s, "\n")
-
-		for _, proxy := range strings.Split(s, "\n") {
+		proxys := self.proxyRegexp.FindAllString(string(b), -1)
+		for _, proxy := range proxys {
 			self.ipMap[proxy] = self.ipRegexp.FindString(proxy)
 			self.usable[proxy] = true
 			// fmt.Printf("+ 代理IP %v：%v\n", i, proxy)
