@@ -53,9 +53,10 @@ package main
 import (
     "github.com/henrylee2cn/pholcus/config"
     "github.com/henrylee2cn/pholcus/exec"
+    "github.com/henrylee2cn/pholcus/runtime/cache"
     // "github.com/henrylee2cn/pholcus/logs"
 
-    _ "github.com/pholcus/spider_lib"     // 此为公开维护的spider规则库
+    _ "github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
     // _ "spider_lib_pte" // 同样你也可以自由添加自己的规则库
 )
 
@@ -68,6 +69,9 @@ func main() {
 
 // 自定义相关配置，将覆盖默认值
 func init() {
+    // 标记当前init()已执行完毕
+    defer cache.ExecInit(0)
+
     // 允许日志打印行号
     // logs.ShowLineNum()
 

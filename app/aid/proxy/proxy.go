@@ -1,9 +1,11 @@
 package proxy
 
 import (
-	"fmt"
+	// "fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -21,9 +23,13 @@ const (
 	TIMEOUT = 4 //4s
 	// 尝试ping的最大次数
 	PING_TIMES = 3
+	// IP测速的最大并发量
+	MAX_THREAD_NUM = 1000
 )
 
 type Proxy struct {
+	ipRegexp     *regexp.Regexp
+	ipMap        map[string]string
 	usable       map[string]bool
 	speed        []string
 	timedelay    []time.Duration
@@ -31,12 +37,16 @@ type Proxy struct {
 	curTimedelay time.Duration
 	ticker       *time.Ticker
 	tickMinute   int64
+	pingPool     chan bool
 	sync.Once
 }
 
 func New() *Proxy {
 	return (&Proxy{
-		usable: map[string]bool{},
+		ipRegexp: regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`),
+		ipMap:    map[string]string{},
+		usable:   map[string]bool{},
+		pingPool: make(chan bool, MAX_THREAD_NUM),
 	}).Update()
 }
 
@@ -47,31 +57,32 @@ func (self *Proxy) Count() int {
 
 // 更新代理IP列表
 func (self *Proxy) Update() *Proxy {
-	once.Do(mkdir)
+	go func() {
+		once.Do(mkdir)
 
-	f, err := os.Open(config.PROXY_FULL_FILE_NAME)
-	if err != nil {
-		// logs.Log.Error("Error: %v\n", err)
-		return self
-	}
-	b, _ := ioutil.ReadAll(f)
-	s := strings.Replace(string(b), " ", "", -1)
-	s = strings.Replace(s, "\r", "", -1)
-	s = strings.Replace(s, "\n\n", "\n", -1)
+		f, err := os.Open(config.PROXY_FULL_FILE_NAME)
+		if err != nil {
+			// logs.Log.Error("Error: %v\n", err)
+			return
+		}
+		b, _ := ioutil.ReadAll(f)
+		s := strings.Replace(string(b), " ", "", -1)
+		s = strings.Replace(s, "\r", "", -1)
+		s = strings.Replace(s, "\n\n", "\n", -1)
+		s = strings.Trim(s, "\n")
 
-	for i, proxy := range strings.Split(s, "\n") {
-		self.usable[proxy] = true
-		fmt.Printf("+ 代理IP %v：%v\n", i, proxy)
-	}
-
+		for _, proxy := range strings.Split(s, "\n") {
+			self.ipMap[proxy] = self.ipRegexp.FindString(proxy)
+			self.usable[proxy] = true
+			// fmt.Printf("+ 代理IP %v：%v\n", i, proxy)
+		}
+		logs.Log.Informational(" *     读取代理IP: %v 条\n", len(self.usable))
+	}()
 	return self
 }
 
 // 更新继时器
 func (self *Proxy) UpdateTicker(tickMinute int64) {
-	if self.tickMinute == tickMinute {
-		return
-	}
 	self.tickMinute = tickMinute
 	self.ticker = time.NewTicker(time.Duration(self.tickMinute) * time.Minute)
 	self.Once = sync.Once{}
@@ -112,26 +123,24 @@ func (self *Proxy) getOne() {
 
 // 为代理IP测试并排序
 func (self *Proxy) updateSort() *Proxy {
+	logs.Log.Informational(" *     正在测速代理IP并排序……")
 	if len(self.speed) == 0 {
 		for proxy, _ := range self.usable {
 			self.usable[proxy] = true
 		}
 	}
+
 	// 最多尝试ping PING_TIMES次
 	for i := PING_TIMES; i > 0; i-- {
 		self.speed = []string{}
 		self.timedelay = []time.Duration{}
 		for proxy, unused := range self.usable {
 			if unused {
-				alive, err, timedelay := ping.Ping(proxy, TIMEOUT)
-				if !alive || err != nil {
-					// 跳过无法ping通的ip
-					self.usable[proxy] = false
-				} else {
-					self.speed = append(self.speed, proxy)
-					self.timedelay = append(self.timedelay, timedelay)
-				}
+				self.ping(proxy)
 			}
+		}
+		for len(self.pingPool) > 0 {
+			runtime.Gosched()
 		}
 		if len(self.speed) > 0 {
 			sort.Sort(self)
@@ -141,8 +150,25 @@ func (self *Proxy) updateSort() *Proxy {
 			self.usable[proxy] = true
 		}
 	}
+	logs.Log.Informational(" *     代理IP测速与排序完成，有效IP：%v 个\n", len(self.speed))
 
 	return self
+}
+
+func (self *Proxy) ping(proxy string) {
+	self.pingPool <- true
+	go func() {
+		alive, err, timedelay := ping.Ping(self.ipMap[proxy], TIMEOUT)
+		// fmt.Printf("ping：%v, %v, %v, %v\n", self.ipMap[proxy], alive, err, timedelay)
+		if !alive || err != nil {
+			// 跳过无法ping通的ip
+			self.usable[proxy] = false
+		} else {
+			self.speed = append(self.speed, proxy)
+			self.timedelay = append(self.timedelay, timedelay)
+		}
+		<-self.pingPool
+	}()
 }
 
 // 实现排序接口

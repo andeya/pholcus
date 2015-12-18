@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"runtime"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -29,7 +30,6 @@ type scheduler struct {
 	history history.Historier
 	// 全局读写锁
 	sync.RWMutex
-	sync.Once
 }
 
 // 定义全局调度
@@ -39,12 +39,17 @@ var sdl = &scheduler{
 	count:   make(chan bool, cache.Task.ThreadNum),
 }
 
-func proxyInit() {
-	sdl.proxy = proxy.New()
+func init() {
+	go func() {
+		// 等待main中的init()执行完毕
+		cache.WaitInit(0)
+		sdl.proxy = proxy.New()
+	}()
 }
-
 func Init() {
-	sdl.Once.Do(proxyInit)
+	for sdl.proxy == nil {
+		runtime.Gosched()
+	}
 	sdl.matrices = make(map[int]*Matrix)
 	sdl.count = make(chan bool, cache.Task.ThreadNum)
 	sdl.history.ReadSuccess(cache.Task.OutType, cache.Task.SuccessInherit)

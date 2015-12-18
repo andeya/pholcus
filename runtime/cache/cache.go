@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"runtime"
 	"sync/atomic"
 	"time"
 )
@@ -93,14 +94,22 @@ func PageFailCount() {
 	atomic.AddUint64(&pageSum[1], 1)
 }
 
-//****************************************节点通信数据*******************************************\\
+//****************************************init函数执行顺序控制*******************************************\\
 
-// type NetData struct {
-// 	Type int
-// 	Body interface{}
-// 	From string
-// 	To   string
-// }
+var initOrder = make(map[int]bool)
+
+// 标记当前init()已执行完毕
+func ExecInit(order int) {
+	initOrder[order] = true
+}
+
+// 等待指定init()执行完毕
+// 需并发协程中调用
+func WaitInit(order int) {
+	for !initOrder[order] {
+		runtime.Gosched()
+	}
+}
 
 //****************************************初始化*******************************************\\
 

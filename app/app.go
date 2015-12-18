@@ -575,11 +575,11 @@ func (self *Logic) goRun(count int) {
 		logs.Log.Informational(" * ")
 		switch {
 		case s.DataNum > 0 && s.FileNum == 0:
-			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条，用时 %v！\n", s.SpiderName, s.Keyword, s.DataNum, s.Time)
+			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共采集数据 %v 条，用时 %v！\n", s.SpiderName, s.Keyword, s.DataNum, s.Time)
 		case s.DataNum == 0 && s.FileNum > 0:
 			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共下载文件 %v 个，用时 %v！\n", s.SpiderName, s.Keyword, s.FileNum, s.Time)
 		default:
-			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共输出数据 %v 条 + 下载文件 %v 个，用时 %v！\n", s.SpiderName, s.Keyword, s.DataNum, s.FileNum, s.Time)
+			logs.Log.Notice(" *     [输出报告 -> 任务：%v | 关键词：%v]   共采集数据 %v 条 + 下载文件 %v 个，用时 %v！\n", s.SpiderName, s.Keyword, s.DataNum, s.FileNum, s.Time)
 		}
 
 		self.sum[0] += s.DataNum

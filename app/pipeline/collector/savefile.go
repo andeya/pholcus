@@ -9,6 +9,7 @@ import (
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
+	"github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
 //文件输出管理
@@ -23,7 +24,7 @@ func (self *Collector) SaveFile() {
 
 			// 路径： file/"RuleName"/"time"/"Name"
 			p, n := path.Split(file["Name"].(string))
-			dir := config.COMM_PATH.FILE + `/` + util.FileNameReplace(self.namespace()) + "__" + self.startTime.Format("2006年01月02日 15时04分05秒") + `/` + p
+			dir := config.COMM_PATH.FILE + `/` + util.FileNameReplace(self.namespace()) + "__" + cache.StartTime.Format("2006年01月02日 15时04分05秒") + `/` + p
 
 			// 创建/打开目录
 			d, err := os.Stat(dir)

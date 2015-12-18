@@ -12,13 +12,13 @@ import (
 type Collector struct {
 	*spider.Spider
 	*DockerQueue
-	DataChan  chan DataCell
-	FileChan  chan FileCell
-	ctrl      chan bool //长度为零时退出并输出
-	startTime time.Time
-	outType   string
-	sum       [3]uint64 //收集的数据总数[文本过去，文本现在，文件],非并发安全
-	outCount  [4]uint   //[文本输出开始，文本输出结束，文件输出开始，文件输出结束]
+	DataChan chan DataCell
+	FileChan chan FileCell
+	ctrl     chan bool //长度为零时退出并输出
+	timing   time.Time //上次输出完成的时间点
+	outType  string    //输出方式
+	sum      [3]uint64 //收集的数据总数[文本过去，文本现在，文件],非并发安全
+	outCount [4]uint   //[文本输出开始，文本输出结束，文件输出开始，文件输出结束]
 }
 
 func NewCollector() *Collector {
@@ -40,7 +40,7 @@ func (self *Collector) Init(sp *spider.Spider) {
 	self.ctrl = make(chan bool, 1)
 	self.sum = [3]uint64{}
 	self.outCount = [4]uint{}
-	self.startTime = cache.StartTime
+	self.timing = cache.StartTime
 }
 
 func (self *Collector) CollectData(dataCell DataCell) {
