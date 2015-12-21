@@ -3,80 +3,125 @@ package proxy
 import (
 	// "fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"regexp"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/henrylee2cn/ping"
 
+	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/downloader/surfer"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
 const (
-	// ping最大时长
-	TIMEOUT = 4 //4s
-	// 尝试ping的最大次数
-	PING_TIMES = 3
+	CONN_TIMEOUT = 4 //4s
+	DAIL_TIMEOUT = 4 //4s
+	TRY_TIMES    = 3
 	// IP测速的最大并发量
 	MAX_THREAD_NUM = 1000
 )
 
 type Proxy struct {
-	ipRegexp     *regexp.Regexp
-	proxyRegexp  *regexp.Regexp
-	ipMap        map[string]string
-	usable       map[string]bool
-	speed        []string
-	timedelay    []time.Duration
-	curProxy     string
-	curTimedelay time.Duration
-	ticker       *time.Ticker
-	tickMinute   int64
-	pingPool     chan bool
-	sync.Once
+	ipRegexp    *regexp.Regexp
+	proxyRegexp *regexp.Regexp
+	allIps      map[string]string
+	all         map[string]bool
+	online      int
+	usable      map[string]*ProxyForHost
+	ticker      *time.Ticker
+	tickMinute  int64
+	threadPool  chan bool
+	surf        surfer.Surfer
+}
+type ProxyForHost struct {
+	curIndex  int // 当前代理ip索引
+	proxys    []string
+	timedelay []time.Duration
+	isEcho    bool // 是否打印换ip信息
+	sync.Mutex
+}
+
+// 实现排序接口
+func (self *ProxyForHost) Len() int {
+	return len(self.proxys)
+}
+func (self *ProxyForHost) Less(i, j int) bool {
+	return self.timedelay[i] < self.timedelay[j]
+}
+func (self *ProxyForHost) Swap(i, j int) {
+	self.proxys[i], self.proxys[j] = self.proxys[j], self.proxys[i]
+	self.timedelay[i], self.timedelay[j] = self.timedelay[j], self.timedelay[i]
 }
 
 func New() *Proxy {
 	return (&Proxy{
 		ipRegexp:    regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`),
 		proxyRegexp: regexp.MustCompile(`http[s]?://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`),
-		ipMap:       map[string]string{},
-		usable:      map[string]bool{},
-		pingPool:    make(chan bool, MAX_THREAD_NUM),
+		allIps:      map[string]string{},
+		all:         map[string]bool{},
+		usable:      make(map[string]*ProxyForHost),
+		threadPool:  make(chan bool, MAX_THREAD_NUM),
+		surf:        surfer.New(),
 	}).Update()
 }
 
 // 代理IP数量
 func (self *Proxy) Count() int {
-	return len(self.usable)
+	return self.online
 }
 
 // 更新代理IP列表
 func (self *Proxy) Update() *Proxy {
-	go func() {
-		once.Do(mkdir)
+	once.Do(mkdir)
+	f, err := os.Open(config.PROXY_FULL_FILE_NAME)
+	if err != nil {
+		// logs.Log.Error("Error: %v\n", err)
+		return self
+	}
+	b, _ := ioutil.ReadAll(f)
+	f.Close()
 
-		f, err := os.Open(config.PROXY_FULL_FILE_NAME)
-		if err != nil {
-			// logs.Log.Error("Error: %v\n", err)
-			return
-		}
-		b, _ := ioutil.ReadAll(f)
-		f.Close()
+	proxys := self.proxyRegexp.FindAllString(string(b), -1)
+	for _, proxy := range proxys {
+		self.allIps[proxy] = self.ipRegexp.FindString(proxy)
+		self.all[proxy] = false
+		// fmt.Printf("+ 代理IP %v：%v\n", i, proxy)
+	}
+	logs.Log.Informational(" *     读取代理IP: %v 条\n", len(self.all))
 
-		proxys := self.proxyRegexp.FindAllString(string(b), -1)
-		for _, proxy := range proxys {
-			self.ipMap[proxy] = self.ipRegexp.FindString(proxy)
-			self.usable[proxy] = true
-			// fmt.Printf("+ 代理IP %v：%v\n", i, proxy)
-		}
-		logs.Log.Informational(" *     读取代理IP: %v 条\n", len(self.usable))
-	}()
+	self.findOnline()
+
+	return self
+}
+
+// 筛选在线的代理IP
+func (self *Proxy) findOnline() *Proxy {
+	logs.Log.Informational(" *     正在筛选在线的代理IP……")
+	self.online = 0
+	for proxy := range self.all {
+		self.threadPool <- true
+		go func(proxy string) {
+			alive, _, _ := ping.Ping(self.allIps[proxy], CONN_TIMEOUT)
+			self.all[proxy] = alive
+			if alive {
+				self.online++
+			}
+			<-self.threadPool
+		}(proxy)
+	}
+	for len(self.threadPool) > 0 {
+		runtime.Gosched()
+	}
+	logs.Log.Informational(" *     在线代理IP筛选完成，共计：%v 个\n", self.online)
+
 	return self
 }
 
@@ -84,102 +129,115 @@ func (self *Proxy) Update() *Proxy {
 func (self *Proxy) UpdateTicker(tickMinute int64) {
 	self.tickMinute = tickMinute
 	self.ticker = time.NewTicker(time.Duration(self.tickMinute) * time.Minute)
-	self.Once = sync.Once{}
+	for _, proxyForHost := range self.usable {
+		proxyForHost.curIndex++
+		proxyForHost.isEcho = true
+	}
 }
 
 // 获取本次循环中未使用的代理IP及其响应时长
-func (self *Proxy) GetOne() (string, time.Duration) {
-	if len(self.usable) == 0 {
-		return "", -1
-	}
-	select {
-	case <-self.ticker.C:
-		self.getOne()
-	default:
-		self.Once.Do(self.getOne)
-	}
-	// fmt.Printf("获取使用IP：[%v](%v)\n", self.curProxy, self.curTimedelay)
-	return self.curProxy, self.curTimedelay
-}
-
-func (self *Proxy) getOne() {
-	self.updateSort()
-	if len(self.speed) == 0 {
-		self.curProxy, self.curTimedelay = "", 0
-		logs.Log.Informational(" *     设置代理IP失败，没有可用的代理IP\n")
+func (self *Proxy) GetOne(u string) (curProxy string) {
+	if self.online == 0 {
 		return
 	}
-	// fmt.Printf("使用前IP测试%#v\n", self.timedelay)
-	self.curProxy = self.speed[0]
-	self.curTimedelay = self.timedelay[0]
-	self.speed = self.speed[1:]
-	self.timedelay = self.timedelay[1:]
-	self.usable[self.curProxy] = false
-	logs.Log.Informational(" *     设置代理IP为 [%v](%v)\n", self.curProxy, self.curTimedelay)
-	// fmt.Printf("当前IP情况%#v\n", self.usable)
-	// fmt.Printf("当前未用IP%#v\n", self.speed)
-}
-
-// 为代理IP测试并排序
-func (self *Proxy) updateSort() *Proxy {
-	logs.Log.Informational(" *     正在测速代理IP并排序……")
-	if len(self.speed) == 0 {
-		for proxy, _ := range self.usable {
-			self.usable[proxy] = true
-		}
+	u2, _ := url.Parse(u)
+	if u2.Host == "" {
+		logs.Log.Informational(" *     [%v]设置代理IP失败，目标url不正确\n", u)
+		return
+	}
+	var key = u2.Host
+	if strings.Count(key, ".") > 1 {
+		key = key[strings.Index(key, ".")+1:]
 	}
 
-	// 最多尝试ping PING_TIMES次
-	for i := PING_TIMES; i > 0; i-- {
-		self.speed = []string{}
-		self.timedelay = []time.Duration{}
-		for proxy, unused := range self.usable {
-			if unused {
-				self.ping(proxy)
+	var ok = true
+	var proxyForHost = self.usable[key]
+
+	select {
+	case <-self.ticker.C:
+		proxyForHost.curIndex++
+		if proxyForHost.curIndex >= proxyForHost.Len() {
+			ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
+		}
+		proxyForHost.isEcho = true
+
+	default:
+		if proxyForHost == nil {
+			proxyForHost = &ProxyForHost{
+				proxys:    []string{},
+				timedelay: []time.Duration{},
+				isEcho:    true,
 			}
-		}
-		for len(self.pingPool) > 0 {
-			runtime.Gosched()
-		}
-		if len(self.speed) > 0 {
-			sort.Sort(self)
-			break
-		}
-		for proxy, _ := range self.usable {
-			self.usable[proxy] = true
+			self.usable[key] = proxyForHost
+			ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
+		} else if proxyForHost.curIndex >= proxyForHost.Len() {
+			ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
+			proxyForHost.isEcho = true
 		}
 	}
-	logs.Log.Informational(" *     代理IP测速与排序完成，有效IP：%v 个\n", len(self.speed))
-
-	return self
+	if !ok {
+		logs.Log.Informational(" *     [%v]设置代理IP失败，没有可用的代理IP\n", key)
+		return
+	}
+	curProxy = proxyForHost.proxys[proxyForHost.curIndex]
+	if proxyForHost.isEcho {
+		logs.Log.Informational(" *     设置代理IP为 [%v](%v)\n",
+			curProxy,
+			proxyForHost.timedelay[proxyForHost.curIndex],
+		)
+		proxyForHost.isEcho = false
+	}
+	return
 }
 
-func (self *Proxy) ping(proxy string) {
-	self.pingPool <- true
-	go func() {
-		alive, err, timedelay := ping.Ping(self.ipMap[proxy], TIMEOUT)
-		// fmt.Printf("ping：%v, %v, %v, %v\n", self.ipMap[proxy], alive, err, timedelay)
-		if !alive || err != nil {
-			// 跳过无法ping通的ip
-			self.usable[proxy] = false
-		} else {
-			self.speed = append(self.speed, proxy)
-			self.timedelay = append(self.timedelay, timedelay)
+// 测试并排序
+func (self *Proxy) testAndSort(key string, testHost string) bool {
+	logs.Log.Informational(" *     [%v]正在测试与排序代理IP……", key)
+	proxyForHost := self.usable[key]
+	proxyForHost.proxys = []string{}
+	proxyForHost.timedelay = []time.Duration{}
+	proxyForHost.curIndex = 0
+	for proxy, online := range self.all {
+		if !online {
+			continue
 		}
-		<-self.pingPool
-	}()
+		self.threadPool <- true
+		go func(proxy string) {
+			alive, timedelay := self.findUsable(proxy, testHost)
+			if alive {
+				proxyForHost.Mutex.Lock()
+				proxyForHost.proxys = append(proxyForHost.proxys, proxy)
+				proxyForHost.timedelay = append(proxyForHost.timedelay, timedelay)
+				proxyForHost.Mutex.Unlock()
+			}
+			<-self.threadPool
+		}(proxy)
+	}
+	for len(self.threadPool) > 0 {
+		runtime.Gosched()
+	}
+	if proxyForHost.Len() > 0 {
+		sort.Sort(proxyForHost)
+		logs.Log.Informational(" *     [%v]测试与排序代理IP完成，可用：%v 个\n", key, proxyForHost.Len())
+		return true
+	}
+	logs.Log.Informational(" *     [%v]测试与排序代理IP完成，没有可用的代理IP\n", key)
+	return false
 }
 
-// 实现排序接口
-func (self *Proxy) Len() int {
-	return len(self.speed)
-}
-func (self *Proxy) Less(i, j int) bool {
-	return self.timedelay[i] < self.timedelay[j]
-}
-func (self *Proxy) Swap(i, j int) {
-	self.speed[i], self.speed[j] = self.speed[j], self.speed[i]
-	self.timedelay[i], self.timedelay[j] = self.timedelay[j], self.timedelay[i]
+// 测试代理ip可用性
+func (self *Proxy) findUsable(proxy string, testHost string) (alive bool, timedelay time.Duration) {
+	t0 := time.Now()
+	_, err := self.surf.Download(&context.Request{
+		Url:         testHost,
+		Proxy:       proxy,
+		Method:      "HEAD",
+		DialTimeout: time.Second * time.Duration(DAIL_TIMEOUT),
+		ConnTimeout: time.Second * time.Duration(CONN_TIMEOUT),
+		TryTimes:    TRY_TIMES,
+	})
+
+	return err == nil, time.Since(t0)
 }
 
 var once = new(sync.Once)

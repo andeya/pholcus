@@ -61,7 +61,7 @@ func Init() {
 			logs.Log.Informational(" *     使用代理IP，代理IP更换频率为 %v 分钟\n", cache.Task.ProxyMinute)
 		} else {
 			sdl.useProxy = false
-			logs.Log.Informational(" *     代理IP列表为空，无法使用代理IP\n")
+			logs.Log.Informational(" *     在线代理IP列表为空，无法使用代理IP\n")
 		}
 	} else {
 		sdl.useProxy = false
@@ -208,8 +208,7 @@ func (self *Matrix) Pull() (req *context.Request) {
 			req = self.reqs[idx][0]
 			self.reqs[idx] = self.reqs[idx][1:]
 			if sdl.useProxy {
-				proxy, _ := sdl.proxy.GetOne()
-				req.SetProxy(proxy)
+				req.SetProxy(sdl.proxy.GetOne(req.GetUrl()))
 			} else {
 				req.SetProxy("")
 			}
