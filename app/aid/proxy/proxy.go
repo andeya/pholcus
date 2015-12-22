@@ -40,6 +40,7 @@ type Proxy struct {
 	tickMinute  int64
 	threadPool  chan bool
 	surf        surfer.Surfer
+	sync.Mutex
 }
 type ProxyForHost struct {
 	curIndex  int // 当前代理ip索引
@@ -150,6 +151,9 @@ func (self *Proxy) GetOne(u string) (curProxy string) {
 		key = key[strings.Index(key, ".")+1:]
 	}
 
+	self.Lock()
+	defer self.Unlock()
+
 	var ok = true
 	var proxyForHost = self.usable[key]
 
@@ -157,21 +161,20 @@ func (self *Proxy) GetOne(u string) (curProxy string) {
 	case <-self.ticker.C:
 		proxyForHost.curIndex++
 		if proxyForHost.curIndex >= proxyForHost.Len() {
-			ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
+			_, ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
 		}
 		proxyForHost.isEcho = true
 
 	default:
 		if proxyForHost == nil {
-			proxyForHost = &ProxyForHost{
+			self.usable[key] = &ProxyForHost{
 				proxys:    []string{},
 				timedelay: []time.Duration{},
 				isEcho:    true,
 			}
-			self.usable[key] = proxyForHost
-			ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
+			proxyForHost, ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
 		} else if proxyForHost.curIndex >= proxyForHost.Len() {
-			ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
+			_, ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
 			proxyForHost.isEcho = true
 		}
 	}
@@ -191,7 +194,7 @@ func (self *Proxy) GetOne(u string) (curProxy string) {
 }
 
 // 测试并排序
-func (self *Proxy) testAndSort(key string, testHost string) bool {
+func (self *Proxy) testAndSort(key string, testHost string) (*ProxyForHost, bool) {
 	logs.Log.Informational(" *     [%v]正在测试与排序代理IP……", key)
 	proxyForHost := self.usable[key]
 	proxyForHost.proxys = []string{}
@@ -219,10 +222,10 @@ func (self *Proxy) testAndSort(key string, testHost string) bool {
 	if proxyForHost.Len() > 0 {
 		sort.Sort(proxyForHost)
 		logs.Log.Informational(" *     [%v]测试与排序代理IP完成，可用：%v 个\n", key, proxyForHost.Len())
-		return true
+		return proxyForHost, true
 	}
 	logs.Log.Informational(" *     [%v]测试与排序代理IP完成，没有可用的代理IP\n", key)
-	return false
+	return proxyForHost, false
 }
 
 // 测试代理ip可用性

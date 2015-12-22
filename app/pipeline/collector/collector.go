@@ -2,10 +2,12 @@
 package collector
 
 import (
+	"runtime"
+	"time"
+
 	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
-	"time"
 )
 
 // 每个爬取任务的数据容器
@@ -85,7 +87,8 @@ func (self *Collector) Manage() {
 			self.dockerOne(data)
 
 		default:
-			time.Sleep(1e7) //0.1秒
+			// time.Sleep(1e7) //0.1秒
+			runtime.Gosched()
 		}
 	}
 
@@ -94,7 +97,8 @@ func (self *Collector) Manage() {
 
 	// 等待所有输出完成
 	for (self.outCount[0] > self.outCount[1]) || (self.outCount[2] > self.outCount[3]) || len(self.FileChan) > 0 {
-		time.Sleep(5e8)
+		// time.Sleep(5e8)
+		runtime.Gosched()
 	}
 
 	// 返回报告

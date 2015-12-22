@@ -49,6 +49,10 @@ type Request struct {
 	// 标记临时数据，通过temp[x]==nil判断是否有值存入，所以请存入带类型的值，如[]int(nil)等
 	Temp Temp
 
+	// 记录Temp中对应的临时数据是否是以json格式存储
+	// 由程序自动控制，不可人为指定
+	TempIsJson map[string]bool
+
 	// 即将加入哪个优先级的队列当中，默认为0，最小优先级为0
 	Priority int
 
@@ -119,6 +123,11 @@ func (self *Request) Prepare() error {
 	if self.DownloaderID < 0 || self.DownloaderID > 1 {
 		self.DownloaderID = 0
 	}
+
+	if self.TempIsJson == nil {
+		self.TempIsJson = make(map[string]bool)
+	}
+
 	return nil
 }
 
@@ -130,25 +139,19 @@ func UnSerialize(s string) (*Request, error) {
 
 // 序列化
 func (self *Request) Serialize() string {
+	for k, v := range self.Temp {
+		self.Temp.Set(k, v)
+		self.TempIsJson[k] = true
+	}
 	b, _ := json.Marshal(self)
 	return string(b)
 }
 
 // 获取副本
 func (self *Request) Copy() *Request {
-	temp := self.Temp
-	self.Temp = make(map[string]interface{})
-	b, _ := json.Marshal(self)
-
 	reqcopy := new(Request)
+	b, _ := json.Marshal(self)
 	json.Unmarshal(b, reqcopy)
-	reqcopy.Temp = make(map[string]interface{})
-	for k := range temp {
-		reqcopy.Temp[k] = temp[k]
-	}
-
-	self.Temp = temp
-
 	return reqcopy
 }
 
@@ -277,21 +280,34 @@ func (self *Request) SetReloadable(can bool) *Request {
 // 强烈建议数据接收者receive为指针类型
 // receive为空时，直接输出字符串
 func (self *Request) GetTemp(key string, receive ...interface{}) interface{} {
-	if _, ok := self.Temp[key]; !ok {
-		return nil
-	}
-	if len(receive) == 0 {
-		// 默认输出字符串格式
-		receive = append(receive, "")
-	}
-	b, _ := json.Marshal(self.Temp[key])
-	if reflect.ValueOf(receive[0]).Kind() != reflect.Ptr {
-		json.Unmarshal(b, &(receive[0]))
-	} else {
-		json.Unmarshal(b, receive[0])
+	if self.TempIsJson[key] {
+		if _, ok := self.Temp[key]; !ok {
+			return nil
+		}
+		if len(receive) == 0 {
+			// 默认输出字符串格式
+			receive = append(receive, "")
+		}
+		self.Temp.Get(key, receive[0])
+		return receive[0]
 	}
 
-	return receive[0]
+	if len(receive) == 0 {
+		return self.Temp[key]
+	}
+
+	r := reflect.ValueOf(receive[0])
+	t := reflect.ValueOf(self.Temp[key])
+	if r.Kind() == t.Kind() {
+		receive[0] = self.Temp[key]
+	} else if r.Kind() == reflect.Ptr {
+		e := r.Elem()
+		if e.CanSet() {
+			e.Set(t)
+		}
+	}
+
+	return self.Temp[key]
 }
 
 func (self *Request) GetTemps() Temp {
@@ -299,16 +315,14 @@ func (self *Request) GetTemps() Temp {
 }
 
 func (self *Request) SetTemp(key string, value interface{}) *Request {
-	b, _ := json.Marshal(value)
-	self.Temp[key] = string(b)
+	self.Temp[key] = value
+	delete(self.TempIsJson, key)
 	return self
 }
 
 func (self *Request) SetTemps(temp map[string]interface{}) *Request {
-	self.Temp = make(Temp)
-	for k, v := range temp {
-		self.SetTemp(k, v)
-	}
+	self.Temp = temp
+	self.TempIsJson = make(map[string]bool)
 	return self
 }
 
@@ -340,4 +354,15 @@ func (self *Request) GetDownloaderID() int {
 func (self *Request) SetDownloaderID(id int) *Request {
 	self.DownloaderID = id
 	return self
+}
+
+func (self *Request) MarshalJSON() ([]byte, error) {
+	for k, v := range self.Temp {
+		if self.TempIsJson[k] {
+			continue
+		}
+		self.Temp.Set(k, v)
+		self.TempIsJson[k] = true
+	}
+	return json.Marshal(*self)
 }

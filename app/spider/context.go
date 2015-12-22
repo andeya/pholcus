@@ -269,6 +269,11 @@ func (self *Context) GetText() string {
 	return self.response.GetText()
 }
 
+func (self *Context) ResetText(body string) *Context {
+	self.response.ResetText(body)
+	return self
+}
+
 // GetHtmlParser returns goquery object binded to target crawl result.
 func (self *Context) GetDom() *goquery.Document {
 	return self.response.GetDom()

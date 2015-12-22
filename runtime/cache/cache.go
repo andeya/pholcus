@@ -67,7 +67,7 @@ var (
 )
 
 // 重置页面计数
-func ReSetPageCount() {
+func ResetPageCount() {
 	pageSum = [2]uint64{}
 }
 

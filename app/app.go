@@ -356,8 +356,8 @@ func (self *Logic) PauseRecover() {
 // Offline 模式下中途终止任务
 func (self *Logic) Stop() {
 	self.setStatus(status.STOP)
-	self.CrawlPool.Stop()
 	scheduler.Stop()
+	self.CrawlPool.Stop()
 }
 
 // 返回当前运行状态
@@ -518,7 +518,7 @@ func (self *Logic) taskToRun(t *distribute.Task) {
 // 开始执行任务
 func (self *Logic) exec() {
 	count := self.SpiderQueue.Len()
-	cache.ReSetPageCount()
+	cache.ResetPageCount()
 
 	// 初始化资源队列
 	scheduler.Init()

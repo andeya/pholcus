@@ -171,6 +171,12 @@ func (self *Response) GetText() string {
 	return self.text
 }
 
+func (self *Response) ResetText(body string) *Response {
+	self.text = body
+	self.dom = nil
+	return self
+}
+
 // GetBodyStr returns plain string crawled.
 func (self *Response) initText() {
 	defer self.Response.Body.Close()
