@@ -1,8 +1,8 @@
 package proxy
 
 import (
-	// "fmt"
 	"io/ioutil"
+	"log"
 	"net/url"
 	"os"
 	"regexp"
@@ -96,7 +96,7 @@ func (self *Proxy) Update() *Proxy {
 		self.all[proxy] = false
 		// fmt.Printf("+ 代理IP %v：%v\n", i, proxy)
 	}
-	logs.Log.Informational(" *     读取代理IP: %v 条\n", len(self.all))
+	log.Printf(" *     读取代理IP: %v 条\n", len(self.all))
 
 	self.findOnline()
 
@@ -105,7 +105,7 @@ func (self *Proxy) Update() *Proxy {
 
 // 筛选在线的代理IP
 func (self *Proxy) findOnline() *Proxy {
-	logs.Log.Informational(" *     正在筛选在线的代理IP……")
+	log.Printf(" *     正在筛选在线的代理IP……")
 	self.online = 0
 	for proxy := range self.all {
 		self.threadPool <- true
@@ -121,7 +121,7 @@ func (self *Proxy) findOnline() *Proxy {
 	for len(self.threadPool) > 0 {
 		runtime.Gosched()
 	}
-	logs.Log.Informational(" *     在线代理IP筛选完成，共计：%v 个\n", self.online)
+	log.Printf(" *     在线代理IP筛选完成，共计：%v 个\n", self.online)
 
 	return self
 }
