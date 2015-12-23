@@ -5,6 +5,7 @@ import (
 	"sort"
 	"sync"
 	"sync/atomic"
+	// "time"
 
 	"github.com/henrylee2cn/pholcus/app/aid/history"
 	"github.com/henrylee2cn/pholcus/app/aid/proxy"
@@ -218,12 +219,25 @@ func (self *Matrix) Pull() (req *context.Request) {
 	return
 }
 
+func (self *Matrix) Len() int {
+	var l int
+	for _, reqs := range self.reqs {
+		l += len(reqs)
+	}
+	return l
+}
+
 func (self *Matrix) Use() {
 	defer func() {
 		recover()
 	}()
 	sdl.count <- true
 	atomic.AddInt32(&self.resCount, 1)
+}
+
+func (self *Matrix) Free() {
+	<-sdl.count
+	atomic.AddInt32(&self.resCount, -1)
 }
 
 func (self *Matrix) CanStop() bool {
@@ -267,9 +281,12 @@ func (self *Matrix) CanStop() bool {
 	return true
 }
 
-func (self *Matrix) Free() {
-	<-sdl.count
-	atomic.AddInt32(&self.resCount, -1)
+// 等待处理中的请求完成
+func (self *Matrix) Flush() {
+	for self.resCount != 0 {
+		runtime.Gosched()
+		// time.Sleep(5e8)
+	}
 }
 
 func (self *Matrix) SetFailures(reqs []*context.Request) {

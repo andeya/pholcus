@@ -27,7 +27,6 @@ type crawler struct {
 	gainPause int64
 	downloader.Downloader
 	pipeline.Pipeline
-	srcManage      int32
 	historyFailure []*context.Request
 }
 
@@ -36,12 +35,10 @@ func New(id int) Crawler {
 		id:         id,
 		Pipeline:   pipeline.New(),
 		Downloader: downloader.SurferDownloader,
-		srcManage:  0,
 	}
 }
 
 func (self *crawler) Init(sp *spider.Spider) Crawler {
-	self.srcManage = 0
 	self.Spider = sp.ReqmatrixInit()
 	self.Pipeline.Init(sp)
 	self.basePause = cache.Task.Pausetime / 2
@@ -57,11 +54,13 @@ func (self *crawler) Init(sp *spider.Spider) Crawler {
 func (self *crawler) Start() {
 	// 预先开启输出管理协程
 	self.Pipeline.Start()
-	// 开始运行
+
+	// 启动任务
 	self.Spider.Start()
 
+	// 任务运行中
 	self.Run()
-	// logs.Log.Debug("**************爬虫：%v***********", self.GetId())
+
 	// 通知输出模块输出未输出的数据
 	self.Pipeline.CtrlR()
 }
@@ -78,7 +77,7 @@ func (self *crawler) Run() {
 		if req == nil {
 			if self.Spider.ReqmatrixCanStop() {
 				// 停止任务
-				return
+				break
 
 			} else {
 				// 继续等待请求
@@ -96,6 +95,8 @@ func (self *crawler) Run() {
 			self.Process(req)
 		}(req)
 	}
+	// 等待处理中的任务完成
+	self.Spider.ReqmatrixFlush()
 }
 
 // core processer
@@ -151,11 +152,11 @@ func (self *crawler) Process(req *context.Request) {
 	}
 
 	// 该条请求文件结果存入pipeline
-	for _, img := range resp.GetFiles() {
+	for _, f := range resp.GetFiles() {
 		self.Pipeline.CollectFile(
 			resp.GetRuleName(),
-			img["Name"].(string),
-			img["Body"].(io.ReadCloser),
+			f["Name"].(string),
+			f["Body"].(io.ReadCloser),
 		)
 	}
 }

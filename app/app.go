@@ -356,8 +356,8 @@ func (self *Logic) PauseRecover() {
 // Offline 模式下中途终止任务
 func (self *Logic) Stop() {
 	self.setStatus(status.STOP)
-	scheduler.Stop()
 	self.CrawlPool.Stop()
+	scheduler.Stop()
 }
 
 // 返回当前运行状态
@@ -550,10 +550,10 @@ func (self *Logic) exec() {
 func (self *Logic) goRun(count int) {
 	// 执行任务
 	for i := 0; i < count && self.Status() != status.STOP; i++ {
-	wait:
+	pause:
 		if self.Status() == status.PAUSE {
 			time.Sleep(1e9)
-			goto wait
+			goto pause
 		}
 		// 从爬行队列取出空闲蜘蛛，并发执行
 		c := self.CrawlPool.Use()
@@ -567,7 +567,7 @@ func (self *Logic) goRun(count int) {
 		}
 	}
 	// 监控结束任务
-	for i := 0; i < count && self.Status() != status.STOP; i++ {
+	for i := 0; i < count; i++ {
 		s := <-cache.ReportChan
 		if (s.DataNum == 0) && (s.FileNum == 0) {
 			continue

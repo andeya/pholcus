@@ -2,6 +2,8 @@ package spider
 
 import (
 	"math"
+	"runtime"
+	"time"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
@@ -168,6 +170,15 @@ func (self *Spider) SetPausetime(pause int64, runtime ...bool) {
 // 开始执行蜘蛛
 func (self *Spider) Start() {
 	self.RuleTree.Root(NewContext(self, nil))
+	cancel := time.After(10e9)
+	for self.ReqmatrixLen() == 0 {
+		select {
+		case <-cancel:
+			return
+		default:
+			runtime.Gosched()
+		}
+	}
 }
 
 // 返回一个自身复制品
@@ -219,6 +230,10 @@ func (self *Spider) ReqmatrixInit() *Spider {
 	return self
 }
 
+func (self *Spider) ReqmatrixLen() int {
+	return self.ReqMatrix.Len()
+}
+
 func (self *Spider) ReqmatrixSetFailure(req *context.Request) bool {
 	return self.ReqMatrix.SetFailure(req)
 }
@@ -241,4 +256,9 @@ func (self *Spider) ReqmatrixFree() {
 
 func (self *Spider) ReqmatrixCanStop() bool {
 	return self.ReqMatrix.CanStop()
+}
+
+// 等待处理中的请求完成
+func (self *Spider) ReqmatrixFlush() {
+	self.ReqMatrix.Flush()
 }
