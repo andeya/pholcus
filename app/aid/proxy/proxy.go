@@ -173,7 +173,9 @@ func (self *Proxy) GetOne(u string) (curProxy string) {
 				isEcho:    true,
 			}
 			proxyForHost, ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
-		} else if proxyForHost.curIndex >= proxyForHost.Len() {
+		} else if l := proxyForHost.Len(); l == 0 {
+			ok = false
+		} else if proxyForHost.curIndex >= l {
 			_, ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
 			proxyForHost.isEcho = true
 		}

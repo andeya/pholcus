@@ -430,7 +430,6 @@ func (self *Logic) server() {
 	logs.Log.Informational(" *                               —— 本次成功添加 %v 条任务，共包含 %v 条采集规则 ——", tasksNum, spidersNum)
 	logs.Log.Informational(" * ")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
-
 }
 
 // 服务器模式下，生成task并添加至库

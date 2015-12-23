@@ -95,7 +95,6 @@ ws.onmessage = function(m) {
             $("#btn-run").text("Run").attr("data-type", "run").removeAttr("disabled");
             if (data.mode == offline) {
                 $("#btn-run").text("Run").attr("data-type", "run").addClass("btn-primary").removeClass("btn-danger");
-                $("#btn-pause").hide();
             };
             break;
 
@@ -198,6 +197,7 @@ function runStop() {
     if ($("#btn-run").attr("data-type") == 'run') {
         ws.onsend(getForm());
     } else if (mode == offline) {
+        $("#btn-pause").hide();
         $("#btn-run").text("Stopping...").attr("disabled", "disabled");
         ws.onsend({
             'operate': 'stop'
