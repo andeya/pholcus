@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -61,6 +62,15 @@ type App interface {
 	// Offline 模式下中途终止任务
 	// 对外为阻塞运行方式，其返回时意味着当前任务已经终止
 	Stop()
+
+	// 检查任务是否正在运行
+	IsRunning() bool
+
+	// 检查任务是否处于暂停状态
+	IsPause() bool
+
+	// 检查任务是否已经终止
+	IsStopped() bool
 
 	// Offline 模式下暂停\恢复任务
 	PauseRecover()
@@ -137,7 +147,7 @@ func newLogic() *Logic {
 	return &Logic{
 		AppConf:     cache.Task,
 		Traversal:   spider.Menu,
-		status:      status.STOP,
+		status:      status.STOPPED,
 		Teleport:    teleport.New(),
 		TaskJar:     distribute.NewTaskJar(),
 		SpiderQueue: crawl.NewSpiderQueue(),
@@ -245,13 +255,13 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 
 // 切换运行模式时使用
 func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App {
-	scheduler.Stop()
+	if !self.IsStopped() {
+		self.Stop()
+	}
 	self.LogRest()
-	self.setStatus(status.STOP)
 	if self.Teleport != nil {
 		self.Teleport.Close()
 	}
-	self.CrawlPool.Stop()
 	// 等待结束
 	if mode == status.UNSET {
 		self = newLogic()
@@ -339,6 +349,7 @@ func (self *Logic) Run() {
 	}
 	<-self.finish
 	scheduler.TryFlushHistory()
+	self.setStatus(status.STOPPED)
 }
 
 // Offline 模式下暂停\恢复任务
@@ -358,6 +369,24 @@ func (self *Logic) Stop() {
 	self.setStatus(status.STOP)
 	self.CrawlPool.Stop()
 	scheduler.Stop()
+	for !self.IsStopped() {
+		runtime.Gosched()
+	}
+}
+
+// 检查任务是否正在运行
+func (self *Logic) IsRunning() bool {
+	return self.status == status.RUN
+}
+
+// 检查任务是否处于暂停状态
+func (self *Logic) IsPause() bool {
+	return self.status == status.PAUSE
+}
+
+// 检查任务是否已经终止
+func (self *Logic) IsStopped() bool {
+	return self.status == status.STOPPED
 }
 
 // 返回当前运行状态
@@ -384,7 +413,6 @@ func (self *Logic) offline() {
 func (self *Logic) server() {
 	// 标记结束
 	defer func() {
-		self.setStatus(status.STOP)
 		self.finishOnce.Do(func() { close(self.finish) })
 	}()
 
@@ -444,13 +472,16 @@ func (self *Logic) addNewTask() (tasksNum, spidersNum int) {
 func (self *Logic) client() {
 	// 标记结束
 	defer func() {
-		self.setStatus(status.STOP)
 		self.finishOnce.Do(func() { close(self.finish) })
 	}()
 
 	for {
 		// 从任务库获取一个任务
 		t := self.downTask()
+
+		if self.Status() != status.STOP {
+			return
+		}
 
 		// 准备运行
 		self.taskToRun(t)
@@ -468,11 +499,12 @@ func (self *Logic) client() {
 // 客户端模式下获取任务
 func (self *Logic) downTask() *distribute.Task {
 ReStartLabel:
-	for self.CountNodes() == 0 {
-		if len(self.TaskJar.Tasks) != 0 {
-			break
-		}
+	if self.Status() != status.STOP {
+		return nil
+	}
+	if self.CountNodes() == 0 && len(self.TaskJar.Tasks) == 0 {
 		time.Sleep(5e7)
+		goto ReStartLabel
 	}
 
 	if len(self.TaskJar.Tasks) == 0 {
@@ -549,9 +581,10 @@ func (self *Logic) exec() {
 // 任务执行
 func (self *Logic) goRun(count int) {
 	// 执行任务
-	for i := 0; i < count && self.Status() != status.STOP; i++ {
+	var i int
+	for i = 0; i < count && self.Status() != status.STOP; i++ {
 	pause:
-		if self.Status() == status.PAUSE {
+		if self.IsPause() {
 			time.Sleep(1e9)
 			goto pause
 		}
@@ -567,7 +600,7 @@ func (self *Logic) goRun(count int) {
 		}
 	}
 	// 监控结束任务
-	for i := 0; i < count; i++ {
+	for ii := 0; ii < i; ii++ {
 		s := <-cache.ReportChan
 		if (s.DataNum == 0) && (s.FileNum == 0) {
 			continue
@@ -612,7 +645,6 @@ func (self *Logic) goRun(count int) {
 
 	// 单机模式并发运行，需要标记任务结束
 	if self.AppConf.Mode == status.OFFLINE {
-		self.setStatus(status.STOP)
 		self.LogRest()
 		self.finishOnce.Do(func() { close(self.finish) })
 	}

@@ -172,9 +172,12 @@ var btnHtml = function(mode, status) {
         return '<button type="submit" id="btn-run" class="btn btn-primary" data-type="run">Run</button>';
     }
     switch (status) {
-        case _stop:
+        case _stopped:
             return '<button type="button" id="btn-pause" class="btn btn-warning" onclick="pauseRecover()" disabled="disabled">Pause</button>\
             <button type="submit" id="btn-run" class="btn btn-primary" data-type="run">Run</button>';
+        case _stop:
+            return '<button type="button" id="btn-pause" class="btn btn-warning" onclick="pauseRecover()" disabled="disabled">Pause</button>\
+            <button type="submit" id="btn-run" class="btn btn-danger" data-type="stop" disabled="disabled">Stopping...</button>';
         case _run:
             return '<button type="button" id="btn-pause" class="btn btn-warning" onclick="pauseRecover()" style="display:inline-block;" >Pause</button>\
             <button type="submit" id="btn-run" class="btn btn-danger" data-type="stop">Stop</button>';

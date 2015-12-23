@@ -167,13 +167,13 @@ func init() {
 		}
 
 		if app.LogicApp.GetAppConf("mode").(int) == status.OFFLINE {
-			Sc.Write(sessID, map[string]interface{}{"operate": "run", "status": status.RUN})
+			Sc.Write(sessID, map[string]interface{}{"operate": "run"})
 		}
 
 		go func() {
 			app.LogicApp.Run()
 			if app.LogicApp.GetAppConf("mode").(int) == status.OFFLINE {
-				Sc.Write(sessID, map[string]interface{}{"operate": "stop", "status": status.STOP})
+				Sc.Write(sessID, map[string]interface{}{"operate": "stop"})
 			}
 		}()
 	}

@@ -22,7 +22,7 @@ const (
 
 // 运行状态
 const (
-	UNKNOW = iota - 1
+	STOPPED = iota - 1
 	STOP
 	RUN
 	PAUSE

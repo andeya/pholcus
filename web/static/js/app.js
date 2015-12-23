@@ -78,16 +78,10 @@ ws.onmessage = function(m) {
                 "border-color": "#2e6da4"
             });
 
-            // if (data.status == _unknow || data.status == _stop) {
             break;
-            // };
 
             // 任务开始通知
         case "run":
-            if (data.status == _unknow) {
-                return
-            };
-
             $("#btn-run").text("Stop").attr("data-type", "stop");
 
             if (data.mode == offline) {

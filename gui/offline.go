@@ -225,13 +225,15 @@ func offlinePauseRecover() {
 
 // 开始\停止控制
 func offlineRunStop() {
-	if app.LogicApp.Status() != status.STOP {
-		runStopBtn.SetEnabled(false)
-		runStopBtn.SetText("停止中…")
-		pauseRecoverBtn.SetVisible(false)
-		pauseRecoverBtn.SetText("暂停")
-		app.LogicApp.Stop()
-		offlineResetBtn()
+	if !app.LogicApp.IsStopped() {
+		go func() {
+			runStopBtn.SetEnabled(false)
+			runStopBtn.SetText("停止中…")
+			pauseRecoverBtn.SetVisible(false)
+			pauseRecoverBtn.SetText("暂停")
+			app.LogicApp.Stop()
+			offlineResetBtn()
+		}()
 		return
 	}
 
