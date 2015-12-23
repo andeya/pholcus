@@ -215,7 +215,7 @@ func (self *Spider) Copy() *Spider {
 func (self *Spider) ReqmatrixInit() *Spider {
 	if self.MaxPage < 0 {
 		self.ReqMatrix = scheduler.NewMatrix(self.Id, self.MaxPage)
-		self.MaxPage = 0
+		self.SetMaxPage(0)
 	} else {
 		self.ReqMatrix = scheduler.NewMatrix(self.Id, math.MinInt64)
 	}

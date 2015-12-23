@@ -283,7 +283,7 @@ func (self *Logic) SpiderPrepare(original []*spider.Spider) App {
 	for _, sp := range original {
 		spcopy := sp.Copy()
 		spcopy.SetPausetime(self.AppConf.Pausetime)
-		if spcopy.GetMaxPage() > 0 {
+		if spcopy.GetMaxPage() == spider.MAXPAGE {
 			spcopy.SetMaxPage(self.AppConf.MaxPage)
 		} else {
 			spcopy.SetMaxPage(-1 * self.AppConf.MaxPage)

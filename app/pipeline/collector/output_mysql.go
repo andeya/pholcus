@@ -22,9 +22,13 @@ func init() {
 
 		for _, datacell := range self.DockerQueue.Dockers[dataIndex] {
 			subNamespace := util.FileNameReplace(self.subNamespace(datacell))
+			var tName = namespace
+			if subNamespace != "" {
+				tName += "__" + subNamespace
+			}
 			if _, ok := mysqls[subNamespace]; !ok {
 				mysqls[subNamespace] = mysql.New(db.DB)
-				mysqls[subNamespace].SetTableName(namespace + "__" + subNamespace)
+				mysqls[subNamespace].SetTableName(tName)
 				for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 					mysqls[subNamespace].AddColumn(title + ` MEDIUMTEXT`)
 				}

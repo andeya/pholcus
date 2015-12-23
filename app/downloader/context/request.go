@@ -288,8 +288,7 @@ func (self *Request) GetTemp(key string, receive ...interface{}) interface{} {
 			// 默认输出字符串格式
 			receive = append(receive, "")
 		}
-		self.Temp.Get(key, receive[0])
-		return receive[0]
+		return self.Temp.Get(key, receive[0])
 	}
 
 	if len(receive) == 0 {
