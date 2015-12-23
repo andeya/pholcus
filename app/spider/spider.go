@@ -35,6 +35,12 @@ type Spider struct {
 
 	// 请求矩阵
 	ReqMatrix *scheduler.Matrix
+
+	// 定时器
+	timer *Timer
+
+	// 执行状态
+	status int
 }
 
 //采集规则树
@@ -167,6 +173,25 @@ func (self *Spider) SetPausetime(pause int64, runtime ...bool) {
 	}
 }
 
+// 设置定时器
+// @id: 定时器唯一标识
+// @tol: 计时公差
+// @t0: 起始时间
+func (self *Spider) SetTimer(id string, tol time.Duration, t0 *T0) bool {
+	if self.timer == nil {
+		self.timer = newTimer()
+	}
+	return self.timer.set(id, tol, t0)
+}
+
+// 启动定时器，并返回定时器是否可以继续使用
+func (self *Spider) RunTimer(id string) bool {
+	if self.timer == nil {
+		return false
+	}
+	return self.timer.sleep(id)
+}
+
 // 开始执行蜘蛛
 func (self *Spider) Start() {
 	self.RuleTree.Root(NewContext(self, nil))
@@ -208,6 +233,8 @@ func (self *Spider) Copy() *Spider {
 
 	ghost.Namespace = self.Namespace
 	ghost.SubNamespace = self.SubNamespace
+
+	ghost.timer = self.timer
 
 	return ghost
 }
@@ -254,11 +281,16 @@ func (self *Spider) ReqmatrixFree() {
 	self.ReqMatrix.Free()
 }
 
-func (self *Spider) ReqmatrixCanStop() bool {
+func (self *Spider) CanStop() bool {
 	return self.ReqMatrix.CanStop()
 }
 
-// 等待处理中的请求完成
-func (self *Spider) ReqmatrixFlush() {
+// 退出任务前收尾工作
+func (self *Spider) Defer() {
+	// 取消所有定时器
+	if self.timer != nil {
+		self.timer.drop()
+	}
+	// 等待处理中的请求完成
 	self.ReqMatrix.Flush()
 }

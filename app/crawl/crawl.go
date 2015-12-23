@@ -75,7 +75,7 @@ func (self *crawler) Run() {
 
 		// 队列退出及空请求调控
 		if req == nil {
-			if self.Spider.ReqmatrixCanStop() {
+			if self.Spider.CanStop() {
 				// 停止任务
 				break
 
@@ -96,7 +96,7 @@ func (self *crawler) Run() {
 		}(req)
 	}
 	// 等待处理中的任务完成
-	self.Spider.ReqmatrixFlush()
+	self.Spider.Defer()
 }
 
 // core processer

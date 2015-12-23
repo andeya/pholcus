@@ -3,6 +3,7 @@ package spider
 import (
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
@@ -201,7 +202,9 @@ func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interfa
 // 用ruleName指定匹配的ParseFunc字段，为空时默认调用Root()。
 func (self *Context) Parse(ruleName ...string) *Context {
 	_ruleName, rule, found := self.getRule(ruleName...)
-	self.response.SetRuleName(_ruleName)
+	if self.response != nil {
+		self.response.SetRuleName(_ruleName)
+	}
 	if !found {
 		self.spider.RuleTree.Root(self)
 		return self
@@ -262,6 +265,19 @@ func (self *Context) GetRule(ruleName string) (*Rule, bool) {
 func (self *Context) SetPausetime(pause int64, runtime ...bool) *Context {
 	self.spider.SetPausetime(pause, runtime...)
 	return self
+}
+
+// 设置定时器
+// @id: 定时器唯一标识
+// @tol: 计时公差
+// @t0: 起始时间
+func (self *Context) SetTimer(id string, tol time.Duration, t0 *T0) bool {
+	return self.spider.SetTimer(id, tol, t0)
+}
+
+// 启动定时器，并返回定时器是否可以继续使用
+func (self *Context) RunTimer(id string) bool {
+	return self.spider.RunTimer(id)
 }
 
 // GetBodyStr returns plain string crawled.
