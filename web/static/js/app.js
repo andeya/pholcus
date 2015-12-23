@@ -92,6 +92,7 @@ ws.onmessage = function(m) {
 
             // 任务结束通知
         case "stop":
+            $("#btn-pause").hide();
             $("#btn-run").text("Run").attr("data-type", "run").removeAttr("disabled");
             if (data.mode == offline) {
                 $("#btn-run").text("Run").attr("data-type", "run").addClass("btn-primary").removeClass("btn-danger");
