@@ -31,5 +31,5 @@ type Request interface {
 	// 返回临时缓存数据
 	// 强烈建议数据接收者receive为指针类型
 	// receive为空时，直接输出字符串
-	GetTemp(key string, receive ...interface{}) interface{}
+	GetTemp(key string, receive interface{}) interface{}
 }

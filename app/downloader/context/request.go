@@ -277,28 +277,19 @@ func (self *Request) SetReloadable(can bool) *Request {
 }
 
 // 返回临时缓存数据
-// 强烈建议数据接收者receive为指针类型
-// receive为空时，直接输出字符串
-func (self *Request) GetTemp(key string, receive ...interface{}) interface{} {
+// 当数据接收者receive为指针类型或引用类型时，亦可直接得到缓存数据
+func (self *Request) GetTemp(key string, receive interface{}) interface{} {
 	if self.TempIsJson[key] {
 		if _, ok := self.Temp[key]; !ok {
 			return nil
 		}
-		if len(receive) == 0 {
-			// 默认输出字符串格式
-			receive = append(receive, "")
-		}
-		return self.Temp.Get(key, receive[0])
+		return self.Temp.Get(key, receive)
 	}
 
-	if len(receive) == 0 {
-		return self.Temp[key]
-	}
-
-	r := reflect.ValueOf(receive[0])
+	r := reflect.ValueOf(receive)
 	t := reflect.ValueOf(self.Temp[key])
 	if r.Kind() == t.Kind() {
-		receive[0] = self.Temp[key]
+		receive = self.Temp[key]
 	} else if r.Kind() == reflect.Ptr {
 		e := r.Elem()
 		if e.CanSet() {

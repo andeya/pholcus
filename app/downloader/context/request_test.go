@@ -52,7 +52,7 @@ func TestReqTemp(t *testing.T) {
 	_b.GetTemp("5", &i)
 	t.Logf("%#v\n", i)
 
-	t.Logf("%#v\n", _b.GetTemp("5"))
+	t.Logf("%#v\n", _b.GetTemp("5", ""))
 
 	t.Logf("%#v", _b)
 }
