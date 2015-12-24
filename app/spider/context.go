@@ -268,11 +268,11 @@ func (self *Context) SetPausetime(pause int64, runtime ...bool) *Context {
 }
 
 // 设置定时器
-// @id: 定时器唯一标识
-// @tol: 计时公差
-// @t0: 起始时间
-func (self *Context) SetTimer(id string, tol time.Duration, t0 *T0) bool {
-	return self.spider.SetTimer(id, tol, t0)
+// @id为定时器唯一标识
+// @bell==nil时为倒计时器，此时@tol为睡眠时长
+// @bell!=nil时为闹铃，此时@tol用于指定醒来时刻（从now起遇到的第tol个bell）
+func (self *Context) SetTimer(id string, tol time.Duration, bell *Bell) bool {
+	return self.spider.SetTimer(id, tol, bell)
 }
 
 // 启动定时器，并返回定时器是否可以继续使用

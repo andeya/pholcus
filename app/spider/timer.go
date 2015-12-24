@@ -33,17 +33,22 @@ func (self *Timer) sleep(id string) bool {
 	return ok
 }
 
-func (self *Timer) set(id string, tol time.Duration, t0 *T0) bool {
+// @bell==nil时为倒计时器，此时@tol为睡眠时长
+// @bell!=nil时为闹铃，此时@tol用于指定醒来时刻（从now起遇到的第tol个bell）
+func (self *Timer) set(id string, tol time.Duration, bell *Bell) bool {
 	self.Lock()
 	defer self.Unlock()
 	if self.closed {
+		logs.Log.Critical("************************ ……设置定时器 <%s> 失败，定时系统已关闭 ……************************", id)
 		return false
 	}
-	c, ok := newClock(id, tol, t0)
+	c, ok := newClock(id, tol, bell)
 	if !ok {
+		logs.Log.Critical("************************ ……设置定时器 <%s> 失败，参数不正确 ……************************", id)
 		return ok
 	}
 	self.setting[id] = c
+	logs.Log.Critical("************************ ……设置定时器 <%s> 成功 ……************************", id)
 	return ok
 }
 
@@ -66,47 +71,56 @@ const (
 
 type Clock struct {
 	id string
-	// 闹铃or倒计时
+	// 模式（闹铃or倒计时）
 	typ int
-	// 计时公差
+	// 倒计时的睡眠时长
+	// 或指定闹铃醒来时刻为从now起遇到的第tol个bell
 	tol time.Duration
-	// 起始时间
-	t0    *T0
+	// 闹铃醒来时刻
+	bell  *Bell
 	timer *time.Timer
 }
 
-type T0 struct {
+type Bell struct {
 	Hour int
 	Min  int
 	Sec  int
 }
 
-func newClock(id string, tol time.Duration, t0 *T0) (*Clock, bool) {
-	if t0 == nil {
+// @bell==nil时为倒计时器，此时@tol为睡眠时长
+// @bell!=nil时为闹铃，此时@tol用于指定醒来时刻（从now起遇到的第tol个bell）
+func newClock(id string, tol time.Duration, bell *Bell) (*Clock, bool) {
+	if tol <= 0 {
+		return nil, false
+	}
+	if bell == nil {
 		return &Clock{
 			id:    id,
 			typ:   T,
 			tol:   tol,
-			timer: time.NewTimer(0),
+			timer: newT(),
 		}, true
 	}
-	if !(t0.Hour >= 0 && t0.Hour < 24 && t0.Min >= 0 && t0.Min < 60 && t0.Sec >= 0 && t0.Sec < 60) {
+	if !(bell.Hour >= 0 && bell.Hour < 24 && bell.Min >= 0 && bell.Min < 60 && bell.Sec >= 0 && bell.Sec < 60) {
 		return nil, false
 	}
 	return &Clock{
 		id:    id,
 		typ:   A,
 		tol:   tol,
-		t0:    t0,
-		timer: time.NewTimer(0),
+		bell:  bell,
+		timer: newT(),
 	}, true
 }
 
 func (self *Clock) sleep() {
 	d := self.duration()
-	logs.Log.Critical("************************ ……<%s> 定时器等待 %v ，计划 %v 恢复 ……************************", self.id, d, time.Now().Add(d).Format("2006-01-02 15:04:05"))
 	self.timer.Reset(d)
+	t0 := time.Now()
+	logs.Log.Critical("************************ ……定时器 <%s> 睡眠 %v ，计划 %v 醒来 ……************************", self.id, d, t0.Add(d).Format("2006-01-02 15:04:05"))
 	<-self.timer.C
+	t1 := time.Now()
+	logs.Log.Critical("************************ ……定时器 <%s> 在 %v 醒来，实际睡眠 %v ……************************", self.id, t1.Format("2006-01-02 15:04:05"), t1.Sub(t0))
 }
 
 func (self *Clock) wake() {
@@ -118,14 +132,21 @@ func (self *Clock) duration() time.Duration {
 	case A:
 		t := time.Now()
 		year, month, day := t.Date()
-		t0 := time.Date(year, month, day, self.t0.Hour, self.t0.Min, self.t0.Sec, 0, time.Local)
-		t0.Add(self.tol)
-		if t0.Before(t) {
-			t0.Add(time.Hour * 24)
+		bell := time.Date(year, month, day, self.bell.Hour, self.bell.Min, self.bell.Sec, 0, time.Local)
+		if bell.Before(t) {
+			bell = bell.Add(time.Hour * 24 * self.tol)
+		} else {
+			bell = bell.Add(time.Hour * 24 * (self.tol - 1))
 		}
-		return t0.Sub(t)
+		return bell.Sub(t)
 	case T:
 		return self.tol
 	}
 	return 0
+}
+
+func newT() *time.Timer {
+	t := time.NewTimer(0)
+	<-t.C
+	return t
 }
