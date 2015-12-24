@@ -14,5 +14,7 @@ func Router() {
 	//设置http访问的路由
 	http.HandleFunc("/", web)
 	//static file server
-	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("web/static/"))))
+
+	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(assetFS())))
+	// http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("web/static/"))))
 }

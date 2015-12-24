@@ -24,8 +24,9 @@ func init() {
 func web(rw http.ResponseWriter, req *http.Request) {
 	sess, _ := globalSessions.SessionStart(rw, req)
 	defer sess.SessionRelease(rw)
-
-	t, err := template.ParseFiles("web/views/index.html") //解析模板文件
+	index, _ := viewsIndexHtmlBytes()
+	t, err := template.New("index").Parse(string(index)) //解析模板文件
+	// t, err := template.ParseFiles("web/views/index.html") //解析模板文件
 	if err != nil {
 		logs.Log.Error("%v", err)
 	}
