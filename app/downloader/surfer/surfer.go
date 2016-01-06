@@ -3,7 +3,37 @@ package surfer
 
 import (
 	"net/http"
+	"os"
+	"sync"
 )
+
+var (
+	surf                 Surfer
+	phantom              Surfer
+	once_surf            sync.Once
+	once_phantom         sync.Once
+	fullTempJsFilePrefix = "./tmp/phantomjs"
+	fullPhantomjsName    = os.Getenv("GOPATH") + "/src/github.com/henrylee2cn/surfer/phantomjs/phantomjs"
+)
+
+func Download(req Request) (resp *http.Response, err error) {
+	switch req.GetDownloaderID() {
+	case SurfID:
+		once_surf.Do(func() { surf = New() })
+		resp, err = surf.Download(req)
+	case PhomtomJsID:
+		once_phantom.Do(func() { phantom = NewPhantom(fullPhantomjsName, fullTempJsFilePrefix) })
+		resp, err = phantom.Download(req)
+	}
+	return
+}
+
+//销毁Phantomjs的js临时文件
+func DestroyJsFiles() {
+	if pt, ok := phantom.(*Phantom); ok {
+		pt.DestroyJsFiles()
+	}
+}
 
 // Downloader represents an core of HTTP web browser for crawler.
 type Surfer interface {

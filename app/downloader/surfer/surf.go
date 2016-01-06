@@ -29,6 +29,10 @@ func (self *Surf) Download(req Request) (resp *http.Response, err error) {
 	param.client = self.buildClient(param)
 	resp, err = self.httpRequest(param)
 	resp = param.writeback(resp)
+	// if err != nil {
+	// 	resp.Status = "200 OK"
+	// 	resp.StatusCode = 200
+	// }
 	return
 }
 
