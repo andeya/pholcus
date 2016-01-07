@@ -2,7 +2,6 @@ package surfer
 
 import (
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -14,7 +13,7 @@ type Request interface {
 	// GET POST POST-M HEAD
 	GetMethod() string
 	// POST values
-	GetPostData() url.Values
+	GetPostData() string
 	// http header
 	GetHeader() http.Header
 	// enable http cookies
@@ -56,7 +55,7 @@ type DefaultRequest struct {
 	// 是否使用cookies，在Spider的EnableCookie设置
 	EnableCookie bool
 	// POST values
-	PostData url.Values
+	PostData string
 	// dial tcp: i/o timeout
 	DialTimeout time.Duration
 	// WSARecv tcp: i/o timeout
@@ -129,7 +128,7 @@ func (self *DefaultRequest) GetMethod() string {
 }
 
 // POST values
-func (self *DefaultRequest) GetPostData() url.Values {
+func (self *DefaultRequest) GetPostData() string {
 	self.once.Do(self.prepare)
 	return self.PostData
 }

@@ -64,7 +64,7 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 			param.header.Get("Cookie"),
 			encoding,
 			param.header.Get("User-Agent"),
-			req.GetPostData().Encode(),
+			req.GetPostData(),
 		}
 	}
 

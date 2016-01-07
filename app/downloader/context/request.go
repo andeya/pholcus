@@ -30,7 +30,7 @@ type Request struct {
 	// 是否使用cookies，在Spider的EnableCookie设置
 	EnableCookie bool
 	// POST values
-	PostData url.Values
+	PostData string
 	// dial tcp: i/o timeout
 	DialTimeout time.Duration
 	// WSARecv tcp: i/o timeout
@@ -184,7 +184,7 @@ func (self *Request) SetReferer(referer string) *Request {
 	return self
 }
 
-func (self *Request) GetPostData() url.Values {
+func (self *Request) GetPostData() string {
 	return self.PostData
 }
 

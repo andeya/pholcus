@@ -108,11 +108,11 @@ func (self *Form) send(buttonName, buttonValue string) bool {
 	if buttonName != "" {
 		values.Set(buttonName, buttonValue)
 	}
-
+	valsStr := values.Encode()
 	if self.Method() == "GET" {
 		self.ctx.AddQueue(&context.Request{
 			Rule:   self.rule,
-			Url:    self.Action() + "?" + values.Encode(),
+			Url:    self.Action() + "?" + valsStr,
 			Method: self.Method(),
 		})
 		return true
@@ -122,7 +122,7 @@ func (self *Form) send(buttonName, buttonValue string) bool {
 			self.ctx.AddQueue(&context.Request{
 				Rule:     self.rule,
 				Url:      self.Action(),
-				PostData: values,
+				PostData: valsStr,
 				Method:   "POST-M",
 			})
 			return true
@@ -130,7 +130,7 @@ func (self *Form) send(buttonName, buttonValue string) bool {
 		self.ctx.AddQueue(&context.Request{
 			Rule:     self.rule,
 			Url:      self.Action(),
-			PostData: values,
+			PostData: valsStr,
 			Method:   self.Method(),
 		})
 		return true
