@@ -3,17 +3,16 @@ package surfer
 
 import (
 	"net/http"
-	"os"
 	"sync"
+
+	"github.com/henrylee2cn/pholcus/config"
 )
 
 var (
-	surf                 Surfer
-	phantom              Surfer
-	once_surf            sync.Once
-	once_phantom         sync.Once
-	fullTempJsFilePrefix = "./tmp/phantomjs"
-	fullPhantomjsName    = os.Getenv("GOPATH") + "/src/github.com/henrylee2cn/surfer/phantomjs/phantomjs"
+	surf         Surfer
+	phantom      Surfer
+	once_surf    sync.Once
+	once_phantom sync.Once
 )
 
 func Download(req Request) (resp *http.Response, err error) {
@@ -22,7 +21,7 @@ func Download(req Request) (resp *http.Response, err error) {
 		once_surf.Do(func() { surf = New() })
 		resp, err = surf.Download(req)
 	case PhomtomJsID:
-		once_phantom.Do(func() { phantom = NewPhantom(fullPhantomjsName, fullTempJsFilePrefix) })
+		once_phantom.Do(func() { phantom = NewPhantom(config.SURFER_PHANTOM.FULL_APP_NAME, config.SURFER_PHANTOM.FULL_TEMP_JS) })
 		resp, err = phantom.Download(req)
 	}
 	return

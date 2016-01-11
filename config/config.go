@@ -48,7 +48,7 @@ var (
 		FULL_TEMP_JS  string // js临时文件存放完整文件名
 	}{
 		"phantomjs",
-		COMM_PATH.CACHE + "/phantom.js",
+		COMM_PATH.CACHE + "/phantomjs",
 	}
 
 	// mongodb数据库输出配置
