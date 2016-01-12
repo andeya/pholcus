@@ -136,7 +136,7 @@ pholcus -a_ui=cmd -c_spider=3,8 -c_output=csv -c_thread=20 -c_docker=5000 -c_pau
 
 &nbsp;
 
-#### Q&A
+#### FAQ
 
 请求队列中，重复的URL是否会自动去重？
 ```

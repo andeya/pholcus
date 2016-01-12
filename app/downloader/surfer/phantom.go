@@ -1,7 +1,6 @@
 package surfer
 
 import (
-	"github.com/henrylee2cn/surfer/util"
 	"net/http"
 	"os"
 	"os/exec"
@@ -9,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/henrylee2cn/pholcus/app/downloader/surfer/util"
 )
 
 // 基于Phantomjs的下载器实现，作为surfer的补充
@@ -96,7 +97,7 @@ func (self *Phantom) DestroyJsFiles() {
 	for _, filename := range self.jsFileMap {
 		os.Remove(filename)
 	}
-	if len(util.WalkFiles(p)) == 1 {
+	if len(util.WalkDir(p)) == 1 {
 		os.Remove(p)
 	}
 }

@@ -78,26 +78,33 @@ func IsFileExists(path string) bool {
 	panic("util isFileExists not reached")
 }
 
-// 遍历并返回指定类型范围的文件名列表
-// 默认返回所有文件
-func WalkFiles(path string, suffixes ...string) (filelist []string) {
-	path, _ = filepath.Abs(path)
-
-	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
+// 遍历目录，可指定后缀
+func WalkDir(targpath string, suffixes ...string) (dirlist []string) {
+	if !filepath.IsAbs(targpath) {
+		targpath, _ = filepath.Abs(targpath)
+	}
+	err := filepath.Walk(targpath, func(retpath string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !f.IsDir() {
+			return nil
+		}
 		if len(suffixes) == 0 {
-			filelist = append(filelist, path)
+			dirlist = append(dirlist, retpath)
 			return nil
 		}
 		for _, suffix := range suffixes {
-			if strings.HasSuffix(path, suffix) {
-				filelist = append(filelist, path)
+			if strings.HasSuffix(retpath, suffix) {
+				dirlist = append(dirlist, retpath)
 			}
 		}
 		return nil
 	})
 
 	if err != nil {
-		log.Printf("filepath.Walk() returned %v\n", err)
+		log.Printf("utils.WalkDir: %v\n", err)
+		return
 	}
 
 	return
