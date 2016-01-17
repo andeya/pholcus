@@ -335,11 +335,14 @@ func (self *Logic) Run() {
 	self.sum[0], self.sum[1] = 0, 0
 	// 重置计时
 	self.takeTime = 0
-	// 任务执行
+	// 设置状态
 	self.setStatus(status.RUN)
+	defer self.setStatus(status.STOPPED)
+	// 任务执行
 	switch self.AppConf.Mode {
 	case status.OFFLINE:
 		self.offline()
+		defer scheduler.TryFlushHistory()
 	case status.SERVER:
 		self.server()
 	case status.CLIENT:
@@ -348,8 +351,6 @@ func (self *Logic) Run() {
 		return
 	}
 	<-self.finish
-	scheduler.TryFlushHistory()
-	self.setStatus(status.STOPPED)
 }
 
 // Offline 模式下暂停\恢复任务
@@ -478,7 +479,7 @@ func (self *Logic) client() {
 		// 从任务库获取一个任务
 		t := self.downTask()
 
-		if self.Status() != status.STOP {
+		if self.Status() == status.STOP || self.Status() == status.STOPPED {
 			return
 		}
 
@@ -498,7 +499,7 @@ func (self *Logic) client() {
 // 客户端模式下获取任务
 func (self *Logic) downTask() *distribute.Task {
 ReStartLabel:
-	if self.Status() != status.STOP {
+	if self.Status() == status.STOP || self.Status() == status.STOPPED {
 		return nil
 	}
 	if self.CountNodes() == 0 && len(self.TaskJar.Tasks) == 0 {

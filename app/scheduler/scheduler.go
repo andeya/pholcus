@@ -54,8 +54,10 @@ func Init() {
 	}
 	sdl.matrices = make(map[int]*Matrix)
 	sdl.count = make(chan bool, cache.Task.ThreadNum)
-	sdl.history.ReadSuccess(cache.Task.OutType, cache.Task.SuccessInherit)
-	sdl.history.ReadFailure(cache.Task.OutType, cache.Task.FailureInherit)
+	if cache.Task.Mode == status.OFFLINE {
+		sdl.history.ReadSuccess(cache.Task.OutType, cache.Task.SuccessInherit)
+		sdl.history.ReadFailure(cache.Task.OutType, cache.Task.FailureInherit)
+	}
 	if cache.Task.ProxyMinute > 0 {
 		if sdl.proxy.Count() > 0 {
 			sdl.useProxy = true
