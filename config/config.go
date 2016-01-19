@@ -18,9 +18,9 @@ var (
 		FILE  string //文件图片等结果目录
 		CACHE string //缓存文件目录
 	}{
-		"result/data",
-		"result/file",
-		"result/cache",
+		APP_TAG + "/text.out",
+		APP_TAG + "/file.out",
+		APP_TAG + "/cache",
 	}
 
 	// 日志
@@ -28,7 +28,7 @@ var (
 		FULL_FILE_NAME string // 默认日志文件完整文件名
 		MAX_CACHE      int64  // 默认日志缓存
 	}{
-		COMM_PATH.CACHE + "/pholcus.log",
+		APP_TAG + "/logs/pholcus.log",
 		10000,
 	}
 
@@ -36,9 +36,12 @@ var (
 	// 输出方式为文件时，保存路径为COMM_PATH.CACHE下的FILE_NAME文件
 	// 输出方式为数据库时，保存路径为相应数据库下的FILE_NAME表单
 	HISTORY = &struct {
+		// 保存目录
+		DIR string
 		// 历史记录文件名前缀
 		FILE_NAME_PREFIX string
 	}{
+		setting.DefaultString("history", history),
 		"history",
 	}
 
@@ -47,7 +50,7 @@ var (
 		FULL_APP_NAME string // Phantomjs完整文件名
 		FULL_TEMP_JS  string // js临时文件存放完整文件名
 	}{
-		"phantomjs",
+		setting.DefaultString("phantomjs", phantomjs),
 		COMM_PATH.CACHE + "/phantomjs",
 	}
 
@@ -57,8 +60,8 @@ var (
 		DB        string // 默认数据库
 		MAX_CONNS int    // 链接池容量
 	}{
-		"127.0.0.1:27017",
-		APP_TAG,
+		setting.DefaultString("mgo::connstring", mgoconnstring),
+		setting.DefaultString("mgo::dbname", mgodbname),
 		1024,
 	}
 
@@ -68,17 +71,28 @@ var (
 		DB        string // 默认数据库
 		MAX_CONNS int    // 链接池容量
 	}{
-		"root:@tcp(127.0.0.1:3306)",
-		APP_TAG,
+		setting.DefaultString("mysql::connstring", mysqlconnstring),
+		setting.DefaultString("mysql::dbname", mysqldbname),
 		1024,
 	}
 
 	// 代理IP完整文件名
-	PROXY_FULL_FILE_NAME = "proxy.pholcus"
+	FULL_PROXY_FILE = setting.DefaultString("proxylib", proxylib)
+
+	// 动态规则目录
+	DYNAMIC_SPIDER_DIR = setting.DefaultString("spiderlib", spiderlib)
 )
 
+// 默认配置
 const (
-	DB_NAME = APP_TAG
+	phantomjs       = APP_TAG + "/phantomjs"
+	history         = APP_TAG + "/history"
+	proxylib        = APP_TAG + "/proxy.lib"
+	spiderlib       = APP_TAG + "/spider.lib"
+	mgodbname       = APP_TAG
+	mgoconnstring   = "127.0.0.1:27017"
+	mysqldbname     = APP_TAG
+	mysqlconnstring = "root:@tcp(127.0.0.1:3306)"
 )
 
 func init() {

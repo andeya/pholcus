@@ -24,7 +24,7 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重�
 
  6. 服务器/客户端模式采用teleport高并发socketAPI框架，全双工长连接通信，内部数据传输格式为JSON；
  
- 7. 对采集规则进行了精心设计，规则灵活简单、高度封装，用于通用方法集与大量Demo，让你轻松添加规则；
+ 7. 对采集规则进行了精心设计，支持静态编译与动态JS两种规则，灵活简单且有大量Demo，写规则就是这么轻松；
  
  8. 支持横纵向两种抓取模式，并且支持任务暂停、取消等操作。
 
@@ -49,9 +49,7 @@ go get github.com/henrylee2cn/pholcus
 package main
 
 import (
-    "github.com/henrylee2cn/pholcus/config"
     "github.com/henrylee2cn/pholcus/exec"
-    "github.com/henrylee2cn/pholcus/runtime/cache"
     // "github.com/henrylee2cn/pholcus/logs"
 
     _ "github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
@@ -59,42 +57,13 @@ import (
 )
 
 func main() {
+    // 允许日志打印行号
+    // logs.ShowLineNum()
+
     // 设置运行时默认操作界面，并开始运行
     // 运行软件前，可设置 -a_ui 参数为"web"、"gui"或"cmd"，指定本次运行的操作界面
     // 其中"gui"仅支持Windows系统
     exec.DefaultRun("web")
-}
-
-// 自定义相关配置，将覆盖默认值
-func init() {
-    // 标记当前init()已执行完毕
-    defer cache.ExecInit(0)
-
-    // 允许日志打印行号
-    // logs.ShowLineNum()
-
-    //mongodb链接字符串
-    config.MGO.CONN_STR = "127.0.0.1:27017"
-    //mongodb数据库
-    config.MGO.DB = "pholcus"
-    //mongodb连接池容量
-    config.MGO.MAX_CONNS = 1024
-
-    //mysql服务器地址
-    config.MYSQL.CONN_STR = "root:@tcp(127.0.0.1:3306)"
-    //msyql数据库
-    config.MYSQL.DB = "pholcus"
-    //mysql连接池容量
-    config.MYSQL.MAX_CONNS = 1024
-
-    // 历史记录文件名前缀
-    config.HISTORY.FILE_NAME_PREFIX = "history"
-
-    // 代理IP完整文件名
-    config.PROXY_FULL_FILE_NAME = "proxy.pholcus"
-
-    // Surfer-Phantom下载器配置
-    config.SURFER_PHANTOM.FULL_APP_NAME = "phantomjs" //phantomjs软件相对路径与名称
 }
 ```
 &nbsp;
@@ -171,6 +140,7 @@ go get github.com/henrylee2cn/beelogs
 go get github.com/henrylee2cn/mahonia
 go get github.com/henrylee2cn/websocket.google
 go get github.com/PuerkitoBio/goquery
+go get github.com/robertkrimen/otto
 go get github.com/andybalholm/cascadia
 go get github.com/lxn/walk
 go get github.com/lxn/win

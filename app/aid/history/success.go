@@ -85,7 +85,6 @@ func (self *Success) flush(provider string) (sLen int) {
 		}
 
 	default:
-		once.Do(mkdir)
 		f, _ := os.OpenFile(SUCCESS_FILE_FULL, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
 
 		b, _ := json.Marshal(self.new)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"path"
 	"sync"
 
 	"gopkg.in/mgo.v2/bson"
@@ -11,7 +12,6 @@ import (
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
-	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 )
@@ -52,8 +52,8 @@ var (
 	SUCCESS_FILE = config.HISTORY.FILE_NAME_PREFIX + "_y"
 	FAILURE_FILE = config.HISTORY.FILE_NAME_PREFIX + "_n"
 
-	SUCCESS_FILE_FULL = config.COMM_PATH.CACHE + "/" + SUCCESS_FILE
-	FAILURE_FILE_FULL = config.COMM_PATH.CACHE + "/" + FAILURE_FILE
+	SUCCESS_FILE_FULL = path.Join(config.HISTORY.DIR, SUCCESS_FILE)
+	FAILURE_FILE_FULL = path.Join(config.HISTORY.DIR, FAILURE_FILE)
 )
 
 type History struct {
@@ -273,11 +273,4 @@ func (self *History) FlushFailure(provider string) {
 	self.RWMutex.Unlock()
 	failLen := self.Failure.flush(provider)
 	logs.Log.Informational(" *     新增 %v 条失败记录\n", failLen)
-}
-
-var once = new(sync.Once)
-
-func mkdir() {
-	util.Mkdir(SUCCESS_FILE_FULL)
-	util.Mkdir(FAILURE_FILE_FULL)
 }

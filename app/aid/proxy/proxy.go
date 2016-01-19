@@ -16,7 +16,6 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/app/downloader/surfer"
-	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 )
@@ -81,8 +80,7 @@ func (self *Proxy) Count() int {
 
 // 更新代理IP列表
 func (self *Proxy) Update() *Proxy {
-	once.Do(mkdir)
-	f, err := os.Open(config.PROXY_FULL_FILE_NAME)
+	f, err := os.Open(config.FULL_PROXY_FILE)
 	if err != nil {
 		// logs.Log.Error("Error: %v\n", err)
 		return self
@@ -243,10 +241,4 @@ func (self *Proxy) findUsable(proxy string, testHost string) (alive bool, timede
 	})
 
 	return err == nil, time.Since(t0)
-}
-
-var once = new(sync.Once)
-
-func mkdir() {
-	util.Mkdir(config.PROXY_FULL_FILE_NAME)
 }

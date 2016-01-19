@@ -91,29 +91,141 @@ func IsFileExists(path string) bool {
 	panic("util isFileExists not reached")
 }
 
-// 遍历并返回指定类型范围的文件名列表
-// 默认返回所有文件
-func WalkFiles(path string, suffixes ...string) (filelist []string) {
-	path, _ = filepath.Abs(path)
-
-	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
+// 遍历文件，可指定后缀
+func WalkFiles(targpath string, suffixes ...string) (filelist []string) {
+	if !filepath.IsAbs(targpath) {
+		targpath, _ = filepath.Abs(targpath)
+	}
+	err := filepath.Walk(targpath, func(retpath string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if f.IsDir() {
+			return nil
+		}
 		if len(suffixes) == 0 {
-			filelist = append(filelist, path)
+			filelist = append(filelist, retpath)
 			return nil
 		}
 		for _, suffix := range suffixes {
-			if strings.HasSuffix(path, suffix) {
-				filelist = append(filelist, path)
+			if strings.HasSuffix(retpath, suffix) {
+				filelist = append(filelist, retpath)
 			}
 		}
 		return nil
 	})
 
 	if err != nil {
-		logs.Log.Error("filepath.Walk() returned %v\n", err)
+		logs.Log.Error("util.WalkFiles: %v\n", err)
+		return
 	}
 
 	return
+}
+
+// 遍历目录，可指定后缀
+func WalkDir(targpath string, suffixes ...string) (dirlist []string) {
+	if !filepath.IsAbs(targpath) {
+		targpath, _ = filepath.Abs(targpath)
+	}
+	err := filepath.Walk(targpath, func(retpath string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !f.IsDir() {
+			return nil
+		}
+		if len(suffixes) == 0 {
+			dirlist = append(dirlist, retpath)
+			return nil
+		}
+		for _, suffix := range suffixes {
+			if strings.HasSuffix(retpath, suffix) {
+				dirlist = append(dirlist, retpath)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		logs.Log.Error("util.WalkDir: %v\n", err)
+		return
+	}
+
+	return
+}
+
+// 遍历文件，可指定后缀，返回相对路径
+func WalkRelFiles(targpath string, suffixes ...string) (filelist []string) {
+	if !filepath.IsAbs(targpath) {
+		targpath, _ = filepath.Abs(targpath)
+	}
+	err := filepath.Walk(targpath, func(retpath string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if f.IsDir() {
+			return nil
+		}
+		if len(suffixes) == 0 {
+			filelist = append(filelist, RelPath(retpath))
+			return nil
+		}
+		_retpath := RelPath(retpath)
+		for _, suffix := range suffixes {
+			if strings.HasSuffix(_retpath, suffix) {
+				filelist = append(filelist, _retpath)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		logs.Log.Error("util.WalkRelFiles: %v\n", err)
+		return
+	}
+
+	return
+}
+
+// 遍历目录，可指定后缀，返回相对路径
+func WalkRelDir(targpath string, suffixes ...string) (dirlist []string) {
+	if !filepath.IsAbs(targpath) {
+		targpath, _ = filepath.Abs(targpath)
+	}
+	err := filepath.Walk(targpath, func(retpath string, f os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !f.IsDir() {
+			return nil
+		}
+		if len(suffixes) == 0 {
+			dirlist = append(dirlist, RelPath(retpath))
+			return nil
+		}
+		_retpath := RelPath(retpath)
+		for _, suffix := range suffixes {
+			if strings.HasSuffix(_retpath, suffix) {
+				dirlist = append(dirlist, _retpath)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		logs.Log.Error("util.WalkRelDir: %v\n", err)
+		return
+	}
+
+	return
+}
+
+// 转相对路径
+func RelPath(targpath string) string {
+	basepath, _ := filepath.Abs("./")
+	rel, _ := filepath.Rel(basepath, targpath)
+	return strings.Replace(rel, `\`, `/`, -1)
 }
 
 // The IsNum judges string is number or not.
@@ -193,6 +305,11 @@ func JsonString(obj interface{}) string {
 func CheckErr(err error) {
 	if err != nil {
 		logs.Log.Error("%v", err)
+	}
+}
+func CheckErrPanic(err error) {
+	if err != nil {
+		panic(err)
 	}
 }
 

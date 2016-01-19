@@ -195,7 +195,7 @@ func (self *Spider) RunTimer(id string) bool {
 // 开始执行蜘蛛
 func (self *Spider) Start() {
 	self.RuleTree.Root(NewContext(self, nil))
-	cancel := time.After(10e9)
+	cancel := time.After(1e9)
 	for self.ReqmatrixLen() == 0 {
 		select {
 		case <-cancel:

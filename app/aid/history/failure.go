@@ -123,7 +123,6 @@ func (self *Failure) flush(provider string) (fLen int) {
 		mysql.MysqlPool.Free(db)
 
 	default:
-		once.Do(mkdir)
 		// 删除失败记录文件
 		os.Remove(FAILURE_FILE_FULL)
 		if fLen == 0 {

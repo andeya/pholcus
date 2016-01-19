@@ -39,15 +39,9 @@ var sdl = &scheduler{
 	history: history.New(),
 	status:  status.RUN,
 	count:   make(chan bool, cache.Task.ThreadNum),
+	proxy:   proxy.New(),
 }
 
-func init() {
-	go func() {
-		// 等待main中的init()执行完毕
-		cache.WaitInit(0)
-		sdl.proxy = proxy.New()
-	}()
-}
 func Init() {
 	for sdl.proxy == nil {
 		runtime.Gosched()
