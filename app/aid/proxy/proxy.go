@@ -62,7 +62,7 @@ func (self *ProxyForHost) Swap(i, j int) {
 }
 
 func New() *Proxy {
-	return (&Proxy{
+	p := &Proxy{
 		ipRegexp:    regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`),
 		proxyRegexp: regexp.MustCompile(`http[s]?://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`),
 		allIps:      map[string]string{},
@@ -70,7 +70,9 @@ func New() *Proxy {
 		usable:      make(map[string]*ProxyForHost),
 		threadPool:  make(chan bool, MAX_THREAD_NUM),
 		surf:        surfer.New(),
-	}).Update()
+	}
+	go p.Update()
+	return p
 }
 
 // 代理IP数量
