@@ -100,7 +100,151 @@ pholcus -h
 > *<font size="2">Cmd版运行参数设置示例如下*
 
 ```
-pholcus -a_ui=cmd -c_spider=3,8 -c_output=csv -c_thread=20 -c_docker=5000 -c_pause=300 -c_proxy=0 -c_keyword=pholcus,golang -c_maxpage=10 -c_inherit_y=true -c_inherit_n=true
+pholcus -a_ui=cmd -c_spider=3,8 -c_output=csv -c_thread=20 -c_docker=5000 -c_pause=300 
+-c_proxy=0 -c_keyword=pholcus,golang -c_maxpage=10 -c_inherit_y=true -c_inherit_n=true
+```
+
+&nbsp;
+
+#### 动态规则示例
+
+特点：动态加载规则，无需重新编译软件，书写简单，添加自由，适用于轻量级的采集项目。
+<br/>
+xxx.pholcus.html
+```
+<Spider>
+    <Name>HTML动态规则示例</Name>
+    <DeScription>HTML动态规则示例 [Auto Page] [http://xxx.xxx.xxx]</DeScription>
+    <EnableKeyword>false</EnableKeyword>
+    <EnableCookie>true</EnableCookie>
+    <EnableMaxPage>false</EnableMaxPage>
+    <Pausetime>300</Pausetime>
+    <Namespace>
+        <Script></Script>
+    </Namespace>
+    <SubNamespace>
+        <Script></Script>
+    </SubNamespace>
+    <Root>
+        <Script param="ctx">
+        console.log("Root");
+        ctx.JsAddQueue({
+            Url: "http://xxx.xxx.xxx",
+            Rule: "登录页"
+        });
+        </Script>
+    </Root>
+    <Rule name="登录页">
+        <AidFunc>
+            <Script param="ctx,aid">
+            </Script>
+        </AidFunc>
+        <ParseFunc>
+            <Script param="ctx">
+            console.log(ctx.GetRuleName());
+            ctx.JsAddQueue({
+                Url: "http://xxx.xxx.xxx",
+                Rule: "登录后",
+                Method: "POST",
+                PostData: "username=44444444@qq.com&amp;password=44444444&amp;login_btn=login_btn&amp;submit=login_btn"
+            });
+            </Script>
+        </ParseFunc>
+    </Rule>
+    <Rule name="登录后">
+        <ParseFunc>
+            <Script param="ctx">
+            console.log(ctx.GetRuleName());
+            ctx.Output({
+                "全部": ctx.GetText()
+            });
+            ctx.JsAddQueue({
+                Url: "http://accounts.xxx.xxx/member",
+                Rule: "个人中心",
+                Header: {
+                    "Referer": [ctx.GetUrl()]
+                }
+            });
+            </Script>
+        </ParseFunc>
+    </Rule>
+    <Rule name="个人中心">
+        <ParseFunc>
+            <Script param="ctx">
+            console.log("个人中心: " + ctx.GetRuleName());
+            ctx.Output({
+                "全部": ctx.GetText()
+            });
+            </Script>
+        </ParseFunc>
+    </Rule>
+</Spider>
+```
+
+#### 静态规则示例
+
+特点：随软件一同编译，定制性更强，效率更高，适用于重量级的采集项目。
+<br/>
+xxx.go
+
+```
+func init() {
+    Lewa.Register()
+}
+
+var Lewa = &Spider{
+    Name:        "静态规则示例",
+    Description: "静态规则示例 [Auto Page] [http://xxx.xxx.xxx]",
+    // Pausetime: 300,
+    // Keyword:   USE,
+    EnableCookie: true,
+    RuleTree: &RuleTree{
+        Root: func(ctx *Context) {
+            ctx.AddQueue(&context.Request{Url: "http://xxx.xxx.xxx", Rule: "登录页"})
+        },
+
+        Trunk: map[string]*Rule{
+
+            "登录页": {
+                ParseFunc: func(ctx *Context) {
+                    ctx.AddQueue(&context.Request{
+                        Url:    "http://xxx.xxx.xxx",
+                        Rule:   "登录后",
+                        Method: "POST",
+                        PostData: "username=123456@qq.com&password=123456&login_btn=login_btn&submit=login_btn",
+                   })
+                },
+            },
+            "登录后": {
+                ItemFields: []string{
+                    "全部",
+                },
+                ParseFunc: func(ctx *Context) {
+                    // 结果存入Response中转
+                    ctx.Output(map[int]interface{}{
+                        0: ctx.GetText(),
+                    })
+                    ctx.AddQueue(&context.Request{
+                        Url:    "http://accounts.xxx.xxx/member",
+                        Rule:   "个人中心",
+                        Header: http.Header{"Referer": []string{ctx.GetUrl()}},
+                    })
+                },
+            },
+            "个人中心": {
+                ItemFields: []string{
+                    "全部",
+                },
+                ParseFunc: func(ctx *Context) {
+                    // 结果存入Response中转
+                    ctx.Output(map[int]interface{}{
+                        0: ctx.GetText(),
+                    })
+                },
+            },
+        },
+    },
+}
 ```
 
 &nbsp;
@@ -128,6 +272,16 @@ url页面内容的更新，框架无法直接支持判断，但是用户可以�
 在当前任务正常结束后，将自动添加至下载队列，再次进行下载。如果依然有没下载成功的，则保存至失败历史记录。  
 当下次执行该条爬虫规则时，可通过选择继承历史失败记录，把这些失败请求自动加入defer性质的特殊队列……（后面是重复步骤）
 ```
+
+&nbsp;
+
+#### 贡献者名单
+
+贡献者                          |贡献内容
+--------------------------------|--------------------------------------------------
+henrylee2cn|软件作者 
+kas|surfer下载器中phantomjs内核 
+
 
 &nbsp;
 
