@@ -106,6 +106,30 @@ pholcus -a_ui=cmd -c_spider=3,8 -c_output=csv -c_thread=20 -c_docker=5000 -c_pau
 
 &nbsp;
 
+#### 运行时目录文件
+
+```
+├─pholcus 软件
+│
+├─pholcus 依赖文件目录
+│  ├─pholcus.ini 配置文件
+│  │
+│  ├─proxy.lib 代理IP列表库
+│  │
+│  ├─spider.lib 动态规则目录
+│  │  └─xxx.pholcus.html 动态规则文件
+│  │
+│  ├─phantomjs 程序文件
+│  │
+│  ├─logs 日志目录
+│  │
+│  ├─history 历史记录目录
+│  │
+└─└─cache 临时缓存目录
+```
+
+&nbsp;
+
 #### 动态规则示例
 
 特点：动态加载规则，无需重新编译软件，书写简单，添加自由，适用于轻量级的采集项目。
