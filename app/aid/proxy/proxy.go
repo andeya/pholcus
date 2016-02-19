@@ -111,7 +111,9 @@ func (self *Proxy) findOnline() *Proxy {
 		self.threadPool <- true
 		go func(proxy string) {
 			alive, _, _ := ping.Ping(self.allIps[proxy], CONN_TIMEOUT)
+			self.Lock()
 			self.all[proxy] = alive
+			self.Unlock()
 			if alive {
 				self.online++
 			}
