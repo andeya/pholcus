@@ -166,14 +166,29 @@ func NewMatrix(spiderId int, maxPage int64) *Matrix {
 
 // 添加请求到队列
 func (self *Matrix) Push(req *context.Request) {
+	// 暂停添加操作，避免大量请求堆积
+	for sdl.status == status.PAUSE {
+		runtime.Gosched()
+	}
+
 	sdl.RLock()
 	defer sdl.RUnlock()
 
+	// 终止添加操作
 	if sdl.status == status.STOP ||
 		self.maxPage >= 0 ||
 		// 当req不可重复下载时，已存在成功记录则返回
 		!req.IsReloadable() && !UpsertSuccess(req) {
 		return
+	}
+
+	// 根据资源使用情况，一定程度避免大量请求堆积
+	avg := int32(cap(sdl.count) / len(sdl.matrices))
+	if avg == 0 {
+		avg = 1
+	}
+	for self.resCount > avg {
+		runtime.Gosched()
 	}
 
 	// 大致限制加入队列的请求量，并发情况下应该会比maxPage多
@@ -192,6 +207,7 @@ func (self *Matrix) Push(req *context.Request) {
 	self.reqs[priority] = append(self.reqs[priority], req)
 }
 
+// 从队列取出请求，不存在时返回nil
 func (self *Matrix) Pull() (req *context.Request) {
 	sdl.RLock()
 	defer sdl.RUnlock()
