@@ -135,6 +135,15 @@ func TryFlushHistory() {
 	}
 }
 
+// 每个spider实例分配到的平均资源量
+func (self *scheduler) avgRes() int32 {
+	avg := int32(cap(sdl.count) / len(sdl.matrices))
+	if avg == 0 {
+		avg = 1
+	}
+	return avg
+}
+
 // 一个Spider实例的请求矩阵
 type Matrix struct {
 	// [优先级]队列，优先级默认为0
@@ -166,8 +175,12 @@ func NewMatrix(spiderId int, maxPage int64) *Matrix {
 
 // 添加请求到队列
 func (self *Matrix) Push(req *context.Request) {
-	// 暂停添加操作，避免大量请求堆积
-	for sdl.status == status.PAUSE {
+	// 禁止并发，降低请求积存量
+	self.Lock()
+	defer self.Unlock()
+
+	// 根据运行状态及资源使用情况，降低请求积存量
+	for sdl.status == status.PAUSE || self.resCount > sdl.avgRes() {
 		runtime.Gosched()
 	}
 
@@ -180,15 +193,6 @@ func (self *Matrix) Push(req *context.Request) {
 		// 当req不可重复下载时，已存在成功记录则返回
 		!req.IsReloadable() && !UpsertSuccess(req) {
 		return
-	}
-
-	// 根据资源使用情况，一定程度避免大量请求堆积
-	avg := int32(cap(sdl.count) / len(sdl.matrices))
-	if avg == 0 {
-		avg = 1
-	}
-	for self.resCount > avg {
-		runtime.Gosched()
 	}
 
 	// 大致限制加入队列的请求量，并发情况下应该会比maxPage多
