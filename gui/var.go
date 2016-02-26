@@ -1,12 +1,21 @@
 package gui
 
 import (
+	"github.com/lxn/walk"
+	"github.com/lxn/walk/declarative"
+
 	. "github.com/henrylee2cn/pholcus/gui/model"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
-	"github.com/lxn/walk"
-	"github.com/lxn/walk/declarative"
 )
+
+// GUI输入
+type Inputor struct {
+	Spiders []*GUISpider
+	*cache.AppConf
+	Pausetime   int64
+	ProxyMinute int64
+}
 
 var (
 	runStopBtn      *walk.PushButton
@@ -21,22 +30,16 @@ var (
 	spiderMenu      *SpiderMenu
 )
 
-// GUI输入
-type Inputor struct {
-	Spiders []*GUISpider
-	*cache.AppConf
-	Pausetime   int64
-	ProxyMinute int64
-}
-
 var Input = &Inputor{
-	// 默认值
 	AppConf:     cache.Task,
 	Pausetime:   cache.Task.Pausetime,
 	ProxyMinute: cache.Task.ProxyMinute,
 }
 
 //****************************************GUI内容显示配置*******************************************\\
+
+// 输出选项
+var outputList []declarative.RadioButton
 
 // 下拉菜单辅助结构体
 type KV struct {
@@ -85,6 +88,3 @@ var GuiOpt = struct {
 		{Key: "180 分钟", Int64: 180},
 	},
 }
-
-// 输出选项
-var outputList []declarative.RadioButton

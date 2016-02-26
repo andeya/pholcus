@@ -16,35 +16,42 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
-type Historier interface {
-	// 读取成功记录
-	ReadSuccess(provider string, inherit bool)
-	// 更新或加入成功记录
-	UpsertSuccess(Record) bool
-	// 删除成功记录
-	DeleteSuccess(Record)
-	// I/O输出成功记录，但不清缓存
-	FlushSuccess(provider string)
+type (
+	Historier interface {
+		// 读取成功记录
+		ReadSuccess(provider string, inherit bool)
+		// 更新或加入成功记录
+		UpsertSuccess(Record) bool
+		// 删除成功记录
+		DeleteSuccess(Record)
+		// I/O输出成功记录，但不清缓存
+		FlushSuccess(provider string)
 
-	// 读取失败记录
-	ReadFailure(provider string, inherit bool)
-	// 更新或加入失败记录
-	UpsertFailure(*context.Request) bool
-	// 删除失败记录
-	DeleteFailure(*context.Request)
-	// I/O输出失败记录，但不清缓存
-	FlushFailure(provider string)
-	// 获取指定蜘蛛在上一次运行时失败的请求
-	PullFailure(spiderName string) []*context.Request
+		// 读取失败记录
+		ReadFailure(provider string, inherit bool)
+		// 更新或加入失败记录
+		UpsertFailure(*context.Request) bool
+		// 删除失败记录
+		DeleteFailure(*context.Request)
+		// I/O输出失败记录，但不清缓存
+		FlushFailure(provider string)
+		// 获取指定蜘蛛在上一次运行时失败的请求
+		PullFailure(spiderName string) []*context.Request
 
-	// 清空缓存，但不输出
-	Empty()
-}
-
-type Record interface {
-	GetUrl() string
-	GetMethod() string
-}
+		// 清空缓存，但不输出
+		Empty()
+	}
+	Record interface {
+		GetUrl() string
+		GetMethod() string
+	}
+	History struct {
+		*Success
+		*Failure
+		provider string
+		sync.RWMutex
+	}
+)
 
 var (
 	MGO_DB = config.MGO.DB
@@ -55,13 +62,6 @@ var (
 	SUCCESS_FILE_FULL = path.Join(config.HISTORY.DIR, SUCCESS_FILE)
 	FAILURE_FILE_FULL = path.Join(config.HISTORY.DIR, FAILURE_FILE)
 )
-
-type History struct {
-	*Success
-	*Failure
-	provider string
-	sync.RWMutex
-}
 
 func New() Historier {
 	return &History{

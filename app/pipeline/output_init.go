@@ -1,8 +1,9 @@
 package pipeline
 
 import (
-	"github.com/henrylee2cn/pholcus/app/pipeline/collector"
 	"sort"
+
+	"github.com/henrylee2cn/pholcus/app/pipeline/collector"
 )
 
 // 初始化输出方式列表collector.OutputLib

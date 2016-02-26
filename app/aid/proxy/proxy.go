@@ -20,14 +20,6 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
-const (
-	CONN_TIMEOUT = 4 //4s
-	DAIL_TIMEOUT = 4 //4s
-	TRY_TIMES    = 3
-	// IP测速的最大并发量
-	MAX_THREAD_NUM = 1000
-)
-
 type Proxy struct {
 	ipRegexp    *regexp.Regexp
 	proxyRegexp *regexp.Regexp
@@ -41,25 +33,14 @@ type Proxy struct {
 	surf        surfer.Surfer
 	sync.Mutex
 }
-type ProxyForHost struct {
-	curIndex  int // 当前代理ip索引
-	proxys    []string
-	timedelay []time.Duration
-	isEcho    bool // 是否打印换ip信息
-	sync.Mutex
-}
 
-// 实现排序接口
-func (self *ProxyForHost) Len() int {
-	return len(self.proxys)
-}
-func (self *ProxyForHost) Less(i, j int) bool {
-	return self.timedelay[i] < self.timedelay[j]
-}
-func (self *ProxyForHost) Swap(i, j int) {
-	self.proxys[i], self.proxys[j] = self.proxys[j], self.proxys[i]
-	self.timedelay[i], self.timedelay[j] = self.timedelay[j], self.timedelay[i]
-}
+const (
+	CONN_TIMEOUT = 4 //4s
+	DAIL_TIMEOUT = 4 //4s
+	TRY_TIMES    = 3
+	// IP测速的最大并发量
+	MAX_THREAD_NUM = 1000
+)
 
 func New() *Proxy {
 	p := &Proxy{

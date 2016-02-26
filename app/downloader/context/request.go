@@ -9,13 +9,6 @@ import (
 	"time"
 )
 
-const (
-	DefaultDialTimeout = 2 * time.Minute // 默认请求服务器超时
-	DefaultConnTimeout = 2 * time.Minute // 默认下载超时
-	DefaultTryTimes    = 3               // 默认最大下载次数
-	DefaultRetryPause  = 2 * time.Second // 默认重新下载前停顿时长
-)
-
 // Request represents object waiting for being crawled.
 type Request struct {
 	Spider string // *规则中无需手动指定
@@ -64,6 +57,13 @@ type Request struct {
 	// 1为PhantomJS下载器，特点破防力强，速度慢，低并发
 	DownloaderID int
 }
+
+const (
+	DefaultDialTimeout = 2 * time.Minute // 默认请求服务器超时
+	DefaultConnTimeout = 2 * time.Minute // 默认下载超时
+	DefaultTryTimes    = 3               // 默认最大下载次数
+	DefaultRetryPause  = 2 * time.Second // 默认重新下载前停顿时长
+)
 
 // 发送请求前的准备工作，设置一系列默认值
 // Request.Url与Request.Rule必须设置

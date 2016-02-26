@@ -5,10 +5,11 @@ package gui
 
 import (
 	"errors"
-	"github.com/lxn/walk"
-	"github.com/lxn/win"
 	"syscall"
 	"unsafe"
+
+	"github.com/lxn/walk"
+	"github.com/lxn/win"
 )
 
 type LogView struct {
@@ -16,9 +17,7 @@ type LogView struct {
 	logChan chan string
 }
 
-const (
-	TEM_APPENDTEXT = win.WM_USER + 6
-)
+const TEM_APPENDTEXT = win.WM_USER + 6
 
 func NewLogView(parent walk.Container) (*LogView, error) {
 	lc := make(chan string, 1024)

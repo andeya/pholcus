@@ -15,15 +15,6 @@ import (
 	"time"
 )
 
-const (
-	// Windows operating system.
-	Windows int = iota
-	// Linux based operating system.
-	Linux
-	// Macintosh/OS X operating system.
-	Macintosh
-)
-
 // TemplateData structure for template data.
 type TemplateData struct {
 	Name string
@@ -43,6 +34,15 @@ type OSAttributes struct {
 	Comments []string
 }
 
+const (
+	// Windows operating system.
+	Windows int = iota
+	// Linux based operating system.
+	Linux
+	// Macintosh/OS X operating system.
+	Macintosh
+)
+
 // DefaultOSAttributes stores default OS attributes.
 var DefaultOSAttributes = map[int]OSAttributes{
 	Windows:   {"Windows NT", "6.3", []string{"x64"}},
@@ -50,21 +50,23 @@ var DefaultOSAttributes = map[int]OSAttributes{
 	Macintosh: {"Intel Mac OS X", "10_6_8", []string{}},
 }
 
-// Formats is a collection of UA format strings.
-// key is the browser version.
-// value is the browser info.
-type Formats map[string]string
+type (
+	// Formats is a collection of UA format strings.
+	// key is the browser version.
+	// value is the browser info.
+	Formats map[string]string
 
-// UAData stores information on a browser user agent.
-type UAData struct {
-	TopVersion string
-	DefaultOS  int
-	Formats    Formats
-}
+	// UAData stores information on a browser user agent.
+	UAData struct {
+		TopVersion string
+		DefaultOS  int
+		Formats    Formats
+	}
 
-// UATable is a collection of UAData values.
-// key is the name of the browser.
-type UATable map[string]UAData
+	// UATable is a collection of UAData values.
+	// key is the name of the browser.
+	UATable map[string]UAData
+)
 
 // Database is the "database" of user agents.
 var Database = UATable{

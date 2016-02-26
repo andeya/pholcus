@@ -19,8 +19,10 @@ func init() {
 				logs.Log.Error("%v", err)
 			}
 		}()
-		var namespace = util.FileNameReplace(self.namespace())
-		var sheets = make(map[string]*csv.Writer)
+		var (
+			namespace = util.FileNameReplace(self.namespace())
+			sheets    = make(map[string]*csv.Writer)
+		)
 		for _, datacell := range self.DockerQueue.Dockers[dataIndex] {
 			var subNamespace = util.FileNameReplace(self.subNamespace(datacell))
 			if _, ok := sheets[subNamespace]; !ok {

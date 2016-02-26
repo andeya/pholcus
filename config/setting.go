@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/henrylee2cn/pholcus/common/config"
 	"os"
+
+	"github.com/henrylee2cn/pholcus/common/config"
 )
 
 var setting config.ConfigContainer = initConfig()

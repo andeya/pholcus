@@ -2,9 +2,10 @@
 package collector
 
 import (
-	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"sync"
 	"time"
+
+	"github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
 type DockerQueue struct {
@@ -13,6 +14,8 @@ type DockerQueue struct {
 	Using   map[int]bool
 	Dockers [][]DataCell
 }
+
+var changeMutex sync.Mutex
 
 func NewDocker() []DataCell {
 	return make([]DataCell, 0, cache.Task.DockerCap)
@@ -38,11 +41,9 @@ func NewDockerQueue() *DockerQueue {
 	return dockerQueue
 }
 
-var ChangeMutex sync.Mutex
-
 func (self *DockerQueue) Change() {
-	ChangeMutex.Lock()
-	defer ChangeMutex.Unlock()
+	changeMutex.Lock()
+	defer changeMutex.Unlock()
 getLable:
 	for {
 		for k, v := range self.Using {

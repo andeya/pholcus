@@ -8,23 +8,25 @@ import (
 	"github.com/henrylee2cn/pholcus/app/spider"
 )
 
-type Pipeline interface {
-	Start()
-	//接收控制通知
-	CtrlR()
-	//控制通知
-	CtrlW()
-	// 收集数据单元
-	CollectData(ruleName string, data map[string]interface{}, url string, parentUrl string, downloadTime string)
-	// 收集文件
-	CollectFile(ruleName, name string, body io.ReadCloser)
-	// 重置
-	Init(*spider.Spider)
-}
+type (
+	Pipeline interface {
+		Start()
+		//接收控制通知
+		CtrlR()
+		//控制通知
+		CtrlW()
+		// 收集数据单元
+		CollectData(ruleName string, data map[string]interface{}, url string, parentUrl string, downloadTime string)
+		// 收集文件
+		CollectFile(ruleName, name string, body io.ReadCloser)
+		// 重置
+		Init(*spider.Spider)
+	}
 
-type pipeline struct {
-	*collector.Collector
-}
+	pipeline struct {
+		*collector.Collector
+	}
+)
 
 func New() Pipeline {
 	return &pipeline{

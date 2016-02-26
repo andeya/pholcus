@@ -16,50 +16,49 @@ const (
 )
 
 // 蜘蛛规则
-type Spider struct {
-	Id   int    // 所在SpiderList的下标编号，系统自动分配
-	Name string // 必须保证全局唯一
-	*RuleTree
+type (
+	Spider struct {
+		Id   int    // 所在SpiderList的下标编号，系统自动分配
+		Name string // 必须保证全局唯一
+		*RuleTree
 
-	//以下为可选成员
-	Description  string
-	Pausetime    int64  // 暂停区间(随机: Pausetime/2 ~ Pausetime*2)
-	EnableCookie bool   // 控制所有请求是否使用cookie记录
-	MaxPage      int64  // 为负值时自动在调度中限制请求数，为正值时在规则中自定义控制
-	Keyword      string // 如需使用必须附初始值为常量USE_KEYWORD
+		//以下为可选成员
+		Description  string
+		Pausetime    int64  // 暂停区间(随机: Pausetime/2 ~ Pausetime*2)
+		EnableCookie bool   // 控制所有请求是否使用cookie记录
+		MaxPage      int64  // 为负值时自动在调度中限制请求数，为正值时在规则中自定义控制
+		Keyword      string // 如需使用必须附初始值为常量USE_KEYWORD
+		// 命名空间相对于数据库名，不依赖具体数据内容
+		Namespace func(*Spider) string
+		// 子命名空间相对于表名，可依赖具体数据内容
+		SubNamespace func(self *Spider, dataCell map[string]interface{}) string
 
-	// 命名空间相对于数据库名，不依赖具体数据内容，可选
-	Namespace func(*Spider) string
-	// 子命名空间相对于表名，可依赖具体数据内容，可选
-	SubNamespace func(self *Spider, dataCell map[string]interface{}) string
+		// 请求矩阵
+		ReqMatrix *scheduler.Matrix
+		// 定时器
+		timer *Timer
+		// 执行状态
+		status int
+	}
 
-	// 请求矩阵
-	ReqMatrix *scheduler.Matrix
+	//采集规则树
+	RuleTree struct {
+		// 执行入口（树根）
+		Root func(*Context)
+		// 执行解析过程（树干）
+		Trunk map[string]*Rule
+	}
 
-	// 定时器
-	timer *Timer
-
-	// 执行状态
-	status int
-}
-
-//采集规则树
-type RuleTree struct {
-	// 执行入口（树根）
-	Root func(*Context)
-	// 执行解析过程（树干）
-	Trunk map[string]*Rule
-}
-
-// 采集规则单元
-type Rule struct {
-	// 输出结果的字段名列表
-	ItemFields []string
-	// 内容解析函数
-	ParseFunc func(*Context)
-	// 通用辅助函数
-	AidFunc func(*Context, map[string]interface{}) interface{}
-}
+	// 采集规则单元
+	Rule struct {
+		// 输出结果的字段名列表
+		ItemFields []string
+		// 内容解析函数
+		ParseFunc func(*Context)
+		// 通用辅助函数
+		AidFunc func(*Context, map[string]interface{}) interface{}
+	}
+)
 
 // 添加自身到蜘蛛菜单
 func (self *Spider) Register() *Spider {

@@ -4,8 +4,13 @@ import (
 	"io"
 )
 
-// 数据存储单元
-type DataCell map[string]interface{}
+type (
+	// 数据存储单元
+	DataCell map[string]interface{}
+	// 文件存储单元
+	// FileCell存储的完整文件名为： file/"Dir"/"RuleName"/"time"/"Name"
+	FileCell map[string]interface{}
+)
 
 func NewDataCell(ruleName string, data map[string]interface{}, url string, parentUrl string, downloadTime string) DataCell {
 	return DataCell{
@@ -16,11 +21,6 @@ func NewDataCell(ruleName string, data map[string]interface{}, url string, paren
 		"DownloadTime": downloadTime,
 	}
 }
-
-// 文件存储单元
-type FileCell map[string]interface{}
-
-// FileCell存储的完整文件名为： file/"Dir"/"RuleName"/"time"/"Name"
 
 func NewFileCell(ruleName, name string, body io.ReadCloser) FileCell {
 	return FileCell{

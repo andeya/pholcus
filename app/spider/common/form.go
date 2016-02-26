@@ -1,11 +1,13 @@
 package common
 
 import (
-	"github.com/PuerkitoBio/goquery"
-	"github.com/henrylee2cn/pholcus/app/downloader/context"
-	. "github.com/henrylee2cn/pholcus/app/spider"
 	"net/url"
 	"strings"
+
+	"github.com/PuerkitoBio/goquery"
+
+	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	. "github.com/henrylee2cn/pholcus/app/spider"
 )
 
 // Form is the default form element.

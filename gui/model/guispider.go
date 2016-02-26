@@ -5,30 +5,31 @@
 package model
 
 import (
-	"github.com/henrylee2cn/pholcus/app/spider"
-	"github.com/lxn/walk"
 	"sort"
 
-	// . "github.com/lxn/walk/declarative"
+	"github.com/lxn/walk"
+
+	"github.com/henrylee2cn/pholcus/app/spider"
 )
 
-type GUISpider struct {
-	Spider      *spider.Spider
-	Title       string
-	Description string
-	Index       int
-	checked     bool
-}
-
-type SpiderMenu struct {
-	walk.TableModelBase
-	walk.SorterBase
-	sortColumn int
-	sortOrder  walk.SortOrder
-	// evenBitmap *walk.Bitmap
-	// oddIcon    *walk.Icon
-	items []*GUISpider
-}
+type (
+	GUISpider struct {
+		Spider      *spider.Spider
+		Title       string
+		Description string
+		Index       int
+		checked     bool
+	}
+	SpiderMenu struct {
+		walk.TableModelBase
+		walk.SorterBase
+		sortColumn int
+		sortOrder  walk.SortOrder
+		// evenBitmap *walk.Bitmap
+		// oddIcon    *walk.Icon
+		items []*GUISpider
+	}
+)
 
 func NewGUISpider(sp *spider.Spider, idx int) *GUISpider {
 	return &GUISpider{
@@ -134,9 +135,6 @@ func (m *SpiderMenu) Less(i, j int) bool {
 
 	case 2:
 		return c(a.Description < b.Description)
-
-		// case 3:
-		// 	return c(a.Spider < b.Spider)
 	}
 
 	panic("unreachable")

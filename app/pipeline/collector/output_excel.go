@@ -20,11 +20,13 @@ func init() {
 			}
 		}()
 
-		var file *xlsx.File
-		var sheets = make(map[string]*xlsx.Sheet)
-		var row *xlsx.Row
-		var cell *xlsx.Cell
-		var err error
+		var (
+			err    error
+			file   *xlsx.File
+			row    *xlsx.Row
+			cell   *xlsx.Cell
+			sheets = make(map[string]*xlsx.Sheet)
+		)
 
 		// 创建文件
 		file = xlsx.NewFile()

@@ -6,12 +6,13 @@ package gui
 import (
 	"log"
 
+	"github.com/lxn/walk"
+	"github.com/lxn/walk/declarative"
+
 	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/app/spider"
 	. "github.com/henrylee2cn/pholcus/gui/model"
 	"github.com/henrylee2cn/pholcus/runtime/status"
-	"github.com/lxn/walk"
-	"github.com/lxn/walk/declarative"
 )
 
 // 执行入口

@@ -1,14 +1,15 @@
 package common
 
 import (
-	"github.com/PuerkitoBio/goquery"
-	"github.com/henrylee2cn/mahonia"
 	"math"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/henrylee2cn/mahonia"
 )
 
 // 清除标签

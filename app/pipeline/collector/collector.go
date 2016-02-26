@@ -46,9 +46,7 @@ func (self *Collector) Init(sp *spider.Spider) {
 }
 
 func (self *Collector) CollectData(dataCell DataCell) {
-	// reporter.Log.Println("**************断点 6 ***********")
 	self.DataChan <- dataCell
-	// reporter.Log.Println("**************断点 7 ***********")
 }
 
 func (self *Collector) CollectFile(fileCell FileCell) {
@@ -57,12 +55,10 @@ func (self *Collector) CollectFile(fileCell FileCell) {
 
 func (self *Collector) CtrlW() {
 	self.ctrl <- true
-	// reporter.Log.Println("**************断点 10 ***********")
 }
 
 func (self *Collector) CtrlR() {
 	<-self.ctrl
-	// reporter.Log.Println("**************断点 9 ***********")
 }
 
 func (self *Collector) CtrlLen() int {
@@ -71,8 +67,6 @@ func (self *Collector) CtrlLen() int {
 
 // 数据转储输出
 func (self *Collector) Manage() {
-	// reporter.Log.Println("**************开启输出管道************")
-
 	// 标记开始，令self.Ctrl长度不为零
 	self.CtrlW()
 
@@ -81,13 +75,10 @@ func (self *Collector) Manage() {
 
 	// 只有当收到退出通知并且通道内无数据时，才退出循环
 	for !(self.CtrlLen() == 0 && len(self.DataChan) == 0) {
-		// reporter.Log.Println("**************断点 8 ***********")
 		select {
 		case data := <-self.DataChan:
 			self.dockerOne(data)
-
 		default:
-			// time.Sleep(1e7) //0.1秒
 			runtime.Gosched()
 		}
 	}
@@ -97,7 +88,6 @@ func (self *Collector) Manage() {
 
 	// 等待所有输出完成
 	for (self.outCount[0] > self.outCount[1]) || (self.outCount[2] > self.outCount[3]) || len(self.FileChan) > 0 {
-		// time.Sleep(5e8)
 		runtime.Gosched()
 	}
 
@@ -146,7 +136,6 @@ func (self *Collector) setFileSum(add uint64) {
 
 // 返回报告
 func (self *Collector) Report() {
-	// reporter.Log.Println("**************", self.Sum(), " ***********")
 	cache.ReportChan <- &cache.Report{
 		SpiderName: self.Spider.GetName(),
 		Keyword:    self.GetKeyword(),

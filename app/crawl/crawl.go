@@ -14,21 +14,22 @@ import (
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
-type Crawler interface {
-	Init(*spider.Spider) Crawler
-	Start()
-	GetId() int
-}
-
-type crawler struct {
-	id int
-	*spider.Spider
-	basePause int64
-	gainPause int64
-	downloader.Downloader
-	pipeline.Pipeline
-	historyFailure []*context.Request
-}
+type (
+	Crawler interface {
+		Init(*spider.Spider) Crawler
+		Start()
+		GetId() int
+	}
+	crawler struct {
+		id int
+		*spider.Spider
+		basePause int64
+		gainPause int64
+		downloader.Downloader
+		pipeline.Pipeline
+		historyFailure []*context.Request
+	}
+)
 
 func New(id int) Crawler {
 	return &crawler{

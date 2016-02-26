@@ -1,23 +1,25 @@
 package crawl
 
 import (
+	"time"
+
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/runtime/status"
-	"time"
 )
 
-type CrawlPool interface {
-	Reset(spiderNum int) int
-	Use() Crawler
-	Free(Crawler)
-	Stop()
-}
-
-type cq struct {
-	Cap    int
-	Src    map[Crawler]bool
-	status int
-}
+type (
+	CrawlPool interface {
+		Reset(spiderNum int) int
+		Use() Crawler
+		Free(Crawler)
+		Stop()
+	}
+	cq struct {
+		Cap    int
+		Src    map[Crawler]bool
+		status int
+	}
+)
 
 func NewCrawlPool() CrawlPool {
 	return &cq{

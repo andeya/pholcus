@@ -8,15 +8,15 @@ import (
 	"github.com/henrylee2cn/pholcus/config"
 )
 
-const (
-	SURF_ID    = 0 //默认下载器，此值不可改动
-	PHANTOM_ID = iota
-)
-
 type Surfer struct {
 	surf    surfer.Surfer
 	phantom surfer.Surfer
 }
+
+const (
+	SURF_ID    = 0 //默认下载器，此值不可改动
+	PHANTOM_ID = iota
+)
 
 var SurferDownloader = &Surfer{
 	surf:    surfer.New(),

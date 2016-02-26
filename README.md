@@ -324,6 +324,7 @@ go get github.com/lxn/walk
 go get github.com/lxn/win
 go get github.com/tealeg/xlsx
 go get github.com/go-sql-driver/mysql
+go get github.com/elazarl/go-bindata-assetfs
 go get gopkg.in/mgo.v2
 <以下需翻墙下载>
 go get golang.org/x/net/html

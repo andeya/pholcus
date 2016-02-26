@@ -92,12 +92,11 @@ func newWchan() *Wchan {
 }
 
 var (
-	Sc = &SocketController{
+	wsApi = map[string]func(string, map[string]interface{}){}
+	Sc    = &SocketController{
 		connPool:  make(map[string]*ws.Conn),
 		wchanPool: make(map[string]*Wchan),
 	}
-
-	wsApi = map[string]func(string, map[string]interface{}){}
 )
 
 func wsHandle(conn *ws.Conn) {

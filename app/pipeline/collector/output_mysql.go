@@ -17,8 +17,10 @@ func init() {
 		}
 		defer mysql.MysqlPool.Free(db)
 
-		var mysqls = make(map[string]*mysql.MyTable)
-		var namespace = util.FileNameReplace(self.namespace())
+		var (
+			mysqls    = make(map[string]*mysql.MyTable)
+			namespace = util.FileNameReplace(self.namespace())
+		)
 
 		for _, datacell := range self.DockerQueue.Dockers[dataIndex] {
 			subNamespace := util.FileNameReplace(self.subNamespace(datacell))

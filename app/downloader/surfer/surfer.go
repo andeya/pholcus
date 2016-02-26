@@ -8,6 +8,15 @@ import (
 	"github.com/henrylee2cn/pholcus/config"
 )
 
+// Downloader represents an core of HTTP web browser for crawler.
+type Surfer interface {
+	// GET @param url string, header http.Header, cookies []*http.Cookie
+	// HEAD @param url string, header http.Header, cookies []*http.Cookie
+	// POST PostForm @param url, referer string, values url.Values, header http.Header, cookies []*http.Cookie
+	// POST-M PostMultipart @param url, referer string, values url.Values, header http.Header, cookies []*http.Cookie
+	Download(Request) (resp *http.Response, err error)
+}
+
 var (
 	surf         Surfer
 	phantom      Surfer
@@ -32,13 +41,4 @@ func DestroyJsFiles() {
 	if pt, ok := phantom.(*Phantom); ok {
 		pt.DestroyJsFiles()
 	}
-}
-
-// Downloader represents an core of HTTP web browser for crawler.
-type Surfer interface {
-	// GET @param url string, header http.Header, cookies []*http.Cookie
-	// HEAD @param url string, header http.Header, cookies []*http.Cookie
-	// POST PostForm @param url, referer string, values url.Values, header http.Header, cookies []*http.Cookie
-	// POST-M PostMultipart @param url, referer string, values url.Values, header http.Header, cookies []*http.Cookie
-	Download(Request) (resp *http.Response, err error)
 }

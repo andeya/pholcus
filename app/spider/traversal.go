@@ -4,26 +4,27 @@ import (
 	"github.com/henrylee2cn/pholcus/common/pinyin"
 )
 
-// 蜘蛛种类接口
-type Traversal interface {
-	Add(*Spider)
-	Get() []*Spider
-	GetByName(string) *Spider
-}
+// 蜘蛛种类列表
+type (
+	Traversal interface {
+		Add(*Spider)
+		Get() []*Spider
+		GetByName(string) *Spider
+	}
 
-// 蜘蛛种类清单
-type menu struct {
-	list   []*Spider
-	sorted bool
-}
+	menu struct {
+		list   []*Spider
+		sorted bool
+	}
+)
+
+var Menu = newTraversal()
 
 func newTraversal() Traversal {
 	return &menu{
 		list: []*Spider{},
 	}
 }
-
-var Menu = newTraversal()
 
 // 向蜘蛛种类清单添加新种类
 func (self *menu) Add(sp *Spider) {

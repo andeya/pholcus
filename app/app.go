@@ -23,101 +23,100 @@ import (
 	"github.com/henrylee2cn/teleport"
 )
 
-// 全局唯一的核心接口实例
-var LogicApp = New()
+type (
+	App interface {
+		// 设置全局log实时显示终端
+		SetLog(io.Writer) App
+		// 设置全局log是否异步
+		AsyncLog(enable bool) App
+		// 继续log打印
+		LogGoOn() App
+		// 暂停log打印
+		LogRest() App
 
-type App interface {
-	// 设置全局log实时显示终端
-	SetLog(io.Writer) App
-	// 设置全局log是否异步
-	AsyncLog(enable bool) App
-	// 继续log打印
-	LogGoOn() App
-	// 暂停log打印
-	LogRest() App
+		// 使用App前必须进行先Init初始化，SetLog()除外
+		Init(mode int, port int, master string, w ...io.Writer) App
 
-	// 使用App前必须进行先Init初始化，SetLog()除外
-	Init(mode int, port int, master string, w ...io.Writer) App
+		// 切换运行模式并重设log打印目标
+		ReInit(mode int, port int, master string, w ...io.Writer) App
 
-	// 切换运行模式并重设log打印目标
-	ReInit(mode int, port int, master string, w ...io.Writer) App
+		// 获取全局参数
+		GetAppConf(k ...string) interface{}
 
-	// 获取全局参数
-	GetAppConf(k ...string) interface{}
+		// 设置全局参数，Offline和Server模式用到的
+		SetAppConf(k string, v interface{}) App
 
-	// 设置全局参数，Offline和Server模式用到的
-	SetAppConf(k string, v interface{}) App
+		// SpiderPrepare()必须在设置全局运行参数之后，就Run()的前一刻执行
+		// original为spider包中未有过赋值操作的原始蜘蛛种类
+		// 已被显式赋值过的spider将不再重新分配Keyword
+		// client模式下不调用该方法
+		SpiderPrepare(original []*spider.Spider) App
 
-	// SpiderPrepare()必须在设置全局运行参数之后，就Run()的前一刻执行
-	// original为spider包中未有过赋值操作的原始蜘蛛种类
-	// 已被显式赋值过的spider将不再重新分配Keyword
-	// client模式下不调用该方法
-	SpiderPrepare(original []*spider.Spider) App
+		// Run()对外为阻塞运行方式，其返回时意味着当前任务已经执行完毕
+		// Run()必须在所有应当配置项配置完成后调用
+		// server模式下生成任务的方法，必须在全局配置和蜘蛛队列设置完成后才可调用
+		Run()
 
-	// Run()对外为阻塞运行方式，其返回时意味着当前任务已经执行完毕
-	// Run()必须在所有应当配置项配置完成后调用
-	// server模式下生成任务的方法，必须在全局配置和蜘蛛队列设置完成后才可调用
-	Run()
+		// Offline 模式下中途终止任务
+		// 对外为阻塞运行方式，其返回时意味着当前任务已经终止
+		Stop()
 
-	// Offline 模式下中途终止任务
-	// 对外为阻塞运行方式，其返回时意味着当前任务已经终止
-	Stop()
+		// 检查任务是否正在运行
+		IsRunning() bool
 
-	// 检查任务是否正在运行
-	IsRunning() bool
+		// 检查任务是否处于暂停状态
+		IsPause() bool
 
-	// 检查任务是否处于暂停状态
-	IsPause() bool
+		// 检查任务是否已经终止
+		IsStopped() bool
 
-	// 检查任务是否已经终止
-	IsStopped() bool
+		// Offline 模式下暂停\恢复任务
+		PauseRecover()
 
-	// Offline 模式下暂停\恢复任务
-	PauseRecover()
+		// 返回当前状态
+		Status() int
 
-	// 返回当前状态
-	Status() int
+		// 获取全部蜘蛛种类
+		GetSpiderLib() []*spider.Spider
 
-	// 获取全部蜘蛛种类
-	GetSpiderLib() []*spider.Spider
+		// 通过名字获取某蜘蛛
+		GetSpiderByName(string) *spider.Spider
 
-	// 通过名字获取某蜘蛛
-	GetSpiderByName(string) *spider.Spider
+		// 获取蜘蛛队列接口实例
+		GetSpiderQueue() crawl.SpiderQueue
 
-	// 获取蜘蛛队列接口实例
-	GetSpiderQueue() crawl.SpiderQueue
+		// 获取全部输出方式
+		GetOutputLib() []string
 
-	// 获取全部输出方式
-	GetOutputLib() []string
+		// 服务器客户端模式下返回节点数
+		CountNodes() int
+	}
 
-	// 服务器客户端模式下返回节点数
-	CountNodes() int
-}
-
-type Logic struct {
-	// 全局配置
-	*cache.AppConf
-	// 全部蜘蛛种类
-	spider.Traversal
-	// 当前任务的蜘蛛队列
-	crawl.SpiderQueue
-	// 服务器与客户端间传递任务的存储库
-	*distribute.TaskJar
-	// 爬行回收池
-	crawl.CrawlPool
-	// socket长连接双工通信接口，json数据传输
-	teleport.Teleport
-	//执行计数
-	sum [2]uint64
-	// 执行计时
-	takeTime time.Duration
-	// 运行状态
-	status       int
-	finish       chan bool
-	finishOnce   sync.Once
-	canSocketLog bool
-	sync.RWMutex
-}
+	Logic struct {
+		// 全局配置
+		*cache.AppConf
+		// 全部蜘蛛种类
+		spider.Traversal
+		// 当前任务的蜘蛛队列
+		crawl.SpiderQueue
+		// 服务器与客户端间传递任务的存储库
+		*distribute.TaskJar
+		// 爬行回收池
+		crawl.CrawlPool
+		// socket长连接双工通信接口，json数据传输
+		teleport.Teleport
+		//执行计数
+		sum [2]uint64
+		// 执行计时
+		takeTime time.Duration
+		// 运行状态
+		status       int
+		finish       chan bool
+		finishOnce   sync.Once
+		canSocketLog bool
+		sync.RWMutex
+	}
+)
 
 /*
  * 任务运行时公共配置
@@ -138,6 +137,9 @@ type AppConf struct {
 	Keywords string // 后期切分为slice
 }
 */
+
+// 全局唯一的核心接口实例
+var LogicApp = New()
 
 func New() App {
 	return newLogic()

@@ -2,26 +2,28 @@ package crawl
 
 import (
 	"errors"
-	. "github.com/henrylee2cn/pholcus/app/spider"
 	"strings"
+
+	. "github.com/henrylee2cn/pholcus/app/spider"
 )
 
 // 运行时蜘蛛队列
-type SpiderQueue interface {
-	Reset() //重置清空队列
-	Add(*Spider)
-	AddAll([]*Spider)
-	AddKeywords(string) error //为队列成员遍历添加Keyword属性，但前提必须是队列成员未被添加过keyword
-	GetByIndex(int) *Spider
-	GetByName(string) *Spider
-	GetAll() []*Spider
-	Len() int // 返回队列长度
-}
-
-type sq struct {
-	list       []*Spider
-	hasKeyWord bool
-}
+type (
+	SpiderQueue interface {
+		Reset() //重置清空队列
+		Add(*Spider)
+		AddAll([]*Spider)
+		AddKeywords(string) error //为队列成员遍历添加Keyword属性，但前提必须是队列成员未被添加过keyword
+		GetByIndex(int) *Spider
+		GetByName(string) *Spider
+		GetAll() []*Spider
+		Len() int // 返回队列长度
+	}
+	sq struct {
+		list       []*Spider
+		hasKeyWord bool
+	}
+)
 
 func NewSpiderQueue() SpiderQueue {
 	return &sq{

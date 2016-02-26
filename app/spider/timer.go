@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/henrylee2cn/pholcus/logs" //信息输出
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 type Timer struct {
@@ -62,30 +62,31 @@ func (self *Timer) drop() {
 	self.setting = make(map[string]*Clock)
 }
 
+type (
+	Clock struct {
+		id string
+		// 模式（闹铃or倒计时）
+		typ int
+		// 倒计时的睡眠时长
+		// 或指定闹铃醒来时刻为从now起遇到的第tol个bell
+		tol time.Duration
+		// 闹铃醒来时刻
+		bell  *Bell
+		timer *time.Timer
+	}
+	Bell struct {
+		Hour int
+		Min  int
+		Sec  int
+	}
+)
+
 const (
 	// 闹钟
 	A = iota
 	// 倒计时
 	T
 )
-
-type Clock struct {
-	id string
-	// 模式（闹铃or倒计时）
-	typ int
-	// 倒计时的睡眠时长
-	// 或指定闹铃醒来时刻为从now起遇到的第tol个bell
-	tol time.Duration
-	// 闹铃醒来时刻
-	bell  *Bell
-	timer *time.Timer
-}
-
-type Bell struct {
-	Hour int
-	Min  int
-	Sec  int
-}
 
 // @bell==nil时为倒计时器，此时@tol为睡眠时长
 // @bell!=nil时为闹铃，此时@tol用于指定醒来时刻（从now起遇到的第tol个bell）

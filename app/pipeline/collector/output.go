@@ -7,8 +7,10 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
-var Output = make(map[string]func(self *Collector, dataIndex int))
-var OutputLib []string
+var (
+	Output    = make(map[string]func(self *Collector, dataIndex int))
+	OutputLib []string
+)
 
 func (self *Collector) Output(dataIndex int) {
 	defer func() {
