@@ -13,15 +13,14 @@ import (
 
 /************************ excel 输出 ***************************/
 func init() {
-	Output["excel"] = func(self *Collector, dataIndex int) {
+	Output["excel"] = func(self *Collector, dataIndex int) (err error) {
 		defer func() {
-			if err := recover(); err != nil {
-				logs.Log.Error("%v", err)
+			if p := recover(); p != nil {
+				err = fmt.Errorf("%v", p)
 			}
 		}()
 
 		var (
-			err    error
 			file   *xlsx.File
 			row    *xlsx.Row
 			cell   *xlsx.Cell
@@ -87,8 +86,6 @@ func init() {
 
 		// 保存文件
 		err = file.Save(filename)
-		if err != nil {
-			logs.Log.Error("%v", err)
-		}
+		return
 	}
 }

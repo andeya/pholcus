@@ -2,13 +2,14 @@ package history
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
-	"github.com/henrylee2cn/pholcus/logs"
+	"github.com/henrylee2cn/pholcus/common/pool"
 )
 
 type Failure struct {
@@ -64,7 +65,7 @@ func (self *Failure) DeleteFailure(req *context.Request) {
 	self.RWMutex.Unlock()
 }
 
-func (self *Failure) flush(provider string) (fLen int) {
+func (self *Failure) flush(provider string) (fLen int, err error) {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 	for _, val := range self.list {
@@ -73,45 +74,45 @@ func (self *Failure) flush(provider string) (fLen int) {
 
 	switch provider {
 	case "mgo":
-		s, c, err := mgo.Open(MGO_DB, FAILURE_FILE)
-		if err != nil {
-			logs.Log.Error("从mgo读取成功记录: %v", err)
+		if mgo.Error() != nil {
+			err = fmt.Errorf(" *     Fail  [添加失败记录][mgo]: %v 条 [ERROR]  %v\n", fLen, mgo.Error())
 			return
 		}
-		defer mgo.Close(s)
-
-		// 删除失败记录文件
-		c.DropCollection()
-		if fLen == 0 {
-			return
-		}
-
-		var docs = []interface{}{}
-		for _, val := range self.list {
-			for key := range val {
-				docs = append(docs, map[string]interface{}{"_id": key})
+		mgo.Call(func(src pool.Src) error {
+			c := src.(*mgo.MgoSrc).DB(MGO_DB).C(FAILURE_FILE)
+			// 删除失败记录文件
+			c.DropCollection()
+			if fLen == 0 {
+				return nil
 			}
-		}
-		c.Insert(docs...)
+
+			var docs = []interface{}{}
+			for _, val := range self.list {
+				for key := range val {
+					docs = append(docs, map[string]interface{}{"_id": key})
+				}
+			}
+			c.Insert(docs...)
+			return nil
+		})
 
 	case "mysql":
-		db, ok := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
-		if !ok || db == nil {
-			logs.Log.Error("链接Mysql数据库超时，无法保存去重记录！")
-			return 0
+		db, err := mysql.DB()
+		if err != nil {
+			return fLen, fmt.Errorf(" *     Fail  [添加失败记录][mysql]: %v 条 [ERROR]  %v\n", fLen, err)
 		}
 
 		// 删除失败记录文件
-		stmt, err := db.DB.Prepare(`DROP TABLE ` + FAILURE_FILE)
+		stmt, err := db.Prepare(`DROP TABLE ` + FAILURE_FILE)
 		if err != nil {
-			return
+			return fLen, fmt.Errorf(" *     Fail  [添加失败记录][mysql]: %v 条 [ERROR]  %v\n", fLen, err)
 		}
 		stmt.Exec()
 		if fLen == 0 {
-			return
+			return fLen, nil
 		}
 
-		table := mysql.New(db.DB).
+		table := mysql.New(db).
 			SetTableName(FAILURE_FILE).
 			AddColumn(`failure MEDIUMTEXT`).
 			Create()
@@ -120,7 +121,6 @@ func (self *Failure) flush(provider string) (fLen int) {
 				table.AddRow(key).Update()
 			}
 		}
-		mysql.MysqlPool.Free(db)
 
 	default:
 		// 删除失败记录文件

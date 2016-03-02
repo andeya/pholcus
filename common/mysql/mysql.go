@@ -3,48 +3,16 @@ package mysql
 import (
 	"database/sql"
 	"errors"
+	"strings"
+
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/henrylee2cn/pholcus/common/pool"
+
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
-	"strings"
 )
 
 /************************ Mysql 输出 ***************************/
-var MysqlPool = pool.NewPool(new(MysqlSrc), config.MYSQL.MAX_CONNS, 10)
-
-type MysqlSrc struct {
-	*sql.DB
-}
-
-func (self *MysqlSrc) New() pool.Src {
-	db, err := sql.Open("mysql", config.MYSQL.CONN_STR+"/"+config.MYSQL.DB+"?charset=utf8")
-	if err != nil {
-		logs.Log.Error("Mysql：%v", err)
-		return nil
-	}
-	return &MysqlSrc{DB: db}
-}
-
-// 判断连接是否失效
-func (self *MysqlSrc) Expired() bool {
-	if self.DB == nil || self.DB.Ping() != nil {
-		return true
-	}
-	return false
-}
-
-// 自毁方法，在被资源池删除时调用
-func (self *MysqlSrc) Close() {
-	if self.DB == nil {
-		return
-	}
-	self.DB.Close()
-}
-
-func (*MysqlSrc) Clean() {}
-
 //sql转换结构体
 type MyTable struct {
 	tableName        string
@@ -53,6 +21,31 @@ type MyTable struct {
 	sqlCode          string
 	customPrimaryKey bool
 	*sql.DB
+}
+
+var (
+	db  *sql.DB
+	err error
+)
+
+func init() {
+	db, err = DB()
+}
+
+func DB() (*sql.DB, error) {
+	if db == nil || err != nil {
+		db, err = sql.Open("mysql", config.MYSQL.CONN_STR+"/"+config.MYSQL.DB+"?charset=utf8")
+		if err != nil {
+			logs.Log.Error("Mysql：%v\n", err)
+			return db, err
+		}
+		db.SetMaxOpenConns(config.MYSQL.MAX_CONNS)
+		db.SetMaxIdleConns(config.MYSQL.MAX_CONNS / 2)
+	}
+	if err = db.Ping(); err != nil {
+		logs.Log.Error("Mysql：%v\n", err)
+	}
+	return db, err
 }
 
 func New(db *sql.DB) *MyTable {

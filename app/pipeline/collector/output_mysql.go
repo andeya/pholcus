@@ -1,21 +1,20 @@
 package collector
 
 import (
+	"fmt"
+
 	"github.com/henrylee2cn/pholcus/common/mysql"
 	"github.com/henrylee2cn/pholcus/common/util"
-	"github.com/henrylee2cn/pholcus/logs"
 )
 
 /************************ Mysql 输出 ***************************/
 
 func init() {
-	Output["mysql"] = func(self *Collector, dataIndex int) {
-		db, ok := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
-		if !ok || db == nil {
-			logs.Log.Error("链接Mysql数据库超时，无法输出！")
-			return
+	Output["mysql"] = func(self *Collector, dataIndex int) error {
+		db, err := mysql.DB()
+		if err != nil {
+			return fmt.Errorf("Mysql数据库链接失败: %v", err)
 		}
-		defer mysql.MysqlPool.Free(db)
 
 		var (
 			mysqls    = make(map[string]*mysql.MyTable)
@@ -29,7 +28,7 @@ func init() {
 				tName += "__" + subNamespace
 			}
 			if _, ok := mysqls[subNamespace]; !ok {
-				mysqls[subNamespace] = mysql.New(db.DB)
+				mysqls[subNamespace] = mysql.New(db)
 				mysqls[subNamespace].SetTableName(tName)
 				for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 					mysqls[subNamespace].AddColumn(title + ` MEDIUMTEXT`)
@@ -54,5 +53,6 @@ func init() {
 				Update()
 			util.CheckErr(err)
 		}
+		return nil
 	}
 }

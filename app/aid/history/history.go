@@ -12,6 +12,7 @@ import (
 	"github.com/henrylee2cn/pholcus/app/downloader/context"
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
+	"github.com/henrylee2cn/pholcus/common/pool"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 )
@@ -107,7 +108,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 			"Collection": SUCCESS_FILE,
 		})
 		if err != nil {
-			logs.Log.Error("从mgo读取成功记录: %v", err)
+			logs.Log.Error(" *     Fail  [读取成功记录][mgo]: %v\n", err)
 			return
 		}
 		for _, v := range docs["Docs"].([]interface{}) {
@@ -115,13 +116,12 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 		}
 
 	case "mysql":
-		db, ok := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
-		if !ok || db == nil {
-			// logs.Log.Error("链接Mysql数据库超时，无法读取成功记录！")
+		db, err := mysql.DB()
+		if err != nil {
+			logs.Log.Error(" *     Fail  [读取成功记录][mysql]: %v\n", err)
 			return
 		}
-		defer mysql.MysqlPool.Free(db)
-		rows, err := mysql.New(db.DB).
+		rows, err := mysql.New(db).
 			SetTableName("`" + SUCCESS_FILE + "`").
 			SelectAll()
 		if err != nil {
@@ -144,7 +144,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 		b[0] = '{'
 		json.Unmarshal(append(b, '}'), &self.Success.old)
 	}
-	logs.Log.Informational(" *     读出 %v 条成功记录\n", len(self.Success.old))
+	logs.Log.Informational(" *     [读取成功记录]: %v 条\n", len(self.Success.old))
 }
 
 // 读取失败记录
@@ -171,15 +171,16 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 	var fLen int
 	switch provider {
 	case "mgo":
-		var docs = []interface{}{}
-		s, c, err := mgo.Open(MGO_DB, FAILURE_FILE)
-		if err != nil {
-			logs.Log.Error("从mgo读取成功记录: %v", err)
+		if mgo.Error() != nil {
+			logs.Log.Error(" *     Fail  [读取失败记录][mgo]: %v\n", mgo.Error())
 			return
 		}
-		c.Find(nil).All(&docs)
 
-		mgo.Close(s)
+		var docs = []interface{}{}
+		mgo.Call(func(src pool.Src) error {
+			c := src.(*mgo.MgoSrc).DB(MGO_DB).C(FAILURE_FILE)
+			return c.Find(nil).All(&docs)
+		})
 
 		for _, v := range docs {
 			failure := v.(bson.M)["_id"].(string)
@@ -196,20 +197,18 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 		}
 
 	case "mysql":
-		db, ok := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
-		if !ok || db == nil {
-			logs.Log.Error("链接Mysql数据库超时，无法读取成功记录！")
+		db, err := mysql.DB()
+		if err != nil {
+			logs.Log.Error(" *     Fail  [读取失败记录][mysql]: %v\n", err)
 			return
 		}
-		rows, err := mysql.New(db.DB).
+		rows, err := mysql.New(db).
 			SetTableName("`" + FAILURE_FILE + "`").
 			SelectAll()
 		if err != nil {
 			// logs.Log.Error("读取Mysql数据库中成功记录失败：%v", err)
 			return
 		}
-
-		mysql.MysqlPool.Free(db)
 
 		for rows.Next() {
 			var id int
@@ -245,7 +244,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 		}
 
 	}
-	logs.Log.Informational(" *     读出 %v 条失败记录\n", fLen)
+	logs.Log.Informational(" *     [读取失败记录]: %v 条\n", fLen)
 }
 
 // 清空缓存，但不输出
@@ -262,8 +261,13 @@ func (self *History) FlushSuccess(provider string) {
 	self.RWMutex.Lock()
 	self.provider = provider
 	self.RWMutex.Unlock()
-	sucLen := self.Success.flush(provider)
-	logs.Log.Informational(" *     新增 %v 条成功记录\n", sucLen)
+	sucLen, err := self.Success.flush(provider)
+	logs.Log.Informational(" * ")
+	if err != nil {
+		logs.Log.Error("%v", err)
+	} else {
+		logs.Log.Informational(" *     [添加成功记录]: %v 条\n", sucLen)
+	}
 }
 
 // I/O输出失败记录，但不清缓存
@@ -271,6 +275,11 @@ func (self *History) FlushFailure(provider string) {
 	self.RWMutex.Lock()
 	self.provider = provider
 	self.RWMutex.Unlock()
-	failLen := self.Failure.flush(provider)
-	logs.Log.Informational(" *     新增 %v 条失败记录\n", failLen)
+	failLen, err := self.Failure.flush(provider)
+	logs.Log.Informational(" * ")
+	if err != nil {
+		logs.Log.Error("%v", err)
+	} else {
+		logs.Log.Informational(" *     [添加失败记录]: %v 条\n", failLen)
+	}
 }

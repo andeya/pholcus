@@ -13,10 +13,10 @@ import (
 
 /************************ CSV 输出 ***************************/
 func init() {
-	Output["csv"] = func(self *Collector, dataIndex int) {
+	Output["csv"] = func(self *Collector, dataIndex int) (err error) {
 		defer func() {
-			if err := recover(); err != nil {
-				logs.Log.Error("%v", err)
+			if p := recover(); p != nil {
+				err = fmt.Errorf("%v", p)
 			}
 		}()
 		var (
@@ -75,5 +75,6 @@ func init() {
 			row = append(row, datacell["DownloadTime"].(string))
 			sheets[subNamespace].Write(row)
 		}
+		return
 	}
 }

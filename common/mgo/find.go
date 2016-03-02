@@ -2,7 +2,10 @@ package mgo
 
 import (
 	"fmt"
+
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/henrylee2cn/pholcus/common/pool"
 )
 
 // 在指定集合进行条件查询
@@ -29,44 +32,42 @@ func (self *Find) Exec(resultPtr interface{}) (err error) {
 	resultPtr2 := resultPtr.(*map[string]interface{})
 	*resultPtr2 = map[string]interface{}{}
 
-	s, c, err := Open(self.Database, self.Collection)
-	defer Close(s)
-	if err != nil {
-		return err
-	}
+	err = Call(func(src pool.Src) error {
+		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
 
-	if id, ok := self.Query["_id"]; ok {
-		if idStr, ok2 := id.(string); !ok2 {
-			err = fmt.Errorf("%v", "参数 _id 必须为 string 类型！")
-			return err
-		} else {
-			self.Query["_id"] = bson.ObjectIdHex(idStr)
+		if id, ok := self.Query["_id"]; ok {
+			if idStr, ok2 := id.(string); !ok2 {
+				return fmt.Errorf("%v", "参数 _id 必须为 string 类型！")
+			} else {
+				self.Query["_id"] = bson.ObjectIdHex(idStr)
+			}
 		}
-	}
 
-	q := c.Find(self.Query)
+		q := c.Find(self.Query)
 
-	(*resultPtr2)["Total"], _ = q.Count()
+		(*resultPtr2)["Total"], _ = q.Count()
 
-	if len(self.Sort) > 0 {
-		q.Sort(self.Sort...)
-	}
+		if len(self.Sort) > 0 {
+			q.Sort(self.Sort...)
+		}
 
-	if self.Skip > 0 {
-		q.Skip(self.Skip)
-	}
+		if self.Skip > 0 {
+			q.Skip(self.Skip)
+		}
 
-	if self.Limit > 0 {
-		q.Limit(self.Limit)
-	}
+		if self.Limit > 0 {
+			q.Limit(self.Limit)
+		}
 
-	if self.Select != nil {
-		q.Select(self.Select)
-	}
-	r := []interface{}{}
-	err = q.All(&r)
+		if self.Select != nil {
+			q.Select(self.Select)
+		}
+		r := []interface{}{}
+		err = q.All(&r)
 
-	(*resultPtr2)["Docs"] = r
+		(*resultPtr2)["Docs"] = r
 
-	return err
+		return err
+	})
+	return
 }

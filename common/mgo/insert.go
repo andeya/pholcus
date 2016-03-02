@@ -2,7 +2,10 @@ package mgo
 
 import (
 	"fmt"
+
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/henrylee2cn/pholcus/common/pool"
 )
 
 // 插入新数据
@@ -24,31 +27,28 @@ func (self *Insert) Exec(resultPtr interface{}) (err error) {
 		*resultPtr2 = []string{}
 	}
 
-	s, c, err := Open(self.Database, self.Collection)
-	defer Close(s)
-	if err != nil || c == nil {
-		return err
-	}
+	err = Call(func(src pool.Src) error {
+		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
 
-	var docs []interface{}
-	for _, doc := range self.Docs {
-		var _id string
-		if doc["_id"] == nil || doc["_id"] == interface{}("") || doc["_id"] == interface{}(0) {
-			objId := bson.NewObjectId()
-			_id = objId.Hex()
-			doc["_id"] = objId
-		} else {
-			_id = doc["_id"].(string)
+		var docs []interface{}
+		for _, doc := range self.Docs {
+			var _id string
+			if doc["_id"] == nil || doc["_id"] == interface{}("") || doc["_id"] == interface{}(0) {
+				objId := bson.NewObjectId()
+				_id = objId.Hex()
+				doc["_id"] = objId
+			} else {
+				_id = doc["_id"].(string)
+			}
+
+			if resultPtr != nil {
+				*resultPtr2 = append(*resultPtr2, _id)
+			}
+
+			docs = append(docs, doc)
 		}
 
-		if resultPtr != nil {
-			*resultPtr2 = append(*resultPtr2, _id)
-		}
-
-		docs = append(docs, doc)
-	}
-
-	err = c.Insert(docs...)
-
-	return err
+		return c.Insert(docs...)
+	})
+	return
 }

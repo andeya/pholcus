@@ -2,7 +2,10 @@ package mgo
 
 import (
 	"fmt"
+
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/henrylee2cn/pholcus/common/pool"
 )
 
 // 更新全部匹配的数据
@@ -22,29 +25,28 @@ func (self *UpdateAll) Exec(resultPtr interface{}) (err error) {
 	resultPtr2 := resultPtr.(*map[string]interface{})
 	*resultPtr2 = map[string]interface{}{}
 
-	s, c, err := Open(self.Database, self.Collection)
-	defer Close(s)
-	if err != nil {
-		return err
-	}
+	err = Call(func(src pool.Src) error {
+		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
 
-	if id, ok := self.Selector["_id"]; ok {
-		if idStr, ok2 := id.(string); !ok2 {
-			err = fmt.Errorf("%v", "参数 _id 必须为 string 类型！")
-			return err
-		} else {
-			self.Selector["_id"] = bson.ObjectIdHex(idStr)
+		if id, ok := self.Selector["_id"]; ok {
+			if idStr, ok2 := id.(string); !ok2 {
+				return fmt.Errorf("%v", "参数 _id 必须为 string 类型！")
+			} else {
+				self.Selector["_id"] = bson.ObjectIdHex(idStr)
+			}
 		}
-	}
 
-	info, err := c.UpdateAll(self.Selector, self.Change)
-	if err != nil {
+		info, err := c.UpdateAll(self.Selector, self.Change)
+		if err != nil {
+			return err
+		}
+
+		(*resultPtr2)["Updated"] = info.Updated
+		(*resultPtr2)["Removed"] = info.Removed
+		(*resultPtr2)["UpsertedId"] = info.UpsertedId
+
 		return err
-	}
+	})
 
-	(*resultPtr2)["Updated"] = info.Updated
-	(*resultPtr2)["Removed"] = info.Removed
-	(*resultPtr2)["UpsertedId"] = info.UpsertedId
-
-	return err
+	return
 }

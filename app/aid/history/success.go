@@ -2,13 +2,13 @@ package history
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
 	"github.com/henrylee2cn/pholcus/common/util"
-	"github.com/henrylee2cn/pholcus/logs"
 )
 
 type Success struct {
@@ -44,7 +44,7 @@ func (self *Success) DeleteSuccess(record Record) {
 	self.RWMutex.Unlock()
 }
 
-func (self *Success) flush(provider string) (sLen int) {
+func (self *Success) flush(provider string) (sLen int, err error) {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 
@@ -62,6 +62,10 @@ func (self *Success) flush(provider string) (sLen int) {
 			self.old[key] = true
 			i++
 		}
+		if mgo.Error() != nil {
+			err = fmt.Errorf(" *     Fail  [添加成功记录][mgo]: %v 条 [ERROR]  %v\n", sLen, mgo.Error())
+			return
+		}
 		mgo.Mgo(nil, "insert", map[string]interface{}{
 			"Database":   MGO_DB,
 			"Collection": SUCCESS_FILE,
@@ -69,13 +73,11 @@ func (self *Success) flush(provider string) (sLen int) {
 		})
 
 	case "mysql":
-		db, ok := mysql.MysqlPool.GetOne().(*mysql.MysqlSrc)
-		if !ok || db == nil {
-			logs.Log.Error("链接Mysql数据库超时，无法保存去重记录！")
-			return 0
+		db, err := mysql.DB()
+		if err != nil {
+			return sLen, fmt.Errorf(" *     Fail  [添加成功记录][mysql]: %v 条 [ERROR]  %v\n", sLen, err)
 		}
-		defer mysql.MysqlPool.Free(db)
-		table := mysql.New(db.DB).
+		table := mysql.New(db).
 			SetTableName(SUCCESS_FILE).
 			CustomPrimaryKey(`id VARCHAR(255) not null primary key`).
 			Create()

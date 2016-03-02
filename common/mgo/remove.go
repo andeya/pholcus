@@ -2,7 +2,10 @@ package mgo
 
 import (
 	"fmt"
+
 	"gopkg.in/mgo.v2/bson"
+
+	"github.com/henrylee2cn/pholcus/common/pool"
 )
 
 // 删除数据
@@ -13,22 +16,17 @@ type Remove struct {
 }
 
 func (self *Remove) Exec(_ interface{}) error {
-	s, c, err := Open(self.Database, self.Collection)
-	defer Close(s)
-	if err != nil {
-		return err
-	}
+	return Call(func(src pool.Src) error {
+		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
 
-	if id, ok := self.Selector["_id"]; ok {
-		if idStr, ok2 := id.(string); !ok2 {
-			err = fmt.Errorf("%v", "参数 _id 必须为 string 类型！")
-			return err
-		} else {
-			self.Selector["_id"] = bson.ObjectIdHex(idStr)
+		if id, ok := self.Selector["_id"]; ok {
+			if idStr, ok2 := id.(string); !ok2 {
+				return fmt.Errorf("%v", "参数 _id 必须为 string 类型！")
+			} else {
+				self.Selector["_id"] = bson.ObjectIdHex(idStr)
+			}
 		}
-	}
 
-	err = c.Remove(self.Selector)
-
-	return err
+		return c.Remove(self.Selector)
+	})
 }

@@ -115,7 +115,7 @@ func (self *crawler) Process(req *context.Request) {
 		}
 
 		// 提示错误
-		logs.Log.Error(" *     Fail [download][%v]: %v", downUrl, resp.GetError())
+		logs.Log.Error(" *     Fail  [download][%v]: %v\n", downUrl, resp.GetError())
 		return
 	}
 
@@ -130,7 +130,7 @@ func (self *crawler) Process(req *context.Request) {
 			}
 
 			// 提示错误
-			logs.Log.Error(" *     Fail [process][%v]: %v", downUrl, err)
+			logs.Log.Error(" *     Panic  [process][%v]: %v\n", downUrl, err)
 		}
 	}()
 
@@ -140,7 +140,7 @@ func (self *crawler) Process(req *context.Request) {
 	// 统计成功页数
 	cache.PageSuccCount()
 	// 提示抓取成功
-	logs.Log.Informational(" *     Success: %v", downUrl)
+	logs.Log.Informational(" *     Success: %v\n", downUrl)
 	// 该条请求文本结果存入pipeline
 	for _, data := range resp.GetItems() {
 		self.Pipeline.CollectData(
