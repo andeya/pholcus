@@ -143,6 +143,10 @@ func (self *Response) SetReferer(referer string) *Response {
 	return self
 }
 
+func (self *Response) GetCookie() string {
+	return self.Response.Header.Get("Set-Cookie")
+}
+
 // GetHtmlParser returns goquery object binded to target crawl result.
 func (self *Response) GetDom() *goquery.Document {
 	if self.dom == nil {

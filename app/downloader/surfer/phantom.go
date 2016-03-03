@@ -1,6 +1,8 @@
 package surfer
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -15,11 +17,17 @@ import (
 // 基于Phantomjs的下载器实现，作为surfer的补充
 // 效率较surfer会慢很多，但是因为模拟浏览器，破防性更好
 // 支持UserAgent/TryTimes/RetryPause/自定义js
-type Phantom struct {
-	FullPhantomjsName    string            //Phantomjs完整文件名
-	FullTempJsFilePrefix string            //js临时文件存放完整文件名前缀
-	jsFileMap            map[string]string //已存在的js文件
-}
+type (
+	Phantom struct {
+		FullPhantomjsName    string            //Phantomjs完整文件名
+		FullTempJsFilePrefix string            //js临时文件存放完整文件名前缀
+		jsFileMap            map[string]string //已存在的js文件
+	}
+	Response struct {
+		Cookie string
+		Body   string
+	}
+)
 
 func NewPhantom(fullPhantomjsName, fullTempJsFilePrefix string) Surfer {
 	phantom := &Phantom{
@@ -79,8 +87,24 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 			time.Sleep(param.retryPause)
 			continue
 		}
+		var b []byte
+		b, err = ioutil.ReadAll(resp.Body)
+		if err != nil {
+			time.Sleep(param.retryPause)
+			continue
+		}
+		retResp := Response{}
+		err = json.Unmarshal(b, &retResp)
+		if err != nil {
+			time.Sleep(param.retryPause)
+			continue
+		}
+		resp.Header = param.header
+		resp.Header.Set("Set-Cookie", retResp.Cookie)
+		resp.Body = ioutil.NopCloser(strings.NewReader(retResp.Body))
 		break
 	}
+
 	if err != nil {
 		resp.Status = "200 OK"
 		resp.StatusCode = 200
@@ -135,25 +159,32 @@ func (self *Phantom) createJsFile(key, js string) {
  */
 
 const getJs string = `
-	var system = require('system');
-	var page = require('webpage').create();
-	var url = system.args[1];
-	var cookie = system.args[2];
-	var pageEncode = system.args[3];
-	var userAgent = system.args[4];
-	page.onResourceRequested = function(requestData, request) {
-		request.setHeader('Cookie', cookie)
-	};
-	phantom.outputEncoding=pageEncode;
-	page.settings.userAgent = userAgent;
-	page.open(url, function (status) {
-		    if (status !== 'success') {
-		        console.log('Unable to access network');
-		    } else {
-		        console.log(page.content);
-		    }
-		    phantom.exit();
-	});
+var system = require('system');
+var page = require('webpage').create();
+var url = system.args[1];
+var cookie = system.args[2];
+var pageEncode = system.args[3];
+var userAgent = system.args[4];
+page.onResourceRequested = function(requestData, request) {
+    request.setHeader('Cookie', cookie)
+};
+phantom.outputEncoding = pageEncode;
+page.settings.userAgent = userAgent;
+page.open(url, function(status) {
+    if (status !== 'success') {
+        console.log('Unable to access network');
+    } else {
+       	var cookie = page.evaluate(function(s) {
+            return document.cookie;
+        });
+        var resp = {
+            "Cookie": cookie,
+            "Body": page.content
+        };
+        console.log(JSON.stringify(resp));
+    }
+    phantom.exit();
+});
 `
 
 /*
@@ -166,24 +197,31 @@ const getJs string = `
 * system.args[5] == postdata
  */
 const postJs string = `
-	var system = require('system');
-	var page = require('webpage').create();
-	var url = system.args[1];
-	var cookie = system.args[2];
-	var pageEncode = system.args[3];
-	var userAgent = system.args[4];
-	var postdata = system.args[5];
-	page.onResourceRequested = function(requestData, request) {
-		request.setHeader('Cookie', cookie)
-	};
-	phantom.outputEncoding=pageEncode;
-	page.settings.userAgent = userAgent;
-	page.open(url, 'post', postdata, function (status) {
-	    if (status !== 'success') {
-	        console.log('Unable to access network');
-	    } else {
-	        console.log(page.content);
-	    }
-	    phantom.exit();
-	});
+var system = require('system');
+var page = require('webpage').create();
+var url = system.args[1];
+var cookie = system.args[2];
+var pageEncode = system.args[3];
+var userAgent = system.args[4];
+var postdata = system.args[5];
+page.onResourceRequested = function(requestData, request) {
+    request.setHeader('Cookie', cookie)
+};
+phantom.outputEncoding = pageEncode;
+page.settings.userAgent = userAgent;
+page.open(url, 'post', postdata, function(status) {
+    if (status !== 'success') {
+        console.log('Unable to access network');
+    } else {
+        var cookie = page.evaluate(function(s) {
+            return document.cookie;
+        });
+        var resp = {
+            "Cookie": cookie,
+            "Body": page.content
+        };
+        console.log(JSON.stringify(resp));
+    }
+    phantom.exit();
+});
 `

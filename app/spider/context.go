@@ -299,6 +299,10 @@ func (self *Context) GetUrl() string {
 	return self.response.GetUrl() // 与self.request.GetUrl()完全相等
 }
 
+func (self *Context) GetCookie() string {
+	return self.response.GetCookie()
+}
+
 // 自定义设置输出结果的"当前链接"字段
 func (self *Context) SetItemUrl(itemUrl string) *Context {
 	self.response.SetUrl(itemUrl)

@@ -410,7 +410,9 @@ func (self *Logic) setStatus(status int) {
 
 // 刷新输出方式的状态
 func (self *Logic) refreshOutput() {
-	mgo.Refresh()
+	if self.AppConf.OutType == "mgo" {
+		mgo.Refresh()
+	}
 }
 
 // ******************************************** 私有方法 ************************************************* \\
