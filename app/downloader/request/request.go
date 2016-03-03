@@ -1,4 +1,4 @@
-package context
+package request
 
 import (
 	"encoding/json"
@@ -155,8 +155,7 @@ func (self *Request) Copy() *Request {
 	return reqcopy
 }
 
-// 返回请求前的Url
-// 请求后的Url将会在downloader模块被重置为该Url，从而确保请求前后Url字符串相等，且中文不被编码
+// 获取Url
 func (self *Request) GetUrl() string {
 	return self.Url
 }

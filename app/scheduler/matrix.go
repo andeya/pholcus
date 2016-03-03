@@ -6,7 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/status"
@@ -15,7 +15,7 @@ import (
 // 一个Spider实例的请求矩阵
 type Matrix struct {
 	// [优先级]队列，优先级默认为0
-	reqs map[int][]*context.Request
+	reqs map[int][]*request.Request
 	// 优先级顺序，从低到高
 	priorities []int
 	// 资源使用情况计数
@@ -23,7 +23,7 @@ type Matrix struct {
 	// 最大采集页数，以负数形式表示
 	maxPage int64
 	// 历史及本次失败请求
-	failures map[string]*context.Request
+	failures map[string]*request.Request
 	sync.Mutex
 }
 
@@ -32,17 +32,17 @@ func NewMatrix(spiderId int, maxPage int64) *Matrix {
 	sdl.Lock()
 	defer sdl.Unlock()
 	matrix := &Matrix{
-		reqs:       make(map[int][]*context.Request),
+		reqs:       make(map[int][]*request.Request),
 		priorities: []int{},
 		maxPage:    maxPage,
-		failures:   make(map[string]*context.Request),
+		failures:   make(map[string]*request.Request),
 	}
 	sdl.matrices[spiderId] = matrix
 	return matrix
 }
 
 // 添加请求到队列
-func (self *Matrix) Push(req *context.Request) {
+func (self *Matrix) Push(req *request.Request) {
 	// 禁止并发，降低请求积存量
 	self.Lock()
 	defer self.Unlock()
@@ -72,7 +72,7 @@ func (self *Matrix) Push(req *context.Request) {
 	if _, found := self.reqs[priority]; !found {
 		self.priorities = append(self.priorities, priority)
 		sort.Ints(self.priorities) // 从小到大排序
-		self.reqs[priority] = []*context.Request{}
+		self.reqs[priority] = []*request.Request{}
 	}
 
 	// 添加请求到队列
@@ -80,7 +80,7 @@ func (self *Matrix) Push(req *context.Request) {
 }
 
 // 从队列取出请求，不存在时返回nil
-func (self *Matrix) Pull() (req *context.Request) {
+func (self *Matrix) Pull() (req *request.Request) {
 	sdl.RLock()
 	defer sdl.RUnlock()
 	if sdl.status != status.RUN {
@@ -174,14 +174,14 @@ func (self *Matrix) Flush() {
 	}
 }
 
-func (self *Matrix) SetFailures(reqs []*context.Request) {
+func (self *Matrix) SetFailures(reqs []*request.Request) {
 	for _, req := range reqs {
 		self.failures[makeUnique(req)] = req
 		logs.Log.Informational(" *     + 失败请求: [%v]\n", req.GetUrl())
 	}
 }
 
-func (self *Matrix) SetFailure(req *context.Request) bool {
+func (self *Matrix) SetFailure(req *request.Request) bool {
 	self.Lock()
 	defer self.Unlock()
 	unique := makeUnique(req)
@@ -196,6 +196,6 @@ func (self *Matrix) SetFailure(req *context.Request) bool {
 	return false
 }
 
-func makeUnique(req *context.Request) string {
+func makeUnique(req *request.Request) string {
 	return util.MakeUnique(req.GetUrl() + req.GetMethod())
 }

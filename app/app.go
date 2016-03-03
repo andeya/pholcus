@@ -14,10 +14,10 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app/crawl"
 	"github.com/henrylee2cn/pholcus/app/distribute"
+	"github.com/henrylee2cn/pholcus/app/pipeline"
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/app/spider"
-	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
@@ -344,12 +344,10 @@ func (self *Logic) Run() {
 	// 任务执行
 	switch self.AppConf.Mode {
 	case status.OFFLINE:
-		self.refreshOutput()
 		self.offline()
 	case status.SERVER:
 		self.server()
 	case status.CLIENT:
-		self.refreshOutput()
 		self.client()
 	default:
 		return
@@ -406,13 +404,6 @@ func (self *Logic) setStatus(status int) {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 	self.status = status
-}
-
-// 刷新输出方式的状态
-func (self *Logic) refreshOutput() {
-	if self.AppConf.OutType == "mgo" {
-		mgo.Refresh()
-	}
 }
 
 // ******************************************** 私有方法 ************************************************* \\
@@ -575,6 +566,9 @@ func (self *Logic) exec() {
 	logs.Log.Informational(" *     随机停顿区间为 %v~%v 毫秒\n", self.AppConf.Pausetime/2, self.AppConf.Pausetime*2)
 	logs.Log.Notice(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
+
+	// 刷新输出方式的状态
+	pipeline.RefreshOutput()
 
 	// 开始计时
 	cache.StartTime = time.Now()

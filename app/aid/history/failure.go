@@ -6,7 +6,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
 	"github.com/henrylee2cn/pholcus/common/pool"
@@ -20,7 +20,7 @@ type Failure struct {
 }
 
 // 获取指定蜘蛛在上一次运行时失败的请求
-func (self *Failure) PullFailure(spiderName string) (reqs []*context.Request) {
+func (self *Failure) PullFailure(spiderName string) (reqs []*request.Request) {
 	if len(self.list[spiderName]) == 0 {
 		return
 	}
@@ -29,7 +29,7 @@ func (self *Failure) PullFailure(spiderName string) (reqs []*context.Request) {
 	defer self.RWMutex.Unlock()
 
 	for failure, _ := range self.list[spiderName] {
-		req, err := context.UnSerialize(failure)
+		req, err := request.UnSerialize(failure)
 		if err == nil {
 			reqs = append(reqs, req)
 		}
@@ -40,7 +40,7 @@ func (self *Failure) PullFailure(spiderName string) (reqs []*context.Request) {
 
 // 更新或加入失败记录
 // 对比是否已存在，不存在就记录
-func (self *Failure) UpsertFailure(req *context.Request) bool {
+func (self *Failure) UpsertFailure(req *request.Request) bool {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 
@@ -58,7 +58,7 @@ func (self *Failure) UpsertFailure(req *context.Request) bool {
 }
 
 // 删除失败记录
-func (self *Failure) DeleteFailure(req *context.Request) {
+func (self *Failure) DeleteFailure(req *request.Request) {
 	self.RWMutex.Lock()
 	s := req.Serialize()
 	delete(self.list[req.GetSpiderName()], s)

@@ -3,8 +3,9 @@ package downloader
 import (
 	"net/http"
 
-	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/app/downloader/surfer"
+	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/config"
 )
 
@@ -23,8 +24,8 @@ var SurferDownloader = &Surfer{
 	phantom: surfer.NewPhantom(config.SURFER_PHANTOM.FULL_APP_NAME, config.SURFER_PHANTOM.FULL_TEMP_JS),
 }
 
-func (self *Surfer) Download(cReq *context.Request) *context.Response {
-	cResp := context.NewResponse(nil)
+func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.Context {
+	ctx := spider.NewContext(sp, cReq)
 
 	var resp *http.Response
 	var err error
@@ -37,9 +38,7 @@ func (self *Surfer) Download(cReq *context.Request) *context.Response {
 		resp, err = self.phantom.Download(cReq)
 	}
 
-	cResp.Prepare(resp, cReq)
+	ctx.SetResponse(resp).SetError(err)
 
-	cResp.SetError(err)
-
-	return cResp
+	return ctx
 }

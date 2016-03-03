@@ -9,7 +9,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
 	"github.com/henrylee2cn/pholcus/common/pool"
@@ -31,13 +31,13 @@ type (
 		// 读取失败记录
 		ReadFailure(provider string, inherit bool)
 		// 更新或加入失败记录
-		UpsertFailure(*context.Request) bool
+		UpsertFailure(*request.Request) bool
 		// 删除失败记录
-		DeleteFailure(*context.Request)
+		DeleteFailure(*request.Request)
 		// I/O输出失败记录，但不清缓存
 		FlushFailure(provider string)
 		// 获取指定蜘蛛在上一次运行时失败的请求
-		PullFailure(spiderName string) []*context.Request
+		PullFailure(spiderName string) []*request.Request
 
 		// 清空缓存，但不输出
 		Empty()
@@ -184,7 +184,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 
 		for _, v := range docs {
 			failure := v.(bson.M)["_id"].(string)
-			req, err := context.UnSerialize(failure)
+			req, err := request.UnSerialize(failure)
 			if err != nil {
 				continue
 			}
@@ -214,7 +214,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			var id int
 			var failure string
 			err = rows.Scan(&id, &failure)
-			req, err := context.UnSerialize(failure)
+			req, err := request.UnSerialize(failure)
 			if err != nil {
 				continue
 			}

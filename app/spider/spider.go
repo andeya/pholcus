@@ -5,9 +5,10 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/common/util"
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 const (
@@ -193,6 +194,11 @@ func (self *Spider) RunTimer(id string) bool {
 
 // 开始执行蜘蛛
 func (self *Spider) Start() {
+	defer func() {
+		if p := recover(); p != nil {
+			logs.Log.Error(" *     Panic  [root]: %v\n", p)
+		}
+	}()
 	self.RuleTree.Root(NewContext(self, nil))
 	cancel := time.After(1e9)
 	for self.ReqmatrixLen() == 0 {
@@ -260,15 +266,15 @@ func (self *Spider) ReqmatrixLen() int {
 	return self.ReqMatrix.Len()
 }
 
-func (self *Spider) ReqmatrixSetFailure(req *context.Request) bool {
+func (self *Spider) ReqmatrixSetFailure(req *request.Request) bool {
 	return self.ReqMatrix.SetFailure(req)
 }
 
-func (self *Spider) ReqmatrixPush(req *context.Request) {
+func (self *Spider) ReqmatrixPush(req *request.Request) {
 	self.ReqMatrix.Push(req)
 }
 
-func (self *Spider) ReqmatrixPull() *context.Request {
+func (self *Spider) ReqmatrixPull() *request.Request {
 	return self.ReqMatrix.Pull()
 }
 

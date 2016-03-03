@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/henrylee2cn/pholcus/app/downloader"
-	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/app/pipeline"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/app/spider"
@@ -27,7 +27,7 @@ type (
 		gainPause int64
 		downloader.Downloader
 		pipeline.Pipeline
-		historyFailure []*context.Request
+		historyFailure []*request.Request
 	}
 )
 
@@ -88,7 +88,7 @@ func (self *crawler) Run() {
 
 		self.UseOne()
 
-		go func(req *context.Request) {
+		go func(req *request.Request) {
 			defer func() {
 				self.FreeOne()
 			}()
@@ -101,13 +101,17 @@ func (self *crawler) Run() {
 }
 
 // core processer
-func (self *crawler) Process(req *context.Request) {
-	// download page
-	resp := self.Downloader.Download(req)
-	downUrl := resp.GetUrl()
-	if resp.GetError() != nil {
+func (self *crawler) Process(req *request.Request) {
+	var (
+		ctx      = self.Downloader.Download(self.Spider, req) // download page
+		downUrl  = req.GetUrl()
+		ruleName = req.GetRuleName()
+		referer  = req.GetReferer()
+	)
+
+	if err := ctx.GetError(); err != nil {
 		// 删除该请求的成功记录
-		scheduler.DeleteSuccess(resp)
+		scheduler.DeleteSuccess(req)
 		// 对下载失败的请求进行失败记录
 		if !self.Spider.ReqmatrixSetFailure(req) {
 			// 统计失败数
@@ -115,14 +119,14 @@ func (self *crawler) Process(req *context.Request) {
 		}
 
 		// 提示错误
-		logs.Log.Error(" *     Fail  [download][%v]: %v\n", downUrl, resp.GetError())
+		logs.Log.Error(" *     Fail  [download][%v]: %v\n", downUrl, err)
 		return
 	}
 
 	defer func() {
 		if err := recover(); err != nil {
 			// 删除该请求的成功记录
-			scheduler.DeleteSuccess(resp)
+			scheduler.DeleteSuccess(req)
 			// 对下载失败的请求进行失败记录
 			if !self.Spider.ReqmatrixSetFailure(req) {
 				// 统计失败数
@@ -135,27 +139,28 @@ func (self *crawler) Process(req *context.Request) {
 	}()
 
 	// 过程处理，提炼数据
-	spider.NewContext(self.Spider, resp).Parse(resp.GetRuleName())
+	ctx.Parse(ruleName)
 
 	// 统计成功页数
 	cache.PageSuccCount()
 	// 提示抓取成功
 	logs.Log.Informational(" *     Success: %v\n", downUrl)
 	// 该条请求文本结果存入pipeline
-	for _, data := range resp.GetItems() {
+
+	for _, data := range ctx.GetItems() {
 		self.Pipeline.CollectData(
-			resp.GetRuleName(), //DataCell.RuleName
-			data,               //DataCell.Data
-			resp.GetUrl(),      //DataCell.Url
-			resp.GetReferer(),  //DataCell.ParentUrl
+			ruleName, //DataCell.RuleName
+			data,     //DataCell.Data
+			downUrl,  //DataCell.Url
+			referer,  //DataCell.ParentUrl
 			time.Now().Format("2006-01-02 15:04:05"),
 		)
 	}
 
 	// 该条请求文件结果存入pipeline
-	for _, f := range resp.GetFiles() {
+	for _, f := range ctx.GetFiles() {
 		self.Pipeline.CollectFile(
-			resp.GetRuleName(),
+			ruleName,
 			f["Name"].(string),
 			f["Body"].(io.ReadCloser),
 		)
@@ -170,7 +175,7 @@ func (self *crawler) sleep() {
 }
 
 // 从调度读取一个请求
-func (self *crawler) GetOne() *context.Request {
+func (self *crawler) GetOne() *request.Request {
 	return self.Spider.ReqmatrixPull()
 }
 

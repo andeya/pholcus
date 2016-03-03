@@ -14,7 +14,7 @@ import (
 
 	"github.com/henrylee2cn/ping"
 
-	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/app/downloader/surfer"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
@@ -216,7 +216,7 @@ func (self *Proxy) testAndSort(key string, testHost string) (*ProxyForHost, bool
 // 测试代理ip可用性
 func (self *Proxy) findUsable(proxy string, testHost string) (alive bool, timedelay time.Duration) {
 	t0 := time.Now()
-	_, err := self.surf.Download(&context.Request{
+	_, err := self.surf.Download(&request.Request{
 		Url:         testHost,
 		Proxy:       proxy,
 		Method:      "HEAD",

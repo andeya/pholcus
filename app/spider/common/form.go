@@ -6,7 +6,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 
-	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	. "github.com/henrylee2cn/pholcus/app/spider"
 )
 
@@ -112,7 +112,7 @@ func (self *Form) send(buttonName, buttonValue string) bool {
 	}
 	valsStr := values.Encode()
 	if self.Method() == "GET" {
-		self.ctx.AddQueue(&context.Request{
+		self.ctx.AddQueue(&request.Request{
 			Rule:   self.rule,
 			Url:    self.Action() + "?" + valsStr,
 			Method: self.Method(),
@@ -121,7 +121,7 @@ func (self *Form) send(buttonName, buttonValue string) bool {
 	} else {
 		enctype, _ := self.selection.Attr("enctype")
 		if enctype == "multipart/form-data" {
-			self.ctx.AddQueue(&context.Request{
+			self.ctx.AddQueue(&request.Request{
 				Rule:     self.rule,
 				Url:      self.Action(),
 				PostData: valsStr,
@@ -129,7 +129,7 @@ func (self *Form) send(buttonName, buttonValue string) bool {
 			})
 			return true
 		}
-		self.ctx.AddQueue(&context.Request{
+		self.ctx.AddQueue(&request.Request{
 			Rule:     self.rule,
 			Url:      self.Action(),
 			PostData: valsStr,

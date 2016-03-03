@@ -6,7 +6,7 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app/aid/history"
 	"github.com/henrylee2cn/pholcus/app/aid/proxy"
-	"github.com/henrylee2cn/pholcus/app/downloader/context"
+	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
@@ -91,7 +91,7 @@ func Stop() {
 				DeleteSuccess(req)
 			}
 		}
-		v.reqs = make(map[int][]*context.Request)
+		v.reqs = make(map[int][]*request.Request)
 		v.priorities = []int{}
 	}
 
@@ -108,16 +108,16 @@ func DeleteSuccess(record history.Record) {
 	sdl.history.DeleteSuccess(record)
 }
 
-func UpsertFailure(req *context.Request) bool {
+func UpsertFailure(req *request.Request) bool {
 	return sdl.history.UpsertFailure(req)
 }
 
-func DeleteFailure(req *context.Request) {
+func DeleteFailure(req *request.Request) {
 	sdl.history.DeleteFailure(req)
 }
 
 // 获取指定蜘蛛在上一次运行时失败的请求
-func PullFailure(spiderName string) []*context.Request {
+func PullFailure(spiderName string) []*request.Request {
 	return sdl.history.PullFailure(spiderName)
 }
 
