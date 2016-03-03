@@ -224,14 +224,12 @@ var Lewa = &Spider{
     EnableCookie: true,
     RuleTree: &RuleTree{
         Root: func(ctx *Context) {
-            ctx.AddQueue(&context.Request{Url: "http://xxx.xxx.xxx", Rule: "登录页"})
+            ctx.AddQueue(&request.Request{Url: "http://xxx.xxx.xxx", Rule: "登录页"})
         },
-
         Trunk: map[string]*Rule{
-
             "登录页": {
                 ParseFunc: func(ctx *Context) {
-                    ctx.AddQueue(&context.Request{
+                    ctx.AddQueue(&request.Request{
                         Url:    "http://xxx.xxx.xxx",
                         Rule:   "登录后",
                         Method: "POST",
@@ -240,15 +238,11 @@ var Lewa = &Spider{
                 },
             },
             "登录后": {
-                ItemFields: []string{
-                    "全部",
-                },
                 ParseFunc: func(ctx *Context) {
-                    // 结果存入Response中转
-                    ctx.Output(map[int]interface{}{
-                        0: ctx.GetText(),
+                    ctx.Output(map[string]interface{}{
+                        "全部": ctx.GetText(),
                     })
-                    ctx.AddQueue(&context.Request{
+                    ctx.AddQueue(&request.Request{
                         Url:    "http://accounts.xxx.xxx/member",
                         Rule:   "个人中心",
                         Header: http.Header{"Referer": []string{ctx.GetUrl()}},
@@ -256,13 +250,9 @@ var Lewa = &Spider{
                 },
             },
             "个人中心": {
-                ItemFields: []string{
-                    "全部",
-                },
                 ParseFunc: func(ctx *Context) {
-                    // 结果存入Response中转
-                    ctx.Output(map[int]interface{}{
-                        0: ctx.GetText(),
+                    ctx.Output(map[string]interface{}{
+                        "全部": ctx.GetText(),
                     })
                 },
             },

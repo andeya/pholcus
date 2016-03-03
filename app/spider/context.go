@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"path"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -25,7 +24,6 @@ type Context struct {
 	items    []map[string]interface{} // 存放以文本形式输出的结果数据
 	files    []map[string]interface{} // 存放欲直接输出的文件("Name": string; "Body": io.ReadCloser)
 	err      error                    // 错误标记
-	sync.Once
 }
 
 //**************************************** 初始化 *******************************************\\
