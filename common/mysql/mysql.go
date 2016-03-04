@@ -28,24 +28,30 @@ var (
 	err error
 )
 
-func init() {
-	db, err = DB()
+func DB() (*sql.DB, error) {
+	// if db == nil || err != nil {
+	// 	db, err = sql.Open("mysql", config.MYSQL.CONN_STR+"/"+config.MYSQL.DB+"?charset=utf8")
+	// 	if err != nil {
+	// 		logs.Log.Error("Mysql：%v\n", err)
+	// 		return db, err
+	// 	}
+	// 	db.SetMaxOpenConns(config.MYSQL.MAX_CONNS)
+	// 	db.SetMaxIdleConns(config.MYSQL.MAX_CONNS / 2)
+	// }
+	return db, err
 }
 
-func DB() (*sql.DB, error) {
-	if db == nil || err != nil {
-		db, err = sql.Open("mysql", config.MYSQL.CONN_STR+"/"+config.MYSQL.DB+"?charset=utf8")
-		if err != nil {
-			logs.Log.Error("Mysql：%v\n", err)
-			return db, err
-		}
-		db.SetMaxOpenConns(config.MYSQL.MAX_CONNS)
-		db.SetMaxIdleConns(config.MYSQL.MAX_CONNS / 2)
+func Refresh() {
+	db, err = sql.Open("mysql", config.MYSQL.CONN_STR+"/"+config.MYSQL.DB+"?charset=utf8")
+	if err != nil {
+		logs.Log.Error("Mysql：%v\n", err)
+		return
 	}
+	db.SetMaxOpenConns(config.MYSQL.MAX_CONNS)
+	db.SetMaxIdleConns(config.MYSQL.MAX_CONNS / 2)
 	if err = db.Ping(); err != nil {
 		logs.Log.Error("Mysql：%v\n", err)
 	}
-	return db, err
 }
 
 func New(db *sql.DB) *MyTable {

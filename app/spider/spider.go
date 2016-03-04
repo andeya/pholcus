@@ -201,7 +201,7 @@ func (self *Spider) Start() {
 	}()
 	self.RuleTree.Root(NewContext(self, nil))
 	cancel := time.After(1e9)
-	for self.ReqmatrixLen() == 0 {
+	for self.RequestLen() == 0 {
 		select {
 		case <-cancel:
 			return
@@ -262,27 +262,27 @@ func (self *Spider) ReqmatrixInit() *Spider {
 	return self
 }
 
-func (self *Spider) ReqmatrixLen() int {
+func (self *Spider) RequestLen() int {
 	return self.ReqMatrix.Len()
 }
 
-func (self *Spider) ReqmatrixSetFailure(req *request.Request) bool {
+func (self *Spider) RequestFailure(req *request.Request) bool {
 	return self.ReqMatrix.SetFailure(req)
 }
 
-func (self *Spider) ReqmatrixPush(req *request.Request) {
+func (self *Spider) RequestPush(req *request.Request) {
 	self.ReqMatrix.Push(req)
 }
 
-func (self *Spider) ReqmatrixPull() *request.Request {
+func (self *Spider) RequestPull() *request.Request {
 	return self.ReqMatrix.Pull()
 }
 
-func (self *Spider) ReqmatrixUse() {
+func (self *Spider) RequestUse() {
 	self.ReqMatrix.Use()
 }
 
-func (self *Spider) ReqmatrixFree() {
+func (self *Spider) RequestFree() {
 	self.ReqMatrix.Free()
 }
 

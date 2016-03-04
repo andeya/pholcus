@@ -13,18 +13,8 @@ type MgoSrc struct {
 }
 
 var (
-	session, err = func() (session *mgo.Session, err error) {
-		session, err = mgo.Dial(config.MGO.CONN_STR)
-		if err != nil {
-			logs.Log.Error("MongoDB：%v\n", err)
-		} else if err = session.Ping(); err != nil {
-			logs.Log.Error("MongoDB：%v\n", err)
-		} else {
-			session.SetPoolLimit(config.MGO.MAX_CONNS)
-		}
-		return
-	}()
-
+	session *mgo.Session
+	err     error
 	MgoPool = pool.ClassicPool(
 		config.MGO.MAX_CONNS,
 		config.MGO.MAX_CONNS/5,
@@ -36,6 +26,17 @@ var (
 		},
 		60e9)
 )
+
+func Refresh() {
+	session, err = mgo.Dial(config.MGO.CONN_STR)
+	if err != nil {
+		logs.Log.Error("MongoDB：%v\n", err)
+	} else if err = session.Ping(); err != nil {
+		logs.Log.Error("MongoDB：%v\n", err)
+	} else {
+		session.SetPoolLimit(config.MGO.MAX_CONNS)
+	}
+}
 
 // 判断资源是否可用
 func (self *MgoSrc) Usable() bool {
@@ -54,17 +55,6 @@ func (self *MgoSrc) Close() {
 		return
 	}
 	self.Session.Close()
-}
-
-func Refresh() {
-	session, err = mgo.Dial(config.MGO.CONN_STR)
-	if err != nil {
-		logs.Log.Error("MongoDB：%v\n", err)
-	} else if err = session.Ping(); err != nil {
-		logs.Log.Error("MongoDB：%v\n", err)
-	} else {
-		session.SetPoolLimit(config.MGO.MAX_CONNS)
-	}
 }
 
 func Error() error {

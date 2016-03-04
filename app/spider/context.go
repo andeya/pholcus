@@ -80,7 +80,7 @@ func (self *Context) AddQueue(req *request.Request) *Context {
 		req.SetReferer(self.GetUrl())
 	}
 
-	self.spider.ReqmatrixPush(req)
+	self.spider.RequestPush(req)
 	return self
 }
 
@@ -137,7 +137,7 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 		req.SetReferer(self.GetUrl())
 	}
 
-	self.spider.ReqmatrixPush(req)
+	self.spider.RequestPush(req)
 	return self
 }
 

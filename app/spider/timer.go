@@ -9,8 +9,8 @@ import (
 
 type Timer struct {
 	setting map[string]*Clock
+	closed  bool
 	sync.RWMutex
-	closed bool
 }
 
 func newTimer() *Timer {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector"
 	"github.com/henrylee2cn/pholcus/common/mgo"
+	"github.com/henrylee2cn/pholcus/common/mysql"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
@@ -21,5 +22,7 @@ func RefreshOutput() {
 	switch cache.Task.OutType {
 	case "mgo":
 		mgo.Refresh()
+	case "mysql":
+		mysql.Refresh()
 	}
 }

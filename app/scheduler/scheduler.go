@@ -138,3 +138,16 @@ func (self *scheduler) avgRes() int32 {
 	}
 	return avg
 }
+
+func (self *scheduler) checkStatus(s int) bool {
+	self.RLock()
+	defer self.RUnlock()
+	b := self.status == s
+	return b
+}
+
+func (self *scheduler) addMatrix(spiderId int, matrix *Matrix) {
+	self.RLock()
+	defer self.RUnlock()
+	self.matrices[spiderId] = matrix
+}

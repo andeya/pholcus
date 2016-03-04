@@ -14,57 +14,49 @@ import (
 
 // 一个Spider实例的请求矩阵
 type Matrix struct {
-	// [优先级]队列，优先级默认为0
-	reqs map[int][]*request.Request
-	// 优先级顺序，从低到高
-	priorities []int
 	// 资源使用情况计数
 	resCount int32
 	// 最大采集页数，以负数形式表示
 	maxPage int64
+	// [优先级]队列，优先级默认为0
+	reqs map[int][]*request.Request
+	// 优先级顺序，从低到高
+	priorities []int
 	// 历史及本次失败请求
-	failures map[string]*request.Request
+	failures    map[string]*request.Request
+	failureLock sync.Mutex
 	sync.Mutex
 }
 
 // 注册资源队列
 func NewMatrix(spiderId int, maxPage int64) *Matrix {
-	sdl.Lock()
-	defer sdl.Unlock()
 	matrix := &Matrix{
 		reqs:       make(map[int][]*request.Request),
 		priorities: []int{},
 		maxPage:    maxPage,
 		failures:   make(map[string]*request.Request),
 	}
-	sdl.matrices[spiderId] = matrix
+	sdl.addMatrix(spiderId, matrix)
 	return matrix
 }
 
-// 添加请求到队列
+// 添加请求到队列，并发安全
 func (self *Matrix) Push(req *request.Request) {
 	// 禁止并发，降低请求积存量
 	self.Lock()
 	defer self.Unlock()
 
 	// 根据运行状态及资源使用情况，降低请求积存量
-	for sdl.status == status.PAUSE || self.resCount > sdl.avgRes() {
+	for sdl.checkStatus(status.PAUSE) || self.resCount > sdl.avgRes() {
 		runtime.Gosched()
 	}
 
-	sdl.RLock()
-	defer sdl.RUnlock()
-
 	// 终止添加操作
-	if sdl.status == status.STOP ||
-		self.maxPage >= 0 ||
+	if sdl.checkStatus(status.STOP) || self.maxPage >= 0 ||
 		// 当req不可重复下载时，已存在成功记录则返回
 		!req.IsReloadable() && !UpsertSuccess(req) {
 		return
 	}
-
-	// 大致限制加入队列的请求量，并发情况下应该会比maxPage多
-	atomic.AddInt64(&self.maxPage, 1)
 
 	priority := req.GetPriority()
 
@@ -77,16 +69,18 @@ func (self *Matrix) Push(req *request.Request) {
 
 	// 添加请求到队列
 	self.reqs[priority] = append(self.reqs[priority], req)
+
+	// 大致限制加入队列的请求量，并发情况下应该会比maxPage多
+	atomic.AddInt64(&self.maxPage, 1)
 }
 
-// 从队列取出请求，不存在时返回nil
+// 从队列取出请求，不存在时返回nil，并发安全
 func (self *Matrix) Pull() (req *request.Request) {
-	sdl.RLock()
-	defer sdl.RUnlock()
-	if sdl.status != status.RUN {
+	if !sdl.checkStatus(status.RUN) {
 		return
 	}
-
+	self.Lock()
+	defer self.Unlock()
 	// 按优先级从高到低取出请求
 	for i := len(self.reqs) - 1; i >= 0; i-- {
 		idx := self.priorities[i]
@@ -105,6 +99,8 @@ func (self *Matrix) Pull() (req *request.Request) {
 }
 
 func (self *Matrix) Len() int {
+	self.Lock()
+	defer self.Unlock()
 	var l int
 	for _, reqs := range self.reqs {
 		l += len(reqs)
@@ -126,27 +122,21 @@ func (self *Matrix) Free() {
 }
 
 func (self *Matrix) CanStop() bool {
-	sdl.RLock()
-	if sdl.status == status.STOP {
-		sdl.RUnlock()
+	if sdl.checkStatus(status.STOP) {
 		return true
 	}
-	sdl.RUnlock()
-
 	if self.maxPage >= 0 {
 		return true
 	}
-
 	if self.resCount != 0 {
 		return false
 	}
-
-	for i, count := 0, len(self.reqs); i < count; i++ {
-		if len(self.reqs[i]) > 0 {
-			return false
-		}
+	if self.Len() > 0 {
+		return false
 	}
 
+	self.failureLock.Lock()
+	defer self.failureLock.Unlock()
 	if len(self.failures) > 0 {
 		// 重新下载历史记录中失败的请求
 		var goon bool
@@ -170,11 +160,12 @@ func (self *Matrix) CanStop() bool {
 func (self *Matrix) Flush() {
 	for self.resCount != 0 {
 		runtime.Gosched()
-		// time.Sleep(5e8)
 	}
 }
 
 func (self *Matrix) SetFailures(reqs []*request.Request) {
+	self.failureLock.Lock()
+	defer self.failureLock.Unlock()
 	for _, req := range reqs {
 		self.failures[makeUnique(req)] = req
 		logs.Log.Informational(" *     + 失败请求: [%v]\n", req.GetUrl())
@@ -182,8 +173,8 @@ func (self *Matrix) SetFailures(reqs []*request.Request) {
 }
 
 func (self *Matrix) SetFailure(req *request.Request) bool {
-	self.Lock()
-	defer self.Unlock()
+	self.failureLock.Lock()
+	defer self.failureLock.Unlock()
 	unique := makeUnique(req)
 	if _, ok := self.failures[unique]; !ok {
 		// 首次失败时，在任务队列末尾重新执行一次

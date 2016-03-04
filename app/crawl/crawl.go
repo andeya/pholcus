@@ -103,17 +103,15 @@ func (self *crawler) Run() {
 // core processer
 func (self *crawler) Process(req *request.Request) {
 	var (
-		ctx      = self.Downloader.Download(self.Spider, req) // download page
-		downUrl  = req.GetUrl()
-		ruleName = req.GetRuleName()
-		referer  = req.GetReferer()
+		ctx     = self.Downloader.Download(self.Spider, req) // download page
+		downUrl = req.GetUrl()
 	)
 
 	if err := ctx.GetError(); err != nil {
 		// 删除该请求的成功记录
 		scheduler.DeleteSuccess(req)
 		// 对下载失败的请求进行失败记录
-		if !self.Spider.ReqmatrixSetFailure(req) {
+		if !self.Spider.RequestFailure(req) {
 			// 统计失败数
 			cache.PageFailCount()
 		}
@@ -128,7 +126,7 @@ func (self *crawler) Process(req *request.Request) {
 			// 删除该请求的成功记录
 			scheduler.DeleteSuccess(req)
 			// 对下载失败的请求进行失败记录
-			if !self.Spider.ReqmatrixSetFailure(req) {
+			if !self.Spider.RequestFailure(req) {
 				// 统计失败数
 				cache.PageFailCount()
 			}
@@ -138,6 +136,8 @@ func (self *crawler) Process(req *request.Request) {
 		}
 	}()
 
+	var ruleName = req.GetRuleName()
+
 	// 过程处理，提炼数据
 	ctx.Parse(ruleName)
 
@@ -145,8 +145,12 @@ func (self *crawler) Process(req *request.Request) {
 	cache.PageSuccCount()
 	// 提示抓取成功
 	logs.Log.Informational(" *     Success: %v\n", downUrl)
-	// 该条请求文本结果存入pipeline
 
+	downUrl = req.GetUrl()
+	ruleName = req.GetRuleName()
+	var referer = req.GetReferer()
+
+	// 该条请求文本结果存入pipeline
 	for _, data := range ctx.GetItems() {
 		self.Pipeline.CollectData(
 			ruleName, //DataCell.RuleName
@@ -176,17 +180,17 @@ func (self *crawler) sleep() {
 
 // 从调度读取一个请求
 func (self *crawler) GetOne() *request.Request {
-	return self.Spider.ReqmatrixPull()
+	return self.Spider.RequestPull()
 }
 
 //从调度使用一个资源空位
 func (self *crawler) UseOne() {
-	self.Spider.ReqmatrixUse()
+	self.Spider.RequestUse()
 }
 
 //从调度释放一个资源空位
 func (self *crawler) FreeOne() {
-	self.Spider.ReqmatrixFree()
+	self.Spider.RequestFree()
 }
 
 func (self *crawler) SetId(id int) {

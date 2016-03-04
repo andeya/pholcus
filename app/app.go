@@ -553,7 +553,8 @@ func (self *Logic) taskToRun(t *distribute.Task) {
 func (self *Logic) exec() {
 	count := self.SpiderQueue.Len()
 	cache.ResetPageCount()
-
+	// 刷新输出方式的状态
+	pipeline.RefreshOutput()
 	// 初始化资源队列
 	scheduler.Init()
 
@@ -566,9 +567,6 @@ func (self *Logic) exec() {
 	logs.Log.Informational(" *     随机停顿区间为 %v~%v 毫秒\n", self.AppConf.Pausetime/2, self.AppConf.Pausetime*2)
 	logs.Log.Notice(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
-
-	// 刷新输出方式的状态
-	pipeline.RefreshOutput()
 
 	// 开始计时
 	cache.StartTime = time.Now()
