@@ -6,59 +6,94 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/henrylee2cn/pholcus/app/aid/history"
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/logs"
+	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
 // 一个Spider实例的请求矩阵
 type Matrix struct {
-	// 资源使用情况计数
-	resCount int32
-	// 最大采集页数，以负数形式表示
-	maxPage int64
-	// [优先级]队列，优先级默认为0
-	reqs map[int][]*request.Request
-	// 优先级顺序，从低到高
-	priorities []int
-	// 历史及本次失败请求
-	failures    map[string]*request.Request
-	failureLock sync.Mutex
+	spiderName      string                      // 所属Spider
+	resCount        int32                       // 资源使用情况计数
+	maxPage         int64                       // 最大采集页数，以负数形式表示
+	reqs            map[int][]*request.Request  // [优先级]队列，优先级默认为0
+	priorities      []int                       // 优先级顺序，从低到高
+	history         history.Historier           // 历史记录
+	tempHistory     map[string]bool             // 临时记录 [hash(url+method)]true
+	failures        map[string]*request.Request // 历史及本次失败请求
+	tempHistoryLock sync.RWMutex
+	failureLock     sync.Mutex
 	sync.Mutex
 }
 
-// 注册资源队列
-func NewMatrix(spiderId int, maxPage int64) *Matrix {
+func newMatrix(spiderName string, maxPage int64) *Matrix {
 	matrix := &Matrix{
-		reqs:       make(map[int][]*request.Request),
-		priorities: []int{},
-		maxPage:    maxPage,
-		failures:   make(map[string]*request.Request),
+		spiderName:  spiderName,
+		maxPage:     maxPage,
+		reqs:        make(map[int][]*request.Request),
+		priorities:  []int{},
+		history:     history.New(spiderName),
+		tempHistory: make(map[string]bool),
+		failures:    make(map[string]*request.Request),
 	}
-	sdl.addMatrix(spiderId, matrix)
+	if cache.Task.Mode != status.SERVER {
+		matrix.history.ReadSuccess(cache.Task.OutType, cache.Task.SuccessInherit)
+		matrix.history.ReadFailure(cache.Task.OutType, cache.Task.FailureInherit)
+		matrix.setFailures(matrix.history.PullFailure())
+	}
 	return matrix
 }
 
 // 添加请求到队列，并发安全
 func (self *Matrix) Push(req *request.Request) {
+	if sdl.checkStatus(status.STOP) {
+		return
+	}
+
 	// 禁止并发，降低请求积存量
 	self.Lock()
 	defer self.Unlock()
 
-	// 根据运行状态及资源使用情况，降低请求积存量
-	for sdl.checkStatus(status.PAUSE) || self.resCount > sdl.avgRes() {
-		runtime.Gosched()
-	}
-
-	// 终止添加操作
-	if sdl.checkStatus(status.STOP) || self.maxPage >= 0 ||
-		// 当req不可重复下载时，已存在成功记录则返回
-		!req.IsReloadable() && !UpsertSuccess(req) {
+	// 达到请求上限，停止该规则运行
+	if self.maxPage >= 0 {
 		return
 	}
 
-	priority := req.GetPriority()
+	// 暂停状态时等待，降低请求积存量
+	waited := false
+	for sdl.checkStatus(status.PAUSE) {
+		waited = true
+		runtime.Gosched()
+	}
+	if waited && sdl.checkStatus(status.STOP) {
+		return
+	}
+
+	// 资源使用过多时等待，降低请求积存量
+	waited = false
+	for self.resCount > sdl.avgRes() {
+		waited = true
+		runtime.Gosched()
+	}
+	if waited && sdl.checkStatus(status.STOP) {
+		return
+	}
+
+	// 不可重复下载的req
+	if !req.IsReloadable() {
+		hash := makeUnique(req)
+		// 已存在成功记录时退出
+		if self.hasHistory(hash) {
+			return
+		}
+		// 添加到临时记录
+		self.insertTempHistory(hash)
+	}
+
+	var priority = req.GetPriority()
 
 	// 初始化该蜘蛛下该优先级队列
 	if _, found := self.reqs[priority]; !found {
@@ -98,16 +133,6 @@ func (self *Matrix) Pull() (req *request.Request) {
 	return
 }
 
-func (self *Matrix) Len() int {
-	self.Lock()
-	defer self.Unlock()
-	var l int
-	for _, reqs := range self.reqs {
-		l += len(reqs)
-	}
-	return l
-}
-
 func (self *Matrix) Use() {
 	defer func() {
 		recover()
@@ -119,6 +144,38 @@ func (self *Matrix) Use() {
 func (self *Matrix) Free() {
 	<-sdl.count
 	atomic.AddInt32(&self.resCount, -1)
+}
+
+// 返回是否作为新的失败请求被添加至队列尾部
+func (self *Matrix) DoHistory(req *request.Request, ok bool) bool {
+	hash := makeUnique(req)
+
+	if !req.IsReloadable() {
+		self.tempHistoryLock.Lock()
+		delete(self.tempHistory, hash)
+		self.tempHistoryLock.Unlock()
+
+		if ok {
+			self.history.UpsertSuccess(hash)
+			return false
+		}
+	}
+
+	if ok {
+		return false
+	}
+
+	self.failureLock.Lock()
+	defer self.failureLock.Unlock()
+	if _, ok := self.failures[hash]; !ok {
+		// 首次失败时，在任务队列末尾重新执行一次
+		self.failures[hash] = req
+		logs.Log.Informational(" *     + 失败请求: [%v]\n", req.GetUrl())
+		return true
+	}
+	// 失败两次后，加入历史失败记录
+	self.history.UpsertFailure(req)
+	return false
 }
 
 func (self *Matrix) CanStop() bool {
@@ -140,11 +197,11 @@ func (self *Matrix) CanStop() bool {
 	if len(self.failures) > 0 {
 		// 重新下载历史记录中失败的请求
 		var goon bool
-		for unique, req := range self.failures {
+		for hash, req := range self.failures {
 			if req == nil {
 				continue
 			}
-			self.failures[unique] = nil
+			self.failures[hash] = nil
 			goon = true
 			logs.Log.Informational(" *     - 失败请求: [%v]\n", req.GetUrl())
 			self.Push(req)
@@ -156,35 +213,55 @@ func (self *Matrix) CanStop() bool {
 	return true
 }
 
+func (self *Matrix) TryFlushHistory() {
+	if cache.Task.SuccessInherit {
+		self.history.FlushSuccess(cache.Task.OutType)
+	}
+	if cache.Task.FailureInherit {
+		self.history.FlushFailure(cache.Task.OutType)
+	}
+}
+
 // 等待处理中的请求完成
-func (self *Matrix) Flush() {
+func (self *Matrix) Wait() {
 	for self.resCount != 0 {
 		runtime.Gosched()
 	}
 }
 
-func (self *Matrix) SetFailures(reqs []*request.Request) {
+func (self *Matrix) Len() int {
+	self.Lock()
+	defer self.Unlock()
+	var l int
+	for _, reqs := range self.reqs {
+		l += len(reqs)
+	}
+	return l
+}
+
+func (self *Matrix) hasHistory(hash string) bool {
+	if self.history.HasSuccess(hash) {
+		return true
+	}
+	self.tempHistoryLock.RLock()
+	has := self.tempHistory[hash]
+	self.tempHistoryLock.RUnlock()
+	return has
+}
+
+func (self *Matrix) insertTempHistory(hash string) {
+	self.tempHistoryLock.Lock()
+	self.tempHistory[hash] = true
+	self.tempHistoryLock.Unlock()
+}
+
+func (self *Matrix) setFailures(reqs map[*request.Request]bool) {
 	self.failureLock.Lock()
 	defer self.failureLock.Unlock()
-	for _, req := range reqs {
+	for req := range reqs {
 		self.failures[makeUnique(req)] = req
 		logs.Log.Informational(" *     + 失败请求: [%v]\n", req.GetUrl())
 	}
-}
-
-func (self *Matrix) SetFailure(req *request.Request) bool {
-	self.failureLock.Lock()
-	defer self.failureLock.Unlock()
-	unique := makeUnique(req)
-	if _, ok := self.failures[unique]; !ok {
-		// 首次失败时，在任务队列末尾重新执行一次
-		self.failures[unique] = req
-		logs.Log.Informational(" *     + 失败请求: [%v]\n", req.GetUrl())
-		return true
-	}
-	// 失败两次后，加入历史失败记录
-	UpsertFailure(req)
-	return false
 }
 
 func makeUnique(req *request.Request) string {

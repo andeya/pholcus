@@ -30,7 +30,7 @@ func Download(req Request) (resp *http.Response, err error) {
 		once_surf.Do(func() { surf = New() })
 		resp, err = surf.Download(req)
 	case PhomtomJsID:
-		once_phantom.Do(func() { phantom = NewPhantom(config.SURFER_PHANTOM.FULL_APP_NAME, config.SURFER_PHANTOM.FULL_TEMP_JS) })
+		once_phantom.Do(func() { phantom = NewPhantom(config.PHANTOMJS, config.PHANTOMJS_TEMP) })
 		resp, err = phantom.Download(req)
 	}
 	return

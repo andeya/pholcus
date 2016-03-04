@@ -66,7 +66,6 @@ func (self *Context) SetError(err error) {
 func (self *Context) AddQueue(req *request.Request) *Context {
 	err := req.
 		SetSpiderName(self.spider.GetName()).
-		SetSpiderId(self.spider.GetId()).
 		SetEnableCookie(self.spider.GetEnableCookie()).
 		Prepare()
 
@@ -124,7 +123,6 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 
 	err := req.
 		SetSpiderName(self.spider.GetName()).
-		SetSpiderId(self.spider.GetId()).
 		SetEnableCookie(self.spider.GetEnableCookie()).
 		Prepare()
 

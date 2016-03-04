@@ -25,7 +25,7 @@ type Collector struct {
 
 func NewCollector() *Collector {
 	self := &Collector{
-		DataChan:    make(chan DataCell, config.DATA_CAP),
+		DataChan:    make(chan DataCell, config.DATA_CHAN_CAP),
 		FileChan:    make(chan FileCell, 512),
 		DockerQueue: NewDockerQueue(),
 		ctrl:        make(chan bool, 1),
@@ -36,7 +36,7 @@ func NewCollector() *Collector {
 func (self *Collector) Init(sp *spider.Spider) {
 	self.Spider = sp
 	self.outType = cache.Task.OutType
-	self.DataChan = make(chan DataCell, config.DATA_CAP)
+	self.DataChan = make(chan DataCell, config.DATA_CHAN_CAP)
 	self.FileChan = make(chan FileCell, 512)
 	self.DockerQueue = NewDockerQueue()
 	self.ctrl = make(chan bool, 1)

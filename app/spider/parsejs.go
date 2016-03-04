@@ -123,7 +123,7 @@ func getSpiderModles() (ms []*SpiderModle) {
 			logs.Log.Error("%v", p)
 		}
 	}()
-	files, _ := filepath.Glob(path.Join(config.DYNAMIC_SPIDER_DIR, "*.pholcus.html"))
+	files, _ := filepath.Glob(path.Join(config.SPIDER_DIR, "*"+config.SPIDER_EXT))
 	for _, filename := range files {
 		b, err := ioutil.ReadFile(filename)
 		util.CheckErrPanic(err)

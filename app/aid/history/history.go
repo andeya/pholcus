@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
-	"path"
 	"sync"
 
 	"gopkg.in/mgo.v2/bson"
@@ -17,34 +16,28 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
+const (
+	SUCCESS_SUFFIX = config.HISTORY_TAG + "_y"
+	FAILURE_SUFFIX = config.HISTORY_TAG + "_n"
+	SUCCESS_FILE   = config.HISTORY_DIR + "/" + SUCCESS_SUFFIX
+	FAILURE_FILE   = config.HISTORY_DIR + "/" + FAILURE_SUFFIX
+)
+
 type (
 	Historier interface {
-		// 读取成功记录
-		ReadSuccess(provider string, inherit bool)
-		// 更新或加入成功记录
-		UpsertSuccess(Record) bool
-		// 删除成功记录
-		DeleteSuccess(Record)
-		// I/O输出成功记录，但不清缓存
-		FlushSuccess(provider string)
+		ReadSuccess(provider string, inherit bool) // 读取成功记录
+		UpsertSuccess(string) bool                 // 更新或加入成功记录
+		HasSuccess(string) bool                    // 检查是否存在某条成功记录
+		DeleteSuccess(string)                      // 删除成功记录
+		FlushSuccess(provider string)              // I/O输出成功记录，但不清缓存
 
-		// 读取失败记录
-		ReadFailure(provider string, inherit bool)
-		// 更新或加入失败记录
-		UpsertFailure(*request.Request) bool
-		// 删除失败记录
-		DeleteFailure(*request.Request)
-		// I/O输出失败记录，但不清缓存
-		FlushFailure(provider string)
-		// 获取指定蜘蛛在上一次运行时失败的请求
-		PullFailure(spiderName string) []*request.Request
+		ReadFailure(provider string, inherit bool) // 读取失败记录
+		PullFailure() map[*request.Request]bool    // 拉取失败记录并清空
+		UpsertFailure(*request.Request) bool       // 更新或加入失败记录
+		DeleteFailure(*request.Request)            // 删除失败记录
+		FlushFailure(provider string)              // I/O输出失败记录，但不清缓存
 
-		// 清空缓存，但不输出
-		Empty()
-	}
-	Record interface {
-		GetUrl() string
-		GetMethod() string
+		Empty() // 清空缓存，但不输出
 	}
 	History struct {
 		*Success
@@ -54,24 +47,16 @@ type (
 	}
 )
 
-var (
-	MGO_DB = config.MGO.DB
-
-	SUCCESS_FILE = config.HISTORY.FILE_NAME_PREFIX + "_y"
-	FAILURE_FILE = config.HISTORY.FILE_NAME_PREFIX + "_n"
-
-	SUCCESS_FILE_FULL = path.Join(config.HISTORY.DIR, SUCCESS_FILE)
-	FAILURE_FILE_FULL = path.Join(config.HISTORY.DIR, FAILURE_FILE)
-)
-
-func New() Historier {
+func New(name string) Historier {
 	return &History{
 		Success: &Success{
-			new: make(map[string]bool),
-			old: make(map[string]bool),
+			name: name,
+			new:  make(map[string]bool),
+			old:  make(map[string]bool),
 		},
 		Failure: &Failure{
-			list: make(map[string]map[string]bool),
+			name: name,
+			list: make(map[*request.Request]bool),
 		},
 	}
 }
@@ -104,8 +89,8 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 	case "mgo":
 		var docs = map[string]interface{}{}
 		err := mgo.Mgo(&docs, "find", map[string]interface{}{
-			"Database":   MGO_DB,
-			"Collection": SUCCESS_FILE,
+			"Database":   config.DB_NAME,
+			"Collection": SUCCESS_SUFFIX + "_" + self.Success.name,
 		})
 		if err != nil {
 			logs.Log.Error(" *     Fail  [读取成功记录][mgo]: %v\n", err)
@@ -122,7 +107,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 			return
 		}
 		rows, err := mysql.New(db).
-			SetTableName("`" + SUCCESS_FILE + "`").
+			SetTableName("`" + SUCCESS_SUFFIX + "_" + self.Success.name + "`").
 			SelectAll()
 		if err != nil {
 			return
@@ -135,12 +120,15 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 		}
 
 	default:
-		f, err := os.Open(SUCCESS_FILE_FULL)
+		f, err := os.Open(SUCCESS_FILE + "_" + self.Success.name)
 		if err != nil {
 			return
 		}
 		defer f.Close()
 		b, _ := ioutil.ReadAll(f)
+		if len(b) == 0 {
+			return
+		}
 		b[0] = '{'
 		json.Unmarshal(append(b, '}'), &self.Success.old)
 	}
@@ -155,7 +143,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 
 	if !inherit {
 		// 不继承历史记录时
-		self.Failure.list = make(map[string]map[string]bool)
+		self.Failure.list = make(map[*request.Request]bool)
 		self.Failure.inheritable = false
 		return
 
@@ -165,7 +153,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 
 	} else {
 		// 上次没有继承历史记录，但本次继承时
-		self.Failure.list = make(map[string]map[string]bool)
+		self.Failure.list = make(map[*request.Request]bool)
 		self.Failure.inheritable = true
 	}
 	var fLen int
@@ -178,9 +166,11 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 
 		var docs = []interface{}{}
 		mgo.Call(func(src pool.Src) error {
-			c := src.(*mgo.MgoSrc).DB(MGO_DB).C(FAILURE_FILE)
+			c := src.(*mgo.MgoSrc).DB(config.DB_NAME).C(FAILURE_SUFFIX + "_" + self.Failure.name)
 			return c.Find(nil).All(&docs)
 		})
+
+		fLen = len(docs)
 
 		for _, v := range docs {
 			failure := v.(bson.M)["_id"].(string)
@@ -188,12 +178,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			if err != nil {
 				continue
 			}
-			spName := req.GetSpiderName()
-			if _, ok := self.Failure.list[spName]; !ok {
-				self.Failure.list[spName] = make(map[string]bool)
-			}
-			self.Failure.list[spName][failure] = true
-			fLen++
+			self.Failure.list[req] = true
 		}
 
 	case "mysql":
@@ -203,7 +188,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			return
 		}
 		rows, err := mysql.New(db).
-			SetTableName("`" + FAILURE_FILE + "`").
+			SetTableName("`" + FAILURE_SUFFIX + "_" + self.Failure.name + "`").
 			SelectAll()
 		if err != nil {
 			// logs.Log.Error("读取Mysql数据库中成功记录失败：%v", err)
@@ -218,32 +203,36 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			if err != nil {
 				continue
 			}
-			spName := req.GetSpiderName()
-			if _, ok := self.Failure.list[spName]; !ok {
-				self.Failure.list[spName] = make(map[string]bool)
-			}
-			self.Failure.list[spName][failure] = true
+			self.Failure.list[req] = true
 			fLen++
 		}
 
 	default:
-		f, err := os.Open(FAILURE_FILE_FULL)
+		f, err := os.Open(FAILURE_FILE + "_" + self.Failure.name)
 		if err != nil {
 			return
 		}
 		b, _ := ioutil.ReadAll(f)
 		f.Close()
 
-		b[0] = '{'
-		json.Unmarshal(
-			append(b, '}'),
-			&self.Failure.list,
-		)
-		for _, v := range self.Failure.list {
-			fLen += len(v)
+		if len(b) == 0 {
+			return
 		}
 
+		docs := []string{}
+		json.Unmarshal(b, &docs)
+
+		fLen = len(docs)
+
+		for _, s := range docs {
+			req, err := request.UnSerialize(s)
+			if err != nil {
+				continue
+			}
+			self.Failure.list[req] = true
+		}
 	}
+
 	logs.Log.Informational(" *     [读取失败记录]: %v 条\n", fLen)
 }
 
@@ -252,7 +241,7 @@ func (self *History) Empty() {
 	self.RWMutex.Lock()
 	self.Success.new = make(map[string]bool)
 	self.Success.old = make(map[string]bool)
-	self.Failure.list = make(map[string]map[string]bool)
+	self.Failure.list = make(map[*request.Request]bool)
 	self.RWMutex.Unlock()
 }
 
@@ -262,7 +251,10 @@ func (self *History) FlushSuccess(provider string) {
 	self.provider = provider
 	self.RWMutex.Unlock()
 	sucLen, err := self.Success.flush(provider)
-	logs.Log.Informational(" * ")
+	if sucLen <= 0 {
+		return
+	}
+	// logs.Log.Informational(" * ")
 	if err != nil {
 		logs.Log.Error("%v", err)
 	} else {
@@ -276,7 +268,10 @@ func (self *History) FlushFailure(provider string) {
 	self.provider = provider
 	self.RWMutex.Unlock()
 	failLen, err := self.Failure.flush(provider)
-	logs.Log.Informational(" * ")
+	if failLen <= 0 {
+		return
+	}
+	// logs.Log.Informational(" * ")
 	if err != nil {
 		logs.Log.Error("%v", err)
 	} else {

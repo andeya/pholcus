@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"os/signal"
 
-	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/config"
 
 	"github.com/henrylee2cn/pholcus/cmd" // cmd版
@@ -15,10 +14,7 @@ import (
 )
 
 func run(which string) {
-	exec.Command("cmd.exe", "/c", "title", config.APP_FULL_NAME).Start()
-	defer func() {
-		scheduler.TryFlushHistory()
-	}()
+	exec.Command("cmd.exe", "/c", "title", config.FULL_NAME).Start()
 
 	// 选择运行界面
 	switch which {

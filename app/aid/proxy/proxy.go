@@ -63,7 +63,7 @@ func (self *Proxy) Count() int {
 
 // 更新代理IP列表
 func (self *Proxy) Update() *Proxy {
-	f, err := os.Open(config.FULL_PROXY_FILE)
+	f, err := os.Open(config.PROXY)
 	if err != nil {
 		// logs.Log.Error("Error: %v\n", err)
 		return self

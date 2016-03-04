@@ -42,13 +42,13 @@ func DB() (*sql.DB, error) {
 }
 
 func Refresh() {
-	db, err = sql.Open("mysql", config.MYSQL.CONN_STR+"/"+config.MYSQL.DB+"?charset=utf8")
+	db, err = sql.Open("mysql", config.MYSQL_CONN_STR+"/"+config.DB_NAME+"?charset=utf8")
 	if err != nil {
 		logs.Log.Error("Mysql：%v\n", err)
 		return
 	}
-	db.SetMaxOpenConns(config.MYSQL.MAX_CONNS)
-	db.SetMaxIdleConns(config.MYSQL.MAX_CONNS / 2)
+	db.SetMaxOpenConns(config.MYSQL_CONN_CAP)
+	db.SetMaxIdleConns(config.MYSQL_CONN_CAP / 2)
 	if err = db.Ping(); err != nil {
 		logs.Log.Error("Mysql：%v\n", err)
 	}

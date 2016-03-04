@@ -621,10 +621,7 @@ func (self *Logic) goRun(count int) {
 		self.sum[0] += s.DataNum
 		self.sum[1] += s.FileNum
 	}
-	// 非服务器模式下保存历史记录
-	if self.AppConf.Mode != status.SERVER {
-		scheduler.TryFlushHistory()
-	}
+
 	// 总耗时
 	self.takeTime = time.Since(cache.StartTime)
 	var prefix = func() string {

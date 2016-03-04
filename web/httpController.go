@@ -30,10 +30,10 @@ func web(rw http.ResponseWriter, req *http.Request) {
 	}
 	//获取pholcus信息
 	data := map[string]interface{}{
-		"title":   config.APP_NAME,
+		"title":   config.NAME,
 		"logo":    config.ICON_PNG,
-		"version": config.APP_VERSION,
-		"author":  config.APP_AUTHOR,
+		"version": config.VERSION,
+		"author":  config.AUTHOR,
 		"mode": map[string]int{
 			"offline": status.OFFLINE,
 			"server":  status.SERVER,

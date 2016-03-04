@@ -22,7 +22,7 @@ func init() {
 		}
 		return mgo.Call(func(src pool.Src) error {
 			var (
-				db          = src.(*mgo.MgoSrc).DB(config.MGO.DB)
+				db          = src.(*mgo.MgoSrc).DB(config.DB_NAME)
 				namespace   = util.FileNameReplace(self.namespace())
 				collections = make(map[string]*mgov2.Collection)
 				dataMap     = make(map[string][]interface{})

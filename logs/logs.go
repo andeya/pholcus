@@ -59,7 +59,7 @@ const (
 var Log = NewLogs()
 
 func NewLogs(enableFuncCallDepth ...bool) Logs {
-	p, _ := path.Split(config.LOG.FULL_FILE_NAME)
+	p, _ := path.Split(config.LOG)
 	// 不存在目录时创建目录
 	d, err := os.Stat(p)
 	if err != nil || !d.IsDir() {
@@ -69,7 +69,7 @@ func NewLogs(enableFuncCallDepth ...bool) Logs {
 	}
 
 	ml := &mylog{
-		BeeLogger: beelogs.NewLogger(config.LOG.MAX_CACHE),
+		BeeLogger: beelogs.NewLogger(config.LOG_CAP),
 	}
 
 	// 是否打印行号
@@ -84,7 +84,7 @@ func NewLogs(enableFuncCallDepth ...bool) Logs {
 	})
 
 	ml.BeeLogger.SetLogger("file", map[string]interface{}{
-		"filename": config.LOG.FULL_FILE_NAME,
+		"filename": config.LOG,
 	})
 
 	return ml

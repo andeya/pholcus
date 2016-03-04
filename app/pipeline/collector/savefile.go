@@ -24,7 +24,7 @@ func (self *Collector) SaveFile() {
 
 			// 路径： file/"RuleName"/"time"/"Name"
 			p, n := path.Split(file["Name"].(string))
-			dir := config.COMM_PATH.FILE + `/` + util.FileNameReplace(self.namespace()) + "__" + cache.StartTime.Format("2006年01月02日 15时04分05秒") + `/` + p
+			dir := config.FILE_DIR + `/` + util.FileNameReplace(self.namespace()) + "__" + cache.StartTime.Format("2006年01月02日 15时04分05秒") + `/` + p
 
 			// 创建/打开目录
 			d, err := os.Stat(dir)

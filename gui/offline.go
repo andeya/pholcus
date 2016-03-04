@@ -20,7 +20,7 @@ func offlineWindow() {
 			DataSource:     Input,
 			ErrorPresenter: ErrorPresenterRef{&ep},
 		},
-		Title:   config.APP_FULL_NAME + "                                                          【 运行模式 ->  单机 】",
+		Title:   config.FULL_NAME + "                                                          【 运行模式 ->  单机 】",
 		MinSize: Size{1100, 700},
 		Layout:  VBox{MarginsZero: true},
 		Children: []Widget{

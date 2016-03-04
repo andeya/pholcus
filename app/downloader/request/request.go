@@ -128,6 +128,9 @@ func (self *Request) Prepare() error {
 		self.TempIsJson = make(map[string]bool)
 	}
 
+	if self.Temp == nil {
+		self.Temp = make(Temp)
+	}
 	return nil
 }
 
@@ -315,17 +318,17 @@ func (self *Request) SetTemps(temp map[string]interface{}) *Request {
 	return self
 }
 
-func (self *Request) GetSpiderId() (spiderId int) {
-	return self.GetTemp("__SPIDER_ID__", spiderId).(int)
-}
+// func (self *Request) GetSpiderId() (spiderId int) {
+// 	return self.GetTemp("__SPIDER_ID__", spiderId).(int)
+// }
 
-func (self *Request) SetSpiderId(spiderId int) *Request {
-	if self.Temp == nil {
-		self.Temp = make(Temp)
-	}
-	self.SetTemp("__SPIDER_ID__", spiderId)
-	return self
-}
+// func (self *Request) SetSpiderId(spiderId int) *Request {
+// 	if self.Temp == nil {
+// 		self.Temp = make(Temp)
+// 	}
+// 	self.SetTemp("__SPIDER_ID__", spiderId)
+// 	return self
+// }
 
 func (self *Request) GetPriority() int {
 	return self.Priority

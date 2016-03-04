@@ -8,10 +8,11 @@ import (
 
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
-	"github.com/henrylee2cn/pholcus/common/util"
+	"github.com/henrylee2cn/pholcus/config"
 )
 
 type Success struct {
+	name string
 	// [hash(url+method)]true
 	new         map[string]bool
 	old         map[string]bool
@@ -19,28 +20,34 @@ type Success struct {
 	sync.RWMutex
 }
 
-// 更新或加入成功记录
-// 对比是否已存在，不存在就记录
-func (self *Success) UpsertSuccess(record Record) bool {
+// 更新或加入成功记录，
+// 对比是否已存在，不存在就记录，
+// 返回值表示是否有插入操作。
+func (self *Success) UpsertSuccess(hash string) bool {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 
-	s := util.MakeUnique(record.GetUrl() + record.GetMethod())
-	if self.old[s] {
+	if self.old[hash] {
 		return false
 	}
-	if self.new[s] {
+	if self.new[hash] {
 		return false
 	}
-	self.new[s] = true
+	self.new[hash] = true
 	return true
 }
 
-// 删除成功记录
-func (self *Success) DeleteSuccess(record Record) {
+func (self *Success) HasSuccess(hash string) bool {
 	self.RWMutex.Lock()
-	s := util.MakeUnique(record.GetUrl() + record.GetMethod())
-	delete(self.new, s)
+	has := self.old[hash] || self.new[hash]
+	self.RWMutex.Unlock()
+	return has
+}
+
+// 删除成功记录
+func (self *Success) DeleteSuccess(hash string) {
+	self.RWMutex.Lock()
+	delete(self.new, hash)
 	self.RWMutex.Unlock()
 }
 
@@ -55,6 +62,10 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 
 	switch provider {
 	case "mgo":
+		if mgo.Error() != nil {
+			err = fmt.Errorf(" *     Fail  [添加成功记录][mgo]: %v 条 [ERROR]  %v\n", sLen, mgo.Error())
+			return
+		}
 		var docs = make([]map[string]interface{}, sLen)
 		var i int
 		for key := range self.new {
@@ -62,13 +73,9 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 			self.old[key] = true
 			i++
 		}
-		if mgo.Error() != nil {
-			err = fmt.Errorf(" *     Fail  [添加成功记录][mgo]: %v 条 [ERROR]  %v\n", sLen, mgo.Error())
-			return
-		}
 		mgo.Mgo(nil, "insert", map[string]interface{}{
-			"Database":   MGO_DB,
-			"Collection": SUCCESS_FILE,
+			"Database":   config.DB_NAME,
+			"Collection": SUCCESS_SUFFIX + "_" + self.name,
 			"Docs":       docs,
 		})
 
@@ -78,7 +85,7 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 			return sLen, fmt.Errorf(" *     Fail  [添加成功记录][mysql]: %v 条 [ERROR]  %v\n", sLen, err)
 		}
 		table := mysql.New(db).
-			SetTableName(SUCCESS_FILE).
+			SetTableName("`" + SUCCESS_SUFFIX + "_" + self.name + "`").
 			CustomPrimaryKey(`id VARCHAR(255) not null primary key`).
 			Create()
 		for key := range self.new {
@@ -87,7 +94,7 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 		}
 
 	default:
-		f, _ := os.OpenFile(SUCCESS_FILE_FULL, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
+		f, _ := os.OpenFile(SUCCESS_FILE+"_"+self.name, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
 
 		b, _ := json.Marshal(self.new)
 		b[0] = ','

@@ -10,67 +10,47 @@ import (
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
 	"github.com/henrylee2cn/pholcus/common/pool"
+	"github.com/henrylee2cn/pholcus/config"
 )
 
 type Failure struct {
-	// [spiderName][reqJson]
-	list        map[string]map[string]bool
+	name        string
+	list        map[*request.Request]bool
 	inheritable bool
 	sync.RWMutex
 }
 
-// 获取指定蜘蛛在上一次运行时失败的请求
-func (self *Failure) PullFailure(spiderName string) (reqs []*request.Request) {
-	if len(self.list[spiderName]) == 0 {
-		return
-	}
-
-	self.RWMutex.Lock()
-	defer self.RWMutex.Unlock()
-
-	for failure, _ := range self.list[spiderName] {
-		req, err := request.UnSerialize(failure)
-		if err == nil {
-			reqs = append(reqs, req)
-		}
-	}
-	self.list[spiderName] = make(map[string]bool)
-	return
+func (self *Failure) PullFailure() map[*request.Request]bool {
+	list := self.list
+	self.list = make(map[*request.Request]bool)
+	return list
 }
 
-// 更新或加入失败记录
-// 对比是否已存在，不存在就记录
+// 更新或加入失败记录，
+// 对比是否已存在，不存在就记录，
+// 返回值表示是否有插入操作。
 func (self *Failure) UpsertFailure(req *request.Request) bool {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
-
-	spName := req.GetSpiderName()
-	s := req.Serialize()
-
-	if failures, ok := self.list[spName]; !ok {
-		self.list[spName] = make(map[string]bool)
-	} else if failures[s] {
+	if self.list[req] {
 		return false
 	}
-
-	self.list[spName][s] = true
+	self.list[req] = true
 	return true
 }
 
 // 删除失败记录
 func (self *Failure) DeleteFailure(req *request.Request) {
 	self.RWMutex.Lock()
-	s := req.Serialize()
-	delete(self.list[req.GetSpiderName()], s)
+	delete(self.list, req)
 	self.RWMutex.Unlock()
 }
 
+// 先清空历史失败记录再更新
 func (self *Failure) flush(provider string) (fLen int, err error) {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
-	for _, val := range self.list {
-		fLen += len(val)
-	}
+	fLen = len(self.list)
 
 	switch provider {
 	case "mgo":
@@ -79,7 +59,7 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 			return
 		}
 		mgo.Call(func(src pool.Src) error {
-			c := src.(*mgo.MgoSrc).DB(MGO_DB).C(FAILURE_FILE)
+			c := src.(*mgo.MgoSrc).DB(config.DB_NAME).C(FAILURE_SUFFIX + "_" + self.name)
 			// 删除失败记录文件
 			c.DropCollection()
 			if fLen == 0 {
@@ -87,10 +67,8 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 			}
 
 			var docs = []interface{}{}
-			for _, val := range self.list {
-				for key := range val {
-					docs = append(docs, map[string]interface{}{"_id": key})
-				}
+			for req := range self.list {
+				docs = append(docs, map[string]interface{}{"_id": req.Serialize()})
 			}
 			c.Insert(docs...)
 			return nil
@@ -103,7 +81,7 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 		}
 
 		// 删除失败记录文件
-		stmt, err := db.Prepare(`DROP TABLE ` + FAILURE_FILE)
+		stmt, err := db.Prepare(`DROP TABLE ` + FAILURE_SUFFIX + "_" + self.name)
 		if err != nil {
 			return fLen, fmt.Errorf(" *     Fail  [添加失败记录][mysql]: %v 条 [ERROR]  %v\n", fLen, err)
 		}
@@ -113,27 +91,31 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 		}
 
 		table := mysql.New(db).
-			SetTableName(FAILURE_FILE).
+			SetTableName("`" + FAILURE_SUFFIX + "_" + self.name + "`").
 			AddColumn(`failure MEDIUMTEXT`).
 			Create()
-		for _, val := range self.list {
-			for key := range val {
-				table.AddRow(key).Update()
-			}
+		for req := range self.list {
+			table.AddRow(req.Serialize()).Update()
 		}
 
 	default:
 		// 删除失败记录文件
-		os.Remove(FAILURE_FILE_FULL)
+		fileName := FAILURE_FILE + "_" + self.name
+		os.Remove(fileName)
 		if fLen == 0 {
 			return
 		}
 
-		f, _ := os.OpenFile(FAILURE_FILE_FULL, os.O_CREATE|os.O_WRONLY, 0660)
+		f, _ := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY, 0660)
 
-		b, _ := json.Marshal(self.list)
-		b[0] = ','
-		f.Write(b[:len(b)-1])
+		docs := make([]string, len(self.list))
+		i := 0
+		for req := range self.list {
+			docs[0] = req.Serialize()
+			i++
+		}
+		b, _ := json.Marshal(docs)
+		f.Write(b)
 		f.Close()
 	}
 	return

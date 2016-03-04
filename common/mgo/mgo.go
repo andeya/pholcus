@@ -16,8 +16,8 @@ var (
 	session *mgo.Session
 	err     error
 	MgoPool = pool.ClassicPool(
-		config.MGO.MAX_CONNS,
-		config.MGO.MAX_CONNS/5,
+		config.MGO_CONN_CAP,
+		config.MGO_CONN_CAP/5,
 		func() (pool.Src, error) {
 			// if err != nil || session.Ping() != nil {
 			// 	session, err = newSession()
@@ -28,13 +28,13 @@ var (
 )
 
 func Refresh() {
-	session, err = mgo.Dial(config.MGO.CONN_STR)
+	session, err = mgo.Dial(config.MGO_CONN_STR)
 	if err != nil {
 		logs.Log.Error("MongoDB：%v\n", err)
 	} else if err = session.Ping(); err != nil {
 		logs.Log.Error("MongoDB：%v\n", err)
 	} else {
-		session.SetPoolLimit(config.MGO.MAX_CONNS)
+		session.SetPoolLimit(config.MGO_CONN_CAP)
 	}
 }
 

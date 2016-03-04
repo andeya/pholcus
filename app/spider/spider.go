@@ -246,28 +246,17 @@ func (self *Spider) Copy() *Spider {
 
 func (self *Spider) ReqmatrixInit() *Spider {
 	if self.MaxPage < 0 {
-		self.ReqMatrix = scheduler.NewMatrix(self.Id, self.MaxPage)
+		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.MaxPage)
 		self.SetMaxPage(0)
 	} else {
-		self.ReqMatrix = scheduler.NewMatrix(self.Id, math.MinInt64)
+		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), math.MinInt64)
 	}
-
-	reqs := scheduler.PullFailure(self.GetName())
-
-	for _, req := range reqs {
-		req.SetSpiderId(self.Id)
-	}
-	self.ReqMatrix.SetFailures(reqs)
-
 	return self
 }
 
-func (self *Spider) RequestLen() int {
-	return self.ReqMatrix.Len()
-}
-
-func (self *Spider) RequestFailure(req *request.Request) bool {
-	return self.ReqMatrix.SetFailure(req)
+// 返回是否作为新的失败请求被添加至队列尾部
+func (self *Spider) DoHistory(req *request.Request, ok bool) bool {
+	return self.ReqMatrix.DoHistory(req, ok)
 }
 
 func (self *Spider) RequestPush(req *request.Request) {
@@ -290,6 +279,14 @@ func (self *Spider) CanStop() bool {
 	return self.ReqMatrix.CanStop()
 }
 
+func (self *Spider) RequestLen() int {
+	return self.ReqMatrix.Len()
+}
+
+func (self *Spider) TryFlushHistory() {
+	self.ReqMatrix.TryFlushHistory()
+}
+
 // 退出任务前收尾工作
 func (self *Spider) Defer() {
 	// 取消所有定时器
@@ -297,5 +294,5 @@ func (self *Spider) Defer() {
 		self.timer.drop()
 	}
 	// 等待处理中的请求完成
-	self.ReqMatrix.Flush()
+	self.ReqMatrix.Wait()
 }

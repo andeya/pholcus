@@ -16,7 +16,7 @@ func clientWindow() {
 			DataSource:     Input,
 			ErrorPresenter: ErrorPresenterRef{&ep},
 		},
-		Title:    config.APP_FULL_NAME + "                                                          【 运行模式 -> 客户端 】",
+		Title:    config.FULL_NAME + "                                                          【 运行模式 -> 客户端 】",
 		MinSize:  Size{1100, 600},
 		Layout:   VBox{MarginsZero: true},
 		Children: []Widget{

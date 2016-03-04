@@ -21,7 +21,7 @@ const (
 
 var SurferDownloader = &Surfer{
 	surf:    surfer.New(),
-	phantom: surfer.NewPhantom(config.SURFER_PHANTOM.FULL_APP_NAME, config.SURFER_PHANTOM.FULL_TEMP_JS),
+	phantom: surfer.NewPhantom(config.PHANTOMJS, config.PHANTOMJS_TEMP),
 }
 
 func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.Context {

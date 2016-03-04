@@ -8,7 +8,6 @@ import (
 	"github.com/henrylee2cn/pholcus/app/downloader"
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/app/pipeline"
-	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
@@ -108,14 +107,11 @@ func (self *crawler) Process(req *request.Request) {
 	)
 
 	if err := ctx.GetError(); err != nil {
-		// 删除该请求的成功记录
-		scheduler.DeleteSuccess(req)
-		// 对下载失败的请求进行失败记录
-		if !self.Spider.RequestFailure(req) {
+		// 返回是否作为新的失败请求被添加至队列尾部
+		if self.Spider.DoHistory(req, false) {
 			// 统计失败数
 			cache.PageFailCount()
 		}
-
 		// 提示错误
 		logs.Log.Error(" *     Fail  [download][%v]: %v\n", downUrl, err)
 		return
@@ -123,14 +119,11 @@ func (self *crawler) Process(req *request.Request) {
 
 	defer func() {
 		if err := recover(); err != nil {
-			// 删除该请求的成功记录
-			scheduler.DeleteSuccess(req)
-			// 对下载失败的请求进行失败记录
-			if !self.Spider.RequestFailure(req) {
+			// 返回是否作为新的失败请求被添加至队列尾部
+			if self.Spider.DoHistory(req, false) {
 				// 统计失败数
 				cache.PageFailCount()
 			}
-
 			// 提示错误
 			logs.Log.Error(" *     Panic  [process][%v]: %v\n", downUrl, err)
 		}
@@ -140,7 +133,8 @@ func (self *crawler) Process(req *request.Request) {
 
 	// 过程处理，提炼数据
 	ctx.Parse(ruleName)
-
+	// 处理成功请求记录
+	self.Spider.DoHistory(req, true)
 	// 统计成功页数
 	cache.PageSuccCount()
 	// 提示抓取成功
