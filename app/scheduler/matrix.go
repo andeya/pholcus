@@ -16,9 +16,9 @@ import (
 
 // 一个Spider实例的请求矩阵
 type Matrix struct {
-	spiderName      string                      // 所属Spider
-	resCount        int32                       // 资源使用情况计数
 	maxPage         int64                       // 最大采集页数，以负数形式表示
+	resCount        int32                       // 资源使用情况计数
+	spiderName      string                      // 所属Spider
 	reqs            map[int][]*request.Request  // [优先级]队列，优先级默认为0
 	priorities      []int                       // 优先级顺序，从低到高
 	history         history.Historier           // 历史记录
