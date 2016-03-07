@@ -69,11 +69,8 @@ func ClassicPool(capacity, maxIdle int, factory Factory, gctime ...time.Duration
 }
 
 // 调用资源池中的资源
-func (self *classic) Call(callback func(Src) error) error {
-	var (
-		src Src
-		err error
-	)
+func (self *classic) Call(callback func(Src) error) (err error) {
+	var src Src
 wait:
 	self.RLock()
 	if self.closed {
