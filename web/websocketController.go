@@ -6,10 +6,10 @@ import (
 	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/common/util"
+	ws "github.com/henrylee2cn/pholcus/common/websocket"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/status"
-	ws "github.com/henrylee2cn/websocket.google"
 )
 
 type SocketController struct {

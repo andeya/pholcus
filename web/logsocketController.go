@@ -1,7 +1,7 @@
 package web
 
 import (
-	ws "github.com/henrylee2cn/websocket.google"
+	ws "github.com/henrylee2cn/pholcus/common/websocket"
 )
 
 // log发送api

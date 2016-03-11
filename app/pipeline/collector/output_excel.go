@@ -5,10 +5,10 @@ import (
 	"os"
 
 	"github.com/henrylee2cn/pholcus/common/util"
+	"github.com/henrylee2cn/pholcus/common/xlsx"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
-	"github.com/tealeg/xlsx"
 )
 
 /************************ excel 输出 ***************************/

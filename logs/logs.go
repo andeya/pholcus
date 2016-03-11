@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/henrylee2cn/beelogs"
 	"github.com/henrylee2cn/pholcus/config"
 )
 
@@ -41,19 +40,8 @@ type (
 		Emergency(format string, v ...interface{})
 	}
 	mylog struct {
-		*beelogs.BeeLogger
+		*BeeLogger
 	}
-)
-
-const (
-	LevelEmergency     = beelogs.LevelEmergency
-	LevelAlert         = beelogs.LevelAlert
-	LevelCritical      = beelogs.LevelCritical
-	LevelError         = beelogs.LevelError
-	LevelWarning       = beelogs.LevelWarning
-	LevelNotice        = beelogs.LevelNotice
-	LevelInformational = beelogs.LevelInformational
-	LevelDebug         = beelogs.LevelDebug
 )
 
 var Log = NewLogs()
@@ -69,7 +57,7 @@ func NewLogs(enableFuncCallDepth ...bool) Logs {
 	}
 
 	ml := &mylog{
-		BeeLogger: beelogs.NewLogger(config.LOG_CAP),
+		BeeLogger: NewLogger(config.LOG_CAP),
 	}
 
 	// 是否打印行号

@@ -304,17 +304,14 @@ kas|surfer下载器中phantomjs内核
 ```
 go get github.com/pholcus/spider_lib
 go get github.com/henrylee2cn/teleport
-go get github.com/henrylee2cn/beelogs
-go get github.com/henrylee2cn/mahonia
-go get github.com/henrylee2cn/websocket.google
 go get github.com/PuerkitoBio/goquery
 go get github.com/robertkrimen/otto
 go get github.com/andybalholm/cascadia
 go get github.com/lxn/walk
 go get github.com/lxn/win
-go get github.com/tealeg/xlsx
 go get github.com/go-sql-driver/mysql
-go get github.com/elazarl/go-bindata-assetfs
+go get github.com/jteeuwen/go-bindata/...
+go get github.com/elazarl/go-bindata-assetfs/...
 go get gopkg.in/mgo.v2
 <以下需翻墙下载>
 go get golang.org/x/net/html

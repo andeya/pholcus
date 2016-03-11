@@ -3,7 +3,7 @@ package web
 import (
 	"net/http"
 
-	ws "github.com/henrylee2cn/websocket.google"
+	ws "github.com/henrylee2cn/pholcus/common/websocket"
 )
 
 // 路由

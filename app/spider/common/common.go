@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/henrylee2cn/mahonia"
+	"github.com/henrylee2cn/pholcus/common/mahonia"
 )
 
 // 清除标签
