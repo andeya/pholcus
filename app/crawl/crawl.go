@@ -17,6 +17,7 @@ type (
 	Crawler interface {
 		Init(*spider.Spider) Crawler
 		Start()
+		Stop() // 主动终止
 		GetId() int
 	}
 	crawler struct {
@@ -63,6 +64,12 @@ func (self *crawler) Start() {
 
 	// 通知输出模块输出未输出的数据
 	self.Pipeline.CtrlR()
+}
+
+// 主动终止
+func (self *crawler) Stop() {
+	// 主动崩溃爬虫运行协程
+	self.Spider.Stop()
 }
 
 func (self *crawler) Run() {
@@ -119,6 +126,9 @@ func (self *crawler) Process(req *request.Request) {
 
 	defer func() {
 		if err := recover(); err != nil {
+			if activeStop, _ := err.(string); activeStop == spider.ACTIVE_STOP {
+				return
+			}
 			// 返回是否作为新的失败请求被添加至队列尾部
 			if self.Spider.DoHistory(req, false) {
 				// 统计失败数
@@ -133,10 +143,13 @@ func (self *crawler) Process(req *request.Request) {
 
 	// 过程处理，提炼数据
 	ctx.Parse(ruleName)
+
 	// 处理成功请求记录
 	self.Spider.DoHistory(req, true)
+
 	// 统计成功页数
 	cache.PageSuccCount()
+
 	// 提示抓取成功
 	logs.Log.Informational(" *     Success: %v\n", downUrl)
 

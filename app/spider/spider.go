@@ -3,17 +3,20 @@ package spider
 import (
 	"math"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/logs"
+	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
 const (
-	KEYWORD = util.USE_KEYWORD // 若使用Keyword，则Keyword初始值必须为USE_KEYWORD
-	MAXPAGE = math.MaxInt64    // 如希望在规则中自定义控制MaxPage，则MaxPage初始值必须为MAXPAGE
+	KEYWORD     = util.USE_KEYWORD // 若使用Keyword，则Keyword初始值必须为USE_KEYWORD
+	MAXPAGE     = math.MaxInt64    // 如希望在规则中自定义控制MaxPage，则MaxPage初始值必须为MAXPAGE
+	ACTIVE_STOP = "——主动终止Spider——"
 )
 
 // 蜘蛛规则
@@ -39,7 +42,8 @@ type (
 		// 定时器
 		timer *Timer
 		// 执行状态
-		status int
+		status  int
+		rwMutex sync.RWMutex
 	}
 
 	//采集规则树
@@ -192,25 +196,6 @@ func (self *Spider) RunTimer(id string) bool {
 	return self.timer.sleep(id)
 }
 
-// 开始执行蜘蛛
-func (self *Spider) Start() {
-	defer func() {
-		if p := recover(); p != nil {
-			logs.Log.Error(" *     Panic  [root]: %v\n", p)
-		}
-	}()
-	self.RuleTree.Root(NewContext(self, nil))
-	cancel := time.After(1e9)
-	for self.RequestLen() == 0 {
-		select {
-		case <-cancel:
-			return
-		default:
-			runtime.Gosched()
-		}
-	}
-}
-
 // 返回一个自身复制品
 func (self *Spider) Copy() *Spider {
 	ghost := &Spider{}
@@ -240,6 +225,7 @@ func (self *Spider) Copy() *Spider {
 	ghost.SubNamespace = self.SubNamespace
 
 	ghost.timer = self.timer
+	ghost.status = self.status
 
 	return ghost
 }
@@ -287,11 +273,56 @@ func (self *Spider) TryFlushHistory() {
 	self.ReqMatrix.TryFlushHistory()
 }
 
+// 开始执行蜘蛛
+func (self *Spider) Start() {
+	self.rwMutex.Lock()
+	self.status = status.RUN
+	self.rwMutex.Unlock()
+	defer func() {
+		if p := recover(); p != nil {
+			logs.Log.Error(" *     Panic  [root]: %v\n", p)
+		}
+	}()
+	self.RuleTree.Root(NewContext(self, nil))
+	cancel := time.After(1e9)
+	for self.RequestLen() == 0 {
+		select {
+		case <-cancel:
+			return
+		default:
+			runtime.Gosched()
+		}
+	}
+}
+
+// 主动崩溃爬虫运行协程
+func (self *Spider) Stop() {
+	self.rwMutex.Lock()
+	self.status = status.STOP
+	// 取消所有定时器
+	if self.timer != nil {
+		self.timer.drop()
+		self.timer = nil
+	}
+	self.rwMutex.Unlock()
+}
+
+// 若已主动终止任务，则崩溃爬虫协程
+func (self *Spider) tryPanic() {
+	self.rwMutex.RLock()
+	if self.status == status.STOP {
+		self.rwMutex.RUnlock()
+		panic(ACTIVE_STOP)
+	}
+	self.rwMutex.RUnlock()
+}
+
 // 退出任务前收尾工作
 func (self *Spider) Defer() {
 	// 取消所有定时器
 	if self.timer != nil {
 		self.timer.drop()
+		self.timer = nil
 	}
 	// 等待处理中的请求完成
 	self.ReqMatrix.Wait()

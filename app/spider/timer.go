@@ -22,14 +22,26 @@ func newTimer() *Timer {
 // 休眠等待，并返回定时器是否可以继续使用
 func (self *Timer) sleep(id string) bool {
 	self.RLock()
+	if self.closed {
+		self.RUnlock()
+		return false
+	}
+
 	c, ok := self.setting[id]
 	self.RUnlock()
-	if ok {
-		c.sleep()
-		self.RLock()
-		_, ok = self.setting[id]
-		self.RUnlock()
+	if !ok {
+		return false
 	}
+
+	c.sleep()
+
+	self.RLock()
+	if self.closed {
+		return false
+	}
+	_, ok = self.setting[id]
+	self.RUnlock()
+
 	return ok
 }
 

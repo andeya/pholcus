@@ -64,6 +64,9 @@ func (self *Context) SetError(err error) {
 // Request.DownloaderID指定下载器ID，0为默认的Surf高并发下载器，功能完备，1为PhantomJS下载器，特点破防力强，速度慢，低并发。
 // 默认自动补填Referer。
 func (self *Context) AddQueue(req *request.Request) *Context {
+	// 若已主动终止任务，则崩溃爬虫协程
+	self.spider.tryPanic()
+
 	err := req.
 		SetSpiderName(self.spider.GetName()).
 		SetEnableCookie(self.spider.GetEnableCookie()).
@@ -85,6 +88,9 @@ func (self *Context) AddQueue(req *request.Request) *Context {
 
 // 用于动态规则添加请求。
 func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
+	// 若已主动终止任务，则崩溃爬虫协程
+	self.spider.tryPanic()
+
 	req := &request.Request{}
 	u, ok := jreq["Url"].(string)
 	if !ok {
@@ -263,6 +269,9 @@ func (self *Context) UpsertItemField(field string, ruleName ...string) (index in
 // 调用指定Rule下辅助函数AidFunc()。
 // 用ruleName指定匹配的AidFunc，为空时默认当前规则。
 func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interface{} {
+	// 若已主动终止任务，则崩溃爬虫协程
+	self.spider.tryPanic()
+
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
 		logs.Log.Error("蜘蛛 %s 调用Aid()时，指定的规则名不存在！", self.spider.GetName())
@@ -275,6 +284,9 @@ func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interfa
 // 解析响应流。
 // 用ruleName指定匹配的ParseFunc字段，为空时默认调用Root()。
 func (self *Context) Parse(ruleName ...string) *Context {
+	// 若已主动终止任务，则崩溃爬虫协程
+	self.spider.tryPanic()
+
 	_ruleName, rule, found := self.getRule(ruleName...)
 	if self.Response != nil {
 		self.Request.SetRuleName(_ruleName)

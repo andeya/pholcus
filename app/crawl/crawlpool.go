@@ -73,9 +73,12 @@ func (self *cq) Free(c Crawler) {
 	self.Src[c] = false
 }
 
-// 终止所有爬行任务
+// 主动终止所有爬行任务
 func (self *cq) Stop() {
 	self.status = status.STOP
+	for c := range self.Src {
+		c.Stop()
+	}
 	self.Src = make(map[Crawler]bool)
 }
 

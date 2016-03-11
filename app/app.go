@@ -369,6 +369,7 @@ func (self *Logic) PauseRecover() {
 
 // Offline 模式下中途终止任务
 func (self *Logic) Stop() {
+	// 不可颠倒停止的顺序
 	self.setStatus(status.STOP)
 	self.CrawlPool.Stop()
 	scheduler.Stop()
