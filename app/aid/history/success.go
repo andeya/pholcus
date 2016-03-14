@@ -73,11 +73,14 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 			self.old[key] = true
 			i++
 		}
-		mgo.Mgo(nil, "insert", map[string]interface{}{
+		err := mgo.Mgo(nil, "insert", map[string]interface{}{
 			"Database":   config.DB_NAME,
-			"Collection": SUCCESS_SUFFIX + "_" + self.name,
+			"Collection": SUCCESS_SUFFIX + "__" + self.name,
 			"Docs":       docs,
 		})
+		if err != nil {
+			err = fmt.Errorf(" *     Fail  [添加成功记录][mgo]: %v 条 [ERROR]  %v\n", sLen, err)
+		}
 
 	case "mysql":
 		db, err := mysql.DB()
@@ -85,7 +88,7 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 			return sLen, fmt.Errorf(" *     Fail  [添加成功记录][mysql]: %v 条 [ERROR]  %v\n", sLen, err)
 		}
 		table := mysql.New(db).
-			SetTableName("`" + SUCCESS_SUFFIX + "_" + self.name + "`").
+			SetTableName("`" + SUCCESS_SUFFIX + "__" + self.name + "`").
 			CustomPrimaryKey(`id VARCHAR(255) not null primary key`).
 			Create()
 		for key := range self.new {
@@ -94,7 +97,7 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 		}
 
 	default:
-		f, _ := os.OpenFile(SUCCESS_FILE+"_"+self.name, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
+		f, _ := os.OpenFile(SUCCESS_FILE+"__"+self.name, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
 
 		b, _ := json.Marshal(self.new)
 		b[0] = ','

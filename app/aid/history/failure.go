@@ -59,7 +59,7 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 			return
 		}
 		mgo.Call(func(src pool.Src) error {
-			c := src.(*mgo.MgoSrc).DB(config.DB_NAME).C(FAILURE_SUFFIX + "_" + self.name)
+			c := src.(*mgo.MgoSrc).DB(config.DB_NAME).C(FAILURE_SUFFIX + "__" + self.name)
 			// 删除失败记录文件
 			c.DropCollection()
 			if fLen == 0 {
@@ -81,7 +81,7 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 		}
 
 		// 删除失败记录文件
-		stmt, err := db.Prepare(`DROP TABLE ` + FAILURE_SUFFIX + "_" + self.name)
+		stmt, err := db.Prepare(`DROP TABLE ` + FAILURE_SUFFIX + "__" + self.name)
 		if err != nil {
 			return fLen, fmt.Errorf(" *     Fail  [添加失败记录][mysql]: %v 条 [ERROR]  %v\n", fLen, err)
 		}
@@ -91,7 +91,7 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 		}
 
 		table := mysql.New(db).
-			SetTableName("`" + FAILURE_SUFFIX + "_" + self.name + "`").
+			SetTableName("`" + FAILURE_SUFFIX + "__" + self.name + "`").
 			AddColumn(`failure MEDIUMTEXT`).
 			Create()
 		for req := range self.list {
@@ -100,7 +100,7 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 
 	default:
 		// 删除失败记录文件
-		fileName := FAILURE_FILE + "_" + self.name
+		fileName := FAILURE_FILE + "__" + self.name
 		os.Remove(fileName)
 		if fLen == 0 {
 			return

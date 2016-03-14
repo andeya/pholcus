@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	SUCCESS_SUFFIX = config.HISTORY_TAG + "_y"
-	FAILURE_SUFFIX = config.HISTORY_TAG + "_n"
+	SUCCESS_SUFFIX = config.HISTORY_TAG + "__y"
+	FAILURE_SUFFIX = config.HISTORY_TAG + "__n"
 	SUCCESS_FILE   = config.HISTORY_DIR + "/" + SUCCESS_SUFFIX
 	FAILURE_FILE   = config.HISTORY_DIR + "/" + FAILURE_SUFFIX
 )
@@ -90,7 +90,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 		var docs = map[string]interface{}{}
 		err := mgo.Mgo(&docs, "find", map[string]interface{}{
 			"Database":   config.DB_NAME,
-			"Collection": SUCCESS_SUFFIX + "_" + self.Success.name,
+			"Collection": SUCCESS_SUFFIX + "__" + self.Success.name,
 		})
 		if err != nil {
 			logs.Log.Error(" *     Fail  [读取成功记录][mgo]: %v\n", err)
@@ -107,7 +107,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 			return
 		}
 		rows, err := mysql.New(db).
-			SetTableName("`" + SUCCESS_SUFFIX + "_" + self.Success.name + "`").
+			SetTableName("`" + SUCCESS_SUFFIX + "__" + self.Success.name + "`").
 			SelectAll()
 		if err != nil {
 			return
@@ -120,7 +120,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 		}
 
 	default:
-		f, err := os.Open(SUCCESS_FILE + "_" + self.Success.name)
+		f, err := os.Open(SUCCESS_FILE + "__" + self.Success.name)
 		if err != nil {
 			return
 		}
@@ -166,7 +166,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 
 		var docs = []interface{}{}
 		mgo.Call(func(src pool.Src) error {
-			c := src.(*mgo.MgoSrc).DB(config.DB_NAME).C(FAILURE_SUFFIX + "_" + self.Failure.name)
+			c := src.(*mgo.MgoSrc).DB(config.DB_NAME).C(FAILURE_SUFFIX + "__" + self.Failure.name)
 			return c.Find(nil).All(&docs)
 		})
 
@@ -188,7 +188,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			return
 		}
 		rows, err := mysql.New(db).
-			SetTableName("`" + FAILURE_SUFFIX + "_" + self.Failure.name + "`").
+			SetTableName("`" + FAILURE_SUFFIX + "__" + self.Failure.name + "`").
 			SelectAll()
 		if err != nil {
 			// logs.Log.Error("读取Mysql数据库中成功记录失败：%v", err)
@@ -208,7 +208,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 		}
 
 	default:
-		f, err := os.Open(FAILURE_FILE + "_" + self.Failure.name)
+		f, err := os.Open(FAILURE_FILE + "__" + self.Failure.name)
 		if err != nil {
 			return
 		}

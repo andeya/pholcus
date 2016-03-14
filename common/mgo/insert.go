@@ -16,7 +16,7 @@ type Insert struct {
 }
 
 const (
-	maxLen int = 5000 //分配插入
+	MaxLen int = 5000 //分配插入
 )
 
 func (self *Insert) Exec(resultPtr interface{}) (err error) {
@@ -26,7 +26,7 @@ func (self *Insert) Exec(resultPtr interface{}) (err error) {
 		}
 	}()
 	var (
-		resultPtr2 *[]string
+		resultPtr2 = new([]string)
 		count      = len(self.Docs)
 		docs       = make([]interface{}, count)
 	)
@@ -52,16 +52,16 @@ func (self *Insert) Exec(resultPtr interface{}) (err error) {
 			}
 			docs[i] = doc
 		}
-		loop := count / maxLen
+		loop := count / MaxLen
 		for i := 0; i < loop; i++ {
-			err := c.Insert(docs[i*maxLen : (i+1)*maxLen]...)
+			err := c.Insert(docs[i*MaxLen : (i+1)*MaxLen]...)
 			if err != nil {
 				return err
 			}
 		}
-		if count%maxLen == 0 {
+		if count%MaxLen == 0 {
 			return nil
 		}
-		return c.Insert(docs[loop*maxLen:]...)
+		return c.Insert(docs[loop*MaxLen:]...)
 	})
 }

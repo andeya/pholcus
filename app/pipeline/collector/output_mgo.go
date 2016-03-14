@@ -46,12 +46,25 @@ func init() {
 				dataMap[subNamespace] = append(dataMap[subNamespace], datacell)
 			}
 
-			for k, v := range dataMap {
-				err = collections[k].Insert(v...)
+			for collection, docs := range dataMap {
+				c := collections[collection]
+				count := len(docs)
+				loop := count / mgo.MaxLen
+				for i := 0; i < loop; i++ {
+					err = c.Insert(docs[i*mgo.MaxLen : (i+1)*mgo.MaxLen]...)
+					if err != nil {
+						logs.Log.Error("%v", err)
+					}
+				}
+				if count%mgo.MaxLen == 0 {
+					continue
+				}
+				err = c.Insert(docs[loop*mgo.MaxLen:]...)
 				if err != nil {
 					logs.Log.Error("%v", err)
 				}
 			}
+
 			return nil
 		})
 	}
