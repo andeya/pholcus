@@ -15,23 +15,29 @@ type Insert struct {
 	Docs       []map[string]interface{} // 文档
 }
 
+const (
+	maxLen int = 5000 //分配插入
+)
+
 func (self *Insert) Exec(resultPtr interface{}) (err error) {
 	defer func() {
 		if re := recover(); re != nil {
 			err = fmt.Errorf("%v", re)
 		}
 	}()
-	var resultPtr2 *[]string
+	var (
+		resultPtr2 *[]string
+		count      = len(self.Docs)
+		docs       = make([]interface{}, count)
+	)
 	if resultPtr != nil {
 		resultPtr2 = resultPtr.(*[]string)
-		*resultPtr2 = []string{}
 	}
+	*resultPtr2 = make([]string, count)
 
-	err = Call(func(src pool.Src) error {
+	return Call(func(src pool.Src) error {
 		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
-
-		var docs []interface{}
-		for _, doc := range self.Docs {
+		for i, doc := range self.Docs {
 			var _id string
 			if doc["_id"] == nil || doc["_id"] == interface{}("") || doc["_id"] == interface{}(0) {
 				objId := bson.NewObjectId()
@@ -42,13 +48,20 @@ func (self *Insert) Exec(resultPtr interface{}) (err error) {
 			}
 
 			if resultPtr != nil {
-				*resultPtr2 = append(*resultPtr2, _id)
+				(*resultPtr2)[i] = _id
 			}
-
-			docs = append(docs, doc)
+			docs[i] = doc
 		}
-
-		return c.Insert(docs...)
+		loop := count / maxLen
+		for i := 0; i < loop; i++ {
+			err := c.Insert(docs[i*maxLen : (i+1)*maxLen]...)
+			if err != nil {
+				return err
+			}
+		}
+		if count%maxLen == 0 {
+			return nil
+		}
+		return c.Insert(docs[loop*maxLen:]...)
 	})
-	return
 }
