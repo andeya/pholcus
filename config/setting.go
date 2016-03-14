@@ -15,7 +15,7 @@ const (
 	phantomjs       string = WORK_ROOT + "/phantomjs"    // phantomjs文件路径
 	proxylib        string = WORK_ROOT + "/proxy.lib"    // 代理ip文件路径
 	spiderdir       string = WORK_ROOT + "/spiders"      // 动态规则目录
-	dbname          string = WORK_ROOT                   // 数据库名称
+	dbname          string = TAG                         // 数据库名称
 	mgoconnstring   string = "127.0.0.1:27017"           // mongodb连接字符串
 	mgoconncap      int    = 1024                        // mongodb连接池容量
 	mysqlconnstring string = "root:@tcp(127.0.0.1:3306)" // mysql连接字符串
