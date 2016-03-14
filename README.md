@@ -111,12 +111,12 @@ pholcus -a_ui=cmd -c_spider=3,8 -c_output=csv -c_thread=20 -c_docker=5000 -c_pau
 ```
 ├─pholcus 软件
 │
-├─pholcus 依赖文件目录
-│  ├─pholcus.ini 配置文件
+├─pholcus.pkg 运行时文件目录
+│  ├─config.ini 配置文件
 │  │
-│  ├─proxy.lib 代理IP列表库
+│  ├─proxy.lib 代理IP列表文件
 │  │
-│  ├─spider.lib 动态规则目录
+│  ├─spiders 动态规则目录
 │  │  └─xxx.pholcus.html 动态规则文件
 │  │
 │  ├─phantomjs 程序文件

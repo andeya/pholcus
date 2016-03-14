@@ -3,12 +3,12 @@ package spider
 import (
 	"encoding/xml"
 	"io/ioutil"
+	"log"
 	"path"
 	"path/filepath"
 
 	"github.com/robertkrimen/otto"
 
-	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 )
@@ -56,7 +56,7 @@ func init() {
 				vm.Set("self", self)
 				val, err := vm.Eval(m.Namespace)
 				if err != nil {
-					logs.Log.Error("%v\n", err)
+					logs.Log.Error(" *     动态规则  [Namespace]: %v\n", err)
 				}
 				s, _ := val.ToString()
 				return s
@@ -70,7 +70,7 @@ func init() {
 				vm.Set("dataCell", dataCell)
 				val, err := vm.Eval(m.SubNamespace)
 				if err != nil {
-					logs.Log.Error("%v\n", err)
+					logs.Log.Error(" *     动态规则  [SubNamespace]: %v\n", err)
 				}
 				s, _ := val.ToString()
 				return s
@@ -82,7 +82,7 @@ func init() {
 			vm.Set("ctx", ctx)
 			_, err := vm.Eval(m.Root)
 			if err != nil {
-				logs.Log.Error("Root: %v\n", err)
+				logs.Log.Error(" *     动态规则  [Root]: %v\n", err)
 			}
 		}
 
@@ -94,7 +94,7 @@ func init() {
 					vm.Set("ctx", ctx)
 					_, err := vm.Eval(parse)
 					if err != nil {
-						logs.Log.Error("ParseFunc: %v\n", err)
+						logs.Log.Error(" *     动态规则  [ParseFunc]: %v\n", err)
 					}
 				}
 			}(rule.ParseFunc)
@@ -106,7 +106,7 @@ func init() {
 					vm.Set("aid", aid)
 					val, err := vm.Eval(parse)
 					if err != nil {
-						logs.Log.Error("AidFunc: %v\n", err)
+						logs.Log.Error(" *     动态规则  [AidFunc]: %v\n", err)
 					}
 					return val
 				}
@@ -120,16 +120,22 @@ func init() {
 func getSpiderModles() (ms []*SpiderModle) {
 	defer func() {
 		if p := recover(); p != nil {
-			logs.Log.Error("%v", p)
+			log.Printf("[E] HTML动态规则解析: %v\n", p)
 		}
 	}()
 	files, _ := filepath.Glob(path.Join(config.SPIDER_DIR, "*"+config.SPIDER_EXT))
 	for _, filename := range files {
 		b, err := ioutil.ReadFile(filename)
-		util.CheckErrPanic(err)
+		if err != nil {
+			log.Printf("[E] HTML动态规则[%s]: %v\n", filename, err)
+			continue
+		}
 		var m SpiderModle
 		err = xml.Unmarshal(b, &m)
-		util.CheckErrPanic(err)
+		if err != nil {
+			log.Printf("[E] HTML动态规则[%s]: %v\n", filename, err)
+			continue
+		}
 		ms = append(ms, &m)
 	}
 	return

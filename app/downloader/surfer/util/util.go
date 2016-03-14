@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 )
@@ -25,22 +24,6 @@ func MakeHash(s string) string {
 	var IEEETable = crc32.MakeTable(IEEE)
 	hash := fmt.Sprintf("%x", crc32.Checksum([]byte(s), IEEETable))
 	return hash
-}
-
-// 创建目录
-func Mkdir(Path string) error {
-	p, _ := path.Split(Path)
-	if p == "" {
-		return nil
-	}
-	d, err := os.Stat(p)
-	if err != nil || !d.IsDir() {
-		if err = os.MkdirAll(p, 0777); err != nil {
-			log.Printf("创建路径失败[%v]: %v\n", Path, err)
-			return err
-		}
-	}
-	return nil
 }
 
 // The GetWDPath gets the work directory path.

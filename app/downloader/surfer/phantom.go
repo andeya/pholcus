@@ -3,10 +3,10 @@ package surfer
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,9 +19,9 @@ import (
 // 支持UserAgent/TryTimes/RetryPause/自定义js
 type (
 	Phantom struct {
-		FullPhantomjsName    string            //Phantomjs完整文件名
-		FullTempJsFilePrefix string            //js临时文件存放完整文件名前缀
-		jsFileMap            map[string]string //已存在的js文件
+		PhantomjsFile string            //Phantomjs完整文件名
+		TempJsDir     string            //临时js存放目录
+		jsFileMap     map[string]string //已存在的js文件
 	}
 	Response struct {
 		Cookie string
@@ -29,11 +29,23 @@ type (
 	}
 )
 
-func NewPhantom(fullPhantomjsName, fullTempJsFilePrefix string) Surfer {
+func NewPhantom(phantomjsFile, tempJsDir string) Surfer {
 	phantom := &Phantom{
-		FullPhantomjsName:    fullPhantomjsName,
-		FullTempJsFilePrefix: fullTempJsFilePrefix,
-		jsFileMap:            make(map[string]string),
+		PhantomjsFile: phantomjsFile,
+		TempJsDir:     tempJsDir,
+		jsFileMap:     make(map[string]string),
+	}
+	if !filepath.IsAbs(phantom.PhantomjsFile) {
+		phantom.PhantomjsFile, _ = filepath.Abs(phantom.PhantomjsFile)
+	}
+	if !filepath.IsAbs(phantom.TempJsDir) {
+		phantom.TempJsDir, _ = filepath.Abs(phantom.TempJsDir)
+	}
+	// 创建/打开目录
+	err := os.MkdirAll(phantom.TempJsDir, 0777)
+	if err != nil {
+		log.Printf("[E] Surfer: %v\n", err)
+		return phantom
 	}
 	phantom.createJsFile("get", getJs)
 	phantom.createJsFile("post", postJs)
@@ -78,7 +90,7 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 	}
 
 	for i := 0; i < param.tryTimes; i++ {
-		cmd := exec.Command(self.FullPhantomjsName, args...)
+		cmd := exec.Command(self.PhantomjsFile, args...)
 		if resp.Body, err = cmd.StdoutPipe(); err != nil {
 			time.Sleep(param.retryPause)
 			continue
@@ -114,7 +126,7 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 
 //销毁js临时文件
 func (self *Phantom) DestroyJsFiles() {
-	p, _ := path.Split(self.FullTempJsFilePrefix)
+	p, _ := filepath.Split(self.TempJsDir)
 	if p == "" {
 		return
 	}
@@ -126,32 +138,18 @@ func (self *Phantom) DestroyJsFiles() {
 	}
 }
 
-func (self *Phantom) createJsFile(key, js string) {
-	fullFileName := self.FullTempJsFilePrefix + "." + key
-	if !filepath.IsAbs(fullFileName) {
-		fullFileName, _ = filepath.Abs(fullFileName)
-	}
-	if !filepath.IsAbs(self.FullPhantomjsName) {
-		self.FullPhantomjsName, _ = filepath.Abs(self.FullPhantomjsName)
-	}
-
-	// 创建/打开目录
-	err := util.Mkdir(self.FullTempJsFilePrefix)
-	if err != nil {
-		return
-	}
-
+func (self *Phantom) createJsFile(fileName, jsCode string) {
+	fullFileName := filepath.Join(self.TempJsDir, fileName)
 	// 创建并写入文件
 	f, _ := os.Create(fullFileName)
-	f.Write([]byte(js))
+	f.Write([]byte(jsCode))
 	f.Close()
-
-	self.jsFileMap[key] = fullFileName
+	self.jsFileMap[fileName] = fullFileName
 }
 
 /*
 * GET method
-* system.args[0] == JSfile.js
+* system.args[0] == get.js
 * system.args[1] == url
 * system.args[2] == cookie
 * system.args[3] == pageEncode
@@ -189,7 +187,7 @@ page.open(url, function(status) {
 
 /*
 * POST method
-* system.args[0] == JSfile.js
+* system.args[0] == post.js
 * system.args[1] == url
 * system.args[2] == cookie
 * system.args[3] == pageEncode

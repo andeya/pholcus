@@ -14,7 +14,7 @@ const (
 	logcap          int64  = 10000                       // 日志缓存的容量
 	phantomjs       string = WORK_ROOT + "/phantomjs"    // phantomjs文件路径
 	proxylib        string = WORK_ROOT + "/proxy.lib"    // 代理ip文件路径
-	spiderdir       string = WORK_ROOT + "/spider.lib"   // 动态规则库目录
+	spiderdir       string = WORK_ROOT + "/spiders"      // 动态规则目录
 	dbname          string = WORK_ROOT                   // 数据库名称
 	mgoconnstring   string = "127.0.0.1:27017"           // mongodb连接字符串
 	mgoconncap      int    = 1024                        // mongodb连接池容量
