@@ -1,11 +1,13 @@
 package logs
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path"
 
 	"github.com/henrylee2cn/pholcus/config"
+	"github.com/henrylee2cn/pholcus/logs/logs"
 )
 
 type (
@@ -40,7 +42,7 @@ type (
 		Emergency(format string, v ...interface{})
 	}
 	mylog struct {
-		*BeeLogger
+		*logs.BeeLogger
 	}
 )
 
@@ -57,7 +59,7 @@ func NewLogs(enableFuncCallDepth ...bool) Logs {
 	}
 
 	ml := &mylog{
-		BeeLogger: NewLogger(config.LOG_CAP),
+		BeeLogger: logs.NewLogger(config.LOG_CAP),
 	}
 
 	// 是否打印行号
@@ -65,29 +67,31 @@ func NewLogs(enableFuncCallDepth ...bool) Logs {
 		ml.BeeLogger.EnableFuncCallDepth(enableFuncCallDepth[0])
 	}
 
-	ml.BeeLogger.SetLevel(LevelDebug)
+	ml.BeeLogger.SetLevel(logs.LevelDebug)
 
 	ml.BeeLogger.SetLogger("console", map[string]interface{}{
-		"level": LevelInformational,
+		"level": logs.LevelInformational,
 	})
 
-	ml.BeeLogger.SetLogger("file", map[string]interface{}{
+	err = ml.BeeLogger.SetLogger("file", map[string]interface{}{
 		"filename": config.LOG,
 	})
-
+	if err != nil {
+		fmt.Printf("日志文档创建失败：%v", err)
+	}
 	return ml
 }
 
 func (self *mylog) SetOutput(show io.Writer) Logs {
 	self.BeeLogger.SetLogger("console", map[string]interface{}{
 		"writer": show,
-		"level":  LevelInformational,
+		"level":  logs.LevelInformational,
 	})
 	return self
 }
 
 func (self *mylog) SetStealLevel() Logs {
-	self.BeeLogger.SetStealLevel(LevelNotice)
+	self.BeeLogger.SetStealLevel(logs.LevelNotice)
 	return self
 }
 

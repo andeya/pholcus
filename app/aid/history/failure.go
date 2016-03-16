@@ -95,7 +95,7 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 			AddColumn(`failure MEDIUMTEXT`).
 			Create()
 		for req := range self.list {
-			table.AddRow(req.Serialize()).Update()
+			table.AddRow([]string{req.Serialize()}).Update()
 		}
 
 	default:

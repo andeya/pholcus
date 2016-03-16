@@ -92,7 +92,7 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 			CustomPrimaryKey(`id VARCHAR(255) not null primary key`).
 			Create()
 		for key := range self.new {
-			table.AddRow(key).Update()
+			table.AddRow([]string{key}).Update()
 			self.old[key] = true
 		}
 

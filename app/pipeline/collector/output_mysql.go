@@ -38,20 +38,20 @@ func init() {
 					AddColumn(`Url VARCHAR(255)`, `ParentUrl VARCHAR(255)`, `DownloadTime VARCHAR(50)`).
 					Create()
 			}
-
+			data := []string{}
 			for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 				vd := datacell["Data"].(map[string]interface{})
 				if v, ok := vd[title].(string); ok || vd[title] == nil {
-					mysqls[subNamespace].AddRow(v)
+					data = append(data, v)
 				} else {
-					mysqls[subNamespace].AddRow(util.JsonString(vd[title]))
+					data = append(data, util.JsonString(vd[title]))
 				}
 			}
-
-			err := mysqls[subNamespace].
-				AddRow(datacell["Url"].(string), datacell["ParentUrl"].(string), datacell["DownloadTime"].(string)).
-				Update()
-			util.CheckErr(err)
+			data = append(data, datacell["Url"].(string), datacell["ParentUrl"].(string), datacell["DownloadTime"].(string))
+			mysqls[subNamespace].AddRow(data)
+		}
+		for _, tab := range mysqls {
+			util.CheckErr(tab.Update())
 		}
 		return nil
 	}

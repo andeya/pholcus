@@ -19,7 +19,7 @@ const (
 	mgoconnstring   string = "127.0.0.1:27017"           // mongodb连接字符串
 	mgoconncap      int    = 1024                        // mongodb连接池容量
 	mysqlconnstring string = "root:@tcp(127.0.0.1:3306)" // mysql连接字符串
-	mysqlconncap    int    = 1024                        // mysql连接池容量
+	mysqlconncap    int    = 2048                        // mysql连接池容量
 	port            int    = 2015                        // 主节点端口
 	master          string = "127.0.0.1"                 // 服务器(主节点)地址，不含端口
 )

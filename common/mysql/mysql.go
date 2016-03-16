@@ -3,6 +3,7 @@ package mysql
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -16,16 +17,17 @@ import (
 //sql转换结构体
 type MyTable struct {
 	tableName        string
-	columnNames      [][2]string
-	rowValues        []string
+	columnNames      [][2]string // 标题字段
+	rows             [][]string  // 多行数据
 	sqlCode          string
 	customPrimaryKey bool
 	*sql.DB
 }
 
 var (
-	db  *sql.DB
-	err error
+	db       *sql.DB
+	err      error
+	stmtChan = make(chan bool, config.MYSQL_CONN_CAP)
 )
 
 func DB() (*sql.DB, error) {
@@ -48,7 +50,7 @@ func Refresh() {
 		return
 	}
 	db.SetMaxOpenConns(config.MYSQL_CONN_CAP)
-	db.SetMaxIdleConns(config.MYSQL_CONN_CAP / 2)
+	db.SetMaxIdleConns(config.MYSQL_CONN_CAP)
 	if err = db.Ping(); err != nil {
 		logs.Log.Error("Mysql：%v\n", err)
 	}
@@ -92,11 +94,16 @@ func (self *MyTable) Create() *MyTable {
 	if !self.customPrimaryKey {
 		self.sqlCode += `id int(12) not null primary key auto_increment,`
 	}
-	for _, rowValues := range self.columnNames {
-		self.sqlCode += rowValues[0] + ` ` + rowValues[1] + `,`
+	for _, title := range self.columnNames {
+		self.sqlCode += title[0] + ` ` + title[1] + `,`
 	}
 	self.sqlCode = string(self.sqlCode[:len(self.sqlCode)-1])
 	self.sqlCode += `);`
+
+	stmtChan <- true
+	defer func() {
+		<-stmtChan
+	}()
 	stmt, err := self.DB.Prepare(self.sqlCode)
 	util.CheckErr(err)
 
@@ -106,15 +113,15 @@ func (self *MyTable) Create() *MyTable {
 }
 
 //设置插入的1行数据
-func (self *MyTable) AddRow(value ...string) *MyTable {
-	self.rowValues = append(self.rowValues, value...)
+func (self *MyTable) AddRow(value []string) *MyTable {
+	self.rows = append(self.rows, value)
 	return self
 }
 
 //向sqlCode添加"插入1行数据"的语句，执行前须保证Create()、AddRow()已经执行
-//insert into table1(field1,field2) values(rowValues[0],rowValues[1])
+//insert into table1(field1,field2) values(rows[0]),(rows[1])...
 func (self *MyTable) Update() error {
-	if len(self.rowValues) == 0 {
+	if len(self.rows) == 0 {
 		return errors.New("Mysql更新内容为空")
 	}
 
@@ -123,15 +130,24 @@ func (self *MyTable) Update() error {
 		for _, v := range self.columnNames {
 			self.sqlCode += "`" + v[0] + "`" + `,`
 		}
-		self.sqlCode = string(self.sqlCode[:len(self.sqlCode)-1])
-		self.sqlCode += `)values(`
+		self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `)values`
 	}
-	for _, v := range self.rowValues {
-		v = strings.Replace(v, `"`, `\"`, -1)
-		self.sqlCode += `"` + v + `"` + `,`
+	for _, row := range self.rows {
+		self.sqlCode += `(`
+		for _, v := range row {
+			v = strings.Replace(v, `"`, `\"`, -1)
+			self.sqlCode += `"` + v + `",`
+		}
+		self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `),`
 	}
-	self.sqlCode = string(self.sqlCode[:len(self.sqlCode)-1])
-	self.sqlCode += `);`
+	self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `;`
+
+	fmt.Println(self.sqlCode)
+
+	stmtChan <- true
+	defer func() {
+		<-stmtChan
+	}()
 
 	stmt, err := self.DB.Prepare(self.sqlCode)
 	if err != nil {
@@ -144,7 +160,7 @@ func (self *MyTable) Update() error {
 	}
 
 	// 清空临时数据
-	self.rowValues = []string{}
+	self.rows = [][]string{}
 
 	return nil
 }
