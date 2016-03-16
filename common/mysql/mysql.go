@@ -3,7 +3,6 @@ package mysql
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -141,8 +140,6 @@ func (self *MyTable) Update() error {
 		self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `),`
 	}
 	self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `;`
-
-	fmt.Println(self.sqlCode)
 
 	stmtChan <- true
 	defer func() {
