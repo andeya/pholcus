@@ -22,8 +22,9 @@ const (
 // 蜘蛛规则
 type (
 	Spider struct {
-		Id   int    // 所在SpiderList的下标编号，系统自动分配
-		Name string // 必须保证全局唯一
+		Id      int    // 所在SpiderList的下标编号，系统自动分配
+		Name    string // 必须保证全局唯一
+		subName string // 由Keyword转换为的二级名称
 		*RuleTree
 
 		//以下为可选成员
@@ -44,6 +45,7 @@ type (
 		// 执行状态
 		status  int
 		rwMutex sync.RWMutex
+		once    sync.Once
 	}
 
 	//采集规则树
@@ -111,6 +113,17 @@ func (self *Spider) UpsertItemField(rule *Rule, field string) (index int) {
 // 获取蜘蛛名称
 func (self *Spider) GetName() string {
 	return self.Name
+}
+
+// 获取蜘蛛二级名称
+func (self *Spider) GetSubName() string {
+	self.once.Do(func() {
+		self.subName = self.GetKeyword()
+		if len([]rune(self.subName)) > 6 {
+			self.subName = util.MakeHash(self.subName)
+		}
+	})
+	return self.subName
 }
 
 // 安全返回指定规则
@@ -200,6 +213,7 @@ func (self *Spider) RunTimer(id string) bool {
 func (self *Spider) Copy() *Spider {
 	ghost := &Spider{}
 	ghost.Name = self.Name
+	ghost.subName = self.subName
 
 	ghost.RuleTree = &RuleTree{
 		Root:  self.Root,
@@ -232,10 +246,10 @@ func (self *Spider) Copy() *Spider {
 
 func (self *Spider) ReqmatrixInit() *Spider {
 	if self.MaxPage < 0 {
-		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.MaxPage)
+		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), self.MaxPage)
 		self.SetMaxPage(0)
 	} else {
-		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), math.MinInt64)
+		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), math.MinInt64)
 	}
 	return self
 }
@@ -269,8 +283,12 @@ func (self *Spider) RequestLen() int {
 	return self.ReqMatrix.Len()
 }
 
-func (self *Spider) TryFlushHistory() {
-	self.ReqMatrix.TryFlushHistory()
+func (self *Spider) TryFlushSuccess() {
+	self.ReqMatrix.TryFlushSuccess()
+}
+
+func (self *Spider) TryFlushFailure() {
+	self.ReqMatrix.TryFlushFailure()
 }
 
 // 开始执行蜘蛛
@@ -326,4 +344,6 @@ func (self *Spider) Defer() {
 	}
 	// 等待处理中的请求完成
 	self.ReqMatrix.Wait()
+	// 更新失败记录
+	self.ReqMatrix.TryFlushFailure()
 }

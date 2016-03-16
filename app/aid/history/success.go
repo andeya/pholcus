@@ -12,10 +12,10 @@ import (
 )
 
 type Success struct {
-	name string
-	// [hash(url+method)]true
-	new         map[string]bool
-	old         map[string]bool
+	tabName     string
+	fileName    string
+	new         map[string]bool // [hash(url+method)]true
+	old         map[string]bool // [hash(url+method)]true
 	inheritable bool
 	sync.RWMutex
 }
@@ -75,7 +75,7 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 		}
 		err := mgo.Mgo(nil, "insert", map[string]interface{}{
 			"Database":   config.DB_NAME,
-			"Collection": SUCCESS_SUFFIX + "__" + self.name,
+			"Collection": self.tabName,
 			"Docs":       docs,
 		})
 		if err != nil {
@@ -88,7 +88,7 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 			return sLen, fmt.Errorf(" *     Fail  [添加成功记录][mysql]: %v 条 [ERROR]  %v\n", sLen, err)
 		}
 		table := mysql.New(db).
-			SetTableName("`" + SUCCESS_SUFFIX + "__" + self.name + "`").
+			SetTableName("`" + self.tabName + "`").
 			CustomPrimaryKey(`id VARCHAR(255) not null primary key`).
 			Create()
 		for key := range self.new {
@@ -97,7 +97,7 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 		}
 
 	default:
-		f, _ := os.OpenFile(SUCCESS_FILE+"__"+self.name, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
+		f, _ := os.OpenFile(self.fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
 
 		b, _ := json.Marshal(self.new)
 		b[0] = ','

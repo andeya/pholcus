@@ -147,7 +147,7 @@ func (self *Request) Serialize() string {
 		self.TempIsJson[k] = true
 	}
 	b, _ := json.Marshal(self)
-	return string(b)
+	return strings.Replace(string(b), `\u0026`, `&`, -1)
 }
 
 // 获取副本
@@ -318,18 +318,6 @@ func (self *Request) SetTemps(temp map[string]interface{}) *Request {
 	return self
 }
 
-// func (self *Request) GetSpiderId() (spiderId int) {
-// 	return self.GetTemp("__SPIDER_ID__", spiderId).(int)
-// }
-
-// func (self *Request) SetSpiderId(spiderId int) *Request {
-// 	if self.Temp == nil {
-// 		self.Temp = make(Temp)
-// 	}
-// 	self.SetTemp("__SPIDER_ID__", spiderId)
-// 	return self
-// }
-
 func (self *Request) GetPriority() int {
 	return self.Priority
 }
@@ -356,5 +344,6 @@ func (self *Request) MarshalJSON() ([]byte, error) {
 		self.Temp.Set(k, v)
 		self.TempIsJson[k] = true
 	}
-	return json.Marshal(*self)
+	b, err := json.Marshal(*self)
+	return b, err
 }

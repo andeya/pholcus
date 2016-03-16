@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"github.com/henrylee2cn/pholcus/logs"
-	"github.com/henrylee2cn/pholcus/runtime/cache"
-	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
 var (
@@ -45,10 +43,7 @@ func (self *Collector) Output(dataIndex int) {
 		logs.Log.Notice(" *     Fail  [任务输出：%v | 关键词：%v | 批次：%v]   数据 %v 条，用时 %v！ [ERROR]  %v\n", self.Spider.GetName(), self.Spider.GetKeyword(), self.outCount[1]+1, dataLen, time.Since(self.timing), err)
 	} else {
 		logs.Log.Notice(" *     [任务输出：%v | 关键词：%v | 批次：%v]   数据 %v 条，用时 %v！\n", self.Spider.GetName(), self.Spider.GetKeyword(), self.outCount[1]+1, dataLen, time.Since(self.timing))
-		// 非服务器模式下保存历史记录
-		if cache.Task.Mode != status.SERVER {
-			self.Spider.TryFlushHistory()
-		}
+		self.Spider.TryFlushSuccess()
 	}
 	// 更新计时
 	self.timing = time.Now()

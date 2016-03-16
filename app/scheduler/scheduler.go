@@ -13,7 +13,7 @@ import (
 
 type scheduler struct {
 	// Spider实例的请求矩阵列表
-	matrices map[string]*Matrix
+	matrices []*Matrix
 	// 总并发量计数
 	count chan bool
 	// 运行状态
@@ -37,7 +37,7 @@ func Init() {
 	for sdl.proxy == nil {
 		runtime.Gosched()
 	}
-	sdl.matrices = make(map[string]*Matrix)
+	sdl.matrices = []*Matrix{}
 	sdl.count = make(chan bool, cache.Task.ThreadNum)
 
 	if cache.Task.ProxyMinute > 0 {
@@ -58,11 +58,11 @@ func Init() {
 }
 
 // 注册资源队列
-func AddMatrix(spiderName string, maxPage int64) *Matrix {
-	matrix := newMatrix(spiderName, maxPage)
+func AddMatrix(spiderName, spiderSubName string, maxPage int64) *Matrix {
+	matrix := newMatrix(spiderName, spiderSubName, maxPage)
 	sdl.RLock()
 	defer sdl.RUnlock()
-	sdl.matrices[spiderName] = matrix
+	sdl.matrices = append(sdl.matrices, matrix)
 	return matrix
 }
 
@@ -94,7 +94,7 @@ func Stop() {
 			matrix.Unlock()
 		}
 		close(sdl.count)
-		sdl.matrices = make(map[string]*Matrix)
+		sdl.matrices = []*Matrix{}
 	}()
 	sdl.Unlock()
 }

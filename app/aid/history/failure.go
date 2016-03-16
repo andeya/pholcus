@@ -1,6 +1,7 @@
 package history
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -14,7 +15,8 @@ import (
 )
 
 type Failure struct {
-	name        string
+	tabName     string
+	fileName    string
 	list        map[*request.Request]bool
 	inheritable bool
 	sync.RWMutex
@@ -59,7 +61,7 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 			return
 		}
 		mgo.Call(func(src pool.Src) error {
-			c := src.(*mgo.MgoSrc).DB(config.DB_NAME).C(FAILURE_SUFFIX + "__" + self.name)
+			c := src.(*mgo.MgoSrc).DB(config.DB_NAME).C(self.tabName)
 			// 删除失败记录文件
 			c.DropCollection()
 			if fLen == 0 {
@@ -81,7 +83,7 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 		}
 
 		// 删除失败记录文件
-		stmt, err := db.Prepare(`DROP TABLE ` + FAILURE_SUFFIX + "__" + self.name)
+		stmt, err := db.Prepare(`DROP TABLE ` + self.tabName)
 		if err != nil {
 			return fLen, fmt.Errorf(" *     Fail  [添加失败记录][mysql]: %v 条 [ERROR]  %v\n", fLen, err)
 		}
@@ -90,31 +92,33 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 			return fLen, nil
 		}
 
+		// 添加失败请求
 		table := mysql.New(db).
-			SetTableName("`" + FAILURE_SUFFIX + "__" + self.name + "`").
+			SetTableName("`" + self.tabName + "`").
 			AddColumn(`failure MEDIUMTEXT`).
 			Create()
 		for req := range self.list {
-			table.AddRow([]string{req.Serialize()}).Update()
+			table.AddRow([]string{req.Serialize()})
 		}
+		table.Update()
 
 	default:
 		// 删除失败记录文件
-		fileName := FAILURE_FILE + "__" + self.name
-		os.Remove(fileName)
+		os.Remove(self.fileName)
 		if fLen == 0 {
 			return
 		}
 
-		f, _ := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY, 0660)
+		f, _ := os.OpenFile(self.fileName, os.O_CREATE|os.O_WRONLY, 0660)
 
 		docs := make([]string, len(self.list))
 		i := 0
 		for req := range self.list {
-			docs[0] = req.Serialize()
+			docs[i] = req.Serialize()
 			i++
 		}
 		b, _ := json.Marshal(docs)
+		b = bytes.Replace(b, []byte(`\u0026`), []byte(`&`), -1)
 		f.Write(b)
 		f.Close()
 	}

@@ -29,13 +29,13 @@ type Matrix struct {
 	sync.Mutex
 }
 
-func newMatrix(spiderName string, maxPage int64) *Matrix {
+func newMatrix(spiderName, spiderSubName string, maxPage int64) *Matrix {
 	matrix := &Matrix{
 		spiderName:  spiderName,
 		maxPage:     maxPage,
 		reqs:        make(map[int][]*request.Request),
 		priorities:  []int{},
-		history:     history.New(spiderName),
+		history:     history.New(spiderName, spiderSubName),
 		tempHistory: make(map[string]bool),
 		failures:    make(map[string]*request.Request),
 	}
@@ -213,11 +213,16 @@ func (self *Matrix) CanStop() bool {
 	return true
 }
 
-func (self *Matrix) TryFlushHistory() {
-	if cache.Task.SuccessInherit {
+// 非服务器模式下保存历史成功记录
+func (self *Matrix) TryFlushSuccess() {
+	if cache.Task.Mode != status.SERVER && cache.Task.SuccessInherit {
 		self.history.FlushSuccess(cache.Task.OutType)
 	}
-	if cache.Task.FailureInherit {
+}
+
+// 非服务器模式下保存历史失败记录
+func (self *Matrix) TryFlushFailure() {
+	if cache.Task.Mode != status.SERVER && cache.Task.FailureInherit {
 		self.history.FlushFailure(cache.Task.OutType)
 	}
 }

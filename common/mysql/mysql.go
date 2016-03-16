@@ -127,7 +127,7 @@ func (self *MyTable) Update() error {
 	self.sqlCode = `insert into ` + self.tableName + `(`
 	if len(self.columnNames) != 0 {
 		for _, v := range self.columnNames {
-			self.sqlCode += "`" + v[0] + "`" + `,`
+			self.sqlCode += "`" + v[0] + "`,"
 		}
 		self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `)values`
 	}

@@ -47,16 +47,28 @@ type (
 	}
 )
 
-func New(name string) Historier {
+func New(name string, subName string) Historier {
+	successTabName := SUCCESS_SUFFIX + "__" + name
+	successFileName := SUCCESS_FILE + "__" + name
+	failureTabName := FAILURE_SUFFIX + "__" + name
+	failureFileName := FAILURE_FILE + "__" + name
+	if subName != "" {
+		successTabName += "__" + subName
+		successFileName += "__" + subName
+		failureTabName += "__" + subName
+		failureFileName += "__" + subName
+	}
 	return &History{
 		Success: &Success{
-			name: name,
-			new:  make(map[string]bool),
-			old:  make(map[string]bool),
+			tabName:  successTabName,
+			fileName: successFileName,
+			new:      make(map[string]bool),
+			old:      make(map[string]bool),
 		},
 		Failure: &Failure{
-			name: name,
-			list: make(map[*request.Request]bool),
+			tabName:  failureTabName,
+			fileName: failureFileName,
+			list:     make(map[*request.Request]bool),
 		},
 	}
 }
@@ -90,7 +102,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 		var docs = map[string]interface{}{}
 		err := mgo.Mgo(&docs, "find", map[string]interface{}{
 			"Database":   config.DB_NAME,
-			"Collection": SUCCESS_SUFFIX + "__" + self.Success.name,
+			"Collection": self.Success.tabName,
 		})
 		if err != nil {
 			logs.Log.Error(" *     Fail  [读取成功记录][mgo]: %v\n", err)
@@ -107,7 +119,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 			return
 		}
 		rows, err := mysql.New(db).
-			SetTableName("`" + SUCCESS_SUFFIX + "__" + self.Success.name + "`").
+			SetTableName("`" + self.Success.tabName + "`").
 			SelectAll()
 		if err != nil {
 			return
@@ -120,7 +132,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 		}
 
 	default:
-		f, err := os.Open(SUCCESS_FILE + "__" + self.Success.name)
+		f, err := os.Open(self.Success.fileName)
 		if err != nil {
 			return
 		}
@@ -166,7 +178,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 
 		var docs = []interface{}{}
 		mgo.Call(func(src pool.Src) error {
-			c := src.(*mgo.MgoSrc).DB(config.DB_NAME).C(FAILURE_SUFFIX + "__" + self.Failure.name)
+			c := src.(*mgo.MgoSrc).DB(config.DB_NAME).C(self.Failure.tabName)
 			return c.Find(nil).All(&docs)
 		})
 
@@ -188,7 +200,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			return
 		}
 		rows, err := mysql.New(db).
-			SetTableName("`" + FAILURE_SUFFIX + "__" + self.Failure.name + "`").
+			SetTableName("`" + self.Failure.tabName + "`").
 			SelectAll()
 		if err != nil {
 			// logs.Log.Error("读取Mysql数据库中成功记录失败：%v", err)
@@ -208,7 +220,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 		}
 
 	default:
-		f, err := os.Open(FAILURE_FILE + "__" + self.Failure.name)
+		f, err := os.Open(self.Failure.fileName)
 		if err != nil {
 			return
 		}

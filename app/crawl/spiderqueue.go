@@ -55,10 +55,9 @@ func (self *sq) AddKeywords(keywords string) error {
 	if keywords == "" {
 		return errors.New("遍历关键词失败：keywords 不能为空！")
 	}
-	// 不可被添加kw的蜘蛛
-	unit1 := []*Spider{}
-	// 可被添加kw的蜘蛛
-	unit2 := []*Spider{}
+
+	unit1 := []*Spider{} // 不可被添加kw的蜘蛛
+	unit2 := []*Spider{} // 可被添加kw的蜘蛛
 	for _, v := range self.GetAll() {
 		if v.GetKeyword() == KEYWORD {
 			unit2 = append(unit2, v)
