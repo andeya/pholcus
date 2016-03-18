@@ -48,8 +48,8 @@ func SetTaskConf() {
 		SetAppConf("ProxyMinute", Input.ProxyMinute).
 		SetAppConf("OutType", Input.OutType).
 		SetAppConf("DockerCap", Input.DockerCap).
-		SetAppConf("MaxPage", Input.MaxPage).
-		SetAppConf("Keywords", Input.Keywords)
+		SetAppConf("Limit", Input.Limit).
+		SetAppConf("Keyins", Input.Keyins)
 }
 
 func SpiderPrepare() {

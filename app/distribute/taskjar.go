@@ -29,3 +29,7 @@ func (self *TaskJar) Into(task *Task) {
 func (self *TaskJar) Pull() *Task {
 	return <-self.Tasks
 }
+
+func (self *TaskJar) Len() int {
+	return len(self.Tasks)
+}

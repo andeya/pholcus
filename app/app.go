@@ -26,95 +26,42 @@ import (
 
 type (
 	App interface {
-		// 设置全局log实时显示终端
-		SetLog(io.Writer) App
-		// 设置全局log是否异步
-		AsyncLog(enable bool) App
-		// 继续log打印
-		LogGoOn() App
-		// 暂停log打印
-		LogRest() App
-
-		// 使用App前必须进行先Init初始化，SetLog()除外
-		Init(mode int, port int, master string, w ...io.Writer) App
-
-		// 切换运行模式并重设log打印目标
-		ReInit(mode int, port int, master string, w ...io.Writer) App
-
-		// 获取全局参数
-		GetAppConf(k ...string) interface{}
-
-		// 设置全局参数，Offline和Server模式用到的
-		SetAppConf(k string, v interface{}) App
-
-		// SpiderPrepare()必须在设置全局运行参数之后，就Run()的前一刻执行
-		// original为spider包中未有过赋值操作的原始蜘蛛种类
-		// 已被显式赋值过的spider将不再重新分配Keyword
-		// client模式下不调用该方法
-		SpiderPrepare(original []*spider.Spider) App
-
-		// Run()对外为阻塞运行方式，其返回时意味着当前任务已经执行完毕
-		// Run()必须在所有应当配置项配置完成后调用
-		// server模式下生成任务的方法，必须在全局配置和蜘蛛队列设置完成后才可调用
-		Run()
-
-		// Offline 模式下中途终止任务
-		// 对外为阻塞运行方式，其返回时意味着当前任务已经终止
-		Stop()
-
-		// 检查任务是否正在运行
-		IsRunning() bool
-
-		// 检查任务是否处于暂停状态
-		IsPause() bool
-
-		// 检查任务是否已经终止
-		IsStopped() bool
-
-		// Offline 模式下暂停\恢复任务
-		PauseRecover()
-
-		// 返回当前状态
-		Status() int
-
-		// 获取全部蜘蛛种类
-		GetSpiderLib() []*spider.Spider
-
-		// 通过名字获取某蜘蛛
-		GetSpiderByName(string) *spider.Spider
-
-		// 获取蜘蛛队列接口实例
-		GetSpiderQueue() crawl.SpiderQueue
-
-		// 获取全部输出方式
-		GetOutputLib() []string
-
-		// 服务器客户端模式下返回节点数
-		CountNodes() int
+		SetLog(io.Writer) App                                         // 设置全局log实时显示终端
+		AsyncLog(enable bool) App                                     // 设置全局log是否异步
+		LogGoOn() App                                                 // 继续log打印
+		LogRest() App                                                 // 暂停log打印
+		Init(mode int, port int, master string, w ...io.Writer) App   // 使用App前必须进行先Init初始化，SetLog()除外
+		ReInit(mode int, port int, master string, w ...io.Writer) App // 切换运行模式并重设log打印目标
+		GetAppConf(k ...string) interface{}                           // 获取全局参数
+		SetAppConf(k string, v interface{}) App                       // 设置全局参数（client模式下不调用该方法）
+		SpiderPrepare(original []*spider.Spider) App                  // 须在设置全局运行参数后Run()前调用（client模式下不调用该方法）
+		Run()                                                         // 阻塞式运行直至任务完成（须在所有应当配置项配置完成后调用）
+		Stop()                                                        // Offline 模式下中途终止任务（对外为阻塞式运行直至当前任务终止）
+		IsRunning() bool                                              // 检查任务是否正在运行
+		IsPause() bool                                                // 检查任务是否处于暂停状态
+		IsStopped() bool                                              // 检查任务是否已经终止
+		PauseRecover()                                                // Offline 模式下暂停\恢复任务
+		Status() int                                                  // 返回当前状态
+		GetSpiderLib() []*spider.Spider                               // 获取全部蜘蛛种类
+		GetSpiderByName(string) *spider.Spider                        // 通过名字获取某蜘蛛
+		GetSpiderQueue() crawl.SpiderQueue                            // 获取蜘蛛队列接口实例
+		GetOutputLib() []string                                       // 获取全部输出方式
+		GetTaskJar() *distribute.TaskJar                              // 返回任务库
+		CountNodes() int                                              // 服务器客户端模式下返回节点数
 	}
-
 	Logic struct {
-		// 全局配置
-		*cache.AppConf
-		// 全部蜘蛛种类
-		spider.Traversal
-		// 当前任务的蜘蛛队列
-		crawl.SpiderQueue
-		// 服务器与客户端间传递任务的存储库
-		*distribute.TaskJar
-		// 爬行回收池
-		crawl.CrawlPool
-		// socket长连接双工通信接口，json数据传输
-		teleport.Teleport
-		//执行计数
-		sum [2]uint64
-		// 执行计时
-		takeTime time.Duration
-		// 运行状态
-		status       int
-		finish       chan bool
-		finishOnce   sync.Once
-		canSocketLog bool
+		*cache.AppConf                    // 全局配置
+		spider.Traversal                  // 全部蜘蛛种类
+		crawl.SpiderQueue                 // 当前任务的蜘蛛队列
+		*distribute.TaskJar               // 服务器与客户端间传递任务的存储库
+		crawl.CrawlPool                   // 爬行回收池
+		teleport.Teleport                 // socket长连接双工通信接口，json数据传输
+		sum                 [2]uint64     //执行计数
+		takeTime            time.Duration // 执行计时
+		status              int           // 运行状态
+		finish              chan bool
+		finishOnce          sync.Once
+		canSocketLog        bool
 		sync.RWMutex
 	}
 )
@@ -132,10 +79,10 @@ type AppConf struct {
 	DockerQueueCap int    // 分段输出池容量，不小于2
 	SuccessInherit bool   // 继承历史成功记录
 	FailureInherit bool   // 继承历史失败记录
-	MaxPage        int64  // 最大采集页数
+	Limit          int64  // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数
 	ProxyMinute    int64  // 代理IP更换的间隔分钟数
 	// 选填项
-	Keywords string // 后期切分为slice
+	Keyins string // 自定义输入，后期切分为多个任务的Keyin自定义配置
 }
 */
 
@@ -204,18 +151,23 @@ func (self *Logic) SetAppConf(k string, v interface{}) App {
 			logs.Log.Error(fmt.Sprintf("%v", err))
 		}
 	}()
-	if k == "MaxPage" && v.(int64) <= 0 {
-		v = int64(spider.MAXPAGE)
+	if k == "Limit" && v.(int64) <= 0 {
+		v = int64(spider.LIMIT)
 	}
+
 	acv := reflect.ValueOf(self.AppConf).Elem()
 	key := strings.Title(k)
 	if acv.FieldByName(key).CanSet() {
 		acv.FieldByName(key).Set(reflect.ValueOf(v))
 	}
+
+	if k == "DockerCap" {
+		cache.AutoDockerQueueCap()
+	}
 	return self
 }
 
-// 使用App前必须进行先Init初始化，SetLog()除外
+// 使用App前必须先进行Init初始化（SetLog()除外）
 func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 	self.canSocketLog = false
 	if len(w) > 0 {
@@ -278,7 +230,7 @@ func (self *Logic) ReInit(mode int, port int, master string, w ...io.Writer) App
 
 // SpiderPrepare()必须在设置全局运行参数之后，Run()的前一刻执行
 // original为spider包中未有过赋值操作的原始蜘蛛种类
-// 已被显式赋值过的spider将不再重新分配Keyword
+// 已被显式赋值过的spider将不再重新分配Keyin
 // client模式下不调用该方法
 func (self *Logic) SpiderPrepare(original []*spider.Spider) App {
 	self.SpiderQueue.Reset()
@@ -286,15 +238,15 @@ func (self *Logic) SpiderPrepare(original []*spider.Spider) App {
 	for _, sp := range original {
 		spcopy := sp.Copy()
 		spcopy.SetPausetime(self.AppConf.Pausetime)
-		if spcopy.GetMaxPage() == spider.MAXPAGE {
-			spcopy.SetMaxPage(self.AppConf.MaxPage)
+		if spcopy.GetLimit() == spider.LIMIT {
+			spcopy.SetLimit(self.AppConf.Limit)
 		} else {
-			spcopy.SetMaxPage(-1 * self.AppConf.MaxPage)
+			spcopy.SetLimit(-1 * self.AppConf.Limit)
 		}
 		self.SpiderQueue.Add(spcopy)
 	}
-	// 遍历关键词
-	self.SpiderQueue.AddKeywords(self.AppConf.Keywords)
+	// 遍历自定义配置
+	self.SpiderQueue.AddKeyins(self.AppConf.Keyins)
 	return self
 }
 
@@ -318,6 +270,11 @@ func (self *Logic) GetMode() int {
 	return self.AppConf.Mode
 }
 
+// 返回任务库
+func (self *Logic) GetTaskJar() *distribute.TaskJar {
+	return self.TaskJar
+}
+
 // 服务器客户端模式下返回节点数
 func (self *Logic) CountNodes() int {
 	return self.Teleport.CountNodes()
@@ -332,6 +289,11 @@ func (self *Logic) GetSpiderQueue() crawl.SpiderQueue {
 func (self *Logic) Run() {
 	// 确保开启报告
 	self.LogGoOn()
+	if self.AppConf.Mode != status.CLIENT && self.SpiderQueue.Len() == 0 {
+		logs.Log.Warning(" *     —— 亲，任务列表不能为空哦~")
+		self.LogRest()
+		return
+	}
 	self.finish = make(chan bool)
 	self.finishOnce = sync.Once{}
 	// 重置计数
@@ -414,6 +376,7 @@ func (self *Logic) offline() {
 }
 
 // 服务器模式运行，必须在SpiderPrepare()执行之后调用才可以成功添加任务
+// 生成的任务与自身当前全局配置相同
 func (self *Logic) server() {
 	// 标记结束
 	defer func() {
@@ -445,7 +408,7 @@ func (self *Logic) addNewTask() (tasksNum, spidersNum int) {
 
 	for i, sp := range self.SpiderQueue.GetAll() {
 
-		t.Spiders = append(t.Spiders, map[string]string{"name": sp.GetName(), "keyword": sp.GetKeyword()})
+		t.Spiders = append(t.Spiders, map[string]string{"name": sp.GetName(), "keyin": sp.GetKeyin()})
 		spidersNum++
 
 		// 每十个蜘蛛存为一个任务
@@ -505,14 +468,14 @@ ReStartLabel:
 	if self.Status() == status.STOP || self.Status() == status.STOPPED {
 		return nil
 	}
-	if self.CountNodes() == 0 && len(self.TaskJar.Tasks) == 0 {
+	if self.CountNodes() == 0 && self.TaskJar.Len() == 0 {
 		time.Sleep(5e7)
 		goto ReStartLabel
 	}
 
-	if len(self.TaskJar.Tasks) == 0 {
+	if self.TaskJar.Len() == 0 {
 		self.Request(nil, "task", "")
-		for len(self.TaskJar.Tasks) == 0 {
+		for self.TaskJar.Len() == 0 {
 			if self.CountNodes() == 0 {
 				goto ReStartLabel
 			}
@@ -538,13 +501,13 @@ func (self *Logic) taskToRun(t *distribute.Task) {
 		}
 		spcopy := sp.Copy()
 		spcopy.SetPausetime(t.Pausetime)
-		if spcopy.GetMaxPage() > 0 {
-			spcopy.SetMaxPage(t.MaxPage)
+		if spcopy.GetLimit() > 0 {
+			spcopy.SetLimit(t.Limit)
 		} else {
-			spcopy.SetMaxPage(-1 * t.MaxPage)
+			spcopy.SetLimit(-1 * t.Limit)
 		}
-		if v, ok := n["keyword"]; ok {
-			spcopy.SetKeyword(v)
+		if v, ok := n["keyin"]; ok {
+			spcopy.SetKeyin(v)
 		}
 		self.SpiderQueue.Add(spcopy)
 	}
@@ -562,7 +525,7 @@ func (self *Logic) exec() {
 	// 设置爬虫队列
 	crawlCap := self.CrawlPool.Reset(count)
 
-	logs.Log.Informational(" *     执行任务总数(任务数[*关键词数])为 %v 个\n", count)
+	logs.Log.Informational(" *     执行任务总数(任务数[*自定义配置数])为 %v 个\n", count)
 	logs.Log.Informational(" *     爬虫池容量为 %v\n", crawlCap)
 	logs.Log.Informational(" *     并发协程最多 %v 个\n", self.AppConf.ThreadNum)
 	logs.Log.Informational(" *     随机停顿区间为 %v~%v 毫秒\n", self.AppConf.Pausetime/2, self.AppConf.Pausetime*2)
@@ -612,11 +575,11 @@ func (self *Logic) goRun(count int) {
 		logs.Log.Informational(" * ")
 		switch {
 		case s.DataNum > 0 && s.FileNum == 0:
-			logs.Log.Notice(" *     [任务小计：%v | 关键词：%v]   共采集数据 %v 条，用时 %v！\n", s.SpiderName, s.Keyword, s.DataNum, s.Time)
+			logs.Log.Notice(" *     [任务小计：%v | KEYIN：%v]   共采集数据 %v 条，用时 %v！\n", s.SpiderName, s.Keyin, s.DataNum, s.Time)
 		case s.DataNum == 0 && s.FileNum > 0:
-			logs.Log.Notice(" *     [任务小计：%v | 关键词：%v]   共下载文件 %v 个，用时 %v！\n", s.SpiderName, s.Keyword, s.FileNum, s.Time)
+			logs.Log.Notice(" *     [任务小计：%v | KEYIN：%v]   共下载文件 %v 个，用时 %v！\n", s.SpiderName, s.Keyin, s.FileNum, s.Time)
 		default:
-			logs.Log.Notice(" *     [任务小计：%v | 关键词：%v]   共采集数据 %v 条 + 下载文件 %v 个，用时 %v！\n", s.SpiderName, s.Keyword, s.DataNum, s.FileNum, s.Time)
+			logs.Log.Notice(" *     [任务小计：%v | KEYIN：%v]   共采集数据 %v 条 + 下载文件 %v 个，用时 %v！\n", s.SpiderName, s.Keyin, s.DataNum, s.FileNum, s.Time)
 		}
 
 		self.sum[0] += s.DataNum
@@ -698,9 +661,9 @@ func (self *Logic) setAppConf(task *distribute.Task) {
 	self.AppConf.DockerQueueCap = task.DockerQueueCap
 	self.AppConf.SuccessInherit = task.SuccessInherit
 	self.AppConf.FailureInherit = task.FailureInherit
-	self.AppConf.MaxPage = task.MaxPage
+	self.AppConf.Limit = task.Limit
 	self.AppConf.ProxyMinute = task.ProxyMinute
-	self.AppConf.Keywords = task.Keywords
+	self.AppConf.Keyins = task.Keyins
 }
 func (self *Logic) setTask(task *distribute.Task) {
 	task.ThreadNum = self.AppConf.ThreadNum
@@ -710,7 +673,7 @@ func (self *Logic) setTask(task *distribute.Task) {
 	task.DockerQueueCap = self.AppConf.DockerQueueCap
 	task.SuccessInherit = self.AppConf.SuccessInherit
 	task.FailureInherit = self.AppConf.FailureInherit
-	task.MaxPage = self.AppConf.MaxPage
+	task.Limit = self.AppConf.Limit
 	task.ProxyMinute = self.AppConf.ProxyMinute
-	task.Keywords = self.AppConf.Keywords
+	task.Keyins = self.AppConf.Keyins
 }

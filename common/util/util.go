@@ -24,6 +24,15 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
+const (
+	// Spider中启用Keyin的初始值
+	USE_KEYIN = "\r\t\n"
+)
+
+var (
+	re = regexp.MustCompile(">[ \t\n\v\f\r]+<")
+)
+
 // JsonpToJson modify jsonp string to json string
 // Example: forbar({a:"1",b:2}) to {"a":"1","b":2}
 func JsonpToJson(json string) string {
@@ -313,11 +322,6 @@ func CheckErrPanic(err error) {
 	}
 }
 
-const (
-	// Spider中启用Keyword的初始值
-	USE_KEYWORD = "\r\t\n"
-)
-
 // 将文件名非法字符替换为相似字符
 func FileNameReplace(fileName string) (rfn string) {
 	// 替换`""`为`“”`
@@ -347,7 +351,7 @@ func FileNameReplace(fileName string) (rfn string) {
 	rfn = strings.Replace(rfn, `/`, `／`, -1)
 	rfn = strings.Replace(rfn, `|`, `∣`, -1)
 	rfn = strings.Replace(rfn, `\`, `╲`, -1)
-	rfn = strings.Replace(rfn, USE_KEYWORD, ``, -1)
+	rfn = strings.Replace(rfn, USE_KEYIN, ``, -1)
 	return
 }
 
@@ -364,7 +368,7 @@ func ExcelSheetNameReplace(fileName string) (rfn string) {
 	rfn = strings.Replace(rfn, `╲`, `_`, -1)
 	rfn = strings.Replace(rfn, `]`, `_`, -1)
 	rfn = strings.Replace(rfn, `[`, `_`, -1)
-	rfn = strings.Replace(rfn, USE_KEYWORD, ``, -1)
+	rfn = strings.Replace(rfn, USE_KEYIN, ``, -1)
 
 	return
 }
@@ -417,4 +421,31 @@ func RandomCreateBytes(n int, alphabets ...byte) []byte {
 		}
 	}
 	return bytes
+}
+
+// 切分用户输入的自定义信息
+func KeyinsParse(keyins string) []string {
+	keyins = strings.TrimSpace(keyins)
+	if keyins == "" {
+		return []string{}
+	}
+	for _, v := range re.FindAllString(keyins, -1) {
+		keyins = strings.Replace(keyins, v, "><", -1)
+	}
+	m := map[string]bool{}
+	for _, v := range strings.Split(keyins, "><") {
+		v = strings.TrimPrefix(v, "<")
+		v = strings.TrimSuffix(v, ">")
+		if v == "" {
+			continue
+		}
+		m[v] = true
+	}
+	s := make([]string, len(m))
+	i := 0
+	for k := range m {
+		s[i] = k
+		i++
+	}
+	return s
 }

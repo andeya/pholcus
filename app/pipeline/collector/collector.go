@@ -138,7 +138,7 @@ func (self *Collector) setFileSum(add uint64) {
 func (self *Collector) Report() {
 	cache.ReportChan <- &cache.Report{
 		SpiderName: self.Spider.GetName(),
-		Keyword:    self.GetKeyword(),
+		Keyin:      self.GetKeyin(),
 		DataNum:    self.dataSum(),
 		FileNum:    self.fileSum(),
 		Time:       time.Since(cache.StartTime),

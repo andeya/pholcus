@@ -18,12 +18,12 @@ type AppConf struct {
 	OutType        string // 输出方式
 	DockerCap      int    // 分段转储容器容量
 	DockerQueueCap int    // 分段输出池容量，不小于2
+	Limit          int64  // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数
+	ProxyMinute    int64  // 代理IP更换的间隔分钟数
 	SuccessInherit bool   // 继承历史成功记录
 	FailureInherit bool   // 继承历史失败记录
-	MaxPage        int64  // 最大采集页数
-	ProxyMinute    int64  // 代理IP更换的间隔分钟数
 	// 选填项
-	Keywords string // 后期切分为slice
+	Keyins string // 自定义输入，后期切分为多个任务的Keyin自定义配置
 }
 
 // 该初始值即默认值
@@ -51,7 +51,7 @@ func AutoDockerQueueCap() {
 
 type Report struct {
 	SpiderName string
-	Keyword    string
+	Keyin      string
 	DataNum    uint64
 	FileNum    uint64
 	Time       time.Duration

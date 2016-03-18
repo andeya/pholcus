@@ -100,8 +100,8 @@ pholcus -h
 > *<font size="2">Cmd版运行参数设置示例如下*
 
 ```
-pholcus -a_ui=cmd -c_spider=3,8 -c_output=csv -c_thread=20 -c_docker=5000 -c_pause=300 
--c_proxy=0 -c_keyword=pholcus,golang -c_maxpage=10 -c_inherit_y=true -c_inherit_n=true
+$ pholcus -_ui=cmd -a_mode=0 -c_spider=3,8 -a_outtype=csv -a_thread=20 -a_dockercap=5000 -a_pause=300
+-a_proxyminute=0 -a_keyins="<pholcus><golang>" -a_limit=10 -a_success=true -a_failure=true
 ```
 
 &nbsp;
@@ -139,9 +139,9 @@ xxx.pholcus.html
 <Spider>
     <Name>HTML动态规则示例</Name>
     <DeScription>HTML动态规则示例 [Auto Page] [http://xxx.xxx.xxx]</DeScription>
-    <EnableKeyword>false</EnableKeyword>
+    <EnableKeyin>false</EnableKeyin>
     <EnableCookie>true</EnableCookie>
-    <EnableMaxPage>false</EnableMaxPage>
+    <EnableLimit>false</EnableLimit>
     <Pausetime>300</Pausetime>
     <Namespace>
         <Script></Script>
@@ -220,7 +220,8 @@ var Lewa = &Spider{
     Name:        "静态规则示例",
     Description: "静态规则示例 [Auto Page] [http://xxx.xxx.xxx]",
     // Pausetime: 300,
-    // Keyword:   USE,
+    // Keyin:   KEYIN,
+    // Limit:   LIMIT,
     EnableCookie: true,
     RuleTree: &RuleTree{
         Root: func(ctx *Context) {

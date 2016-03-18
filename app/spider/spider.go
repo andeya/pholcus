@@ -14,56 +14,46 @@ import (
 )
 
 const (
-	KEYWORD     = util.USE_KEYWORD // 若使用Keyword，则Keyword初始值必须为USE_KEYWORD
-	MAXPAGE     = math.MaxInt64    // 如希望在规则中自定义控制MaxPage，则MaxPage初始值必须为MAXPAGE
+	KEYIN       = util.USE_KEYIN // 若使用Spider.Keyin，则须在规则中设置初始值为USE_KEYIN
+	LIMIT       = math.MaxInt64  // 如希望在规则中自定义控制Limit，则Limit初始值必须为LIMIT
 	ACTIVE_STOP = "——主动终止Spider——"
 )
 
-// 蜘蛛规则
 type (
+	// 蜘蛛规则
 	Spider struct {
-		Id      int    // 所在SpiderList的下标编号，系统自动分配
-		Name    string // 必须保证全局唯一
-		subName string // 由Keyword转换为的二级名称
+		Id   int    // 所在SpiderList的下标编号，系统自动分配
+		Name string // 必须保证全局唯一
 		*RuleTree
 
 		//以下为可选成员
 		Description  string
-		Pausetime    int64  // 暂停区间(随机: Pausetime/2 ~ Pausetime*2)
-		EnableCookie bool   // 控制所有请求是否使用cookie记录
-		MaxPage      int64  // 为负值时自动在调度中限制请求数，为正值时在规则中自定义控制
-		Keyword      string // 如需使用必须附初始值为常量USE_KEYWORD
-		// 命名空间相对于数据库名，不依赖具体数据内容
-		Namespace func(*Spider) string
-		// 子命名空间相对于表名，可依赖具体数据内容
-		SubNamespace func(self *Spider, dataCell map[string]interface{}) string
+		Pausetime    int64  // 随机暂停区间(随机: Pausetime/2 ~ Pausetime*2)
+		EnableCookie bool   // 所有请求是否使用cookie记录
+		Limit        int64  // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数(内部：<0时限制请求数，>0时自定义限制)
+		Keyin        string // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN
 
-		// 请求矩阵
-		ReqMatrix *scheduler.Matrix
-		// 定时器
-		timer *Timer
-		// 执行状态
-		status  int
-		rwMutex sync.RWMutex
-		once    sync.Once
+		Namespace    func(*Spider) string                                       // 命名空间相对于数据库名，不依赖具体数据内容
+		SubNamespace func(self *Spider, dataCell map[string]interface{}) string // 子命名空间相对于表名，可依赖具体数据内容
+
+		// 以下为系统自动赋值成员
+		subName   string            // 由Keyin转换为的二级标识名
+		ReqMatrix *scheduler.Matrix // 请求矩阵
+		timer     *Timer            // 定时器
+		status    int               // 执行状态
+		rwMutex   sync.RWMutex
+		once      sync.Once
 	}
-
 	//采集规则树
 	RuleTree struct {
-		// 执行入口（树根）
-		Root func(*Context)
-		// 执行解析过程（树干）
-		Trunk map[string]*Rule
+		Root  func(*Context)   // 执行入口（树根）
+		Trunk map[string]*Rule // 执行解析过程（树干）
 	}
-
 	// 采集规则单元
 	Rule struct {
-		// 输出结果的字段名列表
-		ItemFields []string
-		// 内容解析函数
-		ParseFunc func(*Context)
-		// 通用辅助函数
-		AidFunc func(*Context, map[string]interface{}) interface{}
+		ItemFields []string                                           // 输出结果的字段名列表
+		ParseFunc  func(*Context)                                     // 内容解析函数
+		AidFunc    func(*Context, map[string]interface{}) interface{} // 通用辅助函数
 	}
 )
 
@@ -115,10 +105,10 @@ func (self *Spider) GetName() string {
 	return self.Name
 }
 
-// 获取蜘蛛二级名称
+// 获取蜘蛛二级标识名
 func (self *Spider) GetSubName() string {
 	self.once.Do(func() {
-		self.subName = self.GetKeyword()
+		self.subName = self.GetKeyin()
 		if len([]rune(self.subName)) > 6 {
 			self.subName = util.MakeHash(self.subName)
 		}
@@ -157,24 +147,24 @@ func (self *Spider) SetId(id int) {
 	self.Id = id
 }
 
-// 获取自定义输入
-func (self *Spider) GetKeyword() string {
-	return self.Keyword
+// 获取自定义配置信息
+func (self *Spider) GetKeyin() string {
+	return self.Keyin
 }
 
-// 设置自定义输入
-func (self *Spider) SetKeyword(keyword string) {
-	self.Keyword = keyword
+// 设置自定义配置信息
+func (self *Spider) SetKeyin(keyword string) {
+	self.Keyin = keyword
 }
 
-// 获取采集的最大页数
-func (self *Spider) GetMaxPage() int64 {
-	return self.MaxPage
+// 获取采集上限
+func (self *Spider) GetLimit() int64 {
+	return self.Limit
 }
 
-// 设置采集的最大页数
-func (self *Spider) SetMaxPage(max int64) {
-	self.MaxPage = max
+// 设置采集上限
+func (self *Spider) SetLimit(max int64) {
+	self.Limit = max
 }
 
 // 控制所有请求是否使用cookie
@@ -232,8 +222,8 @@ func (self *Spider) Copy() *Spider {
 	ghost.Description = self.Description
 	ghost.Pausetime = self.Pausetime
 	ghost.EnableCookie = self.EnableCookie
-	ghost.MaxPage = self.MaxPage
-	ghost.Keyword = self.Keyword
+	ghost.Limit = self.Limit
+	ghost.Keyin = self.Keyin
 
 	ghost.Namespace = self.Namespace
 	ghost.SubNamespace = self.SubNamespace
@@ -245,9 +235,9 @@ func (self *Spider) Copy() *Spider {
 }
 
 func (self *Spider) ReqmatrixInit() *Spider {
-	if self.MaxPage < 0 {
-		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), self.MaxPage)
-		self.SetMaxPage(0)
+	if self.Limit < 0 {
+		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), self.Limit)
+		self.SetLimit(0)
 	} else {
 		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), math.MinInt64)
 	}

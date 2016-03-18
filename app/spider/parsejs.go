@@ -16,16 +16,16 @@ import (
 // 蜘蛛规则解释器模型
 type (
 	SpiderModle struct {
-		Name          string      `xml:"Name"`
-		Description   string      `xml:"Description"`
-		EnableKeyword bool        `xml:"EnableKeyword"`
-		EnableCookie  bool        `xml:"EnableCookie"`
-		EnableMaxPage bool        `xml:"EnableMaxPage"`
-		Pausetime     int64       `xml:"Pausetime"`
-		Namespace     string      `xml:"Namespace>Script"`
-		SubNamespace  string      `xml:"SubNamespace>Script"`
-		Root          string      `xml:"Root>Script"`
-		Trunk         []RuleModle `xml:"Rule"`
+		Name         string      `xml:"Name"`
+		Description  string      `xml:"Description"`
+		EnableKeyin  bool        `xml:"EnableKeyin"`
+		EnableCookie bool        `xml:"EnableCookie"`
+		EnableLimit  bool        `xml:"EnableLimit"`
+		Pausetime    int64       `xml:"Pausetime"`
+		Namespace    string      `xml:"Namespace>Script"`
+		SubNamespace string      `xml:"SubNamespace>Script"`
+		Root         string      `xml:"Root>Script"`
+		Trunk        []RuleModle `xml:"Rule"`
 	}
 	RuleModle struct {
 		Name      string `xml:"name,attr"`
@@ -43,11 +43,11 @@ func init() {
 			Pausetime:    m.Pausetime,
 			RuleTree:     &RuleTree{Trunk: map[string]*Rule{}},
 		}
-		if m.EnableKeyword {
-			sp.Keyword = KEYWORD
+		if m.EnableKeyin {
+			sp.Keyin = KEYIN
 		}
-		if m.EnableMaxPage {
-			sp.MaxPage = MAXPAGE
+		if m.EnableLimit {
+			sp.Limit = LIMIT
 		}
 
 		if m.Namespace != "" {

@@ -8,7 +8,6 @@ import (
 	"github.com/henrylee2cn/pholcus/common/util"
 	ws "github.com/henrylee2cn/pholcus/common/websocket"
 	"github.com/henrylee2cn/pholcus/config"
-	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
@@ -160,9 +159,7 @@ func init() {
 
 	wsApi["run"] = func(sessID string, req map[string]interface{}) {
 		if app.LogicApp.GetAppConf("mode").(int) != status.CLIENT {
-			if !setConf(req) {
-				return
-			}
+			setConf(req)
 		}
 
 		if app.LogicApp.GetAppConf("mode").(int) == status.OFFLINE {
@@ -270,15 +267,15 @@ func tplData(mode int) map[string]interface{} {
 		"curr": app.LogicApp.GetAppConf("DockerCap").(int),
 	}
 
-	// 最大页数
-	if app.LogicApp.GetAppConf("MaxPage").(int64) != spider.MAXPAGE {
-		info["MaxPage"] = app.LogicApp.GetAppConf("MaxPage")
+	// 采集上限
+	if app.LogicApp.GetAppConf("Limit").(int64) == spider.LIMIT {
+		info["Limit"] = 0
 	} else {
-		info["MaxPage"] = 0
+		info["Limit"] = app.LogicApp.GetAppConf("Limit")
 	}
 
-	// 关键词
-	info["Keywords"] = app.LogicApp.GetAppConf("Keywords")
+	// 自定义配置
+	info["Keyins"] = app.LogicApp.GetAppConf("Keyins")
 
 	// 继承历史记录
 	info["SuccessInherit"] = app.LogicApp.GetAppConf("SuccessInherit")
@@ -291,7 +288,7 @@ func tplData(mode int) map[string]interface{} {
 }
 
 // 配置运行参数
-func setConf(req map[string]interface{}) bool {
+func setConf(req map[string]interface{}) {
 	if tn := util.Atoi(req["ThreadNum"]); tn == 0 {
 		app.LogicApp.SetAppConf("ThreadNum", 1)
 	} else {
@@ -303,22 +300,18 @@ func setConf(req map[string]interface{}) bool {
 		SetAppConf("ProxyMinute", int64(util.Atoi(req["ProxyMinute"]))).
 		SetAppConf("OutType", util.Atoa(req["OutType"])).
 		SetAppConf("DockerCap", util.Atoi(req["DockerCap"])).
-		SetAppConf("MaxPage", int64(util.Atoi(req["MaxPage"]))).
-		SetAppConf("Keywords", util.Atoa(req["Keywords"])).
+		SetAppConf("Limit", int64(util.Atoi(req["Limit"]))).
+		SetAppConf("Keyins", util.Atoa(req["Keyins"])).
 		SetAppConf("SuccessInherit", req["SuccessInherit"] == "true").
 		SetAppConf("FailureInherit", req["FailureInherit"] == "true")
 
-	if !setSpiderQueue(req) {
-		return false
-	}
-	return true
+	setSpiderQueue(req)
 }
 
-func setSpiderQueue(req map[string]interface{}) bool {
+func setSpiderQueue(req map[string]interface{}) {
 	spNames, ok := req["spiders"].([]interface{})
 	if !ok {
-		logs.Log.Warning(" *     —— 亲，任务列表不能为空哦~")
-		return false
+		return
 	}
 	spiders := []*spider.Spider{}
 	for _, sp := range app.LogicApp.GetSpiderLib() {
@@ -329,9 +322,4 @@ func setSpiderQueue(req map[string]interface{}) bool {
 		}
 	}
 	app.LogicApp.SpiderPrepare(spiders)
-	if app.LogicApp.GetSpiderQueue().Len() == 0 {
-		logs.Log.Warning(" *     —— 亲，任务列表不能为空哦~")
-		return false
-	}
-	return true
 }

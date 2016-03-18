@@ -1,10 +1,9 @@
 package crawl
 
 import (
-	"errors"
-	"strings"
-
 	. "github.com/henrylee2cn/pholcus/app/spider"
+	"github.com/henrylee2cn/pholcus/common/util"
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 // 运行时蜘蛛队列
@@ -13,15 +12,15 @@ type (
 		Reset() //重置清空队列
 		Add(*Spider)
 		AddAll([]*Spider)
-		AddKeywords(string) error //为队列成员遍历添加Keyword属性，但前提必须是队列成员未被添加过keyword
+		AddKeyins(string) //为队列成员遍历添加Keyin属性，但前提必须是队列成员未被添加过keyin
 		GetByIndex(int) *Spider
 		GetByName(string) *Spider
 		GetAll() []*Spider
 		Len() int // 返回队列长度
 	}
 	sq struct {
-		list       []*Spider
-		hasKeyWord bool
+		list []*Spider
+		// hasKeyin bool
 	}
 )
 
@@ -46,20 +45,17 @@ func (self *sq) AddAll(list []*Spider) {
 	}
 }
 
-// 添加keyword，遍历蜘蛛队列得到新的队列（已被显式赋值过的spider将不再重新分配Keyword）
-func (self *sq) AddKeywords(keywords string) error {
-	keywords = strings.Trim(keywords, " ")
-	keywords = strings.Trim(keywords, "\n")
-	keywords = strings.Trim(keywords, "\r")
-	keywords = strings.Trim(keywords, "\t")
-	if keywords == "" {
-		return errors.New("遍历关键词失败：keywords 不能为空！")
+// 添加keyin，遍历蜘蛛队列得到新的队列（已被显式赋值过的spider将不再重新分配Keyin）
+func (self *sq) AddKeyins(keyins string) {
+	keyinSlice := util.KeyinsParse(keyins)
+	if len(keyinSlice) == 0 {
+		return
 	}
 
-	unit1 := []*Spider{} // 不可被添加kw的蜘蛛
-	unit2 := []*Spider{} // 可被添加kw的蜘蛛
+	unit1 := []*Spider{} // 不可被添加自定义配置的蜘蛛
+	unit2 := []*Spider{} // 可被添加自定义配置的蜘蛛
 	for _, v := range self.GetAll() {
-		if v.GetKeyword() == KEYWORD {
+		if v.GetKeyin() == KEYIN {
 			unit2 = append(unit2, v)
 			continue
 		}
@@ -67,19 +63,15 @@ func (self *sq) AddKeywords(keywords string) error {
 	}
 
 	if len(unit2) == 0 {
-		return errors.New("遍历关键词失败：没有可被添加的蜘蛛！")
+		logs.Log.Warning("本批任务无需填写自定义配置！\n")
+		return
 	}
 
 	self.Reset()
 
-	keywordSlice := strings.Split(keywords, "|")
-	for _, keyword := range keywordSlice {
-		keyword = strings.Trim(keyword, " ")
-		if keyword == "" {
-			continue
-		}
+	for _, keyin := range keyinSlice {
 		for _, v := range unit2 {
-			v.Keyword = keyword
+			v.Keyin = keyin
 			nv := *v
 			self.Add((&nv).Copy())
 		}
@@ -89,7 +81,6 @@ func (self *sq) AddKeywords(keywords string) error {
 	}
 
 	self.AddAll(unit1)
-	return nil
 }
 
 func (self *sq) GetByIndex(idx int) *Spider {

@@ -299,15 +299,15 @@ func (self *Context) Parse(ruleName ...string) *Context {
 	return self
 }
 
-// 设置自定义输入。
-func (self *Context) SetKeyword(keyword string) *Context {
-	self.spider.SetKeyword(keyword)
+// 设置自定义配置。
+func (self *Context) SetKeyin(keyin string) *Context {
+	self.spider.SetKeyin(keyin)
 	return self
 }
 
-// 设置采集的最大页数。
-func (self *Context) SetMaxPage(max int) *Context {
-	self.spider.SetMaxPage(int64(max))
+// 设置采集上限。
+func (self *Context) SetLimit(max int) *Context {
+	self.spider.SetLimit(int64(max))
 	return self
 }
 
@@ -408,14 +408,14 @@ func (self *Context) GetFiles() []map[string]interface{} {
 	return self.files
 }
 
-// 获取自定义输入。
-func (self *Context) GetKeyword() string {
-	return self.spider.GetKeyword()
+// 获取自定义配置。
+func (self *Context) GetKeyin() string {
+	return self.spider.GetKeyin()
 }
 
-// 获取采集的最大页数。
-func (self *Context) GetMaxPage() int {
-	return int(self.spider.GetMaxPage())
+// 获取采集上限。
+func (self *Context) GetLimit() int {
+	return int(self.spider.GetLimit())
 }
 
 // 获取蜘蛛名。

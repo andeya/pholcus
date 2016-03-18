@@ -11,7 +11,7 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/logs"
-	"github.com/henrylee2cn/pholcus/runtime/status"
+	"github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
 var (
@@ -23,10 +23,10 @@ var (
 
 // 获取外部参数
 func Flag() {
-	flag.String("b . . . . . . . . . . . . .. . . . . . . . . . . only for web . . . . . . . . . . . . . .. . . . . . . . . . b", "web", "\r\n")
+	flag.String("b ******************************************** only for web ******************************************** -b", "", "")
 	// web服务器IP与端口号
 	ip = flag.String("b_ip", "0.0.0.0", "   <Web Server IP>")
-	port = flag.Int("b_port", 9090, "   <Web Server Port>\r\n\r\n")
+	port = flag.Int("b_port", 9090, "   <Web Server Port>")
 }
 
 // 执行入口
@@ -48,7 +48,7 @@ func Run() {
 }
 
 func appInit() {
-	app.LogicApp.SetLog(Lsc).AsyncLog(true).SetAppConf("Mode", status.UNSET)
+	app.LogicApp.SetLog(Lsc).AsyncLog(true).SetAppConf("Mode", cache.Task.Mode)
 
 	spiderMenu = func() (spmenu []map[string]string) {
 		// 获取蜘蛛家族

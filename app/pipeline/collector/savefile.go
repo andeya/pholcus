@@ -43,7 +43,7 @@ func (self *Collector) SaveFile() {
 
 			// 打印报告
 			logs.Log.Informational(" * ")
-			logs.Log.Notice(" *     [任务：%v | 关键词：%v]   成功下载文件： %v \n", self.Spider.GetName(), self.Spider.GetKeyword(), fileName)
+			logs.Log.Notice(" *     [任务：%v | KEYIN：%v]   成功下载文件： %v \n", self.Spider.GetName(), self.Spider.GetKeyin(), fileName)
 			logs.Log.Informational(" * ")
 
 			self.outCount[3]++

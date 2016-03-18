@@ -16,13 +16,13 @@ var Html = function(info) {
                     </tr>' + spidersHtml(info.spiders) + '</tbody></table></div></div>\
             <div class="form-2 box">\
               <div class="form-group">\
-                <label>自定义输入 ( 多任务间以 " | " 隔开 )</label>\
-                <textarea name="Keywords" class="form-control" rows="2" placeholder="Enter ...">' + info.Keywords + '</textarea>\
+                <label>自定义配置（多任务请分别多包一层“<>”）</label>\
+                <textarea name="Keyins" class="form-control" rows="2" placeholder="Enter ...">' + info.Keyins + '</textarea>\
               </div>\
             <div class="inline">\
               <div class="form-group">\
-                <label>最大采集页数</label>\
-                <input name="MaxPage" type="number" class="form-control" min="0" value="' + info.MaxPage + '">\
+                <label>采集上限（默认限制URL数）</label>\
+                <input name="Limit" type="number" class="form-control" min="0" value="' + info.Limit + '">\
               </div>' +
         ThreadNumHtml(info.ThreadNum) +
         PausetimeHtml(info.Pausetime) +
@@ -74,7 +74,7 @@ var ThreadNumHtml = function(ThreadNum) {
 
 var DockerCapHtml = function(DockerCap) {
     return '<div class="form-group">\
-                <label>分批输出大小</label>\
+                <label>分批输出限制</label>\
                 <input name="DockerCap" type="number" class="form-control" min="' + DockerCap.min + '" max="' + DockerCap.max + '" value="' + DockerCap.curr + '">\
               </div>';
 }

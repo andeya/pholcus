@@ -212,9 +212,9 @@ function getForm() {
     return {
         'operate': 'run',
         'spiders': getSpiders(),
-        'Keywords': document.pholcus.elements['Keywords'].value,
+        'Keyins': document.pholcus.elements['Keyins'].value,
         'ThreadNum': document.pholcus.elements['ThreadNum'].value,
-        'MaxPage': document.pholcus.elements['MaxPage'].value,
+        'Limit': document.pholcus.elements['Limit'].value,
         'DockerCap': document.pholcus.elements['DockerCap'].value,
         'Pausetime': document.pholcus.elements['Pausetime'].value,
         'ProxyMinute': document.pholcus.elements['ProxyMinute'].value,

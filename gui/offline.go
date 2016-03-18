@@ -52,10 +52,10 @@ func offlineWindow() {
 							VSplitter{
 								Children: []Widget{
 									Label{
-										Text: "自定义输入：（多任务之间以 | 隔开，选填）",
+										Text: "自定义配置（多任务请分别多包一层“<>”）：",
 									},
 									LineEdit{
-										Text: Bind("Keywords"),
+										Text: Bind("Keyins"),
 									},
 								},
 							},
@@ -63,10 +63,10 @@ func offlineWindow() {
 							VSplitter{
 								Children: []Widget{
 									Label{
-										Text: "最大采集页数：",
+										Text: "*采集上限（默认限制URL数）：",
 									},
 									NumberEdit{
-										Value:    Bind("MaxPage"),
+										Value:    Bind("Limit"),
 										Suffix:   "",
 										Decimals: 0,
 									},
@@ -246,10 +246,10 @@ func offlineRunStop() {
 	// 读取任务
 	Input.Spiders = spiderMenu.GetChecked()
 
-	if len(Input.Spiders) == 0 {
-		logs.Log.Warning(" *     —— 亲，任务列表不能为空哦~")
-		return
-	}
+	// if len(Input.Spiders) == 0 {
+	// 	logs.Log.Warning(" *     —— 亲，任务列表不能为空哦~")
+	// 	return
+	// }
 
 	runStopBtn.SetText("停止")
 
