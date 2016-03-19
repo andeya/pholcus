@@ -62,7 +62,7 @@ func Run() {
 	// 运行
 	app.LogicApp.SpiderPrepare(sps).Run()
 
-	if app.LogicApp.GetAppConf("Mode") == status.OFFLINE {
+	if app.LogicApp.GetAppConf("Mode").(int) <= status.OFFLINE {
 		return
 	}
 
