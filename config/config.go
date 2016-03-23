@@ -6,7 +6,7 @@ import (
 
 // 软件信息。
 const (
-	VERSION   string = "v0.8.2"                                      // 软件版本号
+	VERSION   string = "v0.8.5"                                      // 软件版本号
 	AUTHOR    string = "henrylee2cn"                                 // 软件作者
 	NAME      string = "Pholcus幽灵蛛数据采集"                              // 软件名
 	FULL_NAME string = NAME + "_" + VERSION + " （by " + AUTHOR + "）" // 软件全称
