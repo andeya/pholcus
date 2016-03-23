@@ -71,10 +71,12 @@ func main() {
 #### 编译运行
 正常编译方法
 ```
+cd {{replace your gopath}}/src/github.com/henrylee2cn/pholcus
 go install 或者 go build
 ```
 Windows下隐藏cmd窗口的编译方法
 ```
+cd {{replace your gopath}}/src/github.com/henrylee2cn/pholcus
 go install -ldflags="-H windowsgui" 或者 go build -ldflags="-H windowsgui"
 ```
 查看可选参数: 
@@ -85,7 +87,7 @@ pholcus -h
 
 &nbsp;
 
-> *<font size="2">(注意：当运行web操作界面时请将 src/github.com/henrylee2cn/pholcus/web 文件夹拷贝至当前项目目录下，其中的go文件可删除)，Web版操作界面截图如下：*
+> *<font size="2">Web版操作界面截图如下：*
 
 ![image](https://github.com/henrylee2cn/pholcus/raw/master/doc/webshow_1.jpg)
 
