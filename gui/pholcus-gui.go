@@ -17,7 +17,7 @@ import (
 
 // 执行入口
 func Run() {
-	app.LogicApp.AsyncLog(true).SetAppConf("Mode", status.OFFLINE)
+	app.LogicApp.SetAppConf("Mode", status.OFFLINE)
 
 	outputList = func() (o []declarative.RadioButton) {
 		// 设置默认选择

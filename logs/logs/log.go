@@ -49,6 +49,7 @@ import (
 // RFC5424 log message levels.
 const (
 	LevelNothing = iota - 1
+	LevelApp     // only for pholcus
 	LevelEmergency
 	LevelAlert
 	LevelCritical
@@ -101,9 +102,8 @@ type BeeLogger struct {
 	loggerFuncCallDepth int
 	asynchronous        bool
 	msg                 chan *logMsg
-	steal               []*logMsg
+	steal               chan *logMsg
 	stealLevel          int
-	stealLock           sync.Mutex
 	outputs             map[string]LoggerInterface
 	status              int
 }
@@ -123,7 +123,7 @@ func NewLogger(channellen int64, stealLevel ...int) *BeeLogger {
 	bl.msg = make(chan *logMsg, channellen)
 	bl.outputs = make(map[string]LoggerInterface)
 	bl.status = WORK
-	bl.steal = []*logMsg{}
+	bl.steal = make(chan *logMsg, channellen)
 	if len(stealLevel) > 0 {
 		bl.stealLevel = stealLevel[0]
 	} else {
@@ -190,7 +190,7 @@ func (bl *BeeLogger) writerMsg(loglevel int, msg string) error {
 		lm.msg = msg
 	}
 
-	if bl.stealLevel >= lm.level {
+	if lm.level <= bl.stealLevel {
 		bl.stealOne(lm)
 	}
 
@@ -253,6 +253,15 @@ func (bl *BeeLogger) startLogger() {
 			bl.lock.RUnlock()
 		}
 	}
+}
+
+// Log APP level message.
+func (bl *BeeLogger) App(format string, v ...interface{}) {
+	if LevelApp > bl.level {
+		return
+	}
+	msg := fmt.Sprintf("[P] "+format, v...)
+	bl.writerMsg(LevelApp, msg)
 }
 
 // Log EMERGENCY level message.
@@ -336,7 +345,11 @@ func (bl *BeeLogger) Flush() {
 
 // close logger, flush all chan data and destroy all adapters in BeeLogger.
 func (bl *BeeLogger) Close() {
-	bl.SetStatus(CLOSE)
+	bl.lock.Lock()
+	bl.status = CLOSE
+	close(bl.steal)
+	bl.lock.Unlock()
+
 	bl.lock.RLock()
 	defer bl.lock.RUnlock()
 	for {
@@ -352,6 +365,7 @@ func (bl *BeeLogger) Close() {
 		}
 		break
 	}
+
 	for _, l := range bl.outputs {
 		l.Flush()
 		l.Destroy()
@@ -373,25 +387,21 @@ func (bl *BeeLogger) GoOn() {
 }
 
 // get a log message
-func (bl *BeeLogger) StealOne() (level int, msg string, normal bool) {
-	bl.stealLock.Lock()
-	defer bl.stealLock.Unlock()
-	if len(bl.steal) == 0 {
-		if bl.status == CLOSE {
-			return 0, "", false
-		} else {
-			return 0, "", true
-		}
+func (bl *BeeLogger) StealOne() (level int, msg string, ok bool) {
+	lm := <-bl.steal
+	if lm == nil {
+		return 0, "", false
 	}
-	lm := bl.steal[0]
-	bl.steal = bl.steal[1:]
 	return lm.level, lm.msg, true
 }
 
 func (bl *BeeLogger) stealOne(lm *logMsg) {
-	bl.stealLock.Lock()
-	defer bl.stealLock.Unlock()
-	bl.steal = append(bl.steal, lm)
+	bl.lock.RLock()
+	defer bl.lock.RUnlock()
+	if bl.status == CLOSE {
+		return
+	}
+	bl.steal <- lm
 }
 
 func (bl *BeeLogger) Status() (int, string) {

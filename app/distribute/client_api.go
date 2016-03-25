@@ -13,7 +13,7 @@ func ClientApi(n subApp) teleport.API {
 		"task": &task2{n},
 
 		// 打印接收到的报告
-		"log": new(log2),
+		// "log": new(log2),
 	}
 }
 
@@ -32,11 +32,11 @@ func (self *task2) Process(receive *teleport.NetData) *teleport.NetData {
 	return nil
 }
 
-type log2 struct{}
+// type log2 struct{}
 
-func (*log2) Process(receive *teleport.NetData) *teleport.NetData {
-	logs.Log.Informational(" * ")
-	logs.Log.Informational(" *     [ %s ]    %s", receive.From, receive.Body)
-	logs.Log.Informational(" * ")
-	return nil
-}
+// func (*log2) Process(receive *teleport.NetData) *teleport.NetData {
+// 	logs.Log.Informational(" * ")
+// 	logs.Log.Informational(" *     [ %s ]    %s", receive.From, receive.Body)
+// 	logs.Log.Informational(" * ")
+// 	return nil
+// }

@@ -14,10 +14,6 @@ type (
 	Logs interface {
 		// 设置实时log信息显示终端
 		SetOutput(show io.Writer) Logs
-		// 设置日志截获水平，不设置不截获
-		SetStealLevel() Logs
-		// 设置是否异步输出
-		Async(enable bool) Logs
 		// 暂停输出日志
 		Rest()
 		// 恢复暂停状态，继续输出日志
@@ -34,6 +30,7 @@ type (
 		// 以下打印方法除正常log输出外，若为客户端或服务端模式还将进行socket信息发送
 		Debug(format string, v ...interface{})
 		Informational(format string, v ...interface{})
+		App(format string, v ...interface{})
 		Notice(format string, v ...interface{})
 		Warning(format string, v ...interface{})
 		Error(format string, v ...interface{})
@@ -46,9 +43,7 @@ type (
 	}
 )
 
-var Log = NewLogs()
-
-func NewLogs(enableFuncCallDepth ...bool) Logs {
+var Log = func() Logs {
 	p, _ := path.Split(config.LOG)
 	// 不存在目录时创建目录
 	d, err := os.Stat(p)
@@ -59,47 +54,37 @@ func NewLogs(enableFuncCallDepth ...bool) Logs {
 	}
 
 	ml := &mylog{
-		BeeLogger: logs.NewLogger(config.LOG_CAP),
+		BeeLogger: logs.NewLogger(config.LOG_CAP, config.LOG_FEEDBACK_LEVEL),
 	}
 
-	// 是否打印行号
-	if len(enableFuncCallDepth) > 0 {
-		ml.BeeLogger.EnableFuncCallDepth(enableFuncCallDepth[0])
-	}
-
-	ml.BeeLogger.SetLevel(logs.LevelDebug)
-
+	// 是否打印行信息
+	ml.BeeLogger.EnableFuncCallDepth(config.LOG_LINEINFO)
+	// 全局日志打印级别（亦是日志文件输出级别）
+	ml.BeeLogger.SetLevel(config.LOG_LEVEL)
+	// 是否异步输出日志
+	ml.BeeLogger.Async(config.LOG_ASYNC)
+	// 设置日志显示位置
 	ml.BeeLogger.SetLogger("console", map[string]interface{}{
-		"level": logs.LevelInformational,
+		"level": config.LOG_CONSOLE_LEVEL,
 	})
 
-	err = ml.BeeLogger.SetLogger("file", map[string]interface{}{
-		"filename": config.LOG,
-	})
-	if err != nil {
-		fmt.Printf("日志文档创建失败：%v", err)
+	// 是否保存所有日志到本地文件
+	if config.LOG_SAVE {
+		err = ml.BeeLogger.SetLogger("file", map[string]interface{}{
+			"filename": config.LOG,
+		})
+		if err != nil {
+			fmt.Printf("日志文档创建失败：%v", err)
+		}
 	}
+
 	return ml
-}
+}()
 
 func (self *mylog) SetOutput(show io.Writer) Logs {
 	self.BeeLogger.SetLogger("console", map[string]interface{}{
 		"writer": show,
-		"level":  logs.LevelInformational,
+		"level":  config.LOG_CONSOLE_LEVEL,
 	})
 	return self
-}
-
-func (self *mylog) SetStealLevel() Logs {
-	self.BeeLogger.SetStealLevel(logs.LevelNotice)
-	return self
-}
-
-func (self *mylog) Async(enable bool) Logs {
-	self.BeeLogger.Async(enable)
-	return self
-}
-
-func ShowLineNum() {
-	Log = NewLogs(true)
 }
