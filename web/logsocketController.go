@@ -88,6 +88,7 @@ func (self *LogView) Write(p []byte) (int, error) {
 	if self.closed {
 		goto end
 	}
+	defer func() { recover() }()
 	self.logChan <- (string(p) + "\r\n")
 end:
 	return len(p), nil
