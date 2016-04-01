@@ -108,7 +108,7 @@ $ pholcus -_ui=cmd -a_mode=0 -c_spider=3,8 -a_outtype=csv -a_thread=20 -a_docker
 ```
 ├─pholcus 软件
 │
-├─pholcus.pkg 运行时文件目录
+├─pholcus_pkg 运行时文件目录
 │  ├─config.ini 配置文件
 │  │
 │  ├─proxy.lib 代理IP列表文件
@@ -117,6 +117,10 @@ $ pholcus -_ui=cmd -a_mode=0 -c_spider=3,8 -a_outtype=csv -a_thread=20 -a_docker
 │  │  └─xxx.pholcus.html 动态规则文件
 │  │
 │  ├─phantomjs 程序文件
+│  │
+│  ├─text_out 文本数据文件输出目录
+│  │
+│  ├─file_out 文件结果输出目录
 │  │
 │  ├─logs 日志目录
 │  │

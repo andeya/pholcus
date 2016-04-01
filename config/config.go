@@ -19,7 +19,7 @@ const (
 
 // 默认配置。
 const (
-	WORK_ROOT      string = TAG + ".pkg"                    // 运行时的目录名称
+	WORK_ROOT      string = TAG + "_pkg"                    // 运行时的目录名称
 	CONFIG         string = WORK_ROOT + "/config.ini"       // 配置文件路径
 	CACHE_DIR      string = WORK_ROOT + "/cache"            // 缓存文件目录
 	LOG            string = WORK_ROOT + "/logs/pholcus.log" // 日志文件路径
@@ -27,8 +27,8 @@ const (
 	PHANTOMJS_TEMP string = CACHE_DIR                       // Surfer-Phantom下载器：js文件临时目录
 	HISTORY_TAG    string = "history"                       // 历史记录的标识符
 	HISTORY_DIR    string = WORK_ROOT + "/" + HISTORY_TAG   // excel或csv输出方式下，历史记录目录
-	FILE_DIR       string = WORK_ROOT + "/file.out"         // 文件（图片、HTML等）结果的输出目录
-	TEXT_DIR       string = WORK_ROOT + "/text.out"         // excel或csv输出方式下，文本结果的输出目录
+	FILE_DIR       string = WORK_ROOT + "/file_out"         // 文件（图片、HTML等）结果的输出目录
+	TEXT_DIR       string = WORK_ROOT + "/text_out"         // excel或csv输出方式下，文本结果的输出目录
 	SPIDER_EXT     string = ".pholcus.html"                 // 动态规则扩展名
 )
 
