@@ -42,6 +42,7 @@ var (
 	DB_NAME                  string = setting.String("dbname")                                             // 数据库名称
 	MGO_CONN_STR             string = setting.String("mgo::connstring")                                    // mongodb连接字符串
 	MGO_CONN_CAP             int    = setting.DefaultInt("mgo::conncap", mgoconncap)                       // mongodb连接池容量
+	MGO_CONN_GC_SECOND       int64  = setting.DefaultInt64("mgo::conngcsecond", mgoconngcsecond)           // mongodb连接池GC时间，单位秒
 	MYSQL_CONN_STR           string = setting.String("mysql::connstring")                                  // mysql连接字符串
 	MYSQL_CONN_CAP           int    = setting.DefaultInt("mysql::conncap", mysqlconncap)                   // mysql连接池容量
 	MYSQL_MAX_ALLOWED_PACKET int    = setting.DefaultInt("mysql::maxallowedpacket", mysqlmaxallowedpacket) // mysql通信缓冲区的最大长度

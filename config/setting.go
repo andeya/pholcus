@@ -25,6 +25,7 @@ const (
 	dbname                string = TAG                         // 数据库名称
 	mgoconnstring         string = "127.0.0.1:27017"           // mongodb连接字符串
 	mgoconncap            int    = 1024                        // mongodb连接池容量
+	mgoconngcsecond       int64  = 600                         // mongodb连接池GC时间，单位秒
 	mysqlconnstring       string = "root:@tcp(127.0.0.1:3306)" // mysql连接字符串
 	mysqlconncap          int    = 2048                        // mysql连接池容量
 	mysqlmaxallowedpacket int    = 1 << 20                     // mysql通信缓冲区的最大长度，默认1MB
@@ -83,6 +84,7 @@ func defaultConfig(iniconf config.ConfigContainer) {
 	iniconf.Set("dbname", dbname)
 	iniconf.Set("mgo::connstring", mgoconnstring)
 	iniconf.Set("mgo::conncap", strconv.Itoa(mgoconncap))
+	iniconf.Set("mgo::conngcsecond", strconv.FormatInt(mgoconngcsecond, 10))
 	iniconf.Set("mysql::connstring", mysqlconnstring)
 	iniconf.Set("mysql::conncap", strconv.Itoa(mysqlconncap))
 	iniconf.Set("mysql::maxallowedpacket", strconv.Itoa(mysqlmaxallowedpacket))
@@ -139,6 +141,9 @@ func trySet(iniconf config.ConfigContainer) {
 	}
 	if v, e := iniconf.Int("mgo::conncap"); v <= 0 || e != nil {
 		iniconf.Set("mgo::conncap", strconv.Itoa(mgoconncap))
+	}
+	if v, e := iniconf.Int64("mgo::conngcsecond"); v <= 0 || e != nil {
+		iniconf.Set("mgo::conngcsecond", strconv.FormatInt(mgoconngcsecond, 10))
 	}
 	if v := iniconf.String("mysql::connstring"); v == "" {
 		iniconf.Set("mysql::connstring", mysqlconnstring)

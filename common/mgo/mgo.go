@@ -1,6 +1,8 @@
 package mgo
 
 import (
+	"time"
+
 	mgo "gopkg.in/mgo.v2"
 
 	"github.com/henrylee2cn/pholcus/common/pool"
@@ -13,9 +15,10 @@ type MgoSrc struct {
 }
 
 var (
-	session *mgo.Session
-	err     error
-	MgoPool = pool.ClassicPool(
+	connGcSecond = time.Duration(config.MGO_CONN_GC_SECOND) * 1e9
+	session      *mgo.Session
+	err          error
+	MgoPool      = pool.ClassicPool(
 		config.MGO_CONN_CAP,
 		config.MGO_CONN_CAP/5,
 		func() (pool.Src, error) {
@@ -24,7 +27,7 @@ var (
 			// }
 			return &MgoSrc{session.Clone()}, err
 		},
-		60e9)
+		connGcSecond)
 )
 
 func Refresh() {
