@@ -21,12 +21,14 @@ type MyTable struct {
 	sqlCode          string
 	customPrimaryKey bool
 	*sql.DB
+	size int //内容大小的近似值
 }
 
 var (
-	db       *sql.DB
-	err      error
-	stmtChan = make(chan bool, config.MYSQL_CONN_CAP)
+	db                 *sql.DB
+	err                error
+	stmtChan           = make(chan bool, config.MYSQL_CONN_CAP)
+	max_allowed_packet = config.MYSQL_MAX_ALLOWED_PACKET - 1024
 )
 
 func DB() (*sql.DB, error) {
@@ -112,16 +114,34 @@ func (self *MyTable) Create() *MyTable {
 }
 
 //设置插入的1行数据
-func (self *MyTable) AddRow(value []string) *MyTable {
+func (self *MyTable) addRow(value []string) *MyTable {
 	self.rows = append(self.rows, value)
 	return self
 }
 
-//向sqlCode添加"插入1行数据"的语句，执行前须保证Create()、AddRow()已经执行
+//智能插入数据，每次1行
+func (self *MyTable) AutoInsert(value []string) *MyTable {
+	var nsize int
+	for _, v := range value {
+		nsize += len(v)
+	}
+	if nsize > max_allowed_packet {
+		logs.Log.Error("%v", "packet for query is too large. Try adjusting the 'maxallowedpacket'variable in the 'config.ini'")
+		return self
+	}
+	self.size += nsize
+	if self.size > max_allowed_packet {
+		util.CheckErr(self.FlushInsert())
+		return self.AutoInsert(value)
+	}
+	return self.addRow(value)
+}
+
+//向sqlCode添加"插入数据"的语句，执行前须保证Create()、AutoInsert()已经执行
 //insert into table1(field1,field2) values(rows[0]),(rows[1])...
-func (self *MyTable) Update() error {
+func (self *MyTable) FlushInsert() error {
 	if len(self.rows) == 0 {
-		return errors.New("Mysql更新内容为空")
+		return nil
 	}
 
 	self.sqlCode = `insert into ` + self.tableName + `(`
@@ -158,7 +178,7 @@ func (self *MyTable) Update() error {
 
 	// 清空临时数据
 	self.rows = [][]string{}
-
+	self.size = 0
 	return nil
 }
 

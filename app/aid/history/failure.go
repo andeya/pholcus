@@ -98,9 +98,9 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 			AddColumn(`failure MEDIUMTEXT`).
 			Create()
 		for req := range self.list {
-			table.AddRow([]string{req.Serialize()})
+			table.AutoInsert([]string{req.Serialize()})
 		}
-		table.Update()
+		table.FlushInsert()
 
 	default:
 		// 删除失败记录文件

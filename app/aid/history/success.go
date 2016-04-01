@@ -92,9 +92,10 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 			CustomPrimaryKey(`id VARCHAR(255) not null primary key`).
 			Create()
 		for key := range self.new {
-			table.AddRow([]string{key}).Update()
+			table.AutoInsert([]string{key})
 			self.old[key] = true
 		}
+		table.FlushInsert()
 
 	default:
 		f, _ := os.OpenFile(self.fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)

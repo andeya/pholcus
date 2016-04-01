@@ -48,10 +48,10 @@ func init() {
 				}
 			}
 			data = append(data, datacell["Url"].(string), datacell["ParentUrl"].(string), datacell["DownloadTime"].(string))
-			mysqls[subNamespace].AddRow(data)
+			mysqls[subNamespace].AutoInsert(data)
 		}
 		for _, tab := range mysqls {
-			util.CheckErr(tab.Update())
+			util.CheckErr(tab.FlushInsert())
 		}
 		return nil
 	}
