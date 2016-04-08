@@ -16,13 +16,6 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
-const (
-	SUCCESS_SUFFIX = config.HISTORY_TAG + "__y"
-	FAILURE_SUFFIX = config.HISTORY_TAG + "__n"
-	SUCCESS_FILE   = config.HISTORY_DIR + "/" + SUCCESS_SUFFIX
-	FAILURE_FILE   = config.HISTORY_DIR + "/" + FAILURE_SUFFIX
-)
-
 type (
 	Historier interface {
 		ReadSuccess(provider string, inherit bool) // 读取成功记录
@@ -45,6 +38,13 @@ type (
 		provider string
 		sync.RWMutex
 	}
+)
+
+const (
+	SUCCESS_SUFFIX = config.HISTORY_TAG + "__y"
+	FAILURE_SUFFIX = config.HISTORY_TAG + "__n"
+	SUCCESS_FILE   = config.HISTORY_DIR + "/" + SUCCESS_SUFFIX
+	FAILURE_FILE   = config.HISTORY_DIR + "/" + FAILURE_SUFFIX
 )
 
 func New(name string, subName string) Historier {
@@ -113,14 +113,17 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 		}
 
 	case "mysql":
-		db, err := mysql.DB()
+		_, err := mysql.DB()
 		if err != nil {
 			logs.Log.Error(" *     Fail  [读取成功记录][mysql]: %v\n", err)
 			return
 		}
-		rows, err := mysql.New(db).
-			SetTableName("`" + self.Success.tabName + "`").
-			SelectAll()
+		table, ok := getReadMysqlTable(self.Success.tabName)
+		if !ok {
+			table = mysql.New().SetTableName("`" + self.Success.tabName + "`")
+			setReadMysqlTable(self.Success.tabName, table)
+		}
+		rows, err := table.SelectAll()
 		if err != nil {
 			return
 		}
@@ -194,16 +197,18 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 		}
 
 	case "mysql":
-		db, err := mysql.DB()
+		_, err := mysql.DB()
 		if err != nil {
 			logs.Log.Error(" *     Fail  [读取失败记录][mysql]: %v\n", err)
 			return
 		}
-		rows, err := mysql.New(db).
-			SetTableName("`" + self.Failure.tabName + "`").
-			SelectAll()
+		table, ok := getReadMysqlTable(self.Failure.tabName)
+		if !ok {
+			table = mysql.New().SetTableName("`" + self.Failure.tabName + "`")
+			setReadMysqlTable(self.Failure.tabName, table)
+		}
+		rows, err := table.SelectAll()
 		if err != nil {
-			// logs.Log.Error("读取Mysql数据库中成功记录失败：%v", err)
 			return
 		}
 
@@ -289,4 +294,40 @@ func (self *History) FlushFailure(provider string) {
 	} else {
 		logs.Log.Informational(" *     [添加失败记录]: %v 条\n", failLen)
 	}
+}
+
+var (
+	readMysqlTable     = map[string]*mysql.MyTable{}
+	readMysqlTableLock sync.RWMutex
+)
+
+func getReadMysqlTable(name string) (*mysql.MyTable, bool) {
+	readMysqlTableLock.RLock()
+	tab, ok := readMysqlTable[name]
+	readMysqlTableLock.RUnlock()
+	return tab, ok
+}
+
+func setReadMysqlTable(name string, tab *mysql.MyTable) {
+	readMysqlTableLock.Lock()
+	readMysqlTable[name] = tab
+	readMysqlTableLock.Unlock()
+}
+
+var (
+	writeMysqlTable     = map[string]*mysql.MyTable{}
+	writeMysqlTableLock sync.RWMutex
+)
+
+func getWriteMysqlTable(name string) (*mysql.MyTable, bool) {
+	writeMysqlTableLock.RLock()
+	tab, ok := writeMysqlTable[name]
+	writeMysqlTableLock.RUnlock()
+	return tab, ok
+}
+
+func setWriteMysqlTable(name string, tab *mysql.MyTable) {
+	writeMysqlTableLock.Lock()
+	writeMysqlTable[name] = tab
+	writeMysqlTableLock.Unlock()
 }

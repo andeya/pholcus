@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
+	"sync"
 
 	_ "github.com/go-sql-driver/mysql"
 
@@ -20,8 +21,7 @@ type MyTable struct {
 	rows             [][]string  // 多行数据
 	sqlCode          string
 	customPrimaryKey bool
-	*sql.DB
-	size int //内容大小的近似值
+	size             int //内容大小的近似值
 }
 
 var (
@@ -29,22 +29,16 @@ var (
 	err                error
 	stmtChan           = make(chan bool, config.MYSQL_CONN_CAP)
 	max_allowed_packet = config.MYSQL_MAX_ALLOWED_PACKET - 1024
+	lock               sync.RWMutex
 )
 
 func DB() (*sql.DB, error) {
-	// if db == nil || err != nil {
-	// 	db, err = sql.Open("mysql", config.MYSQL.CONN_STR+"/"+config.MYSQL.DB+"?charset=utf8")
-	// 	if err != nil {
-	// 		logs.Log.Error("Mysql：%v\n", err)
-	// 		return db, err
-	// 	}
-	// 	db.SetMaxOpenConns(config.MYSQL.MAX_CONNS)
-	// 	db.SetMaxIdleConns(config.MYSQL.MAX_CONNS / 2)
-	// }
 	return db, err
 }
 
 func Refresh() {
+	lock.Lock()
+	defer lock.Unlock()
 	db, err = sql.Open("mysql", config.MYSQL_CONN_STR+"/"+config.DB_NAME+"?charset=utf8")
 	if err != nil {
 		logs.Log.Error("Mysql：%v\n", err)
@@ -57,10 +51,8 @@ func Refresh() {
 	}
 }
 
-func New(db *sql.DB) *MyTable {
-	return &MyTable{
-		DB: db,
-	}
+func New() *MyTable {
+	return &MyTable{}
 }
 
 //设置表名
@@ -87,9 +79,9 @@ func (self *MyTable) CustomPrimaryKey(primaryKeyCode string) *MyTable {
 }
 
 //生成"创建表单"的语句，执行前须保证SetTableName()、AddColumn()已经执行
-func (self *MyTable) Create() *MyTable {
+func (self *MyTable) Create() error {
 	if len(self.columnNames) == 0 {
-		return self
+		return errors.New("Column can not be empty")
 	}
 	self.sqlCode = `create table if not exists ` + self.tableName + `(`
 	if !self.customPrimaryKey {
@@ -105,12 +97,14 @@ func (self *MyTable) Create() *MyTable {
 	defer func() {
 		<-stmtChan
 	}()
-	stmt, err := self.DB.Prepare(self.sqlCode)
-	util.CheckErr(err)
-
+	lock.RLock()
+	defer lock.RUnlock()
+	stmt, err := db.Prepare(self.sqlCode)
+	if err != nil {
+		return err
+	}
 	_, err = stmt.Exec()
-	util.CheckErr(err)
-	return self
+	return err
 }
 
 //设置插入的1行数据
@@ -165,21 +159,20 @@ func (self *MyTable) FlushInsert() error {
 	defer func() {
 		<-stmtChan
 	}()
-
-	stmt, err := self.DB.Prepare(self.sqlCode)
+	lock.RLock()
+	defer lock.RUnlock()
+	defer func() {
+		// 清空临时数据
+		self.rows = [][]string{}
+		self.size = 0
+		self.sqlCode = ""
+	}()
+	stmt, err := db.Prepare(self.sqlCode)
 	if err != nil {
 		return err
 	}
-
 	_, err = stmt.Exec()
-	if err != nil {
-		return err
-	}
-
-	// 清空临时数据
-	self.rows = [][]string{}
-	self.size = 0
-	return nil
+	return err
 }
 
 // 获取全部数据
@@ -188,5 +181,7 @@ func (self *MyTable) SelectAll() (*sql.Rows, error) {
 		return nil, errors.New("表名不能为空")
 	}
 	self.sqlCode = `select * from ` + self.tableName + `;`
-	return self.DB.Query(self.sqlCode)
+	lock.RLock()
+	defer lock.RUnlock()
+	return db.Query(self.sqlCode)
 }

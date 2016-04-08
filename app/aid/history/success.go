@@ -83,19 +83,28 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 		}
 
 	case "mysql":
-		db, err := mysql.DB()
+		_, err := mysql.DB()
 		if err != nil {
 			return sLen, fmt.Errorf(" *     Fail  [添加成功记录][mysql]: %v 条 [ERROR]  %v\n", sLen, err)
 		}
-		table := mysql.New(db).
-			SetTableName("`" + self.tabName + "`").
-			CustomPrimaryKey(`id VARCHAR(255) not null primary key`).
-			Create()
+		table, ok := getWriteMysqlTable(self.tabName)
+		if !ok {
+			table = mysql.New()
+			table.SetTableName("`" + self.tabName + "`").CustomPrimaryKey(`id VARCHAR(255) not null primary key`)
+			err = table.Create()
+			if err != nil {
+				return sLen, fmt.Errorf(" *     Fail  [添加成功记录][mysql]: %v 条 [ERROR]  %v\n", sLen, err)
+			}
+			setWriteMysqlTable(self.tabName, table)
+		}
 		for key := range self.new {
 			table.AutoInsert([]string{key})
 			self.old[key] = true
 		}
-		table.FlushInsert()
+		err = table.FlushInsert()
+		if err != nil {
+			return sLen, fmt.Errorf(" *     Fail  [添加成功记录][mysql]: %v 条 [ERROR]  %v\n", sLen, err)
+		}
 
 	default:
 		f, _ := os.OpenFile(self.fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
