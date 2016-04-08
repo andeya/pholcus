@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
 	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
@@ -14,8 +15,8 @@ import (
 type Collector struct {
 	*spider.Spider
 	*DockerQueue
-	DataChan chan DataCell
-	FileChan chan FileCell
+	DataChan chan data.DataCell
+	FileChan chan data.FileCell
 	ctrl     chan bool //长度为零时退出并输出
 	timing   time.Time //上次输出完成的时间点
 	outType  string    //输出方式
@@ -25,8 +26,8 @@ type Collector struct {
 
 func NewCollector() *Collector {
 	self := &Collector{
-		DataChan:    make(chan DataCell, config.DATA_CHAN_CAP),
-		FileChan:    make(chan FileCell, 512),
+		DataChan:    make(chan data.DataCell, config.DATA_CHAN_CAP),
+		FileChan:    make(chan data.FileCell, 512),
 		DockerQueue: NewDockerQueue(),
 		ctrl:        make(chan bool, 1),
 	}
@@ -36,8 +37,8 @@ func NewCollector() *Collector {
 func (self *Collector) Init(sp *spider.Spider) {
 	self.Spider = sp
 	self.outType = cache.Task.OutType
-	self.DataChan = make(chan DataCell, config.DATA_CHAN_CAP)
-	self.FileChan = make(chan FileCell, 512)
+	self.DataChan = make(chan data.DataCell, config.DATA_CHAN_CAP)
+	self.FileChan = make(chan data.FileCell, 512)
 	self.DockerQueue = NewDockerQueue()
 	self.ctrl = make(chan bool, 1)
 	self.sum = [3]uint64{}
@@ -45,11 +46,11 @@ func (self *Collector) Init(sp *spider.Spider) {
 	self.timing = cache.StartTime
 }
 
-func (self *Collector) CollectData(dataCell DataCell) {
+func (self *Collector) CollectData(dataCell data.DataCell) {
 	self.DataChan <- dataCell
 }
 
-func (self *Collector) CollectFile(fileCell FileCell) {
+func (self *Collector) CollectFile(fileCell data.FileCell) {
 	self.FileChan <- fileCell
 }
 
@@ -95,7 +96,7 @@ func (self *Collector) Manage() {
 	self.Report()
 }
 
-func (self *Collector) dockerOne(data DataCell) {
+func (self *Collector) dockerOne(data data.DataCell) {
 	self.Dockers[self.Curr] = append(self.Dockers[self.Curr], data)
 
 	if len(self.Dockers[self.Curr]) >= cache.Task.DockerCap {

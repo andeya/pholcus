@@ -43,6 +43,11 @@ func init() {
 				}
 				delete(datacell, "Data")
 				delete(datacell, "RuleName")
+				if !self.Spider.OutDefaultField() {
+					delete(datacell, "Url")
+					delete(datacell, "ParentUrl")
+					delete(datacell, "DownloadTime")
+				}
 				dataMap[subNamespace] = append(dataMap[subNamespace], datacell)
 			}
 

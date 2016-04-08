@@ -2,9 +2,8 @@
 package pipeline
 
 import (
-	"io"
-
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector"
+	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
 	"github.com/henrylee2cn/pholcus/app/spider"
 )
 
@@ -16,9 +15,9 @@ type (
 		//控制通知
 		CtrlW()
 		// 收集数据单元
-		CollectData(ruleName string, data map[string]interface{}, url string, parentUrl string, downloadTime string)
+		CollectData(data.DataCell)
 		// 收集文件
-		CollectFile(ruleName, name string, body io.ReadCloser)
+		CollectFile(data.FileCell)
 		// 重置
 		Init(*spider.Spider)
 	}
@@ -34,12 +33,12 @@ func New() Pipeline {
 	}
 }
 
-func (self *pipeline) CollectData(ruleName string, data map[string]interface{}, url string, parentUrl string, downloadTime string) {
-	self.Collector.CollectData(collector.NewDataCell(ruleName, data, url, parentUrl, downloadTime))
+func (self *pipeline) CollectData(item data.DataCell) {
+	self.Collector.CollectData(item)
 }
 
-func (self *pipeline) CollectFile(ruleName, name string, body io.ReadCloser) {
-	self.Collector.CollectFile(collector.NewFileCell(ruleName, name, body))
+func (self *pipeline) CollectFile(f data.FileCell) {
+	self.Collector.CollectFile(f)
 }
 
 func (self *pipeline) Init(sp *spider.Spider) {

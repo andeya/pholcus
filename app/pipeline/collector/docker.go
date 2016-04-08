@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
@@ -12,13 +13,13 @@ type DockerQueue struct {
 	Curr    int
 	Cap     int
 	Using   map[int]bool
-	Dockers [][]DataCell
+	Dockers [][]data.DataCell
 }
 
 var changeMutex sync.Mutex
 
-func NewDocker() []DataCell {
-	return make([]DataCell, 0, cache.Task.DockerCap)
+func NewDocker() []data.DataCell {
+	return make([]data.DataCell, 0, cache.Task.DockerCap)
 }
 
 func NewDockerQueue() *DockerQueue {
@@ -31,7 +32,7 @@ func NewDockerQueue() *DockerQueue {
 		Curr:    0,
 		Cap:     queueCap,
 		Using:   make(map[int]bool, queueCap),
-		Dockers: make([][]DataCell, 0),
+		Dockers: make([][]data.DataCell, 0),
 	}
 
 	dockerQueue.Using[0] = true

@@ -49,7 +49,9 @@ func init() {
 
 				sheets[subNamespace] = csv.NewWriter(file)
 				th := self.MustGetRule(datacell["RuleName"].(string)).ItemFields
-				th = append(th, "当前链接", "上级链接", "下载时间")
+				if self.Spider.OutDefaultField() {
+					th = append(th, "当前链接", "上级链接", "下载时间")
+				}
 				sheets[subNamespace].Write(th)
 
 				defer func(file *os.File) {
@@ -69,10 +71,11 @@ func init() {
 					row = append(row, util.JsonString(vd[title]))
 				}
 			}
-
-			row = append(row, datacell["Url"].(string))
-			row = append(row, datacell["ParentUrl"].(string))
-			row = append(row, datacell["DownloadTime"].(string))
+			if self.Spider.OutDefaultField() {
+				row = append(row, datacell["Url"].(string))
+				row = append(row, datacell["ParentUrl"].(string))
+				row = append(row, datacell["DownloadTime"].(string))
+			}
 			sheets[subNamespace].Write(row)
 		}
 		return

@@ -33,8 +33,9 @@ type (
 		Limit        int64  // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数(内部：<0时限制请求数，>0时自定义限制)
 		Keyin        string // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN
 
-		Namespace    func(*Spider) string                                       // 命名空间相对于数据库名，不依赖具体数据内容
-		SubNamespace func(self *Spider, dataCell map[string]interface{}) string // 子命名空间相对于表名，可依赖具体数据内容
+		NotDefaultField bool                                                       // 是否禁止输出默认字段 Url/ParentUrl/DownloadTime
+		Namespace       func(*Spider) string                                       // 命名空间相对于数据库名，不依赖具体数据内容
+		SubNamespace    func(self *Spider, dataCell map[string]interface{}) string // 子命名空间相对于表名，可依赖具体数据内容
 
 		// 以下为系统自动赋值成员
 		subName   string            // 由Keyin转换为的二级标识名
@@ -225,6 +226,7 @@ func (self *Spider) Copy() *Spider {
 	ghost.Limit = self.Limit
 	ghost.Keyin = self.Keyin
 
+	ghost.NotDefaultField = self.NotDefaultField
 	ghost.Namespace = self.Namespace
 	ghost.SubNamespace = self.SubNamespace
 
@@ -336,4 +338,9 @@ func (self *Spider) Defer() {
 	self.ReqMatrix.Wait()
 	// 更新失败记录
 	self.ReqMatrix.TryFlushFailure()
+}
+
+// 是否输出默认添加的字段 Url/ParentUrl/DownloadTime
+func (self *Spider) OutDefaultField() bool {
+	return !self.NotDefaultField
 }

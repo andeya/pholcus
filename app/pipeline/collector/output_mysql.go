@@ -33,10 +33,10 @@ func init() {
 				for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 					mysqls[subNamespace].AddColumn(title + ` MEDIUMTEXT`)
 				}
-
-				mysqls[subNamespace].
-					AddColumn(`Url VARCHAR(255)`, `ParentUrl VARCHAR(255)`, `DownloadTime VARCHAR(50)`).
-					Create()
+				if self.Spider.OutDefaultField() {
+					mysqls[subNamespace].AddColumn(`Url VARCHAR(255)`, `ParentUrl VARCHAR(255)`, `DownloadTime VARCHAR(50)`)
+				}
+				mysqls[subNamespace].Create()
 			}
 			data := []string{}
 			for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
@@ -47,7 +47,9 @@ func init() {
 					data = append(data, util.JsonString(vd[title]))
 				}
 			}
-			data = append(data, datacell["Url"].(string), datacell["ParentUrl"].(string), datacell["DownloadTime"].(string))
+			if self.Spider.OutDefaultField() {
+				data = append(data, datacell["Url"].(string), datacell["ParentUrl"].(string), datacell["DownloadTime"].(string))
+			}
 			mysqls[subNamespace].AutoInsert(data)
 		}
 		for _, tab := range mysqls {

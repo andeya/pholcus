@@ -6,24 +6,27 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/net/html/charset"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
+	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
 type Context struct {
-	spider   *Spider                  // 规则
-	Request  *request.Request         // 原始请求
-	Response *http.Response           // 响应流，其中URL拷贝自*request.Request
-	text     string                   // 下载内容Body的字符串格式
-	dom      *goquery.Document        // 下载内容Body为html时，可转换为Dom的对象
-	items    []map[string]interface{} // 存放以文本形式输出的结果数据
-	files    []map[string]interface{} // 存放欲直接输出的文件("Name": string; "Body": io.ReadCloser)
-	err      error                    // 错误标记
+	spider   *Spider           // 规则
+	Request  *request.Request  // 原始请求
+	Response *http.Response    // 响应流，其中URL拷贝自*request.Request
+	text     string            // 下载内容Body的字符串格式
+	dom      *goquery.Document // 下载内容Body为html时，可转换为Dom的对象
+	items    []data.DataCell   // 存放以文本形式输出的结果数据
+	files    []data.FileCell   // 存放欲直接输出的文件("Name": string; "Body": io.ReadCloser)
+	err      error             // 错误标记
+	sync.Mutex
 }
 
 //**************************************** 初始化 *******************************************\\
@@ -32,8 +35,8 @@ func NewContext(sp *Spider, req *request.Request) *Context {
 	ctx := &Context{
 		spider:  sp,
 		Request: req,
-		items:   []map[string]interface{}{},
-		files:   []map[string]interface{}{},
+		items:   []data.DataCell{},
+		files:   []data.FileCell{},
 	}
 	return ctx
 }
@@ -149,38 +152,39 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 // item类型为map[int]interface{}时，根据ruleName现有的ItemFields字段进行输出，
 // item类型为map[string]interface{}时，ruleName不存在的ItemFields字段将被自动添加，
 // ruleName为空时默认当前规则。
-func (self *Context) Output(item interface{}, ruleName ...string) *Context {
+func (self *Context) Output(item interface{}, ruleName ...string) {
 	_ruleName, rule, found := self.getRule(ruleName...)
 	if !found {
 		logs.Log.Error("蜘蛛 %s 调用Output()时，指定的规则名不存在！", self.spider.GetName())
-		return self
+		return
 	}
-
-	self.Request.SetRuleName(_ruleName)
+	var _item map[string]interface{}
 	switch item2 := item.(type) {
 	case map[int]interface{}:
-		self.items = append(self.items, self.CreatItem(item2, _ruleName))
+		_item = self.CreatItem(item2, _ruleName)
 	case request.Temp:
 		for k := range item2 {
 			self.spider.UpsertItemField(rule, k)
 		}
-		self.items = append(self.items, item2)
+		_item = item2
 	case map[string]interface{}:
 		for k := range item2 {
 			self.spider.UpsertItemField(rule, k)
 		}
-		self.items = append(self.items, item2)
+		_item = item2
 	}
-	return self
+	self.Lock()
+	if self.spider.NotDefaultField {
+		self.items = append(self.items, data.NewDataCell(_ruleName, _item, "", "", ""))
+	} else {
+		self.items = append(self.items, data.NewDataCell(_ruleName, _item, self.GetUrl(), self.GetReferer(), time.Now().Format("2006-01-02 15:04:05")))
+	}
+	self.Unlock()
 }
 
 // 输出文件。
 // name指定文件名，为空时默认保持原文件名不变。
 func (self *Context) FileOutput(name ...string) {
-	file := map[string]interface{}{
-		"Body": self.Response.Body,
-	}
-
 	_, s := path.Split(self.GetUrl())
 	n := strings.Split(s, "?")[0]
 
@@ -201,10 +205,9 @@ func (self *Context) FileOutput(name ...string) {
 	if ext == "" {
 		ext = ".html"
 	}
-
-	file["Name"] = baseName + ext
-
-	self.files = append(self.files, file)
+	self.Lock()
+	self.files = append(self.files, data.NewFileCell(self.GetRuleName(), baseName+ext, self.Response.Body))
+	self.Unlock()
 }
 
 // 生成文本结果。
@@ -392,20 +395,20 @@ func (self *Context) GetItemFieldIndex(field string, ruleName ...string) (index 
 	return self.spider.GetItemFieldIndex(rule, field)
 }
 
-func (self *Context) GetItem(idx int) map[string]interface{} {
-	return self.items[idx]
+func (self *Context) PullItems() (ds []data.DataCell) {
+	self.Lock()
+	ds = self.items
+	self.items = []data.DataCell{}
+	self.Unlock()
+	return
 }
 
-func (self *Context) GetItems() []map[string]interface{} {
-	return self.items
-}
-
-func (self *Context) GetFile(idx int) map[string]interface{} {
-	return self.files[idx]
-}
-
-func (self *Context) GetFiles() []map[string]interface{} {
-	return self.files
+func (self *Context) PullFiles() (fs []data.FileCell) {
+	self.Lock()
+	fs = self.files
+	self.files = []data.FileCell{}
+	self.Unlock()
+	return
 }
 
 // 获取自定义配置。

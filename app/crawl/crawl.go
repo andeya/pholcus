@@ -1,7 +1,6 @@
 package crawl
 
 import (
-	"io"
 	"math/rand"
 	"time"
 
@@ -139,10 +138,8 @@ func (self *crawler) Process(req *request.Request) {
 		}
 	}()
 
-	var ruleName = req.GetRuleName()
-
 	// 过程处理，提炼数据
-	ctx.Parse(ruleName)
+	ctx.Parse(req.GetRuleName())
 
 	// 处理成功请求记录
 	self.Spider.DoHistory(req, true)
@@ -153,28 +150,13 @@ func (self *crawler) Process(req *request.Request) {
 	// 提示抓取成功
 	logs.Log.Informational(" *     Success: %v\n", downUrl)
 
-	downUrl = req.GetUrl()
-	ruleName = req.GetRuleName()
-	var referer = req.GetReferer()
-
 	// 该条请求文本结果存入pipeline
-	for _, data := range ctx.GetItems() {
-		self.Pipeline.CollectData(
-			ruleName, //DataCell.RuleName
-			data,     //DataCell.Data
-			downUrl,  //DataCell.Url
-			referer,  //DataCell.ParentUrl
-			time.Now().Format("2006-01-02 15:04:05"),
-		)
+	for _, item := range ctx.PullItems() {
+		self.Pipeline.CollectData(item)
 	}
-
 	// 该条请求文件结果存入pipeline
-	for _, f := range ctx.GetFiles() {
-		self.Pipeline.CollectFile(
-			ruleName,
-			f["Name"].(string),
-			f["Body"].(io.ReadCloser),
-		)
+	for _, f := range ctx.PullFiles() {
+		self.Pipeline.CollectFile(f)
 	}
 }
 

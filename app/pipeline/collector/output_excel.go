@@ -44,15 +44,13 @@ func init() {
 				// 写入表头
 				row = sheets[subNamespace].AddRow()
 				for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
-					cell = row.AddCell()
-					cell.Value = title
+					row.AddCell().Value = title
 				}
-				cell = row.AddCell()
-				cell.Value = "当前链接"
-				cell = row.AddCell()
-				cell.Value = "上级链接"
-				cell = row.AddCell()
-				cell.Value = "下载时间"
+				if self.Spider.OutDefaultField() {
+					row.AddCell().Value = "当前链接"
+					row.AddCell().Value = "上级链接"
+					row.AddCell().Value = "下载时间"
+				}
 			}
 
 			row = sheets[subNamespace].AddRow()
@@ -65,14 +63,12 @@ func init() {
 					cell.Value = util.JsonString(vd[title])
 				}
 			}
-			cell = row.AddCell()
-			cell.Value = datacell["Url"].(string)
-			cell = row.AddCell()
-			cell.Value = datacell["ParentUrl"].(string)
-			cell = row.AddCell()
-			cell.Value = datacell["DownloadTime"].(string)
+			if self.Spider.OutDefaultField() {
+				row.AddCell().Value = datacell["Url"].(string)
+				row.AddCell().Value = datacell["ParentUrl"].(string)
+				row.AddCell().Value = datacell["DownloadTime"].(string)
+			}
 		}
-
 		folder := config.TEXT_DIR + "/" + cache.StartTime.Format("2006年01月02日 15时04分05秒")
 		filename := fmt.Sprintf("%v/%v__%v-%v.xlsx", folder, util.FileNameReplace(self.namespace()), self.sum[0], self.sum[1])
 
