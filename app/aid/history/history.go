@@ -120,7 +120,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 		}
 		table, ok := getReadMysqlTable(self.Success.tabName)
 		if !ok {
-			table = mysql.New().SetTableName("`" + self.Success.tabName + "`")
+			table = mysql.New().SetTableName(self.Success.tabName)
 			setReadMysqlTable(self.Success.tabName, table)
 		}
 		rows, err := table.SelectAll()
@@ -204,7 +204,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 		}
 		table, ok := getReadMysqlTable(self.Failure.tabName)
 		if !ok {
-			table = mysql.New().SetTableName("`" + self.Failure.tabName + "`")
+			table = mysql.New().SetTableName(self.Failure.tabName)
 			setReadMysqlTable(self.Failure.tabName, table)
 		}
 		rows, err := table.SelectAll()

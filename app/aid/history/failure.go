@@ -93,7 +93,7 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 		table, ok := getWriteMysqlTable(self.tabName)
 		if !ok {
 			table = mysql.New()
-			table.SetTableName("`" + self.tabName + "`").AddColumn(`failure MEDIUMTEXT`)
+			table.SetTableName(self.tabName).AddColumn(`failure MEDIUMTEXT`)
 			setWriteMysqlTable(self.tabName, table)
 		}
 		// 添加失败请求
