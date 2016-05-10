@@ -88,7 +88,7 @@ func (self *MyTable) Create() error {
 		self.sqlCode += `id int(12) not null primary key auto_increment,`
 	}
 	for _, title := range self.columnNames {
-        self.sqlCode += "`" + title[0] + "`" + ` ` + title[1] + `,`
+		self.sqlCode += "`" + title[0] + "`" + ` ` + title[1] + `,`
 	}
 	self.sqlCode = string(self.sqlCode[:len(self.sqlCode)-1])
 	self.sqlCode += `);`
