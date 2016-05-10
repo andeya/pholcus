@@ -107,7 +107,7 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 		}
 
 	default:
-		f, _ := os.OpenFile(self.fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0660)
+		f, _ := os.OpenFile(self.fileName, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0777)
 
 		b, _ := json.Marshal(self.new)
 		b[0] = ','

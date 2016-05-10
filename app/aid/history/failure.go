@@ -116,7 +116,7 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 			return
 		}
 
-		f, _ := os.OpenFile(self.fileName, os.O_CREATE|os.O_WRONLY, 0660)
+		f, _ := os.OpenFile(self.fileName, os.O_CREATE|os.O_WRONLY, 0777)
 
 		docs := make([]string, len(self.list))
 		i := 0
