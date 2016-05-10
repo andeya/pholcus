@@ -83,12 +83,12 @@ func (self *MyTable) Create() error {
 	if len(self.columnNames) == 0 {
 		return errors.New("Column can not be empty")
 	}
-	self.sqlCode = `create table if not exists ` + self.tableName + `(`
+	self.sqlCode = `create table if not exists ` + "`" + self.tableName + "`" + `(`
 	if !self.customPrimaryKey {
 		self.sqlCode += `id int(12) not null primary key auto_increment,`
 	}
 	for _, title := range self.columnNames {
-		self.sqlCode += title[0] + ` ` + title[1] + `,`
+        self.sqlCode += "`" + title[0] + "`" + ` ` + title[1] + `,`
 	}
 	self.sqlCode = string(self.sqlCode[:len(self.sqlCode)-1])
 	self.sqlCode += `);`
@@ -138,7 +138,7 @@ func (self *MyTable) FlushInsert() error {
 		return nil
 	}
 
-	self.sqlCode = `insert into ` + self.tableName + `(`
+	self.sqlCode = `insert into ` + "`" + self.tableName + "`" + `(`
 	if len(self.columnNames) != 0 {
 		for _, v := range self.columnNames {
 			self.sqlCode += "`" + v[0] + "`,"
@@ -180,7 +180,7 @@ func (self *MyTable) SelectAll() (*sql.Rows, error) {
 	if self.tableName == "" {
 		return nil, errors.New("表名不能为空")
 	}
-	self.sqlCode = `select * from ` + self.tableName + `;`
+	self.sqlCode = `select * from ` + "`" + self.tableName + "`" + `;`
 	lock.RLock()
 	defer lock.RUnlock()
 	return db.Query(self.sqlCode)
