@@ -18,7 +18,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/henrylee2cn/pholcus/common/config"
+	"github.com/lessgo/lessgo/config"
 )
 
 //xml parse should incluce in <config></config> tags
@@ -81,5 +81,8 @@ func TestXML(t *testing.T) {
 	}
 	if xmlconf.String("name") != "astaxie" {
 		t.Fatal("get name error")
+	}
+	if xmlconf.Strings("emptystrings") != nil {
+		t.Fatal("get emtpy strings error")
 	}
 }

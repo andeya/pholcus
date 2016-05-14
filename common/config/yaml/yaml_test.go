@@ -18,7 +18,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/henrylee2cn/pholcus/common/config"
+	"github.com/lessgo/lessgo/config"
 )
 
 var yamlcontext = `
@@ -73,10 +73,14 @@ func TestYaml(t *testing.T) {
 		t.Error(v)
 		t.Fatal(err)
 	}
-	if err = yamlconf.Set("name", "henrylee2cn"); err != nil {
+	if err = yamlconf.Set("name", "astaxie"); err != nil {
 		t.Fatal(err)
 	}
-	if yamlconf.String("name") != "henrylee2cn" {
+	if yamlconf.String("name") != "astaxie" {
 		t.Fatal("get name error")
+	}
+
+	if yamlconf.Strings("emptystrings") != nil {
+		t.Fatal("get emtpy strings error")
 	}
 }

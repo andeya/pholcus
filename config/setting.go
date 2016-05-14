@@ -42,7 +42,7 @@ const (
 	failure               bool   = true                        // 继承历史失败记录
 )
 
-var setting = func() config.ConfigContainer {
+var setting = func() config.Configer {
 	os.MkdirAll(HISTORY_DIR, 0777)
 	os.MkdirAll(CACHE_DIR, 0777)
 	os.MkdirAll(PHANTOMJS_TEMP, 0777)
@@ -69,7 +69,7 @@ var setting = func() config.ConfigContainer {
 	return iniconf
 }()
 
-func defaultConfig(iniconf config.ConfigContainer) {
+func defaultConfig(iniconf config.Configer) {
 	iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
 	iniconf.Set("datachancap", strconv.Itoa(datachancap))
 	iniconf.Set("log::cap", strconv.FormatInt(logcap, 10))
@@ -101,7 +101,7 @@ func defaultConfig(iniconf config.ConfigContainer) {
 	iniconf.Set("run::failure", fmt.Sprint(failure))
 }
 
-func trySet(iniconf config.ConfigContainer) {
+func trySet(iniconf config.Configer) {
 	if v, e := iniconf.Int("crawlcap"); v <= 0 || e != nil {
 		iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
 	}
