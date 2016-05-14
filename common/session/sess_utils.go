@@ -42,6 +42,7 @@ func init() {
 	gob.Register(map[int]int64{})
 }
 
+// EncodeGob encode the obj to gob
 func EncodeGob(obj map[interface{}]interface{}) ([]byte, error) {
 	for _, v := range obj {
 		gob.Register(v)
@@ -55,6 +56,7 @@ func EncodeGob(obj map[interface{}]interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// DecodeGob decode data to map
 func DecodeGob(encoded []byte) (map[interface{}]interface{}, error) {
 	buf := bytes.NewBuffer(encoded)
 	dec := gob.NewDecoder(buf)
@@ -70,36 +72,9 @@ func DecodeGob(encoded []byte) (map[interface{}]interface{}, error) {
 func generateRandomKey(strength int) []byte {
 	k := make([]byte, strength)
 	if n, err := io.ReadFull(rand.Reader, k); n != strength || err != nil {
-		return randomCreateBytes(strength)
+		return RandomCreateBytes(strength)
 	}
 	return k
-}
-
-// RandomCreateBytes generate random []byte by specify chars.
-func randomCreateBytes(n int, alphabets ...byte) []byte {
-	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	var bytes = make([]byte, n)
-	var randby bool
-	if num, err := rand.Read(bytes); num != n || err != nil {
-		r.Seed(time.Now().UnixNano())
-		randby = true
-	}
-	for i, b := range bytes {
-		if len(alphabets) == 0 {
-			if randby {
-				bytes[i] = alphanum[r.Intn(len(alphanum))]
-			} else {
-				bytes[i] = alphanum[b%byte(len(alphanum))]
-			}
-		} else {
-			if randby {
-				bytes[i] = alphabets[r.Intn(len(alphabets))]
-			} else {
-				bytes[i] = alphabets[b%byte(len(alphabets))]
-			}
-		}
-	}
-	return bytes
 }
 
 // Encryption -----------------------------------------------------------------
@@ -204,11 +179,11 @@ func decodeCookie(block cipher.Block, hashKey, name, value string, gcmaxlifetime
 		return nil, err
 	}
 	// 5. DecodeGob.
-	if dst, err := DecodeGob(b); err != nil {
+	dst, err := DecodeGob(b)
+	if err != nil {
 		return nil, err
-	} else {
-		return dst, nil
 	}
+	return dst, nil
 }
 
 // Encoding -------------------------------------------------------------------
@@ -228,4 +203,31 @@ func decode(value []byte) ([]byte, error) {
 		return nil, err
 	}
 	return decoded[:b], nil
+}
+
+// RandomCreateBytes generate random []byte by specify chars.
+func RandomCreateBytes(n int, alphabets ...byte) []byte {
+	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	var bytes = make([]byte, n)
+	var randby bool
+	if num, err := rand.Read(bytes); num != n || err != nil {
+		r.Seed(time.Now().UnixNano())
+		randby = true
+	}
+	for i, b := range bytes {
+		if len(alphabets) == 0 {
+			if randby {
+				bytes[i] = alphanum[r.Intn(len(alphanum))]
+			} else {
+				bytes[i] = alphanum[b%byte(len(alphanum))]
+			}
+		} else {
+			if randby {
+				bytes[i] = alphabets[r.Intn(len(alphabets))]
+			} else {
+				bytes[i] = alphabets[b%byte(len(alphabets))]
+			}
+		}
+	}
+	return bytes
 }
