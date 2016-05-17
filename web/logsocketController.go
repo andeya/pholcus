@@ -2,10 +2,16 @@ package web
 
 import (
 	ws "github.com/henrylee2cn/pholcus/common/websocket"
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 // log发送api
 func wsLogHandle(conn *ws.Conn) {
+	defer func() {
+		if p := recover(); p != nil {
+			logs.Log.Error("%v", p)
+		}
+	}()
 	var err error
 	sess, _ := globalSessions.SessionStart(nil, conn.Request())
 	sessID := sess.SessionID()

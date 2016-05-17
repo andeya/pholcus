@@ -14,7 +14,7 @@ import (
 var globalSessions *session.Manager
 
 func init() {
-	globalSessions, _ = session.NewManager("memory", `{"cookieName":"pholcusSession", "enableSetCookie,omitempty": true, "secure": false, "sessionIDHashFunc": "sha1", "sessionIDHashKey": "", "cookieLifeTime": 0, "providerConfig": ""}`)
+	globalSessions, _ = session.NewManager("memory", `{"cookieName":"pholcusSession", "enableSetCookie,omitempty": true, "secure": false, "sessionIDHashFunc": "sha1", "sessionIDHashKey": "", "cookieLifeTime": 157680000, "providerConfig": ""}`)
 	// go globalSessions.GC()
 }
 

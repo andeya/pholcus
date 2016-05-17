@@ -8,26 +8,44 @@ import (
 	"github.com/henrylee2cn/pholcus/common/util"
 	ws "github.com/henrylee2cn/pholcus/common/websocket"
 	"github.com/henrylee2cn/pholcus/config"
+	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
 type SocketController struct {
-	connPool  map[string]*ws.Conn
-	wchanPool map[string]*Wchan
-	rwMutex   sync.RWMutex
+	connPool     map[string]*ws.Conn
+	wchanPool    map[string]*Wchan
+	connRWMutex  sync.RWMutex
+	wchanRWMutex sync.RWMutex
+}
+
+func (self *SocketController) GetConn(sessID string) *ws.Conn {
+	self.connRWMutex.RLock()
+	defer self.connRWMutex.RUnlock()
+	return self.connPool[sessID]
+}
+
+func (self *SocketController) GetWchan(sessID string) *Wchan {
+	self.wchanRWMutex.RLock()
+	defer self.wchanRWMutex.RUnlock()
+	return self.wchanPool[sessID]
 }
 
 func (self *SocketController) Add(sessID string, conn *ws.Conn) {
-	self.rwMutex.Lock()
-	defer self.rwMutex.Unlock()
+	self.connRWMutex.Lock()
+	self.wchanRWMutex.Lock()
+	defer self.connRWMutex.Unlock()
+	defer self.wchanRWMutex.Unlock()
 
 	self.connPool[sessID] = conn
 	self.wchanPool[sessID] = newWchan()
 }
 
 func (self *SocketController) Remove(sessID string, conn *ws.Conn) {
-	self.rwMutex.Lock()
-	defer self.rwMutex.Unlock()
+	self.connRWMutex.Lock()
+	self.wchanRWMutex.Lock()
+	defer self.connRWMutex.Unlock()
+	defer self.wchanRWMutex.Unlock()
 
 	if self.connPool[sessID] == nil {
 		return
@@ -40,8 +58,8 @@ func (self *SocketController) Remove(sessID string, conn *ws.Conn) {
 }
 
 func (self *SocketController) Write(sessID string, void map[string]interface{}, to ...int) {
-	self.rwMutex.RLock()
-	defer self.rwMutex.RUnlock()
+	self.wchanRWMutex.RLock()
+	defer self.wchanRWMutex.RUnlock()
 
 	// to为1时，只向当前连接发送；to为-1时，向除当前连接外的其他所有连接发送；to为0时或为空时，向所有连接发送
 	var t int = 0
@@ -99,9 +117,14 @@ var (
 )
 
 func wsHandle(conn *ws.Conn) {
+	defer func() {
+		if p := recover(); p != nil {
+			logs.Log.Error("%v", p)
+		}
+	}()
 	sess, _ := globalSessions.SessionStart(nil, conn.Request())
 	sessID := sess.SessionID()
-	if Sc.connPool[sessID] == nil {
+	if Sc.GetConn(sessID) == nil {
 		Sc.Add(sessID, conn)
 	}
 
@@ -109,7 +132,7 @@ func wsHandle(conn *ws.Conn) {
 
 	go func() {
 		var err error
-		for info := range Sc.wchanPool[sessID].wchan {
+		for info := range Sc.GetWchan(sessID).wchan {
 			if _, err = ws.JSON.Send(conn, info); err != nil {
 				return
 			}
