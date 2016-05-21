@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"reflect"
 
+	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
@@ -35,6 +36,6 @@ func (self Temp) Set(key string, value interface{}) Temp {
 	if err != nil {
 		logs.Log.Error(" *     Request.Temp.Set(%v): %v", key, err)
 	}
-	self[key] = string(b)
+	self[key] = util.Bytes2String(b)
 	return self
 }

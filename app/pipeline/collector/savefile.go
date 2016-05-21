@@ -6,6 +6,7 @@ import (
 	"path"
 	"runtime"
 
+	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
@@ -18,9 +19,6 @@ func (self *Collector) SaveFile() {
 		select {
 		case file := <-self.FileChan:
 			self.outCount[2]++
-
-			// 统计输出文件数
-			self.setFileSum(1)
 
 			// 路径： file/"RuleName"/"time"/"Name"
 			p, n := path.Split(file["Name"].(string))
@@ -37,9 +35,13 @@ func (self *Collector) SaveFile() {
 			// 创建文件
 			fileName := dir + util.FileNameReplace(n)
 			f, _ := os.Create(fileName)
-			io.Copy(f, file["Body"].(io.ReadCloser))
+			size, _ := io.Copy(f, file["Body"].(io.ReadCloser))
 			f.Close()
 			file["Body"].(io.ReadCloser).Close()
+
+			// 输出统计
+			self.addFileSum(1)
+			self.addFileSize(uint64(size))
 
 			// 打印报告
 			logs.Log.Informational(" * ")
@@ -47,6 +49,9 @@ func (self *Collector) SaveFile() {
 			logs.Log.Informational(" * ")
 
 			self.outCount[3]++
+
+			// 复用FileCell
+			data.PutFileCell(file)
 		default:
 			runtime.Gosched()
 		}

@@ -34,24 +34,24 @@ const (
 
 // 来自配置文件的配置项。
 var (
-	CRAWLS_CAP               int    = setting.DefaultInt("crawlcap", crawlcap)                             // 蜘蛛池最大容量
-	DATA_CHAN_CAP            int    = setting.DefaultInt("datachancap", datachancap)                       // 收集器容量
-	PHANTOMJS                string = setting.String("phantomjs")                                          // Surfer-Phantom下载器：phantomjs程序路径
-	PROXY                    string = setting.String("proxylib")                                           // 代理IP文件路径
-	SPIDER_DIR               string = setting.String("spiderdir")                                          // 动态规则目录
-	DB_NAME                  string = setting.String("dbname")                                             // 数据库名称
-	MGO_CONN_STR             string = setting.String("mgo::connstring")                                    // mongodb连接字符串
-	MGO_CONN_CAP             int    = setting.DefaultInt("mgo::conncap", mgoconncap)                       // mongodb连接池容量
-	MGO_CONN_GC_SECOND       int64  = setting.DefaultInt64("mgo::conngcsecond", mgoconngcsecond)           // mongodb连接池GC时间，单位秒
-	MYSQL_CONN_STR           string = setting.String("mysql::connstring")                                  // mysql连接字符串
-	MYSQL_CONN_CAP           int    = setting.DefaultInt("mysql::conncap", mysqlconncap)                   // mysql连接池容量
-	MYSQL_MAX_ALLOWED_PACKET int    = setting.DefaultInt("mysql::maxallowedpacket", mysqlmaxallowedpacket) // mysql通信缓冲区的最大长度
-	LOG_CAP                  int64  = setting.DefaultInt64("log::cap", logcap)                             // 日志缓存的容量
-	LOG_LEVEL                int    = logLevel(setting.String("log::level"))                               // 全局日志打印级别（亦是日志文件输出级别）
-	LOG_CONSOLE_LEVEL        int    = logLevel(setting.String("log::consolelevel"))                        // 日志在控制台的显示级别
-	LOG_FEEDBACK_LEVEL       int    = logLevel(setting.String("log::feedbacklevel"))                       // 客户端反馈至服务端的日志级别
-	LOG_LINEINFO             bool   = setting.DefaultBool("log::lineinfo", loglineinfo)                    // 日志是否打印行信息                                  // 客户端反馈至服务端的日志级别
-	LOG_SAVE                 bool   = setting.DefaultBool("log::save", logsave)                            // 是否保存所有日志到本地文件
+	CRAWLS_CAP               int    = setting.DefaultInt("crawlcap", crawlcap)                                     // 蜘蛛池最大容量
+	DATA_CHAN_CAP            int    = setting.DefaultInt("datachancap", datachancap)                               // 收集器容量
+	PHANTOMJS                string = setting.String("phantomjs")                                                  // Surfer-Phantom下载器：phantomjs程序路径
+	PROXY                    string = setting.String("proxylib")                                                   // 代理IP文件路径
+	SPIDER_DIR               string = setting.String("spiderdir")                                                  // 动态规则目录
+	DB_NAME                  string = setting.String("dbname")                                                     // 数据库名称
+	MGO_CONN_STR             string = setting.String("mgo::connstring")                                            // mongodb连接字符串
+	MGO_CONN_CAP             int    = setting.DefaultInt("mgo::conncap", mgoconncap)                               // mongodb连接池容量
+	MGO_CONN_GC_SECOND       int64  = setting.DefaultInt64("mgo::conngcsecond", mgoconngcsecond)                   // mongodb连接池GC时间，单位秒
+	MYSQL_CONN_STR           string = setting.String("mysql::connstring")                                          // mysql连接字符串
+	MYSQL_CONN_CAP           int    = setting.DefaultInt("mysql::conncap", mysqlconncap)                           // mysql连接池容量
+	MYSQL_MAX_ALLOWED_PACKET int    = setting.DefaultInt("mysql::maxallowedpacket", mysqlmaxallowedpacketmb) << 20 // mysql通信缓冲区的最大长度
+	LOG_CAP                  int64  = setting.DefaultInt64("log::cap", logcap)                                     // 日志缓存的容量
+	LOG_LEVEL                int    = logLevel(setting.String("log::level"))                                       // 全局日志打印级别（亦是日志文件输出级别）
+	LOG_CONSOLE_LEVEL        int    = logLevel(setting.String("log::consolelevel"))                                // 日志在控制台的显示级别
+	LOG_FEEDBACK_LEVEL       int    = logLevel(setting.String("log::feedbacklevel"))                               // 客户端反馈至服务端的日志级别
+	LOG_LINEINFO             bool   = setting.DefaultBool("log::lineinfo", loglineinfo)                            // 日志是否打印行信息                                  // 客户端反馈至服务端的日志级别
+	LOG_SAVE                 bool   = setting.DefaultBool("log::save", logsave)                                    // 是否保存所有日志到本地文件
 )
 
 func init() {

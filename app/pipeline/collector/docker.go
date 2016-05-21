@@ -45,13 +45,12 @@ func NewDockerQueue() *DockerQueue {
 func (self *DockerQueue) Change() {
 	changeMutex.Lock()
 	defer changeMutex.Unlock()
-getLable:
 	for {
 		for k, v := range self.Using {
 			if !v {
 				self.Curr = k
 				self.Using[k] = true
-				break getLable
+				return
 			}
 		}
 		self.AutoAdd()
@@ -60,7 +59,10 @@ getLable:
 }
 
 func (self *DockerQueue) Recover(index int) {
-	self.Dockers[index] = NewDocker()
+	for _, cell := range self.Dockers[index] {
+		data.PutDataCell(cell)
+	}
+	self.Dockers[index] = self.Dockers[index][:0]
 	self.Using[index] = false
 }
 

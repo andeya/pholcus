@@ -9,6 +9,7 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/cmd"
+	"github.com/henrylee2cn/pholcus/common/gc"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
@@ -34,6 +35,8 @@ var (
 func init() {
 	// 开启最大核心数运行
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	// 开启手动GC
+	gc.ManualGC()
 }
 
 func DefaultRun(uiDefault string) {

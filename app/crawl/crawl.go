@@ -158,6 +158,8 @@ func (self *crawler) Process(req *request.Request) {
 	for _, f := range ctx.PullFiles() {
 		self.Pipeline.CollectFile(f)
 	}
+	// 释放ctx准备复用
+	spider.PutContext(ctx)
 }
 
 // 常用基础方法

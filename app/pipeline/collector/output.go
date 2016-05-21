@@ -14,35 +14,36 @@ var (
 
 func (self *Collector) Output(dataIndex int) {
 	defer func() {
-		// 回收内存
+		// 回收缓存块
 		self.DockerQueue.Recover(dataIndex)
 	}()
-
-	dataLen := len(self.DockerQueue.Dockers[dataIndex])
+	dataLen := uint64(len(self.DockerQueue.Dockers[dataIndex]))
 	if dataLen == 0 {
 		return
 	}
-
 	defer func() {
 		err := recover()
 		if err != nil {
 			logs.Log.Informational(" * ")
-			logs.Log.App(" *     Panic  [任务输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！ [ERROR]  %v\n", self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing), err)
+			logs.Log.App(" *     Panic  [任务输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！ [ERROR]  %v\n",
+				self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing), err)
 			self.timing = time.Now()
 		}
 	}()
 
-	// 输出数据统计
-	self.setDataSum(uint64(dataLen))
-
 	// 执行输出
 	err := Output[self.outType](self, dataIndex)
 
+	// 输出统计
+	self.addDataSum(dataLen)
+
 	logs.Log.Informational(" * ")
 	if err != nil {
-		logs.Log.App(" *     Fail  [任务输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！ [ERROR]  %v\n", self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing), err)
+		logs.Log.App(" *     Fail  [任务输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！ [ERROR]  %v\n",
+			self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing), err)
 	} else {
-		logs.Log.App(" *     [任务输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！\n", self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing))
+		logs.Log.App(" *     [任务输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！\n",
+			self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing))
 		self.Spider.TryFlushSuccess()
 	}
 	// 更新计时

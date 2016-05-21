@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unsafe"
 
 	"golang.org/x/net/html/charset"
 
@@ -259,7 +260,7 @@ func XML2mapstr(xmldoc string) map[string]string {
 		case xml.StartElement:
 			key = token.Name.Local
 		case xml.CharData:
-			content := string([]byte(token))
+			content := Bytes2String([]byte(token))
 			m[key] = content
 		default:
 			// ...
@@ -285,8 +286,10 @@ func HashString(encode string) uint64 {
 
 // 制作特征值方法一
 func MakeUnique(obj interface{}) string {
-	baseString, _ := json.Marshal(obj)
-	return strconv.FormatUint(HashString(string(baseString)), 10)
+	b, _ := json.Marshal(obj)
+	hash := fnv.New64()
+	hash.Write(b)
+	return strconv.FormatUint(hash.Sum64(), 10)
 }
 
 // 制作特征值方法二
@@ -304,7 +307,7 @@ func MakeMd5(obj interface{}, length int) string {
 // 将对象转为json字符串
 func JsonString(obj interface{}) string {
 	b, _ := json.Marshal(obj)
-	s := fmt.Sprintf("%+v", string(b))
+	s := fmt.Sprintf("%+v", Bytes2String(b))
 	r := strings.Replace(s, `\u003c`, "<", -1)
 	r = strings.Replace(r, `\u003e`, ">", -1)
 	return r
@@ -323,54 +326,53 @@ func CheckErrPanic(err error) {
 }
 
 // 将文件名非法字符替换为相似字符
-func FileNameReplace(fileName string) (rfn string) {
-	// 替换`""`为`“”`
-	if strings.Count(fileName, `"`) > 0 {
-		var i = 1
-	label:
-		for k, v := range []byte(fileName) {
-			if string(v) != `"` {
-				continue
-			}
-			if i%2 == 1 {
-				fileName = string(fileName[:k]) + `“` + string(fileName[k+1:])
+
+func FileNameReplace(fileName string) string {
+	var q = 1
+	r := []rune(fileName)
+	size := len(r)
+	for i := 0; i < size; i++ {
+		switch r[i] {
+		case '"':
+			if q%2 == 1 {
+				r[i] = '“'
 			} else {
-				fileName = string(fileName[:k]) + `”` + string(fileName[k+1:])
+				r[i] = '”'
 			}
-			i++
-			goto label
+			q++
+		case ':':
+			r[i] = '：'
+		case '*':
+			r[i] = '×'
+		case '<':
+			r[i] = '＜'
+		case '>':
+			r[i] = '＞'
+		case '?':
+			r[i] = '？'
+		case '/':
+			r[i] = '／'
+		case '|':
+			r[i] = '∣'
+		case '\\':
+			r[i] = '╲'
 		}
 	}
-
-	rfn = strings.Replace(fileName, `:`, `：`, -1)
-	rfn = strings.Replace(rfn, `*`, `ж`, -1)
-	// rfn = strings.Replace(rfn, `*`, `×`, -1)
-	rfn = strings.Replace(rfn, `<`, `＜`, -1)
-	rfn = strings.Replace(rfn, `>`, `＞`, -1)
-	rfn = strings.Replace(rfn, `?`, `？`, -1)
-	rfn = strings.Replace(rfn, `/`, `／`, -1)
-	rfn = strings.Replace(rfn, `|`, `∣`, -1)
-	rfn = strings.Replace(rfn, `\`, `╲`, -1)
-	rfn = strings.Replace(rfn, USE_KEYIN, ``, -1)
-	return
+	return strings.Replace(string(r), USE_KEYIN, ``, -1)
 }
 
 // 将Excel工作表名中非法字符替换为下划线
-func ExcelSheetNameReplace(fileName string) (rfn string) {
-	rfn = strings.Replace(fileName, `:`, `_`, -1)
-	rfn = strings.Replace(rfn, `：`, `_`, -1)
-	rfn = strings.Replace(rfn, `*`, `_`, -1)
-	rfn = strings.Replace(rfn, `?`, `_`, -1)
-	rfn = strings.Replace(rfn, `？`, `_`, -1)
-	rfn = strings.Replace(rfn, `/`, `_`, -1)
-	rfn = strings.Replace(rfn, `／`, `_`, -1)
-	rfn = strings.Replace(rfn, `\`, `_`, -1)
-	rfn = strings.Replace(rfn, `╲`, `_`, -1)
-	rfn = strings.Replace(rfn, `]`, `_`, -1)
-	rfn = strings.Replace(rfn, `[`, `_`, -1)
-	rfn = strings.Replace(rfn, USE_KEYIN, ``, -1)
-
-	return
+//
+func ExcelSheetNameReplace(fileName string) string {
+	r := []rune(fileName)
+	size := len(r)
+	for i := 0; i < size; i++ {
+		switch r[i] {
+		case ':', '：', '*', '?', '？', '/', '／', '\\', '╲', ']', '[':
+			r[i] = '_'
+		}
+	}
+	return strings.Replace(string(r), USE_KEYIN, ``, -1)
 }
 
 func Atoa(str interface{}) string {
@@ -448,4 +450,20 @@ func KeyinsParse(keyins string) []string {
 		i++
 	}
 	return s
+}
+
+// Bytes2String直接转换底层指针，两者指向的相同的内存，改一个另外一个也会变。
+// 效率是string([]byte{})的百倍以上，且转换量越大效率优势越明显。
+func Bytes2String(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
+
+// String2Bytes直接转换底层指针，两者指向的相同的内存，改一个另外一个也会变。
+// 效率是string([]byte{})的百倍以上，且转换量越大效率优势越明显。
+// 转换之后若没做其他操作直接改变里面的字符，则程序会崩溃。
+// 如 b:=String2bytes("xxx"); b[1]='d'; 程序将panic。
+func String2Bytes(s string) []byte {
+	x := (*[2]uintptr)(unsafe.Pointer(&s))
+	h := [3]uintptr{x[0], x[1], x[1]}
+	return *(*[]byte)(unsafe.Pointer(&h))
 }

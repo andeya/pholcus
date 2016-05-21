@@ -14,6 +14,7 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
+	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
@@ -29,16 +30,36 @@ type Context struct {
 	sync.Mutex
 }
 
+var (
+	contextPool = &sync.Pool{
+		New: func() interface{} {
+			return &Context{
+				items: []data.DataCell{},
+				files: []data.FileCell{},
+			}
+		},
+	}
+)
+
 //**************************************** 初始化 *******************************************\\
 
-func NewContext(sp *Spider, req *request.Request) *Context {
-	ctx := &Context{
-		spider:  sp,
-		Request: req,
-		items:   []data.DataCell{},
-		files:   []data.FileCell{},
-	}
+func GetContext(sp *Spider, req *request.Request) *Context {
+	ctx := contextPool.Get().(*Context)
+	ctx.spider = sp
+	ctx.Request = req
 	return ctx
+}
+
+func PutContext(ctx *Context) {
+	ctx.items = ctx.items[:0]
+	ctx.files = ctx.files[:0]
+	ctx.spider = nil
+	ctx.Request = nil
+	ctx.Response = nil
+	ctx.text = ""
+	ctx.dom = nil
+	ctx.err = nil
+	contextPool.Put(ctx)
 }
 
 func (self *Context) SetResponse(resp *http.Response) *Context {
@@ -175,9 +196,9 @@ func (self *Context) Output(item interface{}, ruleName ...string) {
 	}
 	self.Lock()
 	if self.spider.NotDefaultField {
-		self.items = append(self.items, data.NewDataCell(_ruleName, _item, "", "", ""))
+		self.items = append(self.items, data.GetDataCell(_ruleName, _item, "", "", ""))
 	} else {
-		self.items = append(self.items, data.NewDataCell(_ruleName, _item, self.GetUrl(), self.GetReferer(), time.Now().Format("2006-01-02 15:04:05")))
+		self.items = append(self.items, data.GetDataCell(_ruleName, _item, self.GetUrl(), self.GetReferer(), time.Now().Format("2006-01-02 15:04:05")))
 	}
 	self.Unlock()
 }
@@ -206,7 +227,7 @@ func (self *Context) FileOutput(name ...string) {
 		ext = ".html"
 	}
 	self.Lock()
-	self.files = append(self.files, data.NewFileCell(self.GetRuleName(), baseName+ext, self.Response.Body))
+	self.files = append(self.files, data.GetFileCell(self.GetRuleName(), baseName+ext, self.Response.Body))
 	self.Unlock()
 }
 
@@ -550,7 +571,7 @@ func changeCharsetEncodingAuto(sor io.ReadCloser, contentTypeStr string) string 
 		// return ""
 	}
 	//e,name,certain := charset.DetermineEncoding(sorbody,contentTypeStr)
-	bodystr := string(sorbody)
+	// return string(sorbody)
 
-	return bodystr
+	return util.Bytes2String(sorbody)
 }

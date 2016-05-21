@@ -85,6 +85,7 @@ func init() {
 		for _, tab := range mysqls {
 			util.CheckErr(tab.FlushInsert())
 		}
+		mysqls = nil
 		return nil
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/app/spider"
+	"github.com/henrylee2cn/pholcus/common/bytes"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
@@ -55,7 +56,7 @@ type (
 		*distribute.TaskJar               // 服务器与客户端间传递任务的存储库
 		crawl.CrawlPool                   // 爬行回收池
 		teleport.Teleport                 // socket长连接双工通信接口，json数据传输
-		sum                 [2]uint64     //执行计数
+		sum                 [2]uint64     // 执行计数
 		takeTime            time.Duration // 执行计时
 		status              int           // 运行状态
 		finish              chan bool
@@ -566,11 +567,14 @@ func (self *Logic) goRun(count int) {
 		logs.Log.Informational(" * ")
 		switch {
 		case s.DataNum > 0 && s.FileNum == 0:
-			logs.Log.App(" *     [任务小计：%v | KEYIN：%v]   共采集数据 %v 条，用时 %v！\n", s.SpiderName, s.Keyin, s.DataNum, s.Time)
+			logs.Log.App(" *     [任务小计：%v | KEYIN：%v]   共采集数据 %v 条，用时 %v！\n",
+				s.SpiderName, s.Keyin, s.DataNum, s.Time)
 		case s.DataNum == 0 && s.FileNum > 0:
-			logs.Log.App(" *     [任务小计：%v | KEYIN：%v]   共下载文件 %v 个，用时 %v！\n", s.SpiderName, s.Keyin, s.FileNum, s.Time)
+			logs.Log.App(" *     [任务小计：%v | KEYIN：%v]   共下载文件 %s %v 个，用时 %v！\n",
+				s.SpiderName, s.Keyin, bytes.Format(s.FileSize), s.FileNum, s.Time)
 		default:
-			logs.Log.App(" *     [任务小计：%v | KEYIN：%v]   共采集数据 %v 条 + 下载文件 %v 个，用时 %v！\n", s.SpiderName, s.Keyin, s.DataNum, s.FileNum, s.Time)
+			logs.Log.App(" *     [任务小计：%v | KEYIN：%v]   共采集数据 %v 条 + 下载文件 %s %v 个，用时 %v！\n",
+				s.SpiderName, s.Keyin, s.DataNum, bytes.Format(s.FileSize), s.FileNum, s.Time)
 		}
 
 		self.sum[0] += s.DataNum
@@ -591,13 +595,17 @@ func (self *Logic) goRun(count int) {
 	logs.Log.Informational(" * ")
 	switch {
 	case self.sum[0] > 0 && self.sum[1] == 0:
-		logs.Log.App(" *                            —— %s合计采集【数据 %v 条】， 实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——", prefix, self.sum[0], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
+		logs.Log.App(" *                            —— %s合计采集【数据 %v 条】， 实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——",
+			prefix, self.sum[0], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	case self.sum[0] == 0 && self.sum[1] > 0:
-		logs.Log.App(" *                            —— %s合计采集【文件 %v 个】， 实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——", prefix, self.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
+		logs.Log.App(" *                            —— %s合计采集【文件 %v 个】， 实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——",
+			prefix, self.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	case self.sum[0] == 0 && self.sum[1] == 0:
-		logs.Log.App(" *                            —— %s无采集结果，实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——", prefix, cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
+		logs.Log.App(" *                            —— %s无采集结果，实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——",
+			prefix, cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	default:
-		logs.Log.App(" *                            —— %s合计采集【数据 %v 条 + 文件 %v 个】，实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——", prefix, self.sum[0], self.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
+		logs.Log.App(" *                            —— %s合计采集【数据 %v 条 + 文件 %v 个】，实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——",
+			prefix, self.sum[0], self.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	}
 	logs.Log.Informational(" * ")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)

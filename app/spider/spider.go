@@ -293,7 +293,7 @@ func (self *Spider) Start() {
 			logs.Log.Error(" *     Panic  [root]: %v\n", p)
 		}
 	}()
-	go self.RuleTree.Root(NewContext(self, nil))
+	go self.RuleTree.Root(GetContext(self, nil))
 	cancel := time.After(1e9)
 	for self.RequestLen() == 0 {
 		select {

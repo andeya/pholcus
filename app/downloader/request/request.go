@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/henrylee2cn/pholcus/common/util"
 )
 
 // Request represents object waiting for being crawled.
@@ -147,7 +149,7 @@ func (self *Request) Serialize() string {
 		self.TempIsJson[k] = true
 	}
 	b, _ := json.Marshal(self)
-	return strings.Replace(string(b), `\u0026`, `&`, -1)
+	return strings.Replace(util.Bytes2String(b), `\u0026`, `&`, -1)
 }
 
 // 获取副本
