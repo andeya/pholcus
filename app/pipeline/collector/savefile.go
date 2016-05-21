@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
+	"github.com/henrylee2cn/pholcus/common/bytes"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
@@ -41,11 +42,11 @@ func (self *Collector) SaveFile() {
 
 			// 输出统计
 			self.addFileSum(1)
-			self.addFileSize(uint64(size))
 
 			// 打印报告
 			logs.Log.Informational(" * ")
-			logs.Log.App(" *     [任务：%v | KEYIN：%v]   成功下载文件： %v \n", self.Spider.GetName(), self.Spider.GetKeyin(), fileName)
+			logs.Log.App(" *     [任务：%v | KEYIN：%v]   成功下载文件： %v (%s)\n",
+				self.Spider.GetName(), self.Spider.GetKeyin(), fileName, bytes.Format(uint64(size)))
 			logs.Log.Informational(" * ")
 
 			self.outCount[3]++

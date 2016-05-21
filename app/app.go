@@ -18,7 +18,6 @@ import (
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector"
 	"github.com/henrylee2cn/pholcus/app/scheduler"
 	"github.com/henrylee2cn/pholcus/app/spider"
-	"github.com/henrylee2cn/pholcus/common/bytes"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
@@ -567,14 +566,14 @@ func (self *Logic) goRun(count int) {
 		logs.Log.Informational(" * ")
 		switch {
 		case s.DataNum > 0 && s.FileNum == 0:
-			logs.Log.App(" *     [任务小计：%v | KEYIN：%v]   共采集数据 %v 条，用时 %v！\n",
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条，用时 %v！\n",
 				s.SpiderName, s.Keyin, s.DataNum, s.Time)
 		case s.DataNum == 0 && s.FileNum > 0:
-			logs.Log.App(" *     [任务小计：%v | KEYIN：%v]   共下载文件 %s %v 个，用时 %v！\n",
-				s.SpiderName, s.Keyin, bytes.Format(s.FileSize), s.FileNum, s.Time)
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共下载文件 %v 个，用时 %v！\n",
+				s.SpiderName, s.Keyin, s.FileNum, s.Time)
 		default:
-			logs.Log.App(" *     [任务小计：%v | KEYIN：%v]   共采集数据 %v 条 + 下载文件 %s %v 个，用时 %v！\n",
-				s.SpiderName, s.Keyin, s.DataNum, bytes.Format(s.FileSize), s.FileNum, s.Time)
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   共采集数据 %v 条 + 下载文件 %v 个，用时 %v！\n",
+				s.SpiderName, s.Keyin, s.DataNum, s.FileNum, s.Time)
 		}
 
 		self.sum[0] += s.DataNum
