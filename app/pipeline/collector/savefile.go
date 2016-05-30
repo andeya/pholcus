@@ -3,7 +3,7 @@ package collector
 import (
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"runtime"
 
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
@@ -22,8 +22,8 @@ func (self *Collector) SaveFile() {
 			self.outCount[2]++
 
 			// 路径： file/"RuleName"/"time"/"Name"
-			p, n := path.Split(file["Name"].(string))
-			dir := config.FILE_DIR + `/` + util.FileNameReplace(self.namespace()) + "__" + cache.StartTime.Format("2006年01月02日 15时04分05秒") + `/` + p
+			p, n := filepath.Split(filepath.Clean(file["Name"].(string)))
+			dir := filepath.Join(config.FILE_DIR, util.FileNameReplace(self.namespace())+"__"+cache.StartTime.Format("2006年01月02日 15时04分05秒"), p)
 
 			// 创建/打开目录
 			d, err := os.Stat(dir)
@@ -34,7 +34,7 @@ func (self *Collector) SaveFile() {
 			}
 
 			// 创建文件
-			fileName := dir + util.FileNameReplace(n)
+			fileName := filepath.Split(dir, util.FileNameReplace(n))
 			f, _ := os.Create(fileName)
 			size, _ := io.Copy(f, file["Body"].(io.ReadCloser))
 			f.Close()
