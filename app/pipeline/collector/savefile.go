@@ -34,7 +34,7 @@ func (self *Collector) SaveFile() {
 			}
 
 			// 创建文件
-			fileName := filepath.Split(dir, util.FileNameReplace(n))
+			fileName := filepath.Join(dir, util.FileNameReplace(n))
 			f, _ := os.Create(fileName)
 			size, _ := io.Copy(f, file["Body"].(io.ReadCloser))
 			f.Close()
