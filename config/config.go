@@ -94,5 +94,5 @@ func logLevel(l string) int {
 	case "debug":
 		return logs.LevelDebug
 	}
-	return logs.LevelApp
+	return -10
 }

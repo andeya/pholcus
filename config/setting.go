@@ -105,88 +105,125 @@ func trySet(iniconf config.Configer) {
 	if v, e := iniconf.Int("crawlcap"); v <= 0 || e != nil {
 		iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
 	}
+
 	if v, e := iniconf.Int("datachancap"); v <= 0 || e != nil {
 		iniconf.Set("datachancap", strconv.Itoa(datachancap))
 	}
+
 	if v, e := iniconf.Int64("log::cap"); v <= 0 || e != nil {
 		iniconf.Set("log::cap", strconv.FormatInt(logcap, 10))
 	}
+
 	level := iniconf.String("log::level")
-	if level == "" {
+	if logLevel(level) == -10 {
 		level = loglevel
 	}
 	iniconf.Set("log::level", level)
-	iniconf.Set("log::consolelevel", logLevel2(iniconf.String("log::consolelevel"), level))
-	iniconf.Set("log::feedbacklevel", logLevel2(iniconf.String("log::feedbacklevel"), level))
+
+	consolelevel := iniconf.String("log::consolelevel")
+	if logLevel(consolelevel) == -10 {
+		consolelevel = logconsolelevel
+	}
+	iniconf.Set("log::consolelevel", logLevel2(consolelevel, level))
+
+	feedbacklevel := iniconf.String("log::feedbacklevel")
+	if logLevel(feedbacklevel) == -10 {
+		feedbacklevel = logfeedbacklevel
+	}
+	iniconf.Set("log::feedbacklevel", logLevel2(feedbacklevel, level))
+
 	if _, e := iniconf.Bool("log::lineinfo"); e != nil {
 		iniconf.Set("log::lineinfo", fmt.Sprint(loglineinfo))
 	}
+
 	if _, e := iniconf.Bool("log::save"); e != nil {
 		iniconf.Set("log::save", fmt.Sprint(logsave))
 	}
+
 	if v := iniconf.String("phantomjs"); v == "" {
 		iniconf.Set("phantomjs", phantomjs)
 	}
+
 	if v := iniconf.String("proxylib"); v == "" {
 		iniconf.Set("proxylib", proxylib)
 	}
+
 	if v := iniconf.String("spiderdir"); v == "" {
 		iniconf.Set("spiderdir", spiderdir)
 	}
+
 	if v := iniconf.String("dbname"); v == "" {
 		iniconf.Set("dbname", dbname)
 	}
+
 	if v := iniconf.String("mgo::connstring"); v == "" {
 		iniconf.Set("mgo::connstring", mgoconnstring)
 	}
+
 	if v, e := iniconf.Int("mgo::conncap"); v <= 0 || e != nil {
 		iniconf.Set("mgo::conncap", strconv.Itoa(mgoconncap))
 	}
+
 	if v, e := iniconf.Int64("mgo::conngcsecond"); v <= 0 || e != nil {
 		iniconf.Set("mgo::conngcsecond", strconv.FormatInt(mgoconngcsecond, 10))
 	}
+
 	if v := iniconf.String("mysql::connstring"); v == "" {
 		iniconf.Set("mysql::connstring", mysqlconnstring)
 	}
+
 	if v, e := iniconf.Int("mysql::conncap"); v <= 0 || e != nil {
 		iniconf.Set("mysql::conncap", strconv.Itoa(mysqlconncap))
 	}
+
 	if v, e := iniconf.Int("mysql::maxallowedpacketmb"); v <= 0 || e != nil {
 		iniconf.Set("mysql::maxallowedpacketmb", strconv.Itoa(mysqlmaxallowedpacketmb))
 	}
+
 	if v, e := iniconf.Int("run::mode"); v < status.UNSET || v > status.CLIENT || e != nil {
 		iniconf.Set("run::mode", strconv.Itoa(mode))
 	}
+
 	if v, e := iniconf.Int("run::port"); v <= 0 || e != nil {
 		iniconf.Set("run::port", strconv.Itoa(port))
 	}
+
 	if v := iniconf.String("run::master"); v == "" {
 		iniconf.Set("run::master", master)
 	}
+
 	if v, e := iniconf.Int("run::thread"); v <= 0 || e != nil {
 		iniconf.Set("run::thread", strconv.Itoa(thread))
 	}
+
 	if v, e := iniconf.Int64("run::pause"); v < 0 || e != nil {
 		iniconf.Set("run::pause", strconv.FormatInt(pause, 10))
 	}
+
 	if v := iniconf.String("run::outtype"); v == "" {
 		iniconf.Set("run::outtype", outtype)
 	}
+
 	if v, e := iniconf.Int("run::dockercap"); v <= 0 || e != nil {
 		iniconf.Set("run::dockercap", strconv.Itoa(dockercap))
 	}
+
 	if v, e := iniconf.Int64("run::limit"); v < 0 || e != nil {
 		iniconf.Set("run::limit", strconv.FormatInt(limit, 10))
 	}
+
 	if v, e := iniconf.Int64("run::proxyminute"); v <= 0 || e != nil {
 		iniconf.Set("run::proxyminute", strconv.FormatInt(proxyminute, 10))
 	}
+
 	if _, e := iniconf.Bool("run::success"); e != nil {
 		iniconf.Set("run::success", fmt.Sprint(success))
 	}
+
 	if _, e := iniconf.Bool("run::failure"); e != nil {
 		iniconf.Set("run::failure", fmt.Sprint(failure))
 	}
+
 	iniconf.SaveConfigFile(CONFIG)
 }
 

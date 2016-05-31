@@ -1,6 +1,7 @@
 package crawl
 
 import (
+	"sync"
 	"time"
 
 	"github.com/henrylee2cn/pholcus/config"
@@ -18,6 +19,7 @@ type (
 		Cap    int
 		Src    map[Crawler]bool
 		status int
+		sync.Mutex
 	}
 )
 
@@ -48,7 +50,7 @@ func (self *cq) Reset(spiderNum int) int {
 	return self.Cap
 }
 
-// 非并发安全地使用资源
+// 并发安全地使用资源
 func (self *cq) Use() Crawler {
 	if self.status != status.RUN {
 		return nil
@@ -56,12 +58,16 @@ func (self *cq) Use() Crawler {
 	for {
 		for k, v := range self.Src {
 			if !v {
+				self.Lock()
 				self.Src[k] = true
+				self.Unlock()
 				return k
 			}
 		}
 		if len(self.Src) <= self.Cap {
+			self.Lock()
 			self.increment()
+			self.Unlock()
 		} else {
 			time.Sleep(5e8)
 		}
@@ -70,7 +76,9 @@ func (self *cq) Use() Crawler {
 }
 
 func (self *cq) Free(c Crawler) {
+	self.Lock()
 	self.Src[c] = false
+	self.Unlock()
 }
 
 // 主动终止所有爬行任务
