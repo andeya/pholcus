@@ -35,7 +35,8 @@ type (
 )
 
 func init() {
-	for _, m := range getSpiderModles() {
+	for _, _m := range getSpiderModles() {
+		m := _m //保证闭包变量
 		var sp = &Spider{
 			Name:         m.Name,
 			Description:  m.Description,

@@ -1,0 +1,31 @@
+<Spider>
+    <Name>HTML动态规则-文件下载测试</Name>
+    <DeScription>(HTML动态规则示例) 文件下载测试 [Auto Page] [http://up.haoduoge.com/mp3/2016-06-02/1464837238.mp3]</DeScription>
+    <EnableKeyin>false</EnableKeyin>
+    <EnableCookie>true</EnableCookie>
+    <EnableLimit>false</EnableLimit>
+    <Pausetime>300</Pausetime>
+    <Namespace>
+        <Script></Script>
+    </Namespace>
+    <SubNamespace>
+        <Script></Script>
+    </SubNamespace>
+    <Root>
+        <Script param="ctx">
+        console.log("Root");
+        ctx.JsAddQueue({
+            Url: "http://up.haoduoge.com/mp3/2016-06-02/1464837238.mp3",
+            Rule: "音频"
+        });
+        </Script>
+    </Root>
+    <Rule name="音频">
+        <ParseFunc>
+            <Script param="ctx">
+            console.log(ctx.GetRuleName());
+            ctx.FileOutput();
+            </Script>
+        </ParseFunc>
+    </Rule>
+</Spider>
