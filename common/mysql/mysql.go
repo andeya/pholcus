@@ -91,7 +91,7 @@ func (self *MyTable) Create() error {
 		self.sqlCode += "`" + title[0] + "`" + ` ` + title[1] + `,`
 	}
 	self.sqlCode = string(self.sqlCode[:len(self.sqlCode)-1])
-	self.sqlCode += `);`
+	self.sqlCode += `) default charset=utf8;`
 
 	stmtChan <- true
 	defer func() {
