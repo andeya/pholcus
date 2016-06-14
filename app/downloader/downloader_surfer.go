@@ -1,6 +1,8 @@
 package downloader
 
 import (
+	"compress/gzip"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
@@ -36,6 +38,15 @@ func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.C
 
 	case PHANTOM_ID:
 		resp, err = self.phantom.Download(cReq)
+	}
+
+	if resp.Header.Get("Content-Encoding") == "gzip" {
+		var gzipReader *gzip.Reader
+		gzipReader, err = gzip.NewReader(resp.Body)
+		resp.Body.Close()
+		if err == nil {
+			resp.Body = ioutil.NopCloser(gzipReader)
+		}
 	}
 
 	ctx.SetResponse(resp).SetError(err)

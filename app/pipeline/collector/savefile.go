@@ -33,15 +33,15 @@ func (self *Collector) SaveFile() {
 				}
 			}
 
+			// 输出统计
+			self.addFileSum(1)
+
 			// 创建文件
 			fileName := filepath.Join(dir, util.FileNameReplace(n))
 			f, _ := os.Create(fileName)
 			size, _ := io.Copy(f, file["Body"].(io.ReadCloser))
 			f.Close()
 			file["Body"].(io.ReadCloser).Close()
-
-			// 输出统计
-			self.addFileSum(1)
 
 			// 打印报告
 			logs.Log.Informational(" * ")

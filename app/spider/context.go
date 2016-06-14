@@ -1,7 +1,6 @@
 package spider
 
 import (
-	"io"
 	"io/ioutil"
 	"net/http"
 	"path"
@@ -97,7 +96,7 @@ func (self *Context) AddQueue(req *request.Request) *Context {
 		Prepare()
 
 	if err != nil {
-		logs.Log.Error("%v", err)
+		logs.Log.Error(err.Error())
 		return self
 	}
 
@@ -157,7 +156,7 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 		Prepare()
 
 	if err != nil {
-		logs.Log.Error("%v", err)
+		logs.Log.Error(err.Error())
 		return self
 	}
 
@@ -539,7 +538,7 @@ func (self *Context) initDom() *goquery.Document {
 	var err error
 	self.dom, err = goquery.NewDocumentFromReader(r)
 	if err != nil {
-		logs.Log.Error("%v", err)
+		logs.Log.Error(err.Error())
 		panic(err.Error())
 	}
 	return self.dom
@@ -549,29 +548,21 @@ func (self *Context) initDom() *goquery.Document {
 func (self *Context) initText() {
 	defer self.Response.Body.Close()
 	// get converter to utf-8
-	self.text = changeCharsetEncodingAuto(self.Response.Body, self.Response.Header.Get("Content-Type"))
-	//fmt.Printf("utf-8 body %v \r\n", bodyStr)
-}
-
-// Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8
-func changeCharsetEncodingAuto(sor io.ReadCloser, contentTypeStr string) string {
-	var err error
-	destReader, err := charset.NewReader(sor, contentTypeStr)
-
+	// Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8
+	destReader, err := charset.NewReader(self.Response.Body, self.Response.Header.Get("Content-Type"))
 	if err != nil {
-		logs.Log.Error("%v", err)
-		destReader = sor
+		logs.Log.Warning(err.Error())
+		destReader = self.Response.Body
 	}
 
-	var sorbody []byte
-	if sorbody, err = ioutil.ReadAll(destReader); err != nil {
-		logs.Log.Error("%v", err)
+	sorbody, err := ioutil.ReadAll(destReader)
+	if err != nil {
+		logs.Log.Error(err.Error())
+		return
 		// For gb2312, an error will be returned.
 		// Error like: simplifiedchinese: invalid GBK encoding
-		// return ""
 	}
-	//e,name,certain := charset.DetermineEncoding(sorbody,contentTypeStr)
-	// return string(sorbody)
+	//e,name,certain := charset.DetermineEncoding(sorbody,self.Response.Header.Get("Content-Type"))
 
-	return util.Bytes2String(sorbody)
+	self.text = util.Bytes2String(sorbody)
 }

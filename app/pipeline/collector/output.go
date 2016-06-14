@@ -31,11 +31,11 @@ func (self *Collector) Output(dataIndex int) {
 		}
 	}()
 
-	// 执行输出
-	err := Output[self.outType](self, dataIndex)
-
 	// 输出统计
 	self.addDataSum(dataLen)
+
+	// 执行输出
+	err := Output[self.outType](self, dataIndex)
 
 	logs.Log.Informational(" * ")
 	if err != nil {

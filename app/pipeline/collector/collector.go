@@ -20,7 +20,7 @@ type Collector struct {
 	ctrl     chan bool //长度为零时退出并输出
 	timing   time.Time //上次输出完成的时间点
 	outType  string    //输出方式
-	sum      [2]uint64 //收集的数据总数[文本，文件]，非并发安全
+	sum      [4]uint64 //收集的数据总数[上次输出后文本总数，本次输出后文本总数，上次输出后文件总数，本次输出后文件总数]，非并发安全
 	// size     [2]uint64 //数据总输出流量统计[文本，文件]，文本暂时未统计
 	outCount [4]uint //[文本输出开始，文本输出结束，文件输出开始，文件输出结束]
 }
@@ -42,7 +42,7 @@ func (self *Collector) Init(sp *spider.Spider) {
 	self.FileChan = make(chan data.FileCell, 512)
 	self.DockerQueue = NewDockerQueue()
 	self.ctrl = make(chan bool, 1)
-	self.sum = [2]uint64{}
+	self.sum = [4]uint64{}
 	// self.size = [2]uint64{}
 	self.outCount = [4]uint{}
 	self.timing = cache.StartTime
@@ -115,22 +115,24 @@ func (self *Collector) goOutput(dataIndex int) {
 
 // 获取文本数据总量
 func (self *Collector) dataSum() uint64 {
-	return self.sum[0]
+	return self.sum[1]
 }
 
 // 更新文本数据总量
 func (self *Collector) addDataSum(add uint64) {
-	self.sum[0] += add
+	self.sum[0] = self.sum[1]
+	self.sum[1] += add
 }
 
 // 获取文件数据总量
 func (self *Collector) fileSum() uint64 {
-	return self.sum[1]
+	return self.sum[3]
 }
 
 // 更新文件数据总量
 func (self *Collector) addFileSum(add uint64) {
-	self.sum[1] += add
+	self.sum[2] = self.sum[3]
+	self.sum[3] += add
 }
 
 // // 获取文本输出流量
