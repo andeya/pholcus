@@ -122,7 +122,16 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 	req.Url = u
 	req.Rule, _ = jreq["Rule"].(string)
 	req.Method, _ = jreq["Method"].(string)
-	req.Header, _ = jreq["Header"].(map[string][]string)
+	req.Header = http.Header{}
+	if header, ok := jreq["Header"].(map[string]interface{}); ok {
+		for k, values := range header {
+			if vals, ok := values.([]string); ok {
+				for _, v := range vals {
+					req.Header.Add(k, v)
+				}
+			}
+		}
+	}
 	req.PostData, _ = jreq["PostData"].(string)
 	req.Reloadable, _ = jreq["Reloadable"].(bool)
 	if t, ok := jreq["DialTimeout"].(int64); ok {
