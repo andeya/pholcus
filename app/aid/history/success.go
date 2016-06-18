@@ -14,8 +14,8 @@ import (
 type Success struct {
 	tabName     string
 	fileName    string
-	new         map[string]bool // [hash(url+method)]true
-	old         map[string]bool // [hash(url+method)]true
+	new         map[string]bool // [Request.Unique()]true
+	old         map[string]bool // [Request.Unique()]true
 	inheritable bool
 	sync.RWMutex
 }
@@ -23,31 +23,31 @@ type Success struct {
 // 更新或加入成功记录，
 // 对比是否已存在，不存在就记录，
 // 返回值表示是否有插入操作。
-func (self *Success) UpsertSuccess(hash string) bool {
+func (self *Success) UpsertSuccess(reqUnique string) bool {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 
-	if self.old[hash] {
+	if self.old[reqUnique] {
 		return false
 	}
-	if self.new[hash] {
+	if self.new[reqUnique] {
 		return false
 	}
-	self.new[hash] = true
+	self.new[reqUnique] = true
 	return true
 }
 
-func (self *Success) HasSuccess(hash string) bool {
+func (self *Success) HasSuccess(reqUnique string) bool {
 	self.RWMutex.Lock()
-	has := self.old[hash] || self.new[hash]
+	has := self.old[reqUnique] || self.new[reqUnique]
 	self.RWMutex.Unlock()
 	return has
 }
 
 // 删除成功记录
-func (self *Success) DeleteSuccess(hash string) {
+func (self *Success) DeleteSuccess(reqUnique string) {
 	self.RWMutex.Lock()
-	delete(self.new, hash)
+	delete(self.new, reqUnique)
 	self.RWMutex.Unlock()
 }
 

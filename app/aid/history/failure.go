@@ -17,14 +17,14 @@ import (
 type Failure struct {
 	tabName     string
 	fileName    string
-	list        map[*request.Request]bool
+	list        map[string]*request.Request //key:url
 	inheritable bool
 	sync.RWMutex
 }
 
-func (self *Failure) PullFailure() map[*request.Request]bool {
+func (self *Failure) PullFailure() map[string]*request.Request {
 	list := self.list
-	self.list = make(map[*request.Request]bool)
+	self.list = make(map[string]*request.Request)
 	return list
 }
 
@@ -34,17 +34,17 @@ func (self *Failure) PullFailure() map[*request.Request]bool {
 func (self *Failure) UpsertFailure(req *request.Request) bool {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
-	if self.list[req] {
+	if self.list[req.Unique()] != nil {
 		return false
 	}
-	self.list[req] = true
+	self.list[req.Unique()] = req
 	return true
 }
 
 // 删除失败记录
 func (self *Failure) DeleteFailure(req *request.Request) {
 	self.RWMutex.Lock()
-	delete(self.list, req)
+	delete(self.list, req.Unique())
 	self.RWMutex.Unlock()
 }
 
@@ -69,44 +69,43 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 			}
 
 			var docs = []interface{}{}
-			for req := range self.list {
-				docs = append(docs, map[string]interface{}{"_id": req.Serialize()})
+			for key, req := range self.list {
+				docs = append(docs, map[string]interface{}{"_id": key, "failure": req.Serialize()})
 			}
 			c.Insert(docs...)
 			return nil
 		})
 
 	case "mysql":
-		db, err := mysql.DB()
+		_, err := mysql.DB()
 		if err != nil {
-			return fLen, fmt.Errorf(" *     Fail  [添加失败记录][mysql]: %v 条 [ERROR]  %v\n", fLen, err)
-		}
-		// 删除失败记录文件
-		stmt, err := db.Prepare(`DROP TABLE ` + self.tabName)
-		if err != nil {
-			return fLen, fmt.Errorf(" *     Fail  [添加失败记录][mysql]: %v 条 [ERROR]  %v\n", fLen, err)
-		}
-		stmt.Exec()
-		if fLen == 0 {
-			return fLen, nil
+			return fLen, fmt.Errorf(" *     Fail  [添加失败记录][mysql]: %v 条 [PING]  %v\n", fLen, err)
 		}
 		table, ok := getWriteMysqlTable(self.tabName)
 		if !ok {
 			table = mysql.New()
-			table.SetTableName(self.tabName).AddColumn(`failure MEDIUMTEXT`)
+			table.SetTableName(self.tabName).CustomPrimaryKey(`id VARCHAR(8) PRIMARY KEY`).AddColumn(`failure MEDIUMTEXT`)
 			setWriteMysqlTable(self.tabName, table)
+			// 创建失败记录表
+			err = table.Create()
+			if err != nil {
+				return fLen, fmt.Errorf(" *     Fail  [添加失败记录][mysql]: %v 条 [CREATE]  %v\n", fLen, err)
+			}
+		} else {
+			// 清空失败记录表
+			err = table.Truncate()
+			if err != nil {
+				return fLen, fmt.Errorf(" *     Fail  [添加失败记录][mysql]: %v 条 [TRUNCATE]  %v\n", fLen, err)
+			}
 		}
-		// 添加失败请求
-		err = table.Create()
-		if err != nil {
-			return fLen, fmt.Errorf(" *     Fail  [添加失败记录][mysql]: %v 条 [ERROR]  %v\n", fLen, err)
-		}
-		for req := range self.list {
-			table.AutoInsert([]string{req.Serialize()})
-		}
-		err = table.FlushInsert()
-		if err != nil {
-			return fLen, fmt.Errorf(" *     Fail  [添加失败记录][mysql]: %v 条 [ERROR]  %v\n", fLen, err)
+
+		// 添加失败记录
+		for key, req := range self.list {
+			table.AutoInsert([]string{key, req.Serialize()})
+			err = table.FlushInsert()
+			if err != nil {
+				fLen--
+			}
 		}
 
 	default:
@@ -118,11 +117,9 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 
 		f, _ := os.OpenFile(self.fileName, os.O_CREATE|os.O_WRONLY, 0777)
 
-		docs := make([]string, len(self.list))
-		i := 0
-		for req := range self.list {
-			docs[i] = req.Serialize()
-			i++
+		docs := make(map[string]string, len(self.list))
+		for key, req := range self.list {
+			docs[key] = req.Serialize()
 		}
 		b, _ := json.Marshal(docs)
 		b = bytes.Replace(b, []byte(`\u0026`), []byte(`&`), -1)

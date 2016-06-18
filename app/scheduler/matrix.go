@@ -8,7 +8,6 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app/aid/history"
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
-	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
@@ -22,7 +21,7 @@ type Matrix struct {
 	reqs            map[int][]*request.Request  // [优先级]队列，优先级默认为0
 	priorities      []int                       // 优先级顺序，从低到高
 	history         history.Historier           // 历史记录
-	tempHistory     map[string]bool             // 临时记录 [hash(url+method)]true
+	tempHistory     map[string]bool             // 临时记录 [reqUnique(url+method)]true
 	failures        map[string]*request.Request // 历史及本次失败请求
 	tempHistoryLock sync.RWMutex
 	failureLock     sync.Mutex
@@ -84,13 +83,12 @@ func (self *Matrix) Push(req *request.Request) {
 
 	// 不可重复下载的req
 	if !req.IsReloadable() {
-		hash := makeUnique(req)
 		// 已存在成功记录时退出
-		if self.hasHistory(hash) {
+		if self.hasHistory(req.Unique()) {
 			return
 		}
 		// 添加到临时记录
-		self.insertTempHistory(hash)
+		self.insertTempHistory(req.Unique())
 	}
 
 	var priority = req.GetPriority()
@@ -148,15 +146,13 @@ func (self *Matrix) Free() {
 
 // 返回是否作为新的失败请求被添加至队列尾部
 func (self *Matrix) DoHistory(req *request.Request, ok bool) bool {
-	hash := makeUnique(req)
-
 	if !req.IsReloadable() {
 		self.tempHistoryLock.Lock()
-		delete(self.tempHistory, hash)
+		delete(self.tempHistory, req.Unique())
 		self.tempHistoryLock.Unlock()
 
 		if ok {
-			self.history.UpsertSuccess(hash)
+			self.history.UpsertSuccess(req.Unique())
 			return false
 		}
 	}
@@ -167,9 +163,9 @@ func (self *Matrix) DoHistory(req *request.Request, ok bool) bool {
 
 	self.failureLock.Lock()
 	defer self.failureLock.Unlock()
-	if _, ok := self.failures[hash]; !ok {
+	if _, ok := self.failures[req.Unique()]; !ok {
 		// 首次失败时，在任务队列末尾重新执行一次
-		self.failures[hash] = req
+		self.failures[req.Unique()] = req
 		logs.Log.Informational(" *     + 失败请求: [%v]\n", req.GetUrl())
 		return true
 	}
@@ -197,11 +193,11 @@ func (self *Matrix) CanStop() bool {
 	if len(self.failures) > 0 {
 		// 重新下载历史记录中失败的请求
 		var goon bool
-		for hash, req := range self.failures {
+		for reqUnique, req := range self.failures {
 			if req == nil {
 				continue
 			}
-			self.failures[hash] = nil
+			self.failures[reqUnique] = nil
 			goon = true
 			logs.Log.Informational(" *     - 失败请求: [%v]\n", req.GetUrl())
 			self.Push(req)
@@ -244,31 +240,27 @@ func (self *Matrix) Len() int {
 	return l
 }
 
-func (self *Matrix) hasHistory(hash string) bool {
-	if self.history.HasSuccess(hash) {
+func (self *Matrix) hasHistory(reqUnique string) bool {
+	if self.history.HasSuccess(reqUnique) {
 		return true
 	}
 	self.tempHistoryLock.RLock()
-	has := self.tempHistory[hash]
+	has := self.tempHistory[reqUnique]
 	self.tempHistoryLock.RUnlock()
 	return has
 }
 
-func (self *Matrix) insertTempHistory(hash string) {
+func (self *Matrix) insertTempHistory(reqUnique string) {
 	self.tempHistoryLock.Lock()
-	self.tempHistory[hash] = true
+	self.tempHistory[reqUnique] = true
 	self.tempHistoryLock.Unlock()
 }
 
-func (self *Matrix) setFailures(reqs map[*request.Request]bool) {
+func (self *Matrix) setFailures(reqs map[string]*request.Request) {
 	self.failureLock.Lock()
 	defer self.failureLock.Unlock()
-	for req := range reqs {
-		self.failures[makeUnique(req)] = req
+	for key, req := range reqs {
+		self.failures[key] = req
 		logs.Log.Informational(" *     + 失败请求: [%v]\n", req.GetUrl())
 	}
-}
-
-func makeUnique(req *request.Request) string {
-	return util.MakeUnique(req.GetUrl() + req.GetMethod())
 }

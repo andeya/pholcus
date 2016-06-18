@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"compress/gzip"
+	"errors"
 	"io/ioutil"
 	"net/http"
 
@@ -38,6 +39,10 @@ func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.C
 
 	case PHANTOM_ID:
 		resp, err = self.phantom.Download(cReq)
+	}
+
+	if resp.StatusCode >= 400 {
+		err = errors.New("响应状态 " + resp.Status)
 	}
 
 	if resp.Header.Get("Content-Encoding") == "gzip" {

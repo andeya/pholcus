@@ -27,7 +27,7 @@ type MyTable struct {
 var (
 	db                 *sql.DB
 	err                error
-	stmtChan           = make(chan bool, config.MYSQL_CONN_CAP)
+	maxConnChan        = make(chan bool, config.MYSQL_CONN_CAP) //最大执行数限制
 	max_allowed_packet = config.MYSQL_MAX_ALLOWED_PACKET - 1024
 	lock               sync.RWMutex
 )
@@ -83,7 +83,7 @@ func (self *MyTable) Create() error {
 	if len(self.columnNames) == 0 {
 		return errors.New("Column can not be empty")
 	}
-	self.sqlCode = `create table if not exists ` + "`" + self.tableName + "`" + `(`
+	self.sqlCode = `create table if not exists ` + "`" + self.tableName + "` ("
 	if !self.customPrimaryKey {
 		self.sqlCode += `id int(12) not null primary key auto_increment,`
 	}
@@ -93,13 +93,29 @@ func (self *MyTable) Create() error {
 	self.sqlCode = string(self.sqlCode[:len(self.sqlCode)-1])
 	self.sqlCode += `) default charset=utf8;`
 
-	stmtChan <- true
+	maxConnChan <- true
 	defer func() {
-		<-stmtChan
+		<-maxConnChan
 	}()
 	lock.RLock()
-	defer lock.RUnlock()
 	stmt, err := db.Prepare(self.sqlCode)
+	lock.RUnlock()
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec()
+	return err
+}
+
+//清空表单，执行前须保证SetTableName()已经执行
+func (self *MyTable) Truncate() error {
+	maxConnChan <- true
+	defer func() {
+		<-maxConnChan
+	}()
+	lock.RLock()
+	stmt, err := db.Prepare(`TRUNCATE TABLE ` + "`" + self.tableName + "`")
+	lock.RUnlock()
 	if err != nil {
 		return err
 	}
@@ -155,19 +171,20 @@ func (self *MyTable) FlushInsert() error {
 	}
 	self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `;`
 
-	stmtChan <- true
-	defer func() {
-		<-stmtChan
-	}()
-	lock.RLock()
-	defer lock.RUnlock()
 	defer func() {
 		// 清空临时数据
 		self.rows = [][]string{}
 		self.size = 0
 		self.sqlCode = ""
 	}()
+
+	maxConnChan <- true
+	defer func() {
+		<-maxConnChan
+	}()
+	lock.RLock()
 	stmt, err := db.Prepare(self.sqlCode)
+	lock.RUnlock()
 	if err != nil {
 		return err
 	}
@@ -181,6 +198,11 @@ func (self *MyTable) SelectAll() (*sql.Rows, error) {
 		return nil, errors.New("表名不能为空")
 	}
 	self.sqlCode = `select * from ` + "`" + self.tableName + "`" + `;`
+
+	maxConnChan <- true
+	defer func() {
+		<-maxConnChan
+	}()
 	lock.RLock()
 	defer lock.RUnlock()
 	return db.Query(self.sqlCode)

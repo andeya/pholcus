@@ -7,7 +7,7 @@ import (
 // 蜘蛛种类列表
 type (
 	Traversal interface {
-		Add(*Spider)
+		Add(*Spider) *Spider
 		Get() []*Spider
 		GetByName(string) *Spider
 	}
@@ -27,8 +27,9 @@ func newTraversal() Traversal {
 }
 
 // 向蜘蛛种类清单添加新种类
-func (self *menu) Add(sp *Spider) {
+func (self *menu) Add(sp *Spider) *Spider {
 	self.list = append(self.list, sp)
+	return sp
 }
 
 // 获取全部蜘蛛种类

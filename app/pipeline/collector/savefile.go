@@ -11,7 +11,7 @@ import (
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
-	"github.com/henrylee2cn/pholcus/runtime/cache"
+	// "github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
 //文件输出管理
@@ -23,7 +23,8 @@ func (self *Collector) SaveFile() {
 
 			// 路径： file/"RuleName"/"time"/"Name"
 			p, n := filepath.Split(filepath.Clean(file["Name"].(string)))
-			dir := filepath.Join(config.FILE_DIR, util.FileNameReplace(self.namespace())+"__"+cache.StartTime.Format("2006年01月02日 15时04分05秒"), p)
+			// dir := filepath.Join(config.FILE_DIR, util.FileNameReplace(self.namespace())+"__"+cache.StartTime.Format("2006年01月02日 15时04分05秒"), p)
+			dir := filepath.Join(config.FILE_DIR, util.FileNameReplace(self.namespace()), p)
 
 			// 创建/打开目录
 			d, err := os.Stat(dir)
@@ -36,10 +37,11 @@ func (self *Collector) SaveFile() {
 			// 输出统计
 			self.addFileSum(1)
 
-			// 创建文件
+			// 文件不存在就以0777的权限创建文件，如果存在就在写入之前清空内容
 			fileName := filepath.Join(dir, util.FileNameReplace(n))
-			f, _ := os.Create(fileName)
+			f, _ := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 			size, _ := io.Copy(f, file["Body"].(io.ReadCloser))
+
 			f.Close()
 			file["Body"].(io.ReadCloser).Close()
 

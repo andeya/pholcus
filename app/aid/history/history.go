@@ -12,6 +12,7 @@ import (
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
 	"github.com/henrylee2cn/pholcus/common/pool"
+	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 )
@@ -24,8 +25,8 @@ type (
 		DeleteSuccess(string)                      // 删除成功记录
 		FlushSuccess(provider string)              // I/O输出成功记录，但不清缓存
 
-		ReadFailure(provider string, inherit bool) // 读取失败记录
-		PullFailure() map[*request.Request]bool    // 拉取失败记录并清空
+		ReadFailure(provider string, inherit bool) // 取出失败记录
+		PullFailure() map[string]*request.Request  // 拉取失败记录并清空
 		UpsertFailure(*request.Request) bool       // 更新或加入失败记录
 		DeleteFailure(*request.Request)            // 删除失败记录
 		FlushFailure(provider string)              // I/O输出失败记录，但不清缓存
@@ -60,15 +61,15 @@ func New(name string, subName string) Historier {
 	}
 	return &History{
 		Success: &Success{
-			tabName:  successTabName,
+			tabName:  util.FileNameReplace(successTabName),
 			fileName: successFileName,
 			new:      make(map[string]bool),
 			old:      make(map[string]bool),
 		},
 		Failure: &Failure{
-			tabName:  failureTabName,
+			tabName:  util.FileNameReplace(failureTabName),
 			fileName: failureFileName,
-			list:     make(map[*request.Request]bool),
+			list:     make(map[string]*request.Request),
 		},
 	}
 }
@@ -150,7 +151,7 @@ func (self *History) ReadSuccess(provider string, inherit bool) {
 	logs.Log.Informational(" *     [读取成功记录]: %v 条\n", len(self.Success.old))
 }
 
-// 读取失败记录
+// 取出失败记录
 func (self *History) ReadFailure(provider string, inherit bool) {
 	self.RWMutex.Lock()
 	self.provider = provider
@@ -158,7 +159,7 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 
 	if !inherit {
 		// 不继承历史记录时
-		self.Failure.list = make(map[*request.Request]bool)
+		self.Failure.list = make(map[string]*request.Request)
 		self.Failure.inheritable = false
 		return
 
@@ -168,14 +169,14 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 
 	} else {
 		// 上次没有继承历史记录，但本次继承时
-		self.Failure.list = make(map[*request.Request]bool)
+		self.Failure.list = make(map[string]*request.Request)
 		self.Failure.inheritable = true
 	}
 	var fLen int
 	switch provider {
 	case "mgo":
 		if mgo.Error() != nil {
-			logs.Log.Error(" *     Fail  [读取失败记录][mgo]: %v\n", mgo.Error())
+			logs.Log.Error(" *     Fail  [取出失败记录][mgo]: %v\n", mgo.Error())
 			return
 		}
 
@@ -188,18 +189,19 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 		fLen = len(docs)
 
 		for _, v := range docs {
-			failure := v.(bson.M)["_id"].(string)
+			key := v.(bson.M)["_id"].(string)
+			failure := v.(bson.M)["failure"].(string)
 			req, err := request.UnSerialize(failure)
 			if err != nil {
 				continue
 			}
-			self.Failure.list[req] = true
+			self.Failure.list[key] = req
 		}
 
 	case "mysql":
 		_, err := mysql.DB()
 		if err != nil {
-			logs.Log.Error(" *     Fail  [读取失败记录][mysql]: %v\n", err)
+			logs.Log.Error(" *     Fail  [取出失败记录][mysql]: %v\n", err)
 			return
 		}
 		table, ok := getReadMysqlTable(self.Failure.tabName)
@@ -213,14 +215,13 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 		}
 
 		for rows.Next() {
-			var id int
-			var failure string
-			err = rows.Scan(&id, &failure)
+			var key, failure string
+			err = rows.Scan(&key, &failure)
 			req, err := request.UnSerialize(failure)
 			if err != nil {
 				continue
 			}
-			self.Failure.list[req] = true
+			self.Failure.list[key] = req
 			fLen++
 		}
 
@@ -236,21 +237,21 @@ func (self *History) ReadFailure(provider string, inherit bool) {
 			return
 		}
 
-		docs := []string{}
+		docs := map[string]string{}
 		json.Unmarshal(b, &docs)
 
 		fLen = len(docs)
 
-		for _, s := range docs {
+		for key, s := range docs {
 			req, err := request.UnSerialize(s)
 			if err != nil {
 				continue
 			}
-			self.Failure.list[req] = true
+			self.Failure.list[key] = req
 		}
 	}
 
-	logs.Log.Informational(" *     [读取失败记录]: %v 条\n", fLen)
+	logs.Log.Informational(" *     [取出失败记录]: %v 条\n", fLen)
 }
 
 // 清空缓存，但不输出
@@ -258,7 +259,7 @@ func (self *History) Empty() {
 	self.RWMutex.Lock()
 	self.Success.new = make(map[string]bool)
 	self.Success.old = make(map[string]bool)
-	self.Failure.list = make(map[*request.Request]bool)
+	self.Failure.list = make(map[string]*request.Request)
 	self.RWMutex.Unlock()
 }
 

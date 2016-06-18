@@ -59,9 +59,8 @@ type (
 )
 
 // 添加自身到蜘蛛菜单
-func (self *Spider) Register() *Spider {
-	Menu.Add(self)
-	return self
+func (self Spider) Register() *Spider {
+	return Menu.Add(&self)
 }
 
 // 指定规则的获取结果的字段名列表

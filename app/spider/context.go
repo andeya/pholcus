@@ -387,6 +387,11 @@ func (self *Context) GetResponse() *http.Response {
 	return self.Response
 }
 
+// 获取响应状态码。
+func (self *Context) GetStatusCode() int {
+	return self.Response.StatusCode
+}
+
 // 获取原始请求。
 func (self *Context) GetRequest() *request.Request {
 	return self.Request
