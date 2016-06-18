@@ -55,11 +55,17 @@ func (self *crawler) Start() {
 	// 预先开启输出管理协程
 	self.Pipeline.Start()
 
+	// 运行处理协程
+	c := make(chan bool)
+	go func() {
+		self.Run()
+		close(c)
+	}()
+
 	// 启动任务
 	self.Spider.Start()
 
-	// 任务运行中
-	self.Run()
+	<-c // 等待处理协程退出
 
 	// 通知输出模块输出未输出的数据
 	self.Pipeline.CtrlR()
@@ -97,7 +103,7 @@ func (self *crawler) Run() {
 			defer func() {
 				self.FreeOne()
 			}()
-			// logs.Log.Informational(" *     start: %v", req.GetUrl())
+			logs.Log.Debug(" *     Start: %v", req.GetUrl())
 			self.Process(req)
 		}(req)
 	}

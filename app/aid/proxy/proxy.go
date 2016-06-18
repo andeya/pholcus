@@ -14,6 +14,7 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/app/downloader/surfer"
+	"github.com/henrylee2cn/pholcus/common/ping"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 )
@@ -89,7 +90,7 @@ func (self *Proxy) findOnline() *Proxy {
 	for proxy := range self.all {
 		self.threadPool <- true
 		go func(proxy string) {
-			alive, _, _ := Ping(self.allIps[proxy], CONN_TIMEOUT)
+			alive, _, _ := ping.Ping(self.allIps[proxy], CONN_TIMEOUT)
 			self.Lock()
 			self.all[proxy] = alive
 			self.Unlock()

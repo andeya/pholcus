@@ -7,9 +7,11 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/henrylee2cn/pholcus/common/mahonia"
+	"github.com/henrylee2cn/pholcus/common/ping"
 )
 
 // 清除标签
@@ -204,4 +206,12 @@ func MakeUrl(path string, schemeAndHost ...string) (string, bool) {
 		return u, false
 	}
 	return u, true
+}
+
+func Pinger(address string, timeoutSecond int) error {
+	return ping.Pinger(address, timeoutSecond)
+}
+
+func Ping(address string, timeoutSecond int) (alive bool, err error, timedelay time.Duration) {
+	return ping.Ping(address, timeoutSecond)
 }

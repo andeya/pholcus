@@ -54,7 +54,9 @@ type Report struct {
 	Keyin      string
 	DataNum    uint64
 	FileNum    uint64
-	Time       time.Duration
+	// DataSize   uint64
+	// FileSize uint64
+	Time time.Duration
 }
 
 var (
