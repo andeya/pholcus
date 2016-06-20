@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/henrylee2cn/pholcus/common/config"
@@ -22,6 +23,8 @@ const (
 	phantomjs               string = WORK_ROOT + "/phantomjs"    // phantomjs文件路径
 	proxylib                string = WORK_ROOT + "/proxy.lib"    // 代理ip文件路径
 	spiderdir               string = WORK_ROOT + "/spiders"      // 动态规则目录
+	fileoutdir              string = WORK_ROOT + "/file_out"     // 文件（图片、HTML等）结果的输出目录
+	textoutdir              string = WORK_ROOT + "/text_out"     // excel或csv输出方式下，文本结果的输出目录
 	dbname                  string = TAG                         // 数据库名称
 	mgoconnstring           string = "127.0.0.1:27017"           // mongodb连接字符串
 	mgoconncap              int    = 1024                        // mongodb连接池容量
@@ -43,12 +46,9 @@ const (
 )
 
 var setting = func() config.Configer {
-	os.MkdirAll(HISTORY_DIR, 0777)
-	os.MkdirAll(CACHE_DIR, 0777)
-	os.MkdirAll(PHANTOMJS_TEMP, 0777)
-	os.MkdirAll(FILE_DIR, 0777)
-	os.MkdirAll(TEXT_DIR, 0777)
-	os.MkdirAll(TEXT_DIR, 0777)
+	os.MkdirAll(filepath.Clean(HISTORY_DIR), 0777)
+	os.MkdirAll(filepath.Clean(CACHE_DIR), 0777)
+	os.MkdirAll(filepath.Clean(PHANTOMJS_TEMP), 0777)
 
 	iniconf, err := config.NewConfig("ini", CONFIG)
 	if err != nil {
@@ -64,7 +64,9 @@ var setting = func() config.Configer {
 		trySet(iniconf)
 	}
 
-	os.MkdirAll(iniconf.String("spiderdir"), 0777)
+	os.MkdirAll(filepath.Clean(iniconf.String("spiderdir")), 0777)
+	os.MkdirAll(filepath.Clean(iniconf.String("fileoutdir")), 0777)
+	os.MkdirAll(filepath.Clean(iniconf.String("textoutdir")), 0777)
 
 	return iniconf
 }()
@@ -81,6 +83,8 @@ func defaultConfig(iniconf config.Configer) {
 	iniconf.Set("phantomjs", phantomjs)
 	iniconf.Set("proxylib", proxylib)
 	iniconf.Set("spiderdir", spiderdir)
+	iniconf.Set("fileoutdir", fileoutdir)
+	iniconf.Set("textoutdir", textoutdir)
 	iniconf.Set("dbname", dbname)
 	iniconf.Set("mgo::connstring", mgoconnstring)
 	iniconf.Set("mgo::conncap", strconv.Itoa(mgoconncap))
@@ -150,6 +154,14 @@ func trySet(iniconf config.Configer) {
 
 	if v := iniconf.String("spiderdir"); v == "" {
 		iniconf.Set("spiderdir", spiderdir)
+	}
+
+	if v := iniconf.String("fileoutdir"); v == "" {
+		iniconf.Set("fileoutdir", fileoutdir)
+	}
+
+	if v := iniconf.String("textoutdir"); v == "" {
+		iniconf.Set("textoutdir", textoutdir)
 	}
 
 	if v := iniconf.String("dbname"); v == "" {

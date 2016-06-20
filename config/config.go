@@ -27,8 +27,6 @@ const (
 	PHANTOMJS_TEMP string = CACHE_DIR                       // Surfer-Phantom下载器：js文件临时目录
 	HISTORY_TAG    string = "history"                       // 历史记录的标识符
 	HISTORY_DIR    string = WORK_ROOT + "/" + HISTORY_TAG   // excel或csv输出方式下，历史记录目录
-	FILE_DIR       string = WORK_ROOT + "/file_out"         // 文件（图片、HTML等）结果的输出目录
-	TEXT_DIR       string = WORK_ROOT + "/text_out"         // excel或csv输出方式下，文本结果的输出目录
 	SPIDER_EXT     string = ".pholcus.html"                 // 动态规则扩展名
 )
 
@@ -39,6 +37,8 @@ var (
 	PHANTOMJS                string = setting.String("phantomjs")                                                  // Surfer-Phantom下载器：phantomjs程序路径
 	PROXY                    string = setting.String("proxylib")                                                   // 代理IP文件路径
 	SPIDER_DIR               string = setting.String("spiderdir")                                                  // 动态规则目录
+	FILE_DIR                 string = setting.String("fileoutdir")                                                 // 文件（图片、HTML等）结果的输出目录
+	TEXT_DIR                 string = setting.String("textoutdir")                                                 // excel或csv输出方式下，文本结果的输出目录
 	DB_NAME                  string = setting.String("dbname")                                                     // 数据库名称
 	MGO_CONN_STR             string = setting.String("mgo::connstring")                                            // mongodb连接字符串
 	MGO_CONN_CAP             int    = setting.DefaultInt("mgo::conncap", mgoconncap)                               // mongodb连接池容量

@@ -31,10 +31,8 @@ func init() {
 
 			for _, datacell := range self.DockerQueue.Dockers[dataIndex] {
 				subNamespace := util.FileNameReplace(self.subNamespace(datacell))
-				var cName = namespace
-				if subNamespace != "" {
-					cName += "__" + subNamespace
-				}
+				cName := joinNamespaces(namespace, subNamespace)
+
 				if _, ok := collections[subNamespace]; !ok {
 					collections[subNamespace] = db.C(cName)
 				}
