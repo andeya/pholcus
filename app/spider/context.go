@@ -594,10 +594,10 @@ func (self *Context) initText() {
 				self.text = util.Bytes2String(sorbody)
 				return
 			} else {
-				logs.Log.Error(err.Error())
+				logs.Log.Error(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
 			}
 		} else {
-			logs.Log.Warning(err.Error())
+			logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
 		}
 	}
 
@@ -605,7 +605,7 @@ func (self *Context) initText() {
 	sorbody, err := ioutil.ReadAll(self.Response.Body)
 	self.Response.Body.Close()
 	if err != nil {
-		logs.Log.Error(err.Error())
+		panic(err.Error())
 		return
 	}
 	self.text = util.Bytes2String(sorbody)
