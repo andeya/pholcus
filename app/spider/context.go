@@ -2,6 +2,7 @@ package spider
 
 import (
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"path"
 	"strings"
@@ -560,23 +561,52 @@ func (self *Context) initDom() *goquery.Document {
 
 // GetBodyStr returns plain string crawled.
 func (self *Context) initText() {
-	defer self.Response.Body.Close()
-	// get converter to utf-8
-	// Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8
-	destReader, err := charset.NewReader(self.Response.Body, self.Response.Header.Get("Content-Type"))
-	if err != nil {
-		logs.Log.Warning(err.Error())
-		destReader = self.Response.Body
+	var contentType, charmime string
+	// 优先从响应头读取编码类型
+	contentType = self.Response.Header.Get("Content-Type")
+	if _, params, err := mime.ParseMediaType(contentType); err == nil {
+		if cs, ok := params["charset"]; ok {
+			charmime = strings.ToLower(strings.TrimSpace(cs))
+		}
+	}
+	// 响应头未指定编码类型时，从请求头读取
+	if len(charmime) == 0 {
+		contentType = self.Request.Header.Get("Content-Type")
+		if _, params, err := mime.ParseMediaType(contentType); err == nil {
+			if cs, ok := params["charmime"]; ok {
+				charmime = strings.ToLower(strings.TrimSpace(cs))
+			}
+		}
 	}
 
-	sorbody, err := ioutil.ReadAll(destReader)
+	switch charmime {
+	// 不做转码处理
+	case "", "utf8", "utf-8", "unicode-1-1-utf-8":
+	default:
+		// 指定了编码类型，但不是utf8时，自动转码为utf8
+		// get converter to utf-8
+		// Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8
+		destReader, err := charset.NewReaderLabel(charmime, self.Response.Body)
+		if err == nil {
+			sorbody, err := ioutil.ReadAll(destReader)
+			self.Response.Body.Close()
+			if err != nil {
+				logs.Log.Error(err.Error())
+				return
+			}
+			self.text = util.Bytes2String(sorbody)
+			return
+		} else {
+			logs.Log.Warning(err.Error())
+		}
+	}
+
+	// 不做转码处理
+	sorbody, err := ioutil.ReadAll(self.Response.Body)
+	self.Response.Body.Close()
 	if err != nil {
 		logs.Log.Error(err.Error())
 		return
-		// For gb2312, an error will be returned.
-		// Error like: simplifiedchinese: invalid GBK encoding
 	}
-	//e,name,certain := charset.DetermineEncoding(sorbody,self.Response.Header.Get("Content-Type"))
-
 	self.text = util.Bytes2String(sorbody)
 }
