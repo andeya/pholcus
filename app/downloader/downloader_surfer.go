@@ -1,9 +1,11 @@
 package downloader
 
 import (
+	"compress/flate"
 	"compress/gzip"
+	"compress/zlib"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
@@ -45,16 +47,38 @@ func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.C
 		err = errors.New("响应状态 " + resp.Status)
 	}
 
-	if resp.Header.Get("Content-Encoding") == "gzip" {
+	switch resp.Header.Get("Content-Encoding") {
+	case "gzip":
 		var gzipReader *gzip.Reader
 		gzipReader, err = gzip.NewReader(resp.Body)
-		resp.Body.Close()
 		if err == nil {
-			resp.Body = ioutil.NopCloser(gzipReader)
+			resp.Body = gzipReader
+		}
+
+	case "deflate":
+		resp.Body = flate.NewReader(resp.Body)
+
+	case "zlib":
+		var readCloser io.ReadCloser
+		readCloser, err = zlib.NewReader(resp.Body)
+		if err == nil {
+			resp.Body = readCloser
 		}
 	}
 
 	ctx.SetResponse(resp).SetError(err)
 
 	return ctx
+}
+
+type body struct {
+	io.ReadCloser
+}
+
+func (self *body) Read(p []byte) (n int, err error) {
+	return self.Read(p)
+}
+
+func (self *body) Write(p []byte) (n int, err error) {
+	return self.Write(p)
 }

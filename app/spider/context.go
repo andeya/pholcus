@@ -573,7 +573,7 @@ func (self *Context) initText() {
 	if len(charmime) == 0 {
 		contentType = self.Request.Header.Get("Content-Type")
 		if _, params, err := mime.ParseMediaType(contentType); err == nil {
-			if cs, ok := params["charmime"]; ok {
+			if cs, ok := params["charset"]; ok {
 				charmime = strings.ToLower(strings.TrimSpace(cs))
 			}
 		}
@@ -589,13 +589,13 @@ func (self *Context) initText() {
 		destReader, err := charset.NewReaderLabel(charmime, self.Response.Body)
 		if err == nil {
 			sorbody, err := ioutil.ReadAll(destReader)
-			self.Response.Body.Close()
-			if err != nil {
-				logs.Log.Error(err.Error())
+			if err == nil {
+				self.Response.Body.Close()
+				self.text = util.Bytes2String(sorbody)
 				return
+			} else {
+				logs.Log.Error(err.Error())
 			}
-			self.text = util.Bytes2String(sorbody)
-			return
 		} else {
 			logs.Log.Warning(err.Error())
 		}
