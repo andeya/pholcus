@@ -594,7 +594,7 @@ func (self *Context) initText() {
 				self.text = util.Bytes2String(sorbody)
 				return
 			} else {
-				logs.Log.Error(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
+				logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
 			}
 		} else {
 			logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
