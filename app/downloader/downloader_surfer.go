@@ -70,15 +70,3 @@ func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.C
 
 	return ctx
 }
-
-type body struct {
-	io.ReadCloser
-}
-
-func (self *body) Read(p []byte) (n int, err error) {
-	return self.Read(p)
-}
-
-func (self *body) Write(p []byte) (n int, err error) {
-	return self.Write(p)
-}
