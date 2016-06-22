@@ -71,6 +71,11 @@ const (
 	DefaultRetryPause  = 2 * time.Second // 默认重新下载前停顿时长
 )
 
+const (
+	SURF_ID    = 0    // 默认的surf下载内核（Go原生），此值不可改动
+	PHANTOM_ID = iota // 备用的phantomjs下载内核，一般不使用（效率差，头信息支持不完善）
+)
+
 // 发送请求前的准备工作，设置一系列默认值
 // Request.Url与Request.Rule必须设置
 // Request.Spider无需手动设置(由系统自动设置)
@@ -126,8 +131,8 @@ func (self *Request) Prepare() error {
 		self.Priority = 0
 	}
 
-	if self.DownloaderID < 0 || self.DownloaderID > 1 {
-		self.DownloaderID = 0
+	if self.DownloaderID < SURF_ID || self.DownloaderID > PHANTOM_ID {
+		self.DownloaderID = SURF_ID
 	}
 
 	if self.TempIsJson == nil {

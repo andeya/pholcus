@@ -1,11 +1,7 @@
 package downloader
 
 import (
-	"compress/flate"
-	"compress/gzip"
-	"compress/zlib"
 	"errors"
-	"io"
 	"net/http"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
@@ -19,11 +15,6 @@ type Surfer struct {
 	phantom surfer.Surfer
 }
 
-const (
-	SURF_ID    = 0 //默认下载器，此值不可改动
-	PHANTOM_ID = iota
-)
-
 var SurferDownloader = &Surfer{
 	surf:    surfer.New(),
 	phantom: surfer.NewPhantom(config.PHANTOMJS, config.PHANTOMJS_TEMP),
@@ -36,34 +27,15 @@ func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.C
 	var err error
 
 	switch cReq.GetDownloaderID() {
-	case SURF_ID:
+	case request.SURF_ID:
 		resp, err = self.surf.Download(cReq)
 
-	case PHANTOM_ID:
+	case request.PHANTOM_ID:
 		resp, err = self.phantom.Download(cReq)
 	}
 
 	if resp.StatusCode >= 400 {
 		err = errors.New("响应状态 " + resp.Status)
-	}
-
-	switch resp.Header.Get("Content-Encoding") {
-	case "gzip":
-		var gzipReader *gzip.Reader
-		gzipReader, err = gzip.NewReader(resp.Body)
-		if err == nil {
-			resp.Body = gzipReader
-		}
-
-	case "deflate":
-		resp.Body = flate.NewReader(resp.Body)
-
-	case "zlib":
-		var readCloser io.ReadCloser
-		readCloser, err = zlib.NewReader(resp.Body)
-		if err == nil {
-			resp.Body = readCloser
-		}
 	}
 
 	ctx.SetResponse(resp).SetError(err)

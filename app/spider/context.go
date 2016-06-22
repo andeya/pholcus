@@ -561,43 +561,46 @@ func (self *Context) initDom() *goquery.Document {
 
 // GetBodyStr returns plain string crawled.
 func (self *Context) initText() {
-	var contentType, charmime string
-	// 优先从响应头读取编码类型
-	contentType = self.Response.Header.Get("Content-Type")
-	if _, params, err := mime.ParseMediaType(contentType); err == nil {
-		if cs, ok := params["charset"]; ok {
-			charmime = strings.ToLower(strings.TrimSpace(cs))
-		}
-	}
-	// 响应头未指定编码类型时，从请求头读取
-	if len(charmime) == 0 {
-		contentType = self.Request.Header.Get("Content-Type")
+	// 采用surf内核下载时，尝试自动转码
+	if self.Request.DownloaderID == request.SURF_ID {
+		var contentType, pageEncode string
+		// 优先从响应头读取编码类型
+		contentType = self.Response.Header.Get("Content-Type")
 		if _, params, err := mime.ParseMediaType(contentType); err == nil {
 			if cs, ok := params["charset"]; ok {
-				charmime = strings.ToLower(strings.TrimSpace(cs))
+				pageEncode = strings.ToLower(strings.TrimSpace(cs))
 			}
 		}
-	}
+		// 响应头未指定编码类型时，从请求头读取
+		if len(pageEncode) == 0 {
+			contentType = self.Request.Header.Get("Content-Type")
+			if _, params, err := mime.ParseMediaType(contentType); err == nil {
+				if cs, ok := params["charset"]; ok {
+					pageEncode = strings.ToLower(strings.TrimSpace(cs))
+				}
+			}
+		}
 
-	switch charmime {
-	// 不做转码处理
-	case "", "utf8", "utf-8", "unicode-1-1-utf-8":
-	default:
-		// 指定了编码类型，但不是utf8时，自动转码为utf8
-		// get converter to utf-8
-		// Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8
-		destReader, err := charset.NewReaderLabel(charmime, self.Response.Body)
-		if err == nil {
-			sorbody, err := ioutil.ReadAll(destReader)
+		switch pageEncode {
+		// 不做转码处理
+		case "", "utf8", "utf-8", "unicode-1-1-utf-8":
+		default:
+			// 指定了编码类型，但不是utf8时，自动转码为utf8
+			// get converter to utf-8
+			// Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8
+			destReader, err := charset.NewReaderLabel(pageEncode, self.Response.Body)
 			if err == nil {
-				self.Response.Body.Close()
-				self.text = util.Bytes2String(sorbody)
-				return
+				sorbody, err := ioutil.ReadAll(destReader)
+				if err == nil {
+					self.Response.Body.Close()
+					self.text = util.Bytes2String(sorbody)
+					return
+				} else {
+					logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
+				}
 			} else {
 				logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
 			}
-		} else {
-			logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
 		}
 	}
 

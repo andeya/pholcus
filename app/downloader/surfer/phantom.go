@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"os/exec"
@@ -54,19 +55,20 @@ func NewPhantom(phantomjsFile, tempJsDir string) Surfer {
 
 // 实现surfer下载器接口
 func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
+	var encoding = "utf-8"
+	if _, params, err := mime.ParseMediaType(req.GetHeader().Get("Content-Type")); err == nil {
+		if cs, ok := params["charset"]; ok {
+			encoding = strings.ToLower(strings.TrimSpace(cs))
+		}
+	}
+
+	req.GetHeader().Del("Content-Type")
+
 	param, err := NewParam(req)
 	if err != nil {
 		return nil, err
 	}
 	resp = param.writeback(resp)
-
-	encoding := strings.ToLower(param.header.Get("Content-Type"))
-	if idx := strings.Index(encoding, "charset="); idx != -1 {
-		encoding = strings.Trim(string(encoding[idx+8:]), ";")
-		encoding = strings.Trim(encoding, " ")
-	} else {
-		encoding = "utf-8"
-	}
 
 	var args []string
 	switch req.GetMethod() {
@@ -117,9 +119,12 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 		break
 	}
 
-	if err != nil {
-		resp.Status = "200 OK"
-		resp.StatusCode = 200
+	if err == nil {
+		resp.StatusCode = http.StatusOK
+		resp.Status = http.StatusText(http.StatusOK)
+	} else {
+		resp.StatusCode = http.StatusBadGateway
+		resp.Status = http.StatusText(http.StatusBadGateway)
 	}
 	return
 }

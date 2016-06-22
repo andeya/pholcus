@@ -1,7 +1,11 @@
 package surfer
 
 import (
+	"compress/flate"
+	"compress/gzip"
+	"compress/zlib"
 	"crypto/tls"
+	"io"
 	"math/rand"
 	"net"
 	"net/http"
@@ -30,11 +34,30 @@ func (self *Surf) Download(req Request) (resp *http.Response, err error) {
 	}
 	param.client = self.buildClient(param)
 	resp, err = self.httpRequest(param)
+
+	if err == nil {
+		switch resp.Header.Get("Content-Encoding") {
+		case "gzip":
+			var gzipReader *gzip.Reader
+			gzipReader, err = gzip.NewReader(resp.Body)
+			if err == nil {
+				resp.Body = gzipReader
+			}
+
+		case "deflate":
+			resp.Body = flate.NewReader(resp.Body)
+
+		case "zlib":
+			var readCloser io.ReadCloser
+			readCloser, err = zlib.NewReader(resp.Body)
+			if err == nil {
+				resp.Body = readCloser
+			}
+		}
+	}
+
 	resp = param.writeback(resp)
-	// if err != nil {
-	// 	resp.Status = "200 OK"
-	// 	resp.StatusCode = 200
-	// }
+
 	return
 }
 
