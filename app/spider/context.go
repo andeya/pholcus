@@ -215,10 +215,18 @@ func (self *Context) Output(item interface{}, ruleName ...string) {
 // 输出文件。
 // name指定文件名，为空时默认保持原文件名不变。
 func (self *Context) FileOutput(name ...string) {
+	// 读取完整文件流
+	bytes, err := ioutil.ReadAll(self.Response.Body)
+	self.Response.Body.Close()
+	if err != nil {
+		panic(err.Error())
+		return
+	}
+
+	// 智能设置完整文件名
 	_, s := path.Split(self.GetUrl())
 	n := strings.Split(s, "?")[0]
 
-	// 初始化
 	baseName := strings.Split(n, ".")[0]
 	ext := path.Ext(n)
 
@@ -235,8 +243,10 @@ func (self *Context) FileOutput(name ...string) {
 	if ext == "" {
 		ext = ".html"
 	}
+
+	// 保存到文件临时队列
 	self.Lock()
-	self.files = append(self.files, data.GetFileCell(self.GetRuleName(), baseName+ext, self.Response.Body))
+	self.files = append(self.files, data.GetFileCell(self.GetRuleName(), baseName+ext, bytes))
 	self.Unlock()
 }
 

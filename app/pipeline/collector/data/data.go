@@ -1,7 +1,6 @@
 package data
 
 import (
-	"io"
 	"sync"
 )
 
@@ -36,11 +35,11 @@ func GetDataCell(ruleName string, data map[string]interface{}, url string, paren
 	return cell
 }
 
-func GetFileCell(ruleName, name string, body io.ReadCloser) FileCell {
+func GetFileCell(ruleName, name string, bytes []byte) FileCell {
 	cell := fileCellPool.Get().(FileCell)
 	cell["RuleName"] = ruleName //存储路径中的一部分
 	cell["Name"] = name         //规定文件名
-	cell["Body"] = body         //文件内容
+	cell["Bytes"] = bytes       //文件内容
 	return cell
 }
 
@@ -56,6 +55,6 @@ func PutDataCell(cell DataCell) {
 func PutFileCell(cell FileCell) {
 	cell["RuleName"] = nil
 	cell["Name"] = nil
-	cell["Body"] = nil
+	cell["Bytes"] = nil
 	fileCellPool.Put(cell)
 }

@@ -1,13 +1,14 @@
 package collector
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"path/filepath"
 	"runtime"
 
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
-	"github.com/henrylee2cn/pholcus/common/bytes"
+	bytesSize "github.com/henrylee2cn/pholcus/common/bytes"
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
@@ -39,16 +40,22 @@ func (self *Collector) SaveFile() {
 
 			// 文件不存在就以0777的权限创建文件，如果存在就在写入之前清空内容
 			fileName := filepath.Join(dir, util.FileNameReplace(n))
-			f, _ := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
-			size, _ := io.Copy(f, file["Body"].(io.ReadCloser))
-
+			f, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
+			if err != nil {
+				logs.Log.Error(" *     Fail  [savefile][%v]: %v\n", fileName, err)
+				return
+			}
+			size, err := io.Copy(f, bytes.NewReader(file["Bytes"].([]byte)))
 			f.Close()
-			file["Body"].(io.ReadCloser).Close()
+			if err != nil {
+				logs.Log.Error(" *     Fail  [savefile][%v]: %v\n", fileName, err)
+				return
+			}
 
 			// 打印报告
 			logs.Log.Informational(" * ")
 			logs.Log.App(" *     [任务：%v | KEYIN：%v]   成功下载文件： %v (%s)\n",
-				self.Spider.GetName(), self.Spider.GetKeyin(), fileName, bytes.Format(uint64(size)))
+				self.Spider.GetName(), self.Spider.GetKeyin(), fileName, bytesSize.Format(uint64(size)))
 			logs.Log.Informational(" * ")
 
 			self.outCount[3]++
