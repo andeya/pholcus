@@ -25,7 +25,7 @@ func (self *Collector) Output(dataIndex int) {
 		err := recover()
 		if err != nil {
 			logs.Log.Informational(" * ")
-			logs.Log.App(" *     Panic  [任务输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！ [ERROR]  %v\n",
+			logs.Log.App(" *     Panic  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！ [ERROR]  %v\n",
 				self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing), err)
 			self.timing = time.Now()
 		}
@@ -39,10 +39,10 @@ func (self *Collector) Output(dataIndex int) {
 
 	logs.Log.Informational(" * ")
 	if err != nil {
-		logs.Log.App(" *     Fail  [任务输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！ [ERROR]  %v\n",
+		logs.Log.App(" *     Fail  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！ [ERROR]  %v\n",
 			self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing), err)
 	} else {
-		logs.Log.App(" *     [任务输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！\n",
+		logs.Log.App(" *     [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！\n",
 			self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing))
 		self.Spider.TryFlushSuccess()
 	}

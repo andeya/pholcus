@@ -594,16 +594,16 @@ func (self *Logic) goRun(count int) {
 	logs.Log.Informational(" * ")
 	switch {
 	case self.sum[0] > 0 && self.sum[1] == 0:
-		logs.Log.App(" *                            —— %s合计采集【数据 %v 条】， 实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——",
+		logs.Log.App(" *                            —— %s合计采集【数据 %v 条】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
 			prefix, self.sum[0], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	case self.sum[0] == 0 && self.sum[1] > 0:
-		logs.Log.App(" *                            —— %s合计采集【文件 %v 个】， 实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——",
+		logs.Log.App(" *                            —— %s合计采集【文件 %v 个】， 实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
 			prefix, self.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	case self.sum[0] == 0 && self.sum[1] == 0:
-		logs.Log.App(" *                            —— %s无采集结果，实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——",
+		logs.Log.App(" *                            —— %s无采集结果，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
 			prefix, cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	default:
-		logs.Log.App(" *                            —— %s合计采集【数据 %v 条 + 文件 %v 个】，实爬URL【成功 %v 页 + 失败 %v 页 = 合计 %v 页】，耗时【%v】 ——",
+		logs.Log.App(" *                            —— %s合计采集【数据 %v 条 + 文件 %v 个】，实爬【成功 %v URL + 失败 %v URL = 合计 %v URL】，耗时【%v】 ——",
 			prefix, self.sum[0], self.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), self.takeTime)
 	}
 	logs.Log.Informational(" * ")
