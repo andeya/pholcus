@@ -33,14 +33,15 @@ func NewBrush(color string) Brush {
 }
 
 var colors = []Brush{
+	NewBrush("1;37"), // App	white (only for pholcus)
 	NewBrush("1;37"), // Emergency	white
-	NewBrush("1;36"), // Alert			cyan
-	NewBrush("1;35"), // Critical   magenta
-	NewBrush("1;31"), // Error      red
-	NewBrush("1;33"), // Warning    yellow
-	NewBrush("1;32"), // Notice			green
+	NewBrush("1;36"), // Alert	cyan
+	NewBrush("1;35"), // Critical	magenta
+	NewBrush("1;31"), // Error	red
+	NewBrush("1;33"), // Warning	yellow
+	NewBrush("1;32"), // Notice	green
 	NewBrush("1;34"), // Informational	blue
-	NewBrush("1;34"), // Debug      blue
+	NewBrush("1;34"), // Debug	blue
 }
 
 // ConsoleWriter implements LoggerInterface and writes messages to terminal.
