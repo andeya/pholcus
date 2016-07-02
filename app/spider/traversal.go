@@ -35,16 +35,15 @@ func (self *menu) Add(sp *Spider) *Spider {
 // 获取全部蜘蛛种类
 func (self *menu) Get() []*Spider {
 	if !self.sorted {
-		l := len(self.list)
-		initials := make([]string, l)
-		newlist := map[string]*Spider{}
-		for i := 0; i < l; i++ {
-			initials[i] = self.list[i].GetName()
-			newlist[initials[i]] = self.list[i]
+		initials := make([]string, len(self.list))
+		spMap := map[string]*Spider{}
+		for i, sp := range self.list {
+			initials[i] = sp.GetName()
+			spMap[initials[i]] = sp
 		}
 		pinyin.SortInitials(initials)
-		for i := 0; i < l; i++ {
-			self.list[i] = newlist[initials[i]]
+		for i, initail := range initials {
+			self.list[i] = spMap[initail]
 		}
 		self.sorted = true
 	}
