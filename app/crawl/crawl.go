@@ -39,7 +39,6 @@ func New(id int) Crawler {
 }
 
 func (self *crawler) Init(sp *spider.Spider) Crawler {
-	log.Println("initCrawler", sp.Presistent)
 	self.Spider = sp.ReqmatrixInit()
 	self.Pipeline.Init(sp)
 	self.basePause = cache.Task.Pausetime / 2
