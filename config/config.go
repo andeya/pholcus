@@ -32,8 +32,9 @@ const (
 
 // 来自配置文件的配置项。
 var (
-	CRAWLS_CAP               int    = setting.DefaultInt("crawlcap", crawlcap)                                     // 蜘蛛池最大容量
-	DATA_CHAN_CAP            int    = setting.DefaultInt("datachancap", datachancap)                               // 收集器容量
+	CRAWLS_CAP               int    = setting.DefaultInt("crawlcap", crawlcap)       // 蜘蛛池最大容量
+	DATA_CHAN_CAP            int    = setting.DefaultInt("datachancap", datachancap) // 收集器容量
+	PRESISTENT               string = setting.String("presistent")
 	PHANTOMJS                string = setting.String("phantomjs")                                                  // Surfer-Phantom下载器：phantomjs程序路径
 	PROXY                    string = setting.String("proxylib")                                                   // 代理IP文件路径
 	SPIDER_DIR               string = setting.String("spiderdir")                                                  // 动态规则目录
@@ -52,6 +53,10 @@ var (
 	LOG_FEEDBACK_LEVEL       int    = logLevel(setting.String("log::feedbacklevel"))                               // 客户端反馈至服务端的日志级别
 	LOG_LINEINFO             bool   = setting.DefaultBool("log::lineinfo", loglineinfo)                            // 日志是否打印行信息                                  // 客户端反馈至服务端的日志级别
 	LOG_SAVE                 bool   = setting.DefaultBool("log::save", logsave)                                    // 是否保存所有日志到本地文件
+	MNS_PREFIX               string = setting.String("mns::prefix")
+	MNS_ROOT                 string = setting.String("mns::root")
+	MNS_KEY                  string = setting.String("mns::key")
+	MNS_SECRET               string = setting.String("mns::secret")
 )
 
 func init() {

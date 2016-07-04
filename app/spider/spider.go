@@ -31,7 +31,6 @@ type (
 		EnableCookie bool   // 所有请求是否使用cookie记录
 		Limit        int64  // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数(内部：<0时限制请求数，>0时自定义限制)
 		Keyin        string // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN
-		Presistent   scheduler.PresistentMatrix
 
 		NotDefaultField bool                                                       // 是否禁止输出默认字段 Url/ParentUrl/DownloadTime
 		Namespace       func(*Spider) string                                       // 命名空间相对于数据库名，不依赖具体数据内容
@@ -233,17 +232,15 @@ func (self *Spider) Copy() *Spider {
 	ghost.timer = self.timer
 	ghost.status = self.status
 
-	ghost.Presistent = self.Presistent
-
 	return ghost
 }
 
 func (self *Spider) ReqmatrixInit() *Spider {
 	if self.Limit < 0 {
-		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), self.Limit, self.Presistent)
+		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), self.Limit)
 		self.SetLimit(0)
 	} else {
-		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), math.MinInt64, self.Presistent)
+		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), math.MinInt64)
 	}
 	return self
 }

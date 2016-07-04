@@ -10,6 +10,7 @@ import (
 	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
+	"log"
 )
 
 type (
@@ -58,12 +59,15 @@ func (self *crawler) Start() {
 	// 运行处理协程
 	c := make(chan bool)
 	go func() {
+		log.Println("run")
 		self.Run()
 		close(c)
+		log.Println("close")
 	}()
 
 	// 启动任务
 	self.Spider.Start()
+	log.Println("start")
 
 	<-c // 等待处理协程退出
 
