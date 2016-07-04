@@ -10,7 +10,6 @@ import (
 	"github.com/henrylee2cn/pholcus/app/spider"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
-	"log"
 )
 
 type (
@@ -21,10 +20,10 @@ type (
 		GetId() int
 	}
 	crawler struct {
-		id             int
+		id int
 		*spider.Spider
-		basePause      int64
-		gainPause      int64
+		basePause int64
+		gainPause int64
 		downloader.Downloader
 		pipeline.Pipeline
 		historyFailure []*request.Request
@@ -119,7 +118,7 @@ func (self *crawler) Run() {
 // core processer
 func (self *crawler) Process(req *request.Request) {
 	var (
-		ctx = self.Downloader.Download(self.Spider, req) // download page
+		ctx     = self.Downloader.Download(self.Spider, req) // download page
 		downUrl = req.GetUrl()
 	)
 
