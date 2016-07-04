@@ -78,8 +78,6 @@ func (self *crawler) Stop() {
 	self.Spider.Stop()
 }
 
-var reqCount int = 0
-
 func (self *crawler) Run() {
 	for {
 		// 随机等待
@@ -109,7 +107,6 @@ func (self *crawler) Run() {
 			logs.Log.Debug(" *     Start: %v", req.GetUrl())
 			self.Process(req)
 		}(req)
-
 	}
 	// 等待处理中的任务完成
 	self.Spider.Defer()

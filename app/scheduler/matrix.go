@@ -11,7 +11,6 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
-	"log"
 )
 
 type PresistentMatrix interface {
@@ -142,7 +141,6 @@ func (self *Matrix) Pull() (req *request.Request) {
 		}
 	}()
 
-	log.Println("presistent", self.presistent)
 	// 持久化下载队列
 	if self.presistent != nil {
 
