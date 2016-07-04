@@ -13,36 +13,37 @@ import (
 )
 
 const (
-	KEYIN       = util.USE_KEYIN // 若使用Spider.Keyin，则须在规则中设置初始值为USE_KEYIN
-	LIMIT       = math.MaxInt64  // 如希望在规则中自定义控制Limit，则Limit初始值必须为LIMIT
+	KEYIN = util.USE_KEYIN // 若使用Spider.Keyin，则须在规则中设置初始值为USE_KEYIN
+	LIMIT = math.MaxInt64  // 如希望在规则中自定义控制Limit，则Limit初始值必须为LIMIT
 	ACTIVE_STOP = "——主动终止Spider——"
 )
 
 type (
 	// 蜘蛛规则
 	Spider struct {
-		Id   int    // 所在SpiderList的下标编号，系统自动分配
-		Name string // 必须保证全局唯一
+		Id              int                                                        // 所在SpiderList的下标编号，系统自动分配
+		Name            string                                                     // 必须保证全局唯一
 		*RuleTree
 
-		//以下为可选成员
-		Description  string
-		Pausetime    int64  // 随机暂停区间(随机: Pausetime/2 ~ Pausetime*2)
-		EnableCookie bool   // 所有请求是否使用cookie记录
-		Limit        int64  // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数(内部：<0时限制请求数，>0时自定义限制)
-		Keyin        string // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN
+											   //以下为可选成员
+		Description     string
+		Pausetime       int64                                                      // 随机暂停区间(随机: Pausetime/2 ~ Pausetime*2)
+		EnableCookie    bool                                                       // 所有请求是否使用cookie记录
+		Limit           int64                                                      // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数(内部：<0时限制请求数，>0时自定义限制)
+		Keyin           string                                                     // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN
+		Presistent      scheduler.PresistentMatrix
 
 		NotDefaultField bool                                                       // 是否禁止输出默认字段 Url/ParentUrl/DownloadTime
 		Namespace       func(*Spider) string                                       // 命名空间相对于数据库名，不依赖具体数据内容
 		SubNamespace    func(self *Spider, dataCell map[string]interface{}) string // 子命名空间相对于表名，可依赖具体数据内容
 
-		// 以下为系统自动赋值成员
-		subName   string            // 由Keyin转换为的二级标识名
-		ReqMatrix *scheduler.Matrix // 请求矩阵
-		timer     *Timer            // 定时器
-		status    int               // 执行状态
-		rwMutex   sync.RWMutex
-		once      sync.Once
+											   // 以下为系统自动赋值成员
+		subName         string                                                     // 由Keyin转换为的二级标识名
+		ReqMatrix       *scheduler.Matrix                                          // 请求矩阵
+		timer           *Timer                                                     // 定时器
+		status          int                                                        // 执行状态
+		rwMutex         sync.RWMutex
+		once            sync.Once
 	}
 	//采集规则树
 	RuleTree struct {
@@ -71,7 +72,7 @@ func (self *Spider) GetItemFields(rule *Rule) []string {
 // 返回结果字段名的值
 // 不存在时返回空字符串
 func (self *Spider) GetItemField(rule *Rule, index int) (field string) {
-	if index > len(rule.ItemFields)-1 || index < 0 {
+	if index > len(rule.ItemFields) - 1 || index < 0 {
 		return ""
 	}
 	return rule.ItemFields[index]
@@ -232,15 +233,17 @@ func (self *Spider) Copy() *Spider {
 	ghost.timer = self.timer
 	ghost.status = self.status
 
+	ghost.Presistent = self.Presistent
+
 	return ghost
 }
 
 func (self *Spider) ReqmatrixInit() *Spider {
 	if self.Limit < 0 {
-		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), self.Limit)
+		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), self.Limit, self.Presistent)
 		self.SetLimit(0)
 	} else {
-		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), math.MinInt64)
+		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), math.MinInt64, self.Presistent)
 	}
 	return self
 }

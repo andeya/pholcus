@@ -11,13 +11,20 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
+	"log"
 )
+
+type PresistentMatrix interface {
+	Push(req *request.Request)
+	Pull() (req *request.Request)
+}
 
 // 一个Spider实例的请求矩阵
 type Matrix struct {
-	maxPage         int64                       // 最大采集页数，以负数形式表示
-	resCount        int32                       // 资源使用情况计数
-	spiderName      string                      // 所属Spider
+	maxPage         int64  // 最大采集页数，以负数形式表示
+	resCount        int32  // 资源使用情况计数
+	spiderName      string // 所属Spider
+	presistent      PresistentMatrix
 	reqs            map[int][]*request.Request  // [优先级]队列，优先级默认为0
 	priorities      []int                       // 优先级顺序，从低到高
 	history         history.Historier           // 历史记录
@@ -28,11 +35,13 @@ type Matrix struct {
 	sync.Mutex
 }
 
-func newMatrix(spiderName, spiderSubName string, maxPage int64) *Matrix {
+func newMatrix(spiderName, spiderSubName string, maxPage int64, presistent PresistentMatrix) *Matrix {
+	log.Println("newMatrix", presistent)
 	matrix := &Matrix{
 		spiderName:  spiderName,
 		maxPage:     maxPage,
 		reqs:        make(map[int][]*request.Request),
+		presistent:  presistent,
 		priorities:  []int{},
 		history:     history.New(spiderName, spiderSubName),
 		tempHistory: make(map[string]bool),
@@ -91,6 +100,14 @@ func (self *Matrix) Push(req *request.Request) {
 		self.insertTempHistory(req.Unique())
 	}
 
+	// 持久化下载队列
+	if self.presistent != nil {
+		self.presistent.Push(req)
+		// 大致限制加入队列的请求量，并发情况下应该会比maxPage多
+		atomic.AddInt64(&self.maxPage, 1)
+		return
+	}
+
 	var priority = req.GetPriority()
 
 	// 初始化该蜘蛛下该优先级队列
@@ -114,17 +131,31 @@ func (self *Matrix) Pull() (req *request.Request) {
 	}
 	self.Lock()
 	defer self.Unlock()
+
+	defer func() {
+		if req == nil {
+			return
+		}
+		if sdl.useProxy {
+			req.SetProxy(sdl.proxy.GetOne(req.GetUrl()))
+		} else {
+			req.SetProxy("")
+		}
+	}()
+
+	log.Println("presistent", self.presistent)
+	// 持久化下载队列
+	if self.presistent != nil {
+
+		req = self.presistent.Pull()
+		return
+	}
 	// 按优先级从高到低取出请求
 	for i := len(self.reqs) - 1; i >= 0; i-- {
 		idx := self.priorities[i]
 		if len(self.reqs[idx]) > 0 {
 			req = self.reqs[idx][0]
 			self.reqs[idx] = self.reqs[idx][1:]
-			if sdl.useProxy {
-				req.SetProxy(sdl.proxy.GetOne(req.GetUrl()))
-			} else {
-				req.SetProxy("")
-			}
 			return
 		}
 	}

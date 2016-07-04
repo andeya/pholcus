@@ -36,7 +36,7 @@ type Proxy struct {
 const (
 	CONN_TIMEOUT = 4 //4s
 	DAIL_TIMEOUT = 4 //4s
-	TRY_TIMES    = 3
+	TRY_TIMES = 3
 	// IP测速的最大并发量
 	MAX_THREAD_NUM = 1000
 )
@@ -44,7 +44,7 @@ const (
 func New() *Proxy {
 	p := &Proxy{
 		ipRegexp:    regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`),
-		proxyRegexp: regexp.MustCompile(`http[s]?://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`),
+		proxyRegexp: regexp.MustCompile(`.*?://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`),
 		allIps:      map[string]string{},
 		all:         map[string]bool{},
 		usable:      make(map[string]*ProxyForHost),
@@ -90,7 +90,10 @@ func (self *Proxy) findOnline() *Proxy {
 	for proxy := range self.all {
 		self.threadPool <- true
 		go func(proxy string) {
+
 			alive, _, _ := ping.Ping(self.allIps[proxy], CONN_TIMEOUT)
+			alive = true
+			//log.Println(self.allIps[proxy], alive)
 			self.Lock()
 			self.all[proxy] = alive
 			self.Unlock()
@@ -130,7 +133,7 @@ func (self *Proxy) GetOne(u string) (curProxy string) {
 	}
 	var key = u2.Host
 	if strings.Count(key, ".") > 1 {
-		key = key[strings.Index(key, ".")+1:]
+		key = key[strings.Index(key, ".") + 1:]
 	}
 
 	self.Lock()
@@ -143,7 +146,7 @@ func (self *Proxy) GetOne(u string) (curProxy string) {
 	case <-self.ticker.C:
 		proxyForHost.curIndex++
 		if proxyForHost.curIndex >= proxyForHost.Len() {
-			_, ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
+			_, ok = self.testAndSort(key, u2.Scheme + "://" + u2.Host)
 		}
 		proxyForHost.isEcho = true
 
@@ -154,11 +157,11 @@ func (self *Proxy) GetOne(u string) (curProxy string) {
 				timedelay: []time.Duration{},
 				isEcho:    true,
 			}
-			proxyForHost, ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
+			proxyForHost, ok = self.testAndSort(key, u2.Scheme + "://" + u2.Host)
 		} else if l := proxyForHost.Len(); l == 0 {
 			ok = false
 		} else if proxyForHost.curIndex >= l {
-			_, ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
+			_, ok = self.testAndSort(key, u2.Scheme + "://" + u2.Host)
 			proxyForHost.isEcho = true
 		}
 	}
