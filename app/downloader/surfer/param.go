@@ -72,27 +72,21 @@ func NewParam(req Request) (param *Param, err error) {
 		param.method = "GET"
 	}
 
-	param.header = make(http.Header)
+	param.header = req.GetHeader()
 
 	if param.contentType != "" {
-		param.header.Set("Content-Type", param.contentType)
-	}
-
-	for k, v := range req.GetHeader() {
-		for _, vv := range v {
-			param.header.Add(k, vv)
-		}
+		param.header.Add("Content-Type", param.contentType)
 	}
 
 	param.enableCookie = req.GetEnableCookie()
 
 	if len(param.header.Get("User-Agent")) == 0 {
 		if param.enableCookie {
-			param.header.Set("User-Agent", agent.UserAgents["common"][0])
+			param.header.Add("User-Agent", agent.UserAgents["common"][0])
 		} else {
 			l := len(agent.UserAgents["common"])
 			r := rand.New(rand.NewSource(time.Now().UnixNano()))
-			param.header.Set("User-Agent", agent.UserAgents["common"][r.Intn(l)])
+			param.header.Add("User-Agent", agent.UserAgents["common"][r.Intn(l)])
 		}
 	}
 
