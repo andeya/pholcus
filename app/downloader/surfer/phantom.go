@@ -1,3 +1,17 @@
+// Copyright 2015 henrylee2cn Author. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package surfer
 
 import (
@@ -11,8 +25,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/henrylee2cn/pholcus/app/downloader/surfer/util"
 )
 
 // 基于Phantomjs的下载器实现，作为surfer的补充
@@ -138,7 +150,7 @@ func (self *Phantom) DestroyJsFiles() {
 	for _, filename := range self.jsFileMap {
 		os.Remove(filename)
 	}
-	if len(util.WalkDir(p)) == 1 {
+	if len(WalkDir(p)) == 1 {
 		os.Remove(p)
 	}
 }

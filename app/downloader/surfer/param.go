@@ -1,3 +1,17 @@
+// Copyright 2015 henrylee2cn Author. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package surfer
 
 import (
@@ -12,14 +26,12 @@ import (
 	"time"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/surfer/agent"
-	"github.com/henrylee2cn/pholcus/app/downloader/surfer/util"
 )
 
 type Param struct {
 	method        string
 	url           *url.URL
 	proxy         *url.URL
-	contentType   string
 	body          io.Reader
 	header        http.Header
 	enableCookie  bool
@@ -33,7 +45,7 @@ type Param struct {
 
 func NewParam(req Request) (param *Param, err error) {
 	param = new(Param)
-	param.url, err = util.UrlEncode(req.GetUrl())
+	param.url, err = UrlEncode(req.GetUrl())
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +56,14 @@ func NewParam(req Request) (param *Param, err error) {
 		}
 	}
 
+	param.header = req.GetHeader()
+
 	switch method := strings.ToUpper(req.GetMethod()); method {
 	case "GET", "HEAD":
 		param.method = method
 	case "POST":
 		param.method = method
-		param.contentType = "application/x-www-form-urlencoded"
+		param.header.Add("Content-Type", "application/x-www-form-urlencoded")
 		param.body = strings.NewReader(req.GetPostData())
 	case "POST-M":
 		param.method = "POST"
@@ -65,17 +79,11 @@ func NewParam(req Request) (param *Param, err error) {
 		if err != nil {
 			return nil, err
 		}
-		param.contentType = writer.FormDataContentType()
+		param.header.Add("Content-Type", writer.FormDataContentType())
 		param.body = body
 
 	default:
 		param.method = "GET"
-	}
-
-	param.header = req.GetHeader()
-
-	if param.contentType != "" {
-		param.header.Add("Content-Type", param.contentType)
 	}
 
 	param.enableCookie = req.GetEnableCookie()
