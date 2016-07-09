@@ -15,6 +15,7 @@
 package surfer
 
 import (
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -31,8 +32,10 @@ import (
 func AutoToUTF8(resp *http.Response) error {
 	destReader, err := charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
 	if err == nil {
-		resp.Body.Close()
-		resp.Body = ioutil.NopCloser(destReader)
+		resp.Body = &Body{
+			ReadCloser: resp.Body,
+			Reader:     destReader,
+		}
 	}
 	return err
 }
@@ -116,4 +119,14 @@ func WalkDir(targpath string, suffixes ...string) (dirlist []string) {
 	}
 
 	return
+}
+
+// 封装Response.Body
+type Body struct {
+	io.ReadCloser
+	io.Reader
+}
+
+func (b *Body) Read(p []byte) (int, error) {
+	return b.Reader.Read(p)
 }
