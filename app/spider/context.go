@@ -1,6 +1,7 @@
 package spider
 
 import (
+	"bytes"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/net/html/charset"
@@ -22,7 +24,7 @@ type Context struct {
 	spider   *Spider           // 规则
 	Request  *request.Request  // 原始请求
 	Response *http.Response    // 响应流，其中URL拷贝自*request.Request
-	text     string            // 下载内容Body的字符串格式
+	text     []byte            // 下载内容Body的字节流格式
 	dom      *goquery.Document // 下载内容Body为html时，可转换为Dom的对象
 	items    []data.DataCell   // 存放以文本形式输出的结果数据
 	files    []data.FileCell   // 存放欲直接输出的文件("Name": string; "Body": io.ReadCloser)
@@ -56,7 +58,7 @@ func PutContext(ctx *Context) {
 	ctx.spider = nil
 	ctx.Request = nil
 	ctx.Response = nil
-	ctx.text = ""
+	ctx.text = nil
 	ctx.dom = nil
 	ctx.err = nil
 	contextPool.Put(ctx)
@@ -376,7 +378,9 @@ func (self *Context) RunTimer(id string) bool {
 
 // 重置下载的文本内容，
 func (self *Context) ResetText(body string) *Context {
-	self.text = body
+	x := (*[2]uintptr)(unsafe.Pointer(&body))
+	h := [3]uintptr{x[0], x[1], x[1]}
+	self.text = *(*[]byte)(unsafe.Pointer(&h))
 	self.dom = nil
 	return self
 }
@@ -535,10 +539,10 @@ func (self *Context) GetDom() *goquery.Document {
 
 // GetBodyStr returns plain string crawled.
 func (self *Context) GetText() string {
-	if self.text == "" {
+	if self.text == nil {
 		self.initText()
 	}
-	return self.text
+	return util.Bytes2String(self.text)
 }
 
 //**************************************** 私有方法 *******************************************\\
@@ -559,11 +563,12 @@ func (self *Context) getRule(ruleName ...string) (name string, rule *Rule, found
 
 // GetHtmlParser returns goquery object binded to target crawl result.
 func (self *Context) initDom() *goquery.Document {
-	r := strings.NewReader(self.GetText())
+	if self.text == nil {
+		self.initText()
+	}
 	var err error
-	self.dom, err = goquery.NewDocumentFromReader(r)
+	self.dom, err = goquery.NewDocumentFromReader(bytes.NewReader(self.text))
 	if err != nil {
-		logs.Log.Error(err.Error())
 		panic(err.Error())
 	}
 	return self.dom
@@ -600,10 +605,9 @@ func (self *Context) initText() {
 			// Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8
 			destReader, err := charset.NewReaderLabel(pageEncode, self.Response.Body)
 			if err == nil {
-				sorbody, err := ioutil.ReadAll(destReader)
+				self.text, err = ioutil.ReadAll(destReader)
 				if err == nil {
 					self.Response.Body.Close()
-					self.text = util.Bytes2String(sorbody)
 					return
 				} else {
 					logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), err)
@@ -615,11 +619,11 @@ func (self *Context) initText() {
 	}
 
 	// 不做转码处理
-	sorbody, err := ioutil.ReadAll(self.Response.Body)
+	var err error
+	self.text, err = ioutil.ReadAll(self.Response.Body)
 	self.Response.Body.Close()
 	if err != nil {
 		panic(err.Error())
 		return
 	}
-	self.text = util.Bytes2String(sorbody)
 }
