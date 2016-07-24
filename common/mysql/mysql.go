@@ -164,7 +164,9 @@ func (self *MyTable) FlushInsert() error {
 	for _, row := range self.rows {
 		self.sqlCode += `(`
 		for _, v := range row {
+			v = strings.Replace(v, `\`, `\\`, -1)
 			v = strings.Replace(v, `"`, `\"`, -1)
+			v = strings.Replace(v, `'`, `\'`, -1)
 			self.sqlCode += `"` + v + `",`
 		}
 		self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `),`
