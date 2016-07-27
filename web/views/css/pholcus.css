@@ -1,0 +1,255 @@
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: 'Source Sans Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-weight: 400;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+textarea {
+    resize: none;
+}
+
+.backdrop {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    box-shadow: inset 0px 0px 100px #ddd;
+    z-index: -1;
+    top: 0px;
+    left: 0px;
+}
+
+#step1 {
+    position: absolute;
+    width: 600px;
+    left: 50%;
+    margin-left: -300px;
+    top: 50%;
+    margin-top: -250px;
+    z-index: 1px;
+}
+
+.logo {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+h1 {
+    text-align: center;
+    color: #000;
+}
+
+.config1 {
+    display: none;
+    margin-top: 10px;
+}
+
+.config2 {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    line-height: 1.8;
+    text-align: center;
+    padding: 50px 0;
+    color: #999;
+}
+
+.layui-layer-content {
+    text-align: center;
+}
+
+.step2 {
+    height: 80%;
+    width: 100%;
+    padding: 0;
+    text-align: center;
+    overflow-y: auto;
+}
+
+.step2 form {
+    display: inline-block;
+    width: 96%;
+    height: 95%;
+    min-height: 440px;
+    padding: 0;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.box {
+    border-radius: 3px;
+    background: #ffffff;
+    border-top: 3px solid #d2d6de;
+    margin-bottom: 20px;
+    height: 100%;
+    text-align: left;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+.form-1.box {
+    padding: 5px 1%;
+    margin: 10px 1% 0 0;
+    width: 58%;
+    float: left;
+    border: 1px solid #ccc;
+    overflow-y: scroll;
+}
+
+.form-2.box {
+    width: 40%;
+    height: 100%;
+    padding: 10px 1% 70px;
+    margin: 10px 0 0 1%;
+    float: left;
+    border: 1px solid #ccc;
+}
+
+.log.box {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 20%;
+    font-size: 12px;
+    margin: auto;
+    clear: both;
+    border-top-color: #00a65a;
+}
+
+.client.log.box {
+    z-index: -1;
+    height: 100%;
+    border-bottom: 3px solid #00a65a;
+    border-top: 0;
+    padding-top: 35px;
+}
+
+#log-box {
+    height: 100%;
+    overflow-y: auto;
+}
+
+.chat .item {
+    margin-bottom: 5px;
+}
+
+.chat .item > .message {
+    margin: 5px 0 0px 20px;
+}
+
+.box-header {
+    color: #444;
+    display: block;
+    padding: 10px;
+    border-bottom: 1px solid #f4f4f4;
+    position: relative;
+}
+
+.box-header:before,
+.box-body:before,
+.box-footer:before,
+.box-header:after,
+.box-body:after,
+.box-footer:after {
+    content: " ";
+    display: table;
+}
+
+.box-header:after,
+.box-body:after,
+.box-footer:after {
+    clear: both;
+}
+
+.box-body {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+    padding: 10px;
+}
+
+.no-padding {
+    padding: 0px !important;
+}
+
+.form-1 label {
+    font-weight: normal;
+    margin-bottom: 0;
+}
+
+#allSpiders tr:nth-child(n+2) {
+    font-size: 12px;
+}
+
+#allSpiders tr:nth-child(n+2) td {
+    line-height: 1.6;
+}
+
+.table>thead>tr>th,
+.table>tbody>tr>th,
+.table>tfoot>tr>th,
+.table>thead>tr>td,
+.table>tbody>tr>td,
+.table>tfoot>tr>td {
+    border-top: 0!important;
+    border-bottom: 1px solid #f4f4f4!important;
+}
+
+.box-body>.table {
+    margin-bottom: 0;
+}
+
+.checkbox {
+    margin: 0;
+    width: 12px;
+}
+
+.box-header .box-title {
+    display: inline-block;
+    font-size: 18px;
+    margin: 0;
+    line-height: 1;
+}
+
+.inline {
+    display: block;
+    margin-right: -10px;
+}
+
+.inline .form-group {
+    display: inline-block;
+    margin-right: 10px;
+    width: 47%;
+}
+
+.form-group label {
+    font-family: "微软雅黑";
+}
+
+.box-footer {
+    position: fixed;
+    top: 3px;
+    right: 30px;
+    clear: both;
+}
+
+.box-footer .btn {
+    width: 100px;
+    text-align: center;
+    padding: 3px 15px;
+    margin-left: 10px;
+}
+
+#btn-pause {
+    display: none;
+}
