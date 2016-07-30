@@ -269,20 +269,6 @@ func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map
 	return item2
 }
 
-// 获得一个原始请求的副本。
-func (self *Context) CopyRequest() *request.Request {
-	return self.Request.Copy()
-}
-
-// 获得一个请求的缓存数据副本。
-func (self *Context) CopyTemps() request.Temp {
-	temps := make(request.Temp)
-	for k, v := range self.Request.GetTemps() {
-		temps[k] = v
-	}
-	return temps
-}
-
 // 在请求中保存临时数据。
 func (self *Context) SetTemp(key string, value interface{}) *Context {
 	self.Request.SetTemp(key, value)
@@ -412,6 +398,11 @@ func (self *Context) GetRequest() *request.Request {
 	return self.Request
 }
 
+// 获得一个原始请求的副本。
+func (self *Context) CopyRequest() *request.Request {
+	return self.Request.Copy()
+}
+
 // 获取结果字段名列表。
 func (self *Context) GetItemFields(ruleName ...string) []string {
 	_, rule, found := self.getRule(ruleName...)
@@ -490,11 +481,24 @@ func (self *Context) GetRuleName() string {
 	return self.Request.GetRuleName()
 }
 
-// 获取请求中指定缓存数据，
-// 强烈建议数据接收者receive为指针类型，
-// receive为空时，直接输出字符串。
-func (self *Context) GetTemp(key string, receive interface{}) interface{} {
-	return self.Request.GetTemp(key, receive)
+// 获取请求中临时缓存数据
+// defaultValue 不能为 interface{}(nil)
+func (self *Context) GetTemp(key string, defaultValue interface{}) interface{} {
+	return self.Request.GetTemp(key, defaultValue)
+}
+
+// 获取请求中全部缓存数据
+func (self *Context) GetTemps() request.Temp {
+	return self.Request.GetTemps()
+}
+
+// 获得一个请求的缓存数据副本。
+func (self *Context) CopyTemps() request.Temp {
+	temps := make(request.Temp)
+	for k, v := range self.Request.GetTemps() {
+		temps[k] = v
+	}
+	return temps
 }
 
 // 从原始请求获取Url，从而保证请求前后的Url完全相等，且中文未被编码。

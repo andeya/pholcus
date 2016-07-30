@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -298,30 +297,20 @@ func (self *Request) SetReloadable(can bool) *Request {
 }
 
 // 获取临时缓存数据
-// receive参数为指针类型时，返回值同时被写入receive
-// receive不能为nil
-func (self *Request) GetTemp(key string, receive interface{}) interface{} {
-	if receive == nil {
-		panic("*Request.GetTemp()的receive不能为nil，错误位置：key=" + key)
+// defaultValue 不能为 interface{}(nil)
+func (self *Request) GetTemp(key string, defaultValue interface{}) interface{} {
+	if defaultValue == nil {
+		panic("*Request.GetTemp()的defaultValue不能为nil，错误位置：key=" + key)
 	}
 	self.lock.RLock()
 	defer self.lock.RUnlock()
 
-	if self.TempIsJson[key] {
-		if _, ok := self.Temp[key]; !ok {
-			return nil
-		}
-		self.Temp.get(key, receive)
-		return receive
+	if self.Temp[key] == nil {
+		return defaultValue
 	}
 
-	r := reflect.ValueOf(receive)
-	if r.Kind() == reflect.Ptr {
-		e := r.Elem()
-		if e.CanSet() {
-			e.Set(reflect.ValueOf(self.Temp[key]))
-			return receive
-		}
+	if self.TempIsJson[key] {
+		return self.Temp.get(key, defaultValue)
 	}
 
 	return self.Temp[key]
