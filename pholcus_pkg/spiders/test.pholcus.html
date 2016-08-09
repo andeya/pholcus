@@ -1,10 +1,11 @@
 <Spider>
     <Name>HTML动态规则-乐蛙登录测试</Name>
     <DeScription>(HTML动态规则示例) 乐蛙登录测试 [Auto Page] [http://accounts.lewaos.com]</DeScription>
-    <EnableKeyin>false</EnableKeyin>
-    <EnableCookie>true</EnableCookie>
-    <EnableLimit>false</EnableLimit>
     <Pausetime>300</Pausetime>
+    <EnableLimit>false</EnableLimit>
+    <EnableCookie>true</EnableCookie>
+    <EnableKeyin>false</EnableKeyin>
+    <NotDefaultField>false</NotDefaultField>
     <Namespace>
         <Script></Script>
     </Namespace>
@@ -32,7 +33,7 @@
                 Url: "http://accounts.lewaos.com",
                 Rule: "登录后",
                 Method: "POST",
-                PostData: "username=44444444@qq.com&amp;password=44444444&amp;login_btn=login_btn&amp;submit=login_btn"
+                PostData: "username=44444444@qq.com&amp;password=44444444&amp;login_btn=login_btn&amp;submit=login_btn",
             });
             </Script>
         </ParseFunc>

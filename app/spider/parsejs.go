@@ -16,16 +16,17 @@ import (
 // 蜘蛛规则解释器模型
 type (
 	SpiderModle struct {
-		Name         string      `xml:"Name"`
-		Description  string      `xml:"Description"`
-		EnableKeyin  bool        `xml:"EnableKeyin"`
-		EnableCookie bool        `xml:"EnableCookie"`
-		EnableLimit  bool        `xml:"EnableLimit"`
-		Pausetime    int64       `xml:"Pausetime"`
-		Namespace    string      `xml:"Namespace>Script"`
-		SubNamespace string      `xml:"SubNamespace>Script"`
-		Root         string      `xml:"Root>Script"`
-		Trunk        []RuleModle `xml:"Rule"`
+		Name            string      `xml:"Name"`
+		Description     string      `xml:"Description"`
+		Pausetime       int64       `xml:"Pausetime"`
+		EnableLimit     bool        `xml:"EnableLimit"`
+		EnableKeyin     bool        `xml:"EnableKeyin"`
+		EnableCookie    bool        `xml:"EnableCookie"`
+		NotDefaultField bool        `xml:"NotDefaultField"`
+		Namespace       string      `xml:"Namespace>Script"`
+		SubNamespace    string      `xml:"SubNamespace>Script"`
+		Root            string      `xml:"Root>Script"`
+		Trunk           []RuleModle `xml:"Rule"`
 	}
 	RuleModle struct {
 		Name      string `xml:"name,attr"`
@@ -38,17 +39,18 @@ func init() {
 	for _, _m := range getSpiderModles() {
 		m := _m //保证闭包变量
 		var sp = &Spider{
-			Name:         m.Name,
-			Description:  m.Description,
-			EnableCookie: m.EnableCookie,
-			Pausetime:    m.Pausetime,
-			RuleTree:     &RuleTree{Trunk: map[string]*Rule{}},
-		}
-		if m.EnableKeyin {
-			sp.Keyin = KEYIN
+			Name:            m.Name,
+			Description:     m.Description,
+			Pausetime:       m.Pausetime,
+			EnableCookie:    m.EnableCookie,
+			NotDefaultField: m.NotDefaultField,
+			RuleTree:        &RuleTree{Trunk: map[string]*Rule{}},
 		}
 		if m.EnableLimit {
 			sp.Limit = LIMIT
+		}
+		if m.EnableKeyin {
+			sp.Keyin = KEYIN
 		}
 
 		if m.Namespace != "" {

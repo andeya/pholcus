@@ -1,4 +1,4 @@
-# pholcus    [![GoDoc](https://godoc.org/github.com/tsuna/gohbase?status.png)](https://godoc.org/github.com/henrylee2cn/pholcus) [![GitHub release](https://img.shields.io/github/release/henrylee2cn/pholcus.svg)](https://github.com/henrylee2cn/pholcus/releases)
+# Pholcus    [![GoDoc](https://godoc.org/github.com/tsuna/gohbase?status.png)](https://godoc.org/github.com/henrylee2cn/pholcus) [![GitHub release](https://img.shields.io/github/release/henrylee2cn/pholcus.svg)](https://github.com/henrylee2cn/pholcus/releases)
 
 Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重量级爬虫软件，支持单机、服务端、客户端三种运行模式，拥有Web、GUI、命令行三种操作界面；规则简单灵活、批量任务并发、输出方式丰富（mysql/mongodb/csv/excel等）、有大量Demo共享；同时她还支持横纵向两种抓取模式，支持模拟登录和任务暂停、取消等一系列高级功能。
 
@@ -159,10 +159,11 @@ xxx.pholcus.html
 <Spider>
     <Name>HTML动态规则示例</Name>
     <DeScription>HTML动态规则示例 [Auto Page] [http://xxx.xxx.xxx]</DeScription>
-    <EnableKeyin>false</EnableKeyin>
-    <EnableCookie>true</EnableCookie>
-    <EnableLimit>false</EnableLimit>
     <Pausetime>300</Pausetime>
+    <EnableLimit>false</EnableLimit>
+    <EnableCookie>true</EnableCookie>
+    <EnableKeyin>false</EnableKeyin>
+    <NotDefaultField>false</NotDefaultField>
     <Namespace>
         <Script></Script>
     </Namespace>
@@ -233,52 +234,53 @@ xxx.go
 
 ```
 func init() {
-    Lewa.Register()
-}
-
-var Lewa = &Spider{
-    Name:        "静态规则示例",
-    Description: "静态规则示例 [Auto Page] [http://xxx.xxx.xxx]",
-    // Pausetime: 300,
-    // Keyin:   KEYIN,
-    // Limit:   LIMIT,
-    EnableCookie: true,
-    RuleTree: &RuleTree{
-        Root: func(ctx *Context) {
-            ctx.AddQueue(&request.Request{Url: "http://xxx.xxx.xxx", Rule: "登录页"})
+    Spider{
+        Name:        "静态规则示例",
+        Description: "静态规则示例 [Auto Page] [http://xxx.xxx.xxx]",
+        // Pausetime: 300,
+        // Limit:   LIMIT,
+        // Keyin:   KEYIN,
+        EnableCookie:    true,
+        NotDefaultField: false,
+        Namespace:       nil,
+        SubNamespace:    nil,
+        RuleTree: &RuleTree{
+            Root: func(ctx *Context) {
+                ctx.AddQueue(&request.Request{Url: "http://xxx.xxx.xxx", Rule: "登录页"})
+            },
+            Trunk: map[string]*Rule{
+                "登录页": {
+                    ParseFunc: func(ctx *Context) {
+                        ctx.AddQueue(&request.Request{
+                            Url:      "http://xxx.xxx.xxx",
+                            Rule:     "登录后",
+                            Method:   "POST",
+                            PostData: "username=123456@qq.com&password=123456&login_btn=login_btn&submit=login_btn",
+                        })
+                    },
+                },
+                "登录后": {
+                    ParseFunc: func(ctx *Context) {
+                        ctx.Output(map[string]interface{}{
+                            "全部": ctx.GetText(),
+                        })
+                        ctx.AddQueue(&request.Request{
+                            Url:    "http://accounts.xxx.xxx/member",
+                            Rule:   "个人中心",
+                            Header: http.Header{"Referer": []string{ctx.GetUrl()}},
+                        })
+                    },
+                },
+                "个人中心": {
+                    ParseFunc: func(ctx *Context) {
+                        ctx.Output(map[string]interface{}{
+                            "全部": ctx.GetText(),
+                        })
+                    },
+                },
+            },
         },
-        Trunk: map[string]*Rule{
-            "登录页": {
-                ParseFunc: func(ctx *Context) {
-                    ctx.AddQueue(&request.Request{
-                        Url:    "http://xxx.xxx.xxx",
-                        Rule:   "登录后",
-                        Method: "POST",
-                        PostData: "username=123456@qq.com&password=123456&login_btn=login_btn&submit=login_btn",
-                   })
-                },
-            },
-            "登录后": {
-                ParseFunc: func(ctx *Context) {
-                    ctx.Output(map[string]interface{}{
-                        "全部": ctx.GetText(),
-                    })
-                    ctx.AddQueue(&request.Request{
-                        Url:    "http://accounts.xxx.xxx/member",
-                        Rule:   "个人中心",
-                        Header: http.Header{"Referer": []string{ctx.GetUrl()}},
-                    })
-                },
-            },
-            "个人中心": {
-                ParseFunc: func(ctx *Context) {
-                    ctx.Output(map[string]interface{}{
-                        "全部": ctx.GetText(),
-                    })
-                },
-            },
-        },
-    },
+    }.Register()
 }
 ```
 
