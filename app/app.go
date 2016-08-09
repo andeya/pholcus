@@ -49,18 +49,18 @@ type (
 		CountNodes() int                                              // 服务器客户端模式下返回节点数
 	}
 	Logic struct {
-		*cache.AppConf                    // 全局配置
-		spider.Traversal                  // 全部蜘蛛种类
-		crawl.SpiderQueue                 // 当前任务的蜘蛛队列
-		*distribute.TaskJar               // 服务器与客户端间传递任务的存储库
-		crawl.CrawlPool                   // 爬行回收池
-		teleport.Teleport                 // socket长连接双工通信接口，json数据传输
-		sum                 [2]uint64     // 执行计数
-		takeTime            time.Duration // 执行计时
-		status              int           // 运行状态
-		finish              chan bool
-		finishOnce          sync.Once
-		canSocketLog        bool
+		*cache.AppConf                      // 全局配置
+		*spider.SpiderSpecies               // 全部蜘蛛种类
+		crawl.SpiderQueue                   // 当前任务的蜘蛛队列
+		*distribute.TaskJar                 // 服务器与客户端间传递任务的存储库
+		crawl.CrawlPool                     // 爬行回收池
+		teleport.Teleport                   // socket长连接双工通信接口，json数据传输
+		sum                   [2]uint64     // 执行计数
+		takeTime              time.Duration // 执行计时
+		status                int           // 运行状态
+		finish                chan bool
+		finishOnce            sync.Once
+		canSocketLog          bool
 		sync.RWMutex
 	}
 )
@@ -94,13 +94,13 @@ func New() App {
 
 func newLogic() *Logic {
 	return &Logic{
-		AppConf:     cache.Task,
-		Traversal:   spider.Menu,
-		status:      status.STOPPED,
-		Teleport:    teleport.New(),
-		TaskJar:     distribute.NewTaskJar(),
-		SpiderQueue: crawl.NewSpiderQueue(),
-		CrawlPool:   crawl.NewCrawlPool(),
+		AppConf:       cache.Task,
+		SpiderSpecies: spider.Species,
+		status:        status.STOPPED,
+		Teleport:      teleport.New(),
+		TaskJar:       distribute.NewTaskJar(),
+		SpiderQueue:   crawl.NewSpiderQueue(),
+		CrawlPool:     crawl.NewCrawlPool(),
 	}
 }
 
@@ -248,12 +248,12 @@ func (self *Logic) GetOutputLib() []string {
 
 // 获取全部蜘蛛种类
 func (self *Logic) GetSpiderLib() []*spider.Spider {
-	return self.Traversal.Get()
+	return self.SpiderSpecies.Get()
 }
 
 // 通过名字获取某蜘蛛
 func (self *Logic) GetSpiderByName(name string) *spider.Spider {
-	return self.Traversal.GetByName(name)
+	return self.SpiderSpecies.GetByName(name)
 }
 
 // 返回当前运行模式
@@ -486,7 +486,7 @@ func (self *Logic) taskToRun(t *distribute.Task) {
 
 	// 初始化蜘蛛队列
 	for _, n := range t.Spiders {
-		sp := spider.Menu.GetByName(n["name"])
+		sp := self.GetSpiderByName(n["name"])
 		if sp == nil {
 			continue
 		}

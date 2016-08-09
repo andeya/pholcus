@@ -21,33 +21,31 @@ const (
 type (
 	// 蜘蛛规则
 	Spider struct {
-		Id   int    // 所在SpiderList的下标编号，系统自动分配
-		Name string // 必须保证全局唯一
-		*RuleTree
+		// 以下字段由用户定义
+		Name            string                                                     // 用户界面显示的名称（应保证唯一性）
+		Description     string                                                     // 用户界面显示的描述
+		Pausetime       int64                                                      // 随机暂停区间(50%~200%)，若规则中直接定义，则不被界面传参覆盖
+		Limit           int64                                                      // 默认限制请求数，0为不限；若规则中定义为LIMIT，则采用规则的自定义限制方案
+		Keyin           string                                                     // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN
+		EnableCookie    bool                                                       // 所有请求是否使用cookie记录
+		NotDefaultField bool                                                       // 是否禁止输出结果中的默认字段 Url/ParentUrl/DownloadTime
+		Namespace       func(self *Spider) string                                  // 命名空间，用于输出文件、路径的命名
+		SubNamespace    func(self *Spider, dataCell map[string]interface{}) string // 次级命名，用于输出文件、路径的命名，可依赖具体数据内容
+		RuleTree        *RuleTree                                                  // 定义具体的采集规则树
 
-		//以下为可选成员
-		Description  string
-		Pausetime    int64  // 随机暂停区间(随机: Pausetime/2 ~ Pausetime*2)
-		EnableCookie bool   // 所有请求是否使用cookie记录
-		Limit        int64  // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数(内部：<0时限制请求数，>0时自定义限制)
-		Keyin        string // 自定义输入的配置信息，使用前须在规则中设置初始值为KEYIN
-
-		NotDefaultField bool                                                       // 是否禁止输出默认字段 Url/ParentUrl/DownloadTime
-		Namespace       func(*Spider) string                                       // 命名空间相对于数据库名，不依赖具体数据内容
-		SubNamespace    func(self *Spider, dataCell map[string]interface{}) string // 子命名空间相对于表名，可依赖具体数据内容
-
-		// 以下为系统自动赋值成员
+		// 以下字段系统自动赋值
+		id        int               // 自动分配的SpiderQueue中的索引
 		subName   string            // 由Keyin转换为的二级标识名
-		ReqMatrix *scheduler.Matrix // 请求矩阵
+		reqMatrix *scheduler.Matrix // 请求矩阵
 		timer     *Timer            // 定时器
 		status    int               // 执行状态
-		rwMutex   sync.RWMutex
+		lock      sync.RWMutex
 		once      sync.Once
 	}
 	//采集规则树
 	RuleTree struct {
 		Root  func(*Context)   // 执行入口（树根）
-		Trunk map[string]*Rule // 执行解析过程（树干）
+		Trunk map[string]*Rule // 执行采集过程（树干）
 	}
 	// 采集规则单元
 	Rule struct {
@@ -60,7 +58,7 @@ type (
 // 添加自身到蜘蛛菜单
 func (self Spider) Register() *Spider {
 	self.status = status.STOPPED
-	return Menu.Add(&self)
+	return Species.Add(&self)
 }
 
 // 指定规则的获取结果的字段名列表
@@ -139,12 +137,12 @@ func (self *Spider) GetDescription() string {
 
 // 获取蜘蛛ID
 func (self *Spider) GetId() int {
-	return self.Id
+	return self.id
 }
 
 // 设置蜘蛛ID
 func (self *Spider) SetId(id int) {
-	self.Id = id
+	self.id = id
 }
 
 // 获取自定义配置信息
@@ -158,11 +156,15 @@ func (self *Spider) SetKeyin(keyword string) {
 }
 
 // 获取采集上限
+// <0 表示采用限制请求数的方案
+// >0 表示采用规则中的自定义限制方案
 func (self *Spider) GetLimit() int64 {
 	return self.Limit
 }
 
 // 设置采集上限
+// <0 表示采用限制请求数的方案
+// >0 表示采用规则中的自定义限制方案
 func (self *Spider) SetLimit(max int64) {
 	self.Limit = max
 }
@@ -206,7 +208,7 @@ func (self *Spider) Copy() *Spider {
 	ghost.subName = self.subName
 
 	ghost.RuleTree = &RuleTree{
-		Root:  self.Root,
+		Root:  self.RuleTree.Root,
 		Trunk: make(map[string]*Rule, len(self.RuleTree.Trunk)),
 	}
 	for k, v := range self.RuleTree.Trunk {
@@ -237,45 +239,45 @@ func (self *Spider) Copy() *Spider {
 
 func (self *Spider) ReqmatrixInit() *Spider {
 	if self.Limit < 0 {
-		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), self.Limit)
+		self.reqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), self.Limit)
 		self.SetLimit(0)
 	} else {
-		self.ReqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), math.MinInt64)
+		self.reqMatrix = scheduler.AddMatrix(self.GetName(), self.GetSubName(), math.MinInt64)
 	}
 	return self
 }
 
 // 返回是否作为新的失败请求被添加至队列尾部
 func (self *Spider) DoHistory(req *request.Request, ok bool) bool {
-	return self.ReqMatrix.DoHistory(req, ok)
+	return self.reqMatrix.DoHistory(req, ok)
 }
 
 func (self *Spider) RequestPush(req *request.Request) {
-	self.ReqMatrix.Push(req)
+	self.reqMatrix.Push(req)
 }
 
 func (self *Spider) RequestPull() *request.Request {
-	return self.ReqMatrix.Pull()
+	return self.reqMatrix.Pull()
 }
 
 func (self *Spider) RequestUse() {
-	self.ReqMatrix.Use()
+	self.reqMatrix.Use()
 }
 
 func (self *Spider) RequestFree() {
-	self.ReqMatrix.Free()
+	self.reqMatrix.Free()
 }
 
 func (self *Spider) RequestLen() int {
-	return self.ReqMatrix.Len()
+	return self.reqMatrix.Len()
 }
 
 func (self *Spider) TryFlushSuccess() {
-	self.ReqMatrix.TryFlushSuccess()
+	self.reqMatrix.TryFlushSuccess()
 }
 
 func (self *Spider) TryFlushFailure() {
-	self.ReqMatrix.TryFlushFailure()
+	self.reqMatrix.TryFlushFailure()
 }
 
 // 开始执行蜘蛛
@@ -284,37 +286,37 @@ func (self *Spider) Start() {
 		if p := recover(); p != nil {
 			logs.Log.Error(" *     Panic  [root]: %v\n", p)
 		}
-		self.rwMutex.Lock()
+		self.lock.Lock()
 		self.status = status.RUN
-		self.rwMutex.Unlock()
+		self.lock.Unlock()
 	}()
 	self.RuleTree.Root(GetContext(self, nil))
 }
 
 // 主动崩溃爬虫运行协程
 func (self *Spider) Stop() {
-	self.rwMutex.Lock()
+	self.lock.Lock()
 	self.status = status.STOP
 	// 取消所有定时器
 	if self.timer != nil {
 		self.timer.drop()
 		self.timer = nil
 	}
-	self.rwMutex.Unlock()
+	self.lock.Unlock()
 }
 
 func (self *Spider) CanStop() bool {
-	return self.status != status.STOPPED && self.ReqMatrix.CanStop()
+	return self.status != status.STOPPED && self.reqMatrix.CanStop()
 }
 
 // 若已主动终止任务，则崩溃爬虫协程
 func (self *Spider) tryPanic() {
-	self.rwMutex.RLock()
+	self.lock.RLock()
 	if self.status == status.STOP {
-		self.rwMutex.RUnlock()
+		self.lock.RUnlock()
 		panic(ACTIVE_STOP)
 	}
-	self.rwMutex.RUnlock()
+	self.lock.RUnlock()
 }
 
 // 退出任务前收尾工作
@@ -325,9 +327,9 @@ func (self *Spider) Defer() {
 		self.timer = nil
 	}
 	// 等待处理中的请求完成
-	self.ReqMatrix.Wait()
+	self.reqMatrix.Wait()
 	// 更新失败记录
-	self.ReqMatrix.TryFlushFailure()
+	self.reqMatrix.TryFlushFailure()
 }
 
 // 是否输出默认添加的字段 Url/ParentUrl/DownloadTime

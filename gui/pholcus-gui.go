@@ -29,7 +29,7 @@ func Run() {
 		return
 	}()
 
-	spiderMenu = NewSpiderMenu(spider.Menu)
+	spiderMenu = NewSpiderMenu(spider.Species)
 
 	runmodeWindow()
 }

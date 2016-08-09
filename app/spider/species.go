@@ -5,35 +5,24 @@ import (
 )
 
 // 蜘蛛种类列表
-type (
-	Traversal interface {
-		Add(*Spider) *Spider
-		Get() []*Spider
-		GetByName(string) *Spider
-	}
+type SpiderSpecies struct {
+	list   []*Spider
+	sorted bool
+}
 
-	menu struct {
-		list   []*Spider
-		sorted bool
-	}
-)
-
-var Menu = newTraversal()
-
-func newTraversal() Traversal {
-	return &menu{
-		list: []*Spider{},
-	}
+// 全局蜘蛛种类实例
+var Species = &SpiderSpecies{
+	list: []*Spider{},
 }
 
 // 向蜘蛛种类清单添加新种类
-func (self *menu) Add(sp *Spider) *Spider {
+func (self *SpiderSpecies) Add(sp *Spider) *Spider {
 	self.list = append(self.list, sp)
 	return sp
 }
 
 // 获取全部蜘蛛种类
-func (self *menu) Get() []*Spider {
+func (self *SpiderSpecies) Get() []*Spider {
 	if !self.sorted {
 		l := len(self.list)
 		initials := make([]string, l)
@@ -51,7 +40,7 @@ func (self *menu) Get() []*Spider {
 	return self.list
 }
 
-func (self *menu) GetByName(n string) *Spider {
+func (self *SpiderSpecies) GetByName(n string) *Spider {
 	for _, sp := range self.list {
 		if sp.GetName() == n {
 			return sp

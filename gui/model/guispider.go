@@ -40,11 +40,11 @@ func NewGUISpider(sp *spider.Spider, idx int) *GUISpider {
 	}
 }
 
-func NewSpiderMenu(list spider.Traversal) *SpiderMenu {
+func NewSpiderMenu(species *spider.SpiderSpecies) *SpiderMenu {
 	m := new(SpiderMenu)
 	// m.evenBitmap, _ = walk.NewBitmapFromFile("")
 	// m.oddIcon, _ = walk.NewIconFromFile("img/x.ico")
-	for i, t := range list.Get() {
+	for i, t := range species.Get() {
 		m.items = append(
 			m.items,
 			NewGUISpider(t, i+1),
