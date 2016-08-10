@@ -1,22 +1,34 @@
 package spider
 
 import (
+	"fmt"
+
 	"github.com/henrylee2cn/pholcus/common/pinyin"
 )
 
 // 蜘蛛种类列表
 type SpiderSpecies struct {
 	list   []*Spider
+	hash   map[string]*Spider
 	sorted bool
 }
 
 // 全局蜘蛛种类实例
 var Species = &SpiderSpecies{
 	list: []*Spider{},
+	hash: map[string]*Spider{},
 }
 
 // 向蜘蛛种类清单添加新种类
 func (self *SpiderSpecies) Add(sp *Spider) *Spider {
+	for i, name := 2, sp.Name; true; i++ {
+		if _, ok := self.hash[name]; !ok {
+			sp.Name = name
+			self.hash[sp.Name] = sp
+			break
+		}
+		name = fmt.Sprintf("%s(%d)", sp.Name, i)
+	}
 	self.list = append(self.list, sp)
 	return sp
 }
@@ -40,11 +52,6 @@ func (self *SpiderSpecies) Get() []*Spider {
 	return self.list
 }
 
-func (self *SpiderSpecies) GetByName(n string) *Spider {
-	for _, sp := range self.list {
-		if sp.GetName() == n {
-			return sp
-		}
-	}
-	return nil
+func (self *SpiderSpecies) GetByName(name string) *Spider {
+	return self.hash[name]
 }
