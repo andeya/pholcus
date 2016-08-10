@@ -44,12 +44,12 @@ type (
 	}
 	//采集规则树
 	RuleTree struct {
-		Root  func(*Context)   // 执行入口（树根）
-		Trunk map[string]*Rule // 执行采集过程（树干）
+		Root  func(*Context)   // 根节点(执行入口)
+		Trunk map[string]*Rule // 节点散列表(执行采集过程)
 	}
-	// 采集规则单元
+	// 采集规则节点
 	Rule struct {
-		ItemFields []string                                           // 输出结果的字段名列表
+		ItemFields []string                                           // 结果字段列表(选填，写上可保证字段顺序)
 		ParseFunc  func(*Context)                                     // 内容解析函数
 		AidFunc    func(*Context, map[string]interface{}) interface{} // 通用辅助函数
 	}
