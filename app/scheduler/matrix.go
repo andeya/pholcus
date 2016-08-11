@@ -8,16 +8,50 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app/aid/history"
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
+	"github.com/henrylee2cn/pholcus/common/mns"
+	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
+	"github.com/souriki/ali_mns"
+	"log"
 )
+
+type PresistentMatrix interface {
+	Push(req *request.Request)
+	Pull() (req *request.Request)
+}
+
+type PresistentMatrixStoreHandler interface {
+	Push([]byte)
+	Pull() []byte
+}
+
+type PresistentMatrixStore struct {
+	Handler PresistentMatrixStoreHandler
+}
+
+func (self *PresistentMatrixStore) Push(req *request.Request) {
+	self.Handler.Push([]byte(req.Serialize()))
+}
+
+func (self *PresistentMatrixStore) Pull() (req *request.Request) {
+	bytes := self.Handler.Pull()
+	req, err := request.UnSerialize(string(bytes))
+	if err != nil {
+		return
+	}
+	req.Unique()
+	return
+
+}
 
 // 一个Spider实例的请求矩阵
 type Matrix struct {
-	maxPage         int64                       // 最大采集页数，以负数形式表示
-	resCount        int32                       // 资源使用情况计数
-	spiderName      string                      // 所属Spider
+	maxPage         int64  // 最大采集页数，以负数形式表示
+	resCount        int32  // 资源使用情况计数
+	spiderName      string // 所属Spider
+	presistent      PresistentMatrix
 	reqs            map[int][]*request.Request  // [优先级]队列，优先级默认为0
 	priorities      []int                       // 优先级顺序，从低到高
 	history         history.Historier           // 历史记录
@@ -29,10 +63,21 @@ type Matrix struct {
 }
 
 func newMatrix(spiderName, spiderSubName string, maxPage int64) *Matrix {
+	var presistent PresistentMatrix
+
+	if config.PRESISTENT == "mns" {
+		factory := mns.NewMNSPresistentFactory(config.MNS_PREFIX, ali_mns.NewAliMNSClient(config.MNS_ROOT, config.MNS_KEY, config.MNS_SECRET))
+		mnsPresistent, err := factory.New(spiderSubName)
+		if err == nil {
+			presistent = &PresistentMatrixStore{mnsPresistent}
+		}
+		log.Println(err,presistent)
+	}
 	matrix := &Matrix{
 		spiderName:  spiderName,
 		maxPage:     maxPage,
 		reqs:        make(map[int][]*request.Request),
+		presistent:  presistent,
 		priorities:  []int{},
 		history:     history.New(spiderName, spiderSubName),
 		tempHistory: make(map[string]bool),
@@ -51,11 +96,9 @@ func (self *Matrix) Push(req *request.Request) {
 	if sdl.checkStatus(status.STOP) {
 		return
 	}
-
 	// 禁止并发，降低请求积存量
 	self.Lock()
 	defer self.Unlock()
-
 	// 达到请求上限，停止该规则运行
 	if self.maxPage >= 0 {
 		return
@@ -91,6 +134,14 @@ func (self *Matrix) Push(req *request.Request) {
 		self.insertTempHistory(req.Unique())
 	}
 
+	// 持久化下载队列
+	if self.presistent != nil {
+		self.presistent.Push(req)
+		// 大致限制加入队列的请求量，并发情况下应该会比maxPage多
+		atomic.AddInt64(&self.maxPage, 1)
+		return
+	}
+
 	var priority = req.GetPriority()
 
 	// 初始化该蜘蛛下该优先级队列
@@ -114,17 +165,33 @@ func (self *Matrix) Pull() (req *request.Request) {
 	}
 	self.Lock()
 	defer self.Unlock()
+
+	defer func() {
+		if req == nil {
+			return
+		}
+		if sdl.useProxy {
+			req.SetProxy(sdl.proxy.GetOne(req.GetUrl()))
+		} else {
+			req.SetProxy("")
+		}
+	}()
+
+	log.Println(self.presistent,"pull")
+	// 持久化下载队列
+	if self.presistent != nil {
+
+		req = self.presistent.Pull()
+
+		log.Println("pull")
+		return
+	}
 	// 按优先级从高到低取出请求
 	for i := len(self.reqs) - 1; i >= 0; i-- {
 		idx := self.priorities[i]
 		if len(self.reqs[idx]) > 0 {
 			req = self.reqs[idx][0]
 			self.reqs[idx] = self.reqs[idx][1:]
-			if sdl.useProxy {
-				req.SetProxy(sdl.proxy.GetOne(req.GetUrl()))
-			} else {
-				req.SetProxy("")
-			}
 			return
 		}
 	}
@@ -181,12 +248,14 @@ func (self *Matrix) CanStop() bool {
 	if self.maxPage >= 0 {
 		return true
 	}
+
 	if self.resCount != 0 {
 		return false
 	}
 	if self.Len() > 0 {
 		return false
 	}
+	log.Println("canStop")
 
 	self.failureLock.Lock()
 	defer self.failureLock.Unlock()
