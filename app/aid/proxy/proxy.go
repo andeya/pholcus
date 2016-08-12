@@ -3,6 +3,7 @@ package proxy
 import (
 	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"regexp"
@@ -215,14 +216,15 @@ func (self *Proxy) testAndSort(key string, testHost string) (*ProxyForHost, bool
 // 测试代理ip可用性
 func (self *Proxy) findUsable(proxy string, testHost string) (alive bool, timedelay time.Duration) {
 	t0 := time.Now()
-	_, err := self.surf.Download(&request.Request{
+	req := &request.Request{
 		Url:         testHost,
-		Proxy:       proxy,
 		Method:      "HEAD",
+		Header:      make(http.Header),
 		DialTimeout: time.Second * time.Duration(DAIL_TIMEOUT),
 		ConnTimeout: time.Second * time.Duration(CONN_TIMEOUT),
 		TryTimes:    TRY_TIMES,
-	})
-
+	}
+	req.SetProxy(proxy)
+	_, err := self.surf.Download(req)
 	return err == nil, time.Since(t0)
 }
