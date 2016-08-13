@@ -8,6 +8,10 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重�
 
 # 爬虫原理
 
+![image](https://github.com/henrylee2cn/pholcus/raw/master/doc/module.png)
+
+&nbsp;
+
 ![image](https://github.com/henrylee2cn/pholcus/raw/master/doc/project.png)
 
 
