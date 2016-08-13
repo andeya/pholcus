@@ -265,12 +265,19 @@ func (self *Matrix) setFailures(reqs map[string]*request.Request) {
 	}
 }
 
-// 主动终止任务时，清空对象
-func (self *Matrix) clean() {
+// 主动终止任务时，进行收尾工作
+// 如：持久化保存历史失败记录，清空对象
+func (self *Matrix) windup() {
 	self.Lock()
 	self.reqs = make(map[int][]*request.Request)
 	self.priorities = []int{}
 	self.tempHistory = make(map[string]bool)
+
+	// 持久化保存历史失败记录
+	for _, req := range self.failures {
+		self.history.UpsertFailure(req)
+	}
 	self.failures = make(map[string]*request.Request)
+
 	self.Unlock()
 }

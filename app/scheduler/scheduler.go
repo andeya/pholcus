@@ -82,7 +82,7 @@ func Stop() {
 			recover()
 		}()
 		for _, matrix := range sdl.matrices {
-			matrix.clean()
+			matrix.windup()
 		}
 		close(sdl.count)
 		sdl.matrices = []*Matrix{}
