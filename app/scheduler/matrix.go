@@ -264,3 +264,13 @@ func (self *Matrix) setFailures(reqs map[string]*request.Request) {
 		logs.Log.Informational(" *     + 失败请求: [%v]\n", req.GetUrl())
 	}
 }
+
+// 主动终止任务时，清空对象
+func (self *Matrix) clean() {
+	self.Lock()
+	self.reqs = make(map[int][]*request.Request)
+	self.priorities = []int{}
+	self.tempHistory = make(map[string]bool)
+	self.failures = make(map[string]*request.Request)
+	self.Unlock()
+}

@@ -5,25 +5,19 @@ import (
 	"sync"
 
 	"github.com/henrylee2cn/pholcus/app/aid/proxy"
-	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/logs"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
+// 调度器
 type scheduler struct {
-	// Spider实例的请求矩阵列表
-	matrices []*Matrix
-	// 总并发量计数
-	count chan bool
-	// 运行状态
-	status int
-	// 全局代理IP
-	proxy *proxy.Proxy
-	// 标记是否使用代理IP
-	useProxy bool
-	// 全局读写锁
-	sync.RWMutex
+	status       int          // 运行状态
+	count        chan bool    // 总并发量计数
+	useProxy     bool         // 标记是否使用代理IP
+	proxy        *proxy.Proxy // 全局代理IP
+	matrices     []*Matrix    // Spider实例的请求矩阵列表
+	sync.RWMutex              // 全局读写锁
 }
 
 // 定义全局调度
@@ -88,10 +82,7 @@ func Stop() {
 			recover()
 		}()
 		for _, matrix := range sdl.matrices {
-			matrix.Lock()
-			matrix.reqs = make(map[int][]*request.Request)
-			matrix.priorities = []int{}
-			matrix.Unlock()
+			matrix.clean()
 		}
 		close(sdl.count)
 		sdl.matrices = []*Matrix{}
