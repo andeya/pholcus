@@ -12,21 +12,20 @@ import (
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
+// 采集引擎
 type (
 	Crawler interface {
-		Init(*spider.Spider) Crawler
-		Start()
-		Stop() // 主动终止
-		GetId() int
+		Init(*spider.Spider) Crawler //初始化采集引擎
+		Start()                      //启动任务
+		Stop()                       //主动终止
+		GetId() int                  //获取引擎ID
 	}
 	crawler struct {
-		id int
-		*spider.Spider
-		basePause int64
-		gainPause int64
-		downloader.Downloader
-		pipeline.Pipeline
-		historyFailure []*request.Request
+		*spider.Spider                 //执行的采集规则
+		downloader.Downloader          //全局公用的下载器
+		pipeline.Pipeline              //结果收集与输出管道
+		id                    int      //引擎ID
+		pause                 [2]int64 //[请求间隔的最短时长,请求间隔的增幅时长]
 	}
 )
 
@@ -41,11 +40,11 @@ func New(id int) Crawler {
 func (self *crawler) Init(sp *spider.Spider) Crawler {
 	self.Spider = sp.ReqmatrixInit()
 	self.Pipeline.Init(sp)
-	self.basePause = cache.Task.Pausetime / 2
-	if self.basePause > 0 {
-		self.gainPause = self.basePause * 3
+	self.pause[0] = cache.Task.Pausetime / 2
+	if self.pause[0] > 0 {
+		self.pause[1] = self.pause[0] * 3
 	} else {
-		self.gainPause = 1
+		self.pause[1] = 1
 	}
 	return self
 }
@@ -79,34 +78,29 @@ func (self *crawler) Stop() {
 
 func (self *crawler) Run() {
 	for {
-		// 随机等待
-		self.sleep()
-
-		// 队列中取出一条请求
-		req := self.GetOne()
-
-		// 队列退出及空请求调控
-		if req == nil {
+		// 队列中取出一条请求并处理
+		if req := self.GetOne(); req == nil {
+			// 停止任务
 			if self.Spider.CanStop() {
-				// 停止任务
 				break
-
-			} else {
-				// 继续等待请求
-				continue
 			}
+
+		} else {
+			// 执行请求
+			self.UseOne()
+			go func(req *request.Request) {
+				defer func() {
+					self.FreeOne()
+				}()
+				logs.Log.Debug(" *     Start: %v", req.GetUrl())
+				self.Process(req)
+			}(req)
 		}
 
-		self.UseOne()
-
-		go func(req *request.Request) {
-			defer func() {
-				self.FreeOne()
-			}()
-			logs.Log.Debug(" *     Start: %v", req.GetUrl())
-			self.Process(req)
-		}(req)
+		// 随机等待
+		self.sleep()
 	}
+
 	// 等待处理中的任务完成
 	self.Spider.Defer()
 }
@@ -170,8 +164,7 @@ func (self *crawler) Process(req *request.Request) {
 
 // 常用基础方法
 func (self *crawler) sleep() {
-	sleeptime := self.basePause + rand.New(rand.NewSource(time.Now().UnixNano())).
-		Int63n(self.gainPause)
+	sleeptime := self.pause[0] + rand.Int63n(self.pause[1])
 	time.Sleep(time.Duration(sleeptime) * time.Millisecond)
 }
 
