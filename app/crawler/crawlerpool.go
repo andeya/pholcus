@@ -1,4 +1,4 @@
-package crawl
+package crawler
 
 import (
 	"sync"
@@ -8,8 +8,9 @@ import (
 	"github.com/henrylee2cn/pholcus/runtime/status"
 )
 
+// 采集引擎池
 type (
-	CrawlPool interface {
+	CrawlerPool interface {
 		Reset(spiderNum int) int
 		Use() Crawler
 		Free(Crawler)
@@ -23,7 +24,7 @@ type (
 	}
 )
 
-func NewCrawlPool() CrawlPool {
+func NewCrawlerPool() CrawlerPool {
 	return &cq{
 		Src:    make(map[Crawler]bool),
 		status: status.RUN,

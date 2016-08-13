@@ -1,4 +1,4 @@
-package crawl
+package crawler
 
 import (
 	. "github.com/henrylee2cn/pholcus/app/spider"
@@ -6,7 +6,7 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
-// 运行时蜘蛛队列
+// 采集引擎中规则队列
 type (
 	SpiderQueue interface {
 		Reset() //重置清空队列
@@ -20,7 +20,6 @@ type (
 	}
 	sq struct {
 		list []*Spider
-		// hasKeyin bool
 	}
 )
 

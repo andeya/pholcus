@@ -1,4 +1,4 @@
-package crawl
+package crawler
 
 import (
 	"math/rand"
