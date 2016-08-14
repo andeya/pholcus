@@ -68,42 +68,49 @@ func (self *Collector) Stop() {
 
 // 启动数据收集/输出管道
 func (self *Collector) Start() {
-	// 标记开始，令self.Ctrl长度不为零
+	// 标记程序已启动
 	self.ctrl <- true
 
-	// 开启文件输出协程
-	go self.SaveFile()
+	// 启动输出协程
+	go func() {
 
-	// 只有当收到退出通知并且通道内无数据时，才退出循环
-	for !(self.beStopping() && len(self.DataChan) == 0) {
-		select {
-		case data := <-self.DataChan:
-			self.Dockers[self.Curr] = append(self.Dockers[self.Curr], data)
-			// 检查是否更换缓存块
-			if len(self.Dockers[self.Curr]) >= cache.Task.DockerCap {
-				// curDocker存满后输出
-				self.goOutput(self.Curr)
-				// 更换一个空Docker用于curDocker
-				self.DockerQueue.Change()
+		// 只有当收到退出通知并且通道内无数据时，才退出循环
+		for !(self.beStopping() && len(self.DataChan) == 0 && len(self.FileChan) == 0) {
+			select {
+			case data := <-self.DataChan:
+				self.Dockers[self.Curr] = append(self.Dockers[self.Curr], data)
+
+				// 检查是否更换缓存块
+				if len(self.Dockers[self.Curr]) >= cache.Task.DockerCap {
+					// curDocker存满后输出
+					self.outputData(self.Curr)
+
+					// 更换一个空Docker用于curDocker
+					self.DockerQueue.Change()
+				}
+
+			case file := <-self.FileChan:
+				go self.outputFile(file)
+
+			default:
+				runtime.Gosched()
 			}
-		default:
+		}
+
+		// 将剩余收集到但未输出的数据输出
+		self.outputData(self.Curr)
+
+		// 等待所有输出完成
+		for (self.outCount[0] > self.outCount[1]) || (self.outCount[2] > self.outCount[3]) || len(self.FileChan) > 0 {
 			runtime.Gosched()
 		}
-	}
 
-	// 将剩余收集到但未输出的数据输出
-	self.goOutput(self.Curr)
-
-	// 等待所有输出完成
-	for (self.outCount[0] > self.outCount[1]) || (self.outCount[2] > self.outCount[3]) || len(self.FileChan) > 0 {
-		runtime.Gosched()
-	}
-
-	// 返回报告
-	self.Report()
+		// 返回报告
+		self.Report()
+	}()
 }
 
-func (self *Collector) goOutput(dataIndex int) {
+func (self *Collector) outputData(dataIndex int) {
 	self.outCount[0]++
 	go func() {
 		self.Output(dataIndex)

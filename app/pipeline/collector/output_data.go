@@ -19,10 +19,12 @@ func (self *Collector) Output(dataIndex int) {
 		// 回收缓存块
 		self.DockerQueue.Recover(dataIndex)
 	}()
+
 	dataLen := uint64(len(self.DockerQueue.Dockers[dataIndex]))
 	if dataLen == 0 {
 		return
 	}
+
 	defer func() {
 		err := recover()
 		if err != nil {
