@@ -30,7 +30,7 @@ func init() {
 		mysqlTableLock.Unlock()
 	}
 
-	Output["mysql"] = func(self *Collector, dataIndex int) error {
+	DataOutput["mysql"] = func(self *Collector, dataIndex int) error {
 		_, err := mysql.DB()
 		if err != nil {
 			return fmt.Errorf("Mysql数据库链接失败: %v", err)

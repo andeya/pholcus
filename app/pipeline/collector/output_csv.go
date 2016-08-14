@@ -13,7 +13,7 @@ import (
 
 /************************ CSV 输出 ***************************/
 func init() {
-	Output["csv"] = func(self *Collector, dataIndex int) (err error) {
+	DataOutput["csv"] = func(self *Collector, dataIndex int) (err error) {
 		defer func() {
 			if p := recover(); p != nil {
 				err = fmt.Errorf("%v", p)

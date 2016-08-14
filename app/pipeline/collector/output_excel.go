@@ -13,7 +13,7 @@ import (
 
 /************************ excel 输出 ***************************/
 func init() {
-	Output["excel"] = func(self *Collector, dataIndex int) (err error) {
+	DataOutput["excel"] = func(self *Collector, dataIndex int) (err error) {
 		defer func() {
 			if p := recover(); p != nil {
 				err = fmt.Errorf("%v", p)

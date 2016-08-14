@@ -8,48 +8,59 @@ import (
 
 var (
 	// 全局支持的输出方式
-	Output = make(map[string]func(self *Collector, dataIndex int) error)
+	DataOutput = make(map[string]func(self *Collector, dataIndex int) error)
 
-	// 全局支持的输出方式名称列表
-	OutputLib []string
+	// 全局支持的文本数据输出方式名称列表
+	DataOutputLib []string
 )
 
-func (self *Collector) Output(dataIndex int) {
-	defer func() {
-		// 回收缓存块
-		self.DockerQueue.Recover(dataIndex)
-	}()
+// 文本数据输出
+func (self *Collector) outputData() {
+	// 开始输出的计数
+	self.outCount[0]++
 
-	dataLen := uint64(len(self.DockerQueue.Dockers[dataIndex]))
-	if dataLen == 0 {
-		return
-	}
+	go func(dataIndex int) {
+		defer func() {
+			// 回收缓存块
+			self.DockerQueue.Recover(dataIndex)
+			// 输出完成的计数
+			self.outCount[1]++
+		}()
 
-	defer func() {
-		err := recover()
-		if err != nil {
-			logs.Log.Informational(" * ")
-			logs.Log.App(" *     Panic  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！ [ERROR]  %v\n",
-				self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing), err)
-			self.timing = time.Now()
+		// 输出
+		dataLen := uint64(len(self.DockerQueue.Dockers[dataIndex]))
+		if dataLen == 0 {
+			return
 		}
-	}()
 
-	// 输出统计
-	self.addDataSum(dataLen)
+		defer func() {
+			if p := recover(); p != nil {
+				logs.Log.Informational(" * ")
+				logs.Log.App(" *     Panic  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！ [ERROR]  %v\n",
+					self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing), p)
 
-	// 执行输出
-	err := Output[self.outType](self, dataIndex)
+				self.timing = time.Now()
+			}
+		}()
 
-	logs.Log.Informational(" * ")
-	if err != nil {
-		logs.Log.App(" *     Fail  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！ [ERROR]  %v\n",
-			self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing), err)
-	} else {
-		logs.Log.App(" *     [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！\n",
-			self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing))
-		self.Spider.TryFlushSuccess()
-	}
-	// 更新计时
-	self.timing = time.Now()
+		// 输出统计
+		self.addDataSum(dataLen)
+
+		// 执行输出
+		err := DataOutput[self.outType](self, dataIndex)
+
+		logs.Log.Informational(" * ")
+		if err != nil {
+			logs.Log.App(" *     Fail  [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！ [ERROR]  %v\n",
+				self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing), err)
+		} else {
+			logs.Log.App(" *     [数据输出：%v | KEYIN：%v | 批次：%v]   数据 %v 条，用时 %v！\n",
+				self.Spider.GetName(), self.Spider.GetKeyin(), self.outCount[1]+1, dataLen, time.Since(self.timing))
+			self.Spider.TryFlushSuccess()
+		}
+
+		// 更新计时
+		self.timing = time.Now()
+
+	}(self.Curr)
 }

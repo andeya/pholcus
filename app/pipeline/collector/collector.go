@@ -78,16 +78,19 @@ func (self *Collector) Start() {
 		for !(self.beStopping() && len(self.DataChan) == 0 && len(self.FileChan) == 0) {
 			select {
 			case data := <-self.DataChan:
+				// 追加数据
 				self.Dockers[self.Curr] = append(self.Dockers[self.Curr], data)
 
-				// 检查是否更换缓存块
-				if len(self.Dockers[self.Curr]) >= cache.Task.DockerCap {
-					// curDocker存满后输出
-					self.outputData(self.Curr)
-
-					// 更换一个空Docker用于curDocker
-					self.DockerQueue.Change()
+				// 未达到设定的分批量时，仅缓存
+				if len(self.Dockers[self.Curr]) < cache.Task.DockerCap {
+					continue
 				}
+
+				// 执行输出
+				self.outputData()
+
+				// 更换一个空Docker用于curDocker
+				self.DockerQueue.Change()
 
 			case file := <-self.FileChan:
 				go self.outputFile(file)
@@ -98,7 +101,7 @@ func (self *Collector) Start() {
 		}
 
 		// 将剩余收集到但未输出的数据输出
-		self.outputData(self.Curr)
+		self.outputData()
 
 		// 等待所有输出完成
 		for (self.outCount[0] > self.outCount[1]) || (self.outCount[2] > self.outCount[3]) || len(self.FileChan) > 0 {
@@ -107,14 +110,6 @@ func (self *Collector) Start() {
 
 		// 返回报告
 		self.Report()
-	}()
-}
-
-func (self *Collector) outputData(dataIndex int) {
-	self.outCount[0]++
-	go func() {
-		self.Output(dataIndex)
-		self.outCount[1]++
 	}()
 }
 

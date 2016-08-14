@@ -15,7 +15,7 @@ import (
 /************************ MongoDB 输出 ***************************/
 
 func init() {
-	Output["mgo"] = func(self *Collector, dataIndex int) error {
+	DataOutput["mgo"] = func(self *Collector, dataIndex int) error {
 		//连接数据库
 		if mgo.Error() != nil {
 			return fmt.Errorf("MongoBD数据库链接失败: %v", mgo.Error())

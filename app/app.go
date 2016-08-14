@@ -243,7 +243,7 @@ func (self *Logic) SpiderPrepare(original []*spider.Spider) App {
 
 // 获取全部输出方式
 func (self *Logic) GetOutputLib() []string {
-	return collector.OutputLib
+	return collector.DataOutputLib
 }
 
 // 获取全部蜘蛛种类
