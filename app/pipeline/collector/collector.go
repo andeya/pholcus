@@ -1,4 +1,4 @@
-// 数据收集
+// 结果收集与输出
 package collector
 
 import (
@@ -11,18 +11,18 @@ import (
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
-// 每个爬取任务的数据容器
+// 结果收集与输出
 type Collector struct {
-	*spider.Spider
-	*DockerQueue
-	DataChan chan data.DataCell
-	FileChan chan data.FileCell
-	ctrl     chan bool //长度为零时退出并输出
-	timing   time.Time //上次输出完成的时间点
-	outType  string    //输出方式
-	sum      [4]uint64 //收集的数据总数[上次输出后文本总数，本次输出后文本总数，上次输出后文件总数，本次输出后文件总数]，非并发安全
+	*spider.Spider                    //绑定的采集规则
+	*DockerQueue                      //分批输出结果的缓存块队列
+	DataChan       chan data.DataCell //文本数据收集通道
+	FileChan       chan data.FileCell //文件收集通道
+	ctrl           chan bool          //长度为零时退出并输出
+	outType        string             //输出方式
+	timing         time.Time          //上次输出完成的时间点
+	outCount       [4]uint            //[文本输出开始，文本输出结束，文件输出开始，文件输出结束]
+	sum            [4]uint64          //收集的数据总数[上次输出后文本总数，本次输出后文本总数，上次输出后文件总数，本次输出后文件总数]，非并发安全
 	// size     [2]uint64 //数据总输出流量统计[文本，文件]，文本暂时未统计
-	outCount [4]uint //[文本输出开始，文本输出结束，文件输出开始，文件输出结束]
 }
 
 func NewCollector() *Collector {

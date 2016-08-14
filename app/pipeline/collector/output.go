@@ -1,4 +1,3 @@
-//数据输出管理
 package collector
 
 import (
@@ -8,7 +7,10 @@ import (
 )
 
 var (
-	Output    = make(map[string]func(self *Collector, dataIndex int) error)
+	// 全局支持的输出方式
+	Output = make(map[string]func(self *Collector, dataIndex int) error)
+
+	// 全局支持的输出方式名称列表
 	OutputLib []string
 )
 

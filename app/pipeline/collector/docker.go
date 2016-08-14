@@ -1,4 +1,3 @@
-// 负责从收集通道接受数据并临时存储
 package collector
 
 import (
@@ -9,11 +8,12 @@ import (
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
+// 分批输出结果的缓存队列
 type DockerQueue struct {
-	Curr    int
-	Cap     int
-	Using   map[int]bool
-	Dockers [][]data.DataCell
+	Curr    int               //当前从通道接收数据的缓存块索引
+	Cap     int               //每批数据的容量
+	Using   map[int]bool      //可用缓存块索引
+	Dockers [][]data.DataCell //缓存块列表
 }
 
 var changeMutex sync.Mutex
