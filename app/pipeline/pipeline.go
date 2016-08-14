@@ -7,19 +7,14 @@ import (
 	"github.com/henrylee2cn/pholcus/app/spider"
 )
 
+// 数据收集/输出管道
 type (
 	Pipeline interface {
-		Start()
-		//接收控制通知
-		CtrlR()
-		//控制通知
-		CtrlW()
-		// 收集数据单元
-		CollectData(data.DataCell)
-		// 收集文件
-		CollectFile(data.FileCell)
-		// 重置
-		Init(*spider.Spider)
+		Start()                    //启动
+		Stop()                     //停止
+		CollectData(data.DataCell) //收集数据单元
+		CollectFile(data.FileCell) //收集文件
+		Init(*spider.Spider)       //重置
 	}
 
 	pipeline struct {
@@ -46,5 +41,5 @@ func (self *pipeline) Init(sp *spider.Spider) {
 }
 
 func (self *pipeline) Start() {
-	go self.Collector.Manage()
+	go self.Collector.Start()
 }

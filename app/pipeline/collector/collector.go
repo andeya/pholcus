@@ -56,28 +56,26 @@ func (self *Collector) CollectFile(fileCell data.FileCell) {
 	self.FileChan <- fileCell
 }
 
-func (self *Collector) CtrlW() {
-	self.ctrl <- true
+// 是否已发出停止命令
+func (self *Collector) beStopping() bool {
+	return len(self.ctrl) == 0
 }
 
-func (self *Collector) CtrlR() {
+// 停止
+func (self *Collector) Stop() {
 	<-self.ctrl
 }
 
-func (self *Collector) CtrlLen() int {
-	return len(self.ctrl)
-}
-
-// 数据转储输出
-func (self *Collector) Manage() {
+// 启动数据收集/输出管道
+func (self *Collector) Start() {
 	// 标记开始，令self.Ctrl长度不为零
-	self.CtrlW()
+	self.ctrl <- true
 
 	// 开启文件输出协程
 	go self.SaveFile()
 
 	// 只有当收到退出通知并且通道内无数据时，才退出循环
-	for !(self.CtrlLen() == 0 && len(self.DataChan) == 0) {
+	for !(self.beStopping() && len(self.DataChan) == 0) {
 		select {
 		case data := <-self.DataChan:
 			self.Dockers[self.Curr] = append(self.Dockers[self.Curr], data)

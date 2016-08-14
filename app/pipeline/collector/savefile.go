@@ -17,7 +17,7 @@ import (
 
 //文件下载协程
 func (self *Collector) SaveFile() {
-	for !(self.CtrlLen() == 0 && len(self.FileChan) == 0) {
+	for !(self.beStopping() && len(self.FileChan) == 0) {
 		select {
 		case file := <-self.FileChan:
 			self.outCount[2]++

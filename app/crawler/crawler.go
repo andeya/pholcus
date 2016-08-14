@@ -16,7 +16,7 @@ import (
 type (
 	Crawler interface {
 		Init(*spider.Spider) Crawler //初始化采集引擎
-		Start()                      //启动任务
+		Run()                        //运行任务
 		Stop()                       //主动终止
 		GetId() int                  //获取引擎ID
 	}
@@ -50,14 +50,14 @@ func (self *crawler) Init(sp *spider.Spider) Crawler {
 }
 
 // 任务执行入口
-func (self *crawler) Start() {
-	// 预先开启输出管理协程
+func (self *crawler) Run() {
+	// 预先启动数据收集/输出管道
 	self.Pipeline.Start()
 
 	// 运行处理协程
 	c := make(chan bool)
 	go func() {
-		self.Run()
+		self.run()
 		close(c)
 	}()
 
@@ -66,8 +66,8 @@ func (self *crawler) Start() {
 
 	<-c // 等待处理协程退出
 
-	// 通知输出模块输出未输出的数据
-	self.Pipeline.CtrlR()
+	// 停止数据收集/输出管道
+	self.Pipeline.Stop()
 }
 
 // 主动终止
@@ -76,7 +76,7 @@ func (self *crawler) Stop() {
 	self.Spider.Stop()
 }
 
-func (self *crawler) Run() {
+func (self *crawler) run() {
 	for {
 		// 队列中取出一条请求并处理
 		if req := self.GetOne(); req == nil {
