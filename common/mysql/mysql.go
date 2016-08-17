@@ -104,6 +104,7 @@ func (self *MyTable) Create() error {
 		return err
 	}
 	_, err = stmt.Exec()
+	stmt.Close()
 	return err
 }
 
@@ -120,6 +121,7 @@ func (self *MyTable) Truncate() error {
 		return err
 	}
 	_, err = stmt.Exec()
+	stmt.Close()
 	return err
 }
 
@@ -191,6 +193,7 @@ func (self *MyTable) FlushInsert() error {
 		return err
 	}
 	_, err = stmt.Exec()
+	stmt.Close()
 	return err
 }
 
