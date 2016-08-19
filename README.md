@@ -16,6 +16,10 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的支持分布式的高并发�
 
 ![image](https://github.com/henrylee2cn/pholcus/raw/master/doc/project.png)
 
+&nbsp;
+
+![image](https://github.com/henrylee2cn/pholcus/raw/master/doc/distribute.png)
+
 
 # 框架特点
  1. 为具备一定Go或JS编程基础的用户提供只需关注规则定制、功能完备的重量级爬虫工具；
