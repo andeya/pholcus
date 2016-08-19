@@ -1,5 +1,6 @@
 ﻿package distribute
 
+// 用于分布式分发的任务
 type Task struct {
 	Id             int
 	Spiders        []map[string]string // 蜘蛛规则name字段与keyin字段，规定格式map[string]string{"name":"baidu","keyin":"henry"}

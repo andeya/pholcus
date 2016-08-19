@@ -46,7 +46,7 @@ type (
 		GetSpiderQueue() crawler.SpiderQueue                          // 获取蜘蛛队列接口实例
 		GetOutputLib() []string                                       // 获取全部输出方式
 		GetTaskJar() *distribute.TaskJar                              // 返回任务库
-		CountNodes() int                                              // 服务器客户端模式下返回节点数
+		distribute.Distributer                                        // 实现分布式接口
 	}
 	Logic struct {
 		*cache.AppConf                      // 全局配置
@@ -178,13 +178,13 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 	case status.SERVER:
 		if self.checkPort() {
 			logs.Log.Informational("                                                                                               ！！当前运行模式为：[ 服务器 ] 模式！！")
-			self.Teleport.SetAPI(distribute.ServerApi(self)).Server(":" + strconv.Itoa(self.AppConf.Port))
+			self.Teleport.SetAPI(distribute.MasterApi(self)).Server(":" + strconv.Itoa(self.AppConf.Port))
 		}
 
 	case status.CLIENT:
 		if self.checkAll() {
 			logs.Log.Informational("                                                                                               ！！当前运行模式为：[ 客户端 ] 模式！！")
-			self.Teleport.SetAPI(distribute.ClientApi(self)).Client(self.AppConf.Master, ":"+strconv.Itoa(self.AppConf.Port))
+			self.Teleport.SetAPI(distribute.SlaveApi(self)).Client(self.AppConf.Master, ":"+strconv.Itoa(self.AppConf.Port))
 			// 开启节点间log打印
 			self.canSocketLog = true
 			go self.socketLog()
