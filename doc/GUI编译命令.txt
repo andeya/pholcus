@@ -1,9 +1,9 @@
-#go get github.com/akavel/rsrc
+ï»¿#go get github.com/akavel/rsrc
 #rsrc -manifest guimain.manifest -o rsrc.syso -ico ICON.ico
 
 #go build
 
-±àÒë·½·¨£º
+ç¼–è¯‘æ–¹æ³•ï¼š
 go build -ldflags="-H windowsgui"
-»òÕß£º
+æˆ–è€…ï¼š
 go install -ldflags="-H windowsgui"
