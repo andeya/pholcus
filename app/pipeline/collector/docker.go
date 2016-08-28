@@ -10,9 +10,9 @@ import (
 
 // 分批输出结果的缓存队列
 type DockerQueue struct {
-	Curr    int               //当前从通道接收数据的缓存块索引
+	Curr    int               //当前从通道接收数据的缓存块下标
 	Cap     int               //每批数据的容量
-	Using   map[int]bool      //可用缓存块索引
+	Using   map[int]bool      //正在使用的缓存块下标
 	Dockers [][]data.DataCell //缓存块列表
 }
 
