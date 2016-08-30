@@ -2,6 +2,7 @@ package spider
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -580,6 +581,8 @@ func (self *Context) initDom() *goquery.Document {
 
 // GetBodyStr returns plain string crawled.
 func (self *Context) initText() {
+	var err error
+
 	// 采用surf内核下载时，尝试自动转码
 	if self.Request.DownloaderID == request.SURF_ID {
 		var contentType, pageEncode string
@@ -602,12 +605,19 @@ func (self *Context) initText() {
 
 		switch pageEncode {
 		// 不做转码处理
-		case "", "utf8", "utf-8", "unicode-1-1-utf-8":
+		case "utf8", "utf-8", "unicode-1-1-utf-8":
 		default:
 			// 指定了编码类型，但不是utf8时，自动转码为utf8
 			// get converter to utf-8
 			// Charset auto determine. Use golang.org/x/net/html/charset. Get response body and change it to utf-8
-			destReader, err := charset.NewReaderLabel(pageEncode, self.Response.Body)
+			var destReader io.Reader
+
+			if len(pageEncode) == 0 {
+				destReader, err = charset.NewReader(self.Response.Body, "")
+			} else {
+				destReader, err = charset.NewReaderLabel(pageEncode, self.Response.Body)
+			}
+
 			if err == nil {
 				self.text, err = ioutil.ReadAll(destReader)
 				if err == nil {
@@ -623,7 +633,6 @@ func (self *Context) initText() {
 	}
 
 	// 不做转码处理
-	var err error
 	self.text, err = ioutil.ReadAll(self.Response.Body)
 	self.Response.Body.Close()
 	if err != nil {
