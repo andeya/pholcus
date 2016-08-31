@@ -231,18 +231,18 @@ func (self *Context) FileOutput(name ...string) {
 	n := strings.Split(s, "?")[0]
 
 	baseName := strings.Split(n, ".")[0]
-	ext := path.Ext(n)
 
+	var ext string
 	if len(name) > 0 {
 		p, n := path.Split(name[0])
 		if baseName2 := strings.Split(n, ".")[0]; baseName2 != "" {
 			baseName = p + baseName2
 		}
-		if ext == "" {
-			ext = path.Ext(n)
-		}
+		ext = path.Ext(n)
 	}
-
+	if ext == "" {
+		ext = path.Ext(n)
+	}
 	if ext == "" {
 		ext = ".html"
 	}
@@ -377,6 +377,11 @@ func (self *Context) ResetText(body string) *Context {
 // 获取下载错误。
 func (self *Context) GetError() error {
 	return self.err
+}
+
+// 获取日志接口实例。
+func (*Context) Log() logs.Logs {
+	return logs.Log
 }
 
 // 获取蜘蛛名称。
