@@ -1,12 +1,12 @@
 package kafka
 
 import (
-	"log"
 	"strings"
 	"sync"
 
 	"github.com/henrylee2cn/pholcus/common/util"
 	"github.com/henrylee2cn/pholcus/config"
+	"github.com/henrylee2cn/pholcus/logs"
 
 	"github.com/Shopify/sarama"
 )
@@ -36,7 +36,7 @@ func Refresh() {
 	brokerList := config.KAFKA_BORKERS
 	producer, err = sarama.NewSyncProducer(strings.Split(brokerList, ","), conf)
 	if err != nil {
-		log.Fatalln("Failed to start Sarama producer:", err)
+		logs.Log.Error("Kafka:%v\n", err)
 		return
 	}
 }
