@@ -94,6 +94,7 @@ func defaultConfig(iniconf config.Configer) {
 	iniconf.Set("mysql::connstring", mysqlconnstring)
 	iniconf.Set("mysql::conncap", strconv.Itoa(mysqlconncap))
 	iniconf.Set("mysql::maxallowedpacketmb", strconv.Itoa(mysqlmaxallowedpacketmb))
+	iniconf.Set("kafka::brokers", kafkabrokers)
 	iniconf.Set("run::mode", strconv.Itoa(mode))
 	iniconf.Set("run::port", strconv.Itoa(port))
 	iniconf.Set("run::master", master)
@@ -192,6 +193,10 @@ func trySet(iniconf config.Configer) {
 
 	if v, e := iniconf.Int("mysql::maxallowedpacketmb"); v <= 0 || e != nil {
 		iniconf.Set("mysql::maxallowedpacketmb", strconv.Itoa(mysqlmaxallowedpacketmb))
+	}
+
+	if v := iniconf.String("kafka::brokers"); v == "" {
+		iniconf.Set("kafka::brokers", kafkabrokers)
 	}
 
 	if v, e := iniconf.Int("run::mode"); v < status.UNSET || v > status.CLIENT || e != nil {
