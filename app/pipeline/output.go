@@ -4,6 +4,7 @@ import (
 	"sort"
 
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector"
+	"github.com/henrylee2cn/pholcus/common/kafka"
 	"github.com/henrylee2cn/pholcus/common/mgo"
 	"github.com/henrylee2cn/pholcus/common/mysql"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
@@ -24,5 +25,7 @@ func RefreshOutput() {
 		mgo.Refresh()
 	case "mysql":
 		mysql.Refresh()
+	case "kafka":
+		kafka.Refresh()
 	}
 }
