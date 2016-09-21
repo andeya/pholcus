@@ -1,8 +1,8 @@
 package scheduler
 
 import (
-	"runtime"
 	"sync"
+	"time"
 
 	"github.com/henrylee2cn/pholcus/app/aid/proxy"
 	"github.com/henrylee2cn/pholcus/logs"
@@ -29,7 +29,7 @@ var sdl = &scheduler{
 
 func Init() {
 	for sdl.proxy == nil {
-		runtime.Gosched()
+		time.Sleep(100 * time.Millisecond)
 	}
 	sdl.matrices = []*Matrix{}
 	sdl.count = make(chan bool, cache.Task.ThreadNum)

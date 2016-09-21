@@ -70,7 +70,7 @@ func (self *cq) Use() Crawler {
 			self.increment()
 			self.Unlock()
 		} else {
-			time.Sleep(5e8)
+			time.Sleep(time.Second)
 		}
 	}
 	return nil

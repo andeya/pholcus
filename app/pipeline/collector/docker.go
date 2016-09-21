@@ -54,7 +54,7 @@ func (self *DockerQueue) Change() {
 			}
 		}
 		self.AutoAdd()
-		time.Sleep(5e8)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 

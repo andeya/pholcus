@@ -95,7 +95,7 @@ func (self *Collector) Start() {
 				go self.outputFile(file)
 
 			default:
-				time.Sleep(0.5e9)
+				time.Sleep(200 * time.Millisecond)
 			}
 		}
 
@@ -104,7 +104,7 @@ func (self *Collector) Start() {
 
 		// 等待所有输出完成
 		for (self.outCount[0] > self.outCount[1]) || (self.outCount[2] > self.outCount[3]) || len(self.FileChan) > 0 {
-			time.Sleep(0.5e9)
+			time.Sleep(200 * time.Millisecond)
 		}
 
 		// 返回报告

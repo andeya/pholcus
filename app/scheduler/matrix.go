@@ -1,10 +1,10 @@
 package scheduler
 
 import (
-	"runtime"
 	"sort"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/henrylee2cn/pholcus/app/aid/history"
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
@@ -65,7 +65,7 @@ func (self *Matrix) Push(req *request.Request) {
 	waited := false
 	for sdl.checkStatus(status.PAUSE) {
 		waited = true
-		runtime.Gosched()
+		time.Sleep(time.Second)
 	}
 	if waited && sdl.checkStatus(status.STOP) {
 		return
@@ -75,7 +75,7 @@ func (self *Matrix) Push(req *request.Request) {
 	waited = false
 	for self.resCount > sdl.avgRes() {
 		waited = true
-		runtime.Gosched()
+		time.Sleep(100 * time.Millisecond)
 	}
 	if waited && sdl.checkStatus(status.STOP) {
 		return
@@ -226,7 +226,7 @@ func (self *Matrix) TryFlushFailure() {
 // 等待处理中的请求完成
 func (self *Matrix) Wait() {
 	for self.resCount != 0 {
-		runtime.Gosched()
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 

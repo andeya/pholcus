@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -327,7 +326,7 @@ func (self *Logic) Stop() {
 	self.CrawlerPool.Stop()
 	scheduler.Stop()
 	for !self.IsStopped() {
-		runtime.Gosched()
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 
@@ -460,7 +459,7 @@ ReStartLabel:
 		return nil
 	}
 	if self.CountNodes() == 0 && self.TaskJar.Len() == 0 {
-		time.Sleep(5e7)
+		time.Sleep(time.Second)
 		goto ReStartLabel
 	}
 
@@ -470,7 +469,7 @@ ReStartLabel:
 			if self.CountNodes() == 0 {
 				goto ReStartLabel
 			}
-			time.Sleep(5e7)
+			time.Sleep(time.Second)
 		}
 	}
 	return self.TaskJar.Pull()
@@ -543,7 +542,7 @@ func (self *Logic) goRun(count int) {
 	for i = 0; i < count && self.Status() != status.STOP; i++ {
 	pause:
 		if self.IsPause() {
-			time.Sleep(1e9)
+			time.Sleep(time.Second)
 			goto pause
 		}
 		// 从爬行队列取出空闲蜘蛛，并发执行

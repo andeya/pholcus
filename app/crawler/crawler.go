@@ -79,23 +79,25 @@ func (self *crawler) Stop() {
 func (self *crawler) run() {
 	for {
 		// 队列中取出一条请求并处理
-		if req := self.GetOne(); req == nil {
+		req := self.GetOne()
+		if req == nil {
 			// 停止任务
 			if self.Spider.CanStop() {
 				break
 			}
-
-		} else {
-			// 执行请求
-			self.UseOne()
-			go func(req *request.Request) {
-				defer func() {
-					self.FreeOne()
-				}()
-				logs.Log.Debug(" *     Start: %v", req.GetUrl())
-				self.Process(req)
-			}(req)
+			time.Sleep(20 * time.Millisecond)
+			continue
 		}
+
+		// 执行请求
+		self.UseOne()
+		go func(req *request.Request) {
+			defer func() {
+				self.FreeOne()
+			}()
+			logs.Log.Debug(" *     Start: %v", req.GetUrl())
+			self.Process(req)
+		}(req)
 
 		// 随机等待
 		self.sleep()
