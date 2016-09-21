@@ -2,7 +2,6 @@
 package collector
 
 import (
-	"runtime"
 	"time"
 
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
@@ -96,7 +95,7 @@ func (self *Collector) Start() {
 				go self.outputFile(file)
 
 			default:
-				runtime.Gosched()
+				time.Sleep(0.5e9)
 			}
 		}
 
@@ -105,7 +104,7 @@ func (self *Collector) Start() {
 
 		// 等待所有输出完成
 		for (self.outCount[0] > self.outCount[1]) || (self.outCount[2] > self.outCount[3]) || len(self.FileChan) > 0 {
-			runtime.Gosched()
+			time.Sleep(0.5e9)
 		}
 
 		// 返回报告
