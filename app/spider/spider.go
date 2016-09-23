@@ -296,6 +296,7 @@ func (self *Spider) Start() {
 // 主动崩溃爬虫运行协程
 func (self *Spider) Stop() {
 	self.lock.Lock()
+	defer self.lock.Unlock()
 	if self.status == status.STOP {
 		return
 	}
@@ -305,22 +306,25 @@ func (self *Spider) Stop() {
 		self.timer.drop()
 		self.timer = nil
 	}
-	self.lock.Unlock()
 }
 
 func (self *Spider) CanStop() bool {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
 	return self.status != status.STOPPED && self.reqMatrix.CanStop()
+}
+
+func (self *Spider) IsStopping() bool {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
+	return self.status == status.STOP
 }
 
 // 若已主动终止任务，则崩溃爬虫协程
 func (self *Spider) tryPanic() {
-	self.lock.RLock()
-	if self.status == status.STOP {
-		self.lock.RUnlock()
+	if self.IsStopping() {
 		panic(ACTIVE_STOP)
-		return
 	}
-	self.lock.RUnlock()
 }
 
 // 退出任务前收尾工作

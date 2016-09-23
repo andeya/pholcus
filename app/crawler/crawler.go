@@ -110,16 +110,18 @@ func (self *crawler) run() {
 
 // core processer
 func (self *crawler) Process(req *request.Request) {
-	var downUrl = req.GetUrl()
-
+	var (
+		downUrl = req.GetUrl()
+		sp      = self.Spider
+	)
 	defer func() {
 		if err := recover(); err != nil {
-			if activeStop, _ := err.(string); activeStop == spider.ACTIVE_STOP {
+			if sp.IsStopping() {
 				// println("Process$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 				return
 			}
 			// 返回是否作为新的失败请求被添加至队列尾部
-			if self.Spider.DoHistory(req, false) {
+			if sp.DoHistory(req, false) {
 				// 统计失败数
 				cache.PageFailCount()
 			}
@@ -128,11 +130,11 @@ func (self *crawler) Process(req *request.Request) {
 		}
 	}()
 
-	var ctx = self.Downloader.Download(self.Spider, req) // download page
+	var ctx = self.Downloader.Download(sp, req) // download page
 
 	if err := ctx.GetError(); err != nil {
 		// 返回是否作为新的失败请求被添加至队列尾部
-		if self.Spider.DoHistory(req, false) {
+		if sp.DoHistory(req, false) {
 			// 统计失败数
 			cache.PageFailCount()
 		}
@@ -145,7 +147,7 @@ func (self *crawler) Process(req *request.Request) {
 	ctx.Parse(req.GetRuleName())
 
 	// 处理成功请求记录
-	self.Spider.DoHistory(req, true)
+	sp.DoHistory(req, true)
 
 	// 统计成功页数
 	cache.PageSuccCount()
