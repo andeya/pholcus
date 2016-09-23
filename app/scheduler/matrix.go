@@ -48,13 +48,13 @@ func newMatrix(spiderName, spiderSubName string, maxPage int64) *Matrix {
 
 // 添加请求到队列，并发安全
 func (self *Matrix) Push(req *request.Request) {
-	if sdl.checkStatus(status.STOP) {
-		return
-	}
-
 	// 禁止并发，降低请求积存量
 	self.Lock()
 	defer self.Unlock()
+
+	if sdl.checkStatus(status.STOP) {
+		return
+	}
 
 	// 达到请求上限，停止该规则运行
 	if self.maxPage >= 0 {
@@ -109,11 +109,11 @@ func (self *Matrix) Push(req *request.Request) {
 
 // 从队列取出请求，不存在时返回nil，并发安全
 func (self *Matrix) Pull() (req *request.Request) {
+	self.Lock()
+	defer self.Unlock()
 	if !sdl.checkStatus(status.RUN) {
 		return
 	}
-	self.Lock()
-	defer self.Unlock()
 	// 按优先级从高到低取出请求
 	for i := len(self.reqs) - 1; i >= 0; i-- {
 		idx := self.priorities[i]
@@ -225,6 +225,11 @@ func (self *Matrix) TryFlushFailure() {
 
 // 等待处理中的请求完成
 func (self *Matrix) Wait() {
+	if sdl.checkStatus(status.STOP) {
+		// println("Wait$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
+		// 主动终止任务时，不等待运行中任务自然结束
+		return
+	}
 	for self.resCount != 0 {
 		time.Sleep(500 * time.Millisecond)
 	}
@@ -265,19 +270,15 @@ func (self *Matrix) setFailures(reqs map[string]*request.Request) {
 	}
 }
 
-// 主动终止任务时，进行收尾工作
-// 如：持久化保存历史失败记录，清空对象
-func (self *Matrix) windup() {
-	self.Lock()
-	self.reqs = make(map[int][]*request.Request)
-	self.priorities = []int{}
-	self.tempHistory = make(map[string]bool)
+// // 主动终止任务时，进行收尾工作
+// func (self *Matrix) windup() {
+// 	self.Lock()
 
-	// 持久化保存历史失败记录
-	for _, req := range self.failures {
-		self.history.UpsertFailure(req)
-	}
-	self.failures = make(map[string]*request.Request)
+// 	self.reqs = make(map[int][]*request.Request)
+// 	self.priorities = []int{}
+// 	self.tempHistory = make(map[string]bool)
 
-	self.Unlock()
-}
+// 	self.failures = make(map[string]*request.Request)
+
+// 	self.Unlock()
+// }

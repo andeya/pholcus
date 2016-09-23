@@ -18,6 +18,7 @@ type (
 		Init(*spider.Spider) Crawler //初始化采集引擎
 		Run()                        //运行任务
 		Stop()                       //主动终止
+		CanStop() bool               //能否终止
 		GetId() int                  //获取引擎ID
 	}
 	crawler struct {
@@ -109,25 +110,12 @@ func (self *crawler) run() {
 
 // core processer
 func (self *crawler) Process(req *request.Request) {
-	var (
-		ctx     = self.Downloader.Download(self.Spider, req) // download page
-		downUrl = req.GetUrl()
-	)
-
-	if err := ctx.GetError(); err != nil {
-		// 返回是否作为新的失败请求被添加至队列尾部
-		if self.Spider.DoHistory(req, false) {
-			// 统计失败数
-			cache.PageFailCount()
-		}
-		// 提示错误
-		logs.Log.Error(" *     Fail  [download][%v]: %v\n", downUrl, err)
-		return
-	}
+	var downUrl = req.GetUrl()
 
 	defer func() {
 		if err := recover(); err != nil {
 			if activeStop, _ := err.(string); activeStop == spider.ACTIVE_STOP {
+				// println("Process$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 				return
 			}
 			// 返回是否作为新的失败请求被添加至队列尾部
@@ -139,6 +127,19 @@ func (self *crawler) Process(req *request.Request) {
 			logs.Log.Error(" *     Panic  [process][%v]: %v\n", downUrl, err)
 		}
 	}()
+
+	var ctx = self.Downloader.Download(self.Spider, req) // download page
+
+	if err := ctx.GetError(); err != nil {
+		// 返回是否作为新的失败请求被添加至队列尾部
+		if self.Spider.DoHistory(req, false) {
+			// 统计失败数
+			cache.PageFailCount()
+		}
+		// 提示错误
+		logs.Log.Error(" *     Fail  [download][%v]: %v\n", downUrl, err)
+		return
+	}
 
 	// 过程处理，提炼数据
 	ctx.Parse(req.GetRuleName())

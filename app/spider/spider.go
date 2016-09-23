@@ -296,6 +296,9 @@ func (self *Spider) Start() {
 // 主动崩溃爬虫运行协程
 func (self *Spider) Stop() {
 	self.lock.Lock()
+	if self.status == status.STOP {
+		return
+	}
 	self.status = status.STOP
 	// 取消所有定时器
 	if self.timer != nil {
@@ -315,6 +318,7 @@ func (self *Spider) tryPanic() {
 	if self.status == status.STOP {
 		self.lock.RUnlock()
 		panic(ACTIVE_STOP)
+		return
 	}
 	self.lock.RUnlock()
 }

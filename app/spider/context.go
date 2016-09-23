@@ -376,6 +376,8 @@ func (self *Context) ResetText(body string) *Context {
 
 // 获取下载错误。
 func (self *Context) GetError() error {
+	// 若已主动终止任务，则崩溃爬虫协程
+	self.spider.tryPanic()
 	return self.err
 }
 

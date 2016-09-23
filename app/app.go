@@ -323,10 +323,10 @@ func (self *Logic) PauseRecover() {
 func (self *Logic) Stop() {
 	// 不可颠倒停止的顺序
 	self.setStatus(status.STOP)
-	self.CrawlerPool.Stop()
 	scheduler.Stop()
+	self.CrawlerPool.Stop()
 	for !self.IsStopped() {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(time.Second)
 	}
 }
 
@@ -552,7 +552,11 @@ func (self *Logic) goRun(count int) {
 				// 执行并返回结果消息
 				c.Init(self.SpiderQueue.GetByIndex(i)).Run()
 				// 任务结束后回收该蜘蛛
-				self.CrawlerPool.Free(c)
+				self.RWMutex.RLock()
+				if self.status != status.STOP {
+					self.CrawlerPool.Free(c)
+				}
+				self.RWMutex.RUnlock()
 			}(i, c)
 		}
 	}
