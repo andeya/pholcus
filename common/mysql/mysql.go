@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
-	"sync"
 
 	_ "github.com/go-sql-driver/mysql"
 
@@ -27,9 +26,8 @@ type MyTable struct {
 var (
 	db                 *sql.DB
 	err                error
-	maxConnChan        = make(chan bool, config.MYSQL_CONN_CAP) //最大执行数限制
 	max_allowed_packet = config.MYSQL_MAX_ALLOWED_PACKET - 1024
-	lock               sync.RWMutex
+	maxConnChan        = make(chan bool, config.MYSQL_CONN_CAP) //最大执行数限制
 )
 
 func DB() (*sql.DB, error) {
@@ -37,8 +35,6 @@ func DB() (*sql.DB, error) {
 }
 
 func Refresh() {
-	lock.Lock()
-	defer lock.Unlock()
 	db, err = sql.Open("mysql", config.MYSQL_CONN_STR+"/"+config.DB_NAME+"?charset=utf8")
 	if err != nil {
 		logs.Log.Error("Mysql：%v\n", err)
@@ -57,7 +53,7 @@ func New() *MyTable {
 
 //设置表名
 func (self *MyTable) SetTableName(name string) *MyTable {
-	self.tableName = name
+	self.tableName = wrapSqlKey(name)
 	return self
 }
 
@@ -66,7 +62,7 @@ func (self *MyTable) AddColumn(names ...string) *MyTable {
 	for _, name := range names {
 		name = strings.Trim(name, " ")
 		idx := strings.Index(name, " ")
-		self.columnNames = append(self.columnNames, [2]string{string(name[:idx]), string(name[idx+1:])})
+		self.columnNames = append(self.columnNames, [2]string{wrapSqlKey(name[:idx]), name[idx+1:]})
 	}
 	return self
 }
@@ -83,28 +79,24 @@ func (self *MyTable) Create() error {
 	if len(self.columnNames) == 0 {
 		return errors.New("Column can not be empty")
 	}
-	self.sqlCode = `create table if not exists ` + "`" + self.tableName + "` ("
+	self.sqlCode = `CREATE TABLE IF NOT EXISTS ` + self.tableName + " ("
 	if !self.customPrimaryKey {
-		self.sqlCode += `id int(12) not null primary key auto_increment,`
+		self.sqlCode += `id INT(12) NOT NULL PRIMARY KEY AUTO_INCREMENT,`
 	}
 	for _, title := range self.columnNames {
-		self.sqlCode += "`" + title[0] + "`" + ` ` + title[1] + `,`
+		self.sqlCode += title[0] + ` ` + title[1] + `,`
 	}
-	self.sqlCode = string(self.sqlCode[:len(self.sqlCode)-1])
-	self.sqlCode += `) default charset=utf8;`
+	self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `) ENGINE=MyISAM DEFAULT CHARSET=utf8;`
 
 	maxConnChan <- true
 	defer func() {
 		<-maxConnChan
 	}()
-	lock.RLock()
-	stmt, err := db.Prepare(self.sqlCode)
-	lock.RUnlock()
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec()
-	stmt.Close()
+
+	// debug
+	// println("Create():", self.sqlCode)
+
+	_, err := db.Exec(self.sqlCode)
 	return err
 }
 
@@ -114,14 +106,7 @@ func (self *MyTable) Truncate() error {
 	defer func() {
 		<-maxConnChan
 	}()
-	lock.RLock()
-	stmt, err := db.Prepare(`TRUNCATE TABLE ` + "`" + self.tableName + "`")
-	lock.RUnlock()
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec()
-	stmt.Close()
+	_, err := db.Exec(`TRUNCATE TABLE ` + self.tableName)
 	return err
 }
 
@@ -150,26 +135,22 @@ func (self *MyTable) AutoInsert(value []string) *MyTable {
 }
 
 //向sqlCode添加"插入数据"的语句，执行前须保证Create()、AutoInsert()已经执行
-//insert into table1(field1,field2) values(rows[0]),(rows[1])...
 func (self *MyTable) FlushInsert() error {
 	if len(self.rows) == 0 {
 		return nil
 	}
 
-	self.sqlCode = `insert into ` + "`" + self.tableName + "`" + `(`
+	self.sqlCode = `INSERT INTO ` + self.tableName + `(`
 	if len(self.columnNames) != 0 {
 		for _, v := range self.columnNames {
-			self.sqlCode += "`" + v[0] + "`,"
+			self.sqlCode += v[0] + ","
 		}
-		self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `)values`
+		self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `) VALUES`
 	}
 	for _, row := range self.rows {
 		self.sqlCode += `(`
 		for _, v := range row {
-			v = strings.Replace(v, `\`, `\\`, -1)
-			v = strings.Replace(v, `"`, `\"`, -1)
-			v = strings.Replace(v, `'`, `\'`, -1)
-			self.sqlCode += `"` + v + `",`
+			self.sqlCode += wrapSqlArg(v) + `,`
 		}
 		self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `),`
 	}
@@ -186,14 +167,11 @@ func (self *MyTable) FlushInsert() error {
 	defer func() {
 		<-maxConnChan
 	}()
-	lock.RLock()
-	stmt, err := db.Prepare(self.sqlCode)
-	lock.RUnlock()
-	if err != nil {
-		return err
-	}
-	_, err = stmt.Exec()
-	stmt.Close()
+
+	// debug
+	// println("FlushInsert():", self.sqlCode)
+
+	_, err := db.Exec(self.sqlCode)
 	return err
 }
 
@@ -202,13 +180,20 @@ func (self *MyTable) SelectAll() (*sql.Rows, error) {
 	if self.tableName == "" {
 		return nil, errors.New("表名不能为空")
 	}
-	self.sqlCode = `select * from ` + "`" + self.tableName + "`" + `;`
+	self.sqlCode = `SELECT * FROM ` + self.tableName + `;`
 
 	maxConnChan <- true
 	defer func() {
 		<-maxConnChan
 	}()
-	lock.RLock()
-	defer lock.RUnlock()
 	return db.Query(self.sqlCode)
+}
+
+func wrapSqlArg(s string) string {
+	s = strings.Replace(s, `\`, `\\`, -1)
+	return "'" + strings.Replace(s, `'`, `''`, -1) + "'"
+}
+
+func wrapSqlKey(s string) string {
+	return "`" + strings.Replace(s, "`", "", -1) + "`"
 }
