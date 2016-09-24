@@ -33,14 +33,13 @@ type (
 func New(id int) Crawler {
 	return &crawler{
 		id:         id,
-		Pipeline:   pipeline.New(),
 		Downloader: downloader.SurferDownloader,
 	}
 }
 
 func (self *crawler) Init(sp *spider.Spider) Crawler {
 	self.Spider = sp.ReqmatrixInit()
-	self.Pipeline.Init(sp)
+	self.Pipeline = pipeline.New(sp)
 	self.pause[0] = cache.Task.Pausetime / 2
 	if self.pause[0] > 0 {
 		self.pause[1] = self.pause[0] * 3
@@ -68,13 +67,14 @@ func (self *crawler) Run() {
 	<-c // 等待处理协程退出
 
 	// 停止数据收集/输出管道
-	self.Pipeline.Stop()
+	self.Pipeline.Stop(false)
 }
 
 // 主动终止
 func (self *crawler) Stop() {
 	// 主动崩溃爬虫运行协程
 	self.Spider.Stop()
+	self.Pipeline.Stop(true)
 }
 
 func (self *crawler) run() {
@@ -146,6 +146,19 @@ func (self *crawler) Process(req *request.Request) {
 	// 过程处理，提炼数据
 	ctx.Parse(req.GetRuleName())
 
+	// 该条请求文件结果存入pipeline
+	for _, f := range ctx.PullFiles() {
+		if self.Pipeline.CollectFile(f) != nil {
+			break
+		}
+	}
+	// 该条请求文本结果存入pipeline
+	for _, item := range ctx.PullItems() {
+		if self.Pipeline.CollectData(item) != nil {
+			break
+		}
+	}
+
 	// 处理成功请求记录
 	sp.DoHistory(req, true)
 
@@ -155,14 +168,6 @@ func (self *crawler) Process(req *request.Request) {
 	// 提示抓取成功
 	logs.Log.Informational(" *     Success: %v\n", downUrl)
 
-	// 该条请求文本结果存入pipeline
-	for _, item := range ctx.PullItems() {
-		self.Pipeline.CollectData(item)
-	}
-	// 该条请求文件结果存入pipeline
-	for _, f := range ctx.PullFiles() {
-		self.Pipeline.CollectFile(f)
-	}
 	// 释放ctx准备复用
 	spider.PutContext(ctx)
 }

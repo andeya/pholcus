@@ -19,9 +19,12 @@ func init() {
 
 	var getMysqlTable = func(name string) (*mysql.MyTable, bool) {
 		mysqlTableLock.RLock()
+		defer mysqlTableLock.RUnlock()
 		tab, ok := mysqlTable[name]
-		mysqlTableLock.RUnlock()
-		return tab, ok
+		if ok {
+			return tab.Clone(), true
+		}
+		return nil, false
 	}
 
 	var setMysqlTable = func(name string, tab *mysql.MyTable) {

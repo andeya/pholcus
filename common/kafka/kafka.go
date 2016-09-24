@@ -12,9 +12,10 @@ import (
 )
 
 var (
-	producer sarama.SyncProducer
 	err      error
+	producer sarama.SyncProducer
 	lock     sync.RWMutex
+	once     sync.Once
 )
 
 type KafkaSender struct {
@@ -27,18 +28,16 @@ func GetProducer() (sarama.SyncProducer, error) {
 
 //刷新producer
 func Refresh() {
-	lock.Lock()
-	defer lock.Unlock()
-
-	conf := sarama.NewConfig()
-	conf.Producer.RequiredAcks = sarama.WaitForAll //等待所有备份返回ack
-	conf.Producer.Retry.Max = 10                   // 重试次数
-	brokerList := config.KAFKA_BORKERS
-	producer, err = sarama.NewSyncProducer(strings.Split(brokerList, ","), conf)
-	if err != nil {
-		logs.Log.Error("Kafka:%v\n", err)
-		return
-	}
+	once.Do(func() {
+		conf := sarama.NewConfig()
+		conf.Producer.RequiredAcks = sarama.WaitForAll //等待所有备份返回ack
+		conf.Producer.Retry.Max = 10                   // 重试次数
+		brokerList := config.KAFKA_BORKERS
+		producer, err = sarama.NewSyncProducer(strings.Split(brokerList, ","), conf)
+		if err != nil {
+			logs.Log.Error("Kafka:%v\n", err)
+		}
+	})
 }
 
 func New() *KafkaSender {

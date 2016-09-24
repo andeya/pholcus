@@ -203,8 +203,11 @@ func init() {
 			Sc.Write(sessID, map[string]interface{}{"operate": "stop"})
 			return
 		} else {
+			// println("stopping^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
 			app.LogicApp.Stop()
+			// println("stopping++++++++++++++++++++++++++++++++++++++++")
 			Sc.Write(sessID, map[string]interface{}{"operate": "stop"})
+			// println("stopping$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 		}
 	}
 

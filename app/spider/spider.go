@@ -15,7 +15,7 @@ import (
 const (
 	KEYIN       = util.USE_KEYIN // 若使用Spider.Keyin，则须在规则中设置初始值为USE_KEYIN
 	LIMIT       = math.MaxInt64  // 如希望在规则中自定义控制Limit，则Limit初始值必须为LIMIT
-	ACTIVE_STOP = "——主动终止Spider——"
+	FORCED_STOP = "——主动终止Spider——"
 )
 
 type (
@@ -323,7 +323,7 @@ func (self *Spider) IsStopping() bool {
 // 若已主动终止任务，则崩溃爬虫协程
 func (self *Spider) tryPanic() {
 	if self.IsStopping() {
-		panic(ACTIVE_STOP)
+		panic(FORCED_STOP)
 	}
 }
 

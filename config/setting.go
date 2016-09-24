@@ -12,8 +12,8 @@ import (
 
 // 配置文件涉及的默认配置。
 const (
-	crawlcap                int    = 50                          // 蜘蛛池最大容量
-	datachancap             int    = 2 << 14                     // 收集器容量(默认65536)
+	crawlcap int = 50 // 蜘蛛池最大容量
+	// datachancap             int    = 2 << 14                     // 收集器容量(默认65536)
 	logcap                  int64  = 10000                       // 日志缓存的容量
 	loglevel                string = "debug"                     // 全局日志打印级别（亦是日志文件输出级别）
 	logconsolelevel         string = "info"                      // 日志在控制台的显示级别
@@ -75,7 +75,7 @@ var setting = func() config.Configer {
 
 func defaultConfig(iniconf config.Configer) {
 	iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
-	iniconf.Set("datachancap", strconv.Itoa(datachancap))
+	// iniconf.Set("datachancap", strconv.Itoa(datachancap))
 	iniconf.Set("log::cap", strconv.FormatInt(logcap, 10))
 	iniconf.Set("log::level", loglevel)
 	iniconf.Set("log::consolelevel", logconsolelevel)
@@ -113,9 +113,9 @@ func trySet(iniconf config.Configer) {
 		iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
 	}
 
-	if v, e := iniconf.Int("datachancap"); v <= 0 || e != nil {
-		iniconf.Set("datachancap", strconv.Itoa(datachancap))
-	}
+	// if v, e := iniconf.Int("datachancap"); v <= 0 || e != nil {
+	// 	iniconf.Set("datachancap", strconv.Itoa(datachancap))
+	// }
 
 	if v, e := iniconf.Int64("log::cap"); v <= 0 || e != nil {
 		iniconf.Set("log::cap", strconv.FormatInt(logcap, 10))

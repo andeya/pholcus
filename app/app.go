@@ -321,10 +321,18 @@ func (self *Logic) PauseRecover() {
 
 // Offline 模式下中途终止任务
 func (self *Logic) Stop() {
-	// 不可颠倒停止的顺序
-	self.setStatus(status.STOP)
-	scheduler.Stop()
-	self.CrawlerPool.Stop()
+	if self.status == status.STOPPED {
+		return
+	}
+	if self.status != status.STOP {
+		// 不可颠倒停止的顺序
+		self.setStatus(status.STOP)
+		// println("scheduler.Stop()")
+		scheduler.Stop()
+		// println("self.CrawlerPool.Stop()")
+		self.CrawlerPool.Stop()
+	}
+	// println("wait self.IsStopped()")
 	for !self.IsStopped() {
 		time.Sleep(time.Second)
 	}
@@ -564,6 +572,7 @@ func (self *Logic) goRun(count int) {
 	for ii := 0; ii < i; ii++ {
 		s := <-cache.ReportChan
 		if (s.DataNum == 0) && (s.FileNum == 0) {
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   无采集结果，用时 %v！\n", s.SpiderName, s.Keyin, s.Time)
 			continue
 		}
 		logs.Log.Informational(" * ")

@@ -10,67 +10,74 @@ import (
 
 // 分批输出结果的缓存队列
 type DockerQueue struct {
-	Curr    int               //当前从通道接收数据的缓存块下标
-	Cap     int               //每批数据的容量
-	Using   map[int]bool      //正在使用的缓存块下标
-	Dockers [][]data.DataCell //缓存块列表
+	curr     int               //当前从通道接收数据的缓存块下标
+	capacity int               //每批数据的容量
+	using    map[int]bool      //正在使用的缓存块下标
+	Dockers  [][]data.DataCell //缓存块列表
+	lock     sync.RWMutex
 }
-
-var changeMutex sync.Mutex
 
 func NewDocker() []data.DataCell {
 	return make([]data.DataCell, 0, cache.Task.DockerCap)
 }
 
-func NewDockerQueue() *DockerQueue {
-	var queueCap = cache.Task.DockerQueueCap
-	if cache.Task.DockerQueueCap < 2 {
-		queueCap = 2
-	}
-
+func newDockerQueue(queueCap int) *DockerQueue {
 	dockerQueue := &DockerQueue{
-		Curr:    0,
-		Cap:     queueCap,
-		Using:   make(map[int]bool, queueCap),
-		Dockers: make([][]data.DataCell, 0),
+		curr:     0,
+		capacity: queueCap,
+		using:    make(map[int]bool, queueCap),
+		Dockers:  make([][]data.DataCell, 0),
 	}
 
-	dockerQueue.Using[0] = true
+	dockerQueue.using[0] = true
 
 	dockerQueue.Dockers = append(dockerQueue.Dockers, NewDocker())
 
 	return dockerQueue
 }
 
+func (self *DockerQueue) Curr() int {
+	return self.curr
+}
+
 func (self *DockerQueue) Change() {
-	changeMutex.Lock()
-	defer changeMutex.Unlock()
 	for {
-		for k, v := range self.Using {
+		self.lock.Lock()
+		for k, v := range self.using {
 			if !v {
-				self.Curr = k
-				self.Using[k] = true
+				self.curr = k
+				self.using[k] = true
+				self.lock.Unlock()
 				return
 			}
 		}
-		self.AutoAdd()
-		time.Sleep(100 * time.Millisecond)
+		if self.autoAdd() {
+			self.lock.Unlock()
+			continue
+		}
+		self.lock.Unlock()
+		time.Sleep(time.Second)
+		// println("::::self.DockerQueue.Change()++++++++++++++++++++++++++++++++++++++++")
 	}
 }
 
 func (self *DockerQueue) Recover(index int) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
 	for _, cell := range self.Dockers[index] {
 		data.PutDataCell(cell)
 	}
 	self.Dockers[index] = self.Dockers[index][:0]
-	self.Using[index] = false
+	self.using[index] = false
 }
 
 // 根据情况自动动态增加Docker
-func (self *DockerQueue) AutoAdd() {
+func (self *DockerQueue) autoAdd() bool {
 	count := len(self.Dockers)
-	if count < self.Cap {
+	if count < self.capacity {
 		self.Dockers = append(self.Dockers, NewDocker())
-		self.Using[count] = false
+		self.using[count] = false
+		return true
 	}
+	return false
 }

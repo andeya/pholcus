@@ -306,7 +306,10 @@ func getReadMysqlTable(name string) (*mysql.MyTable, bool) {
 	readMysqlTableLock.RLock()
 	tab, ok := readMysqlTable[name]
 	readMysqlTableLock.RUnlock()
-	return tab, ok
+	if ok {
+		return tab.Clone(), true
+	}
+	return nil, false
 }
 
 func setReadMysqlTable(name string, tab *mysql.MyTable) {
@@ -324,7 +327,10 @@ func getWriteMysqlTable(name string) (*mysql.MyTable, bool) {
 	writeMysqlTableLock.RLock()
 	tab, ok := writeMysqlTable[name]
 	writeMysqlTableLock.RUnlock()
-	return tab, ok
+	if ok {
+		return tab.Clone(), true
+	}
+	return nil, false
 }
 
 func setWriteMysqlTable(name string, tab *mysql.MyTable) {

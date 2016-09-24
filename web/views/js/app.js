@@ -257,9 +257,31 @@ wslog.onclose = function(e) {
 
 // 接收api, 打印Log
 wslog.onmessage = function(m) {
-    var div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = '<p class="message">' + m.data.replace(/\s/g, '&nbsp;') + '</p>';
-    document.getElementById('log-box').appendChild(div);
-    document.getElementById('log-box').scrollTop = document.getElementById('log-box').scrollHeight;
+    var box = document.getElementById('log-box');
+    var items = document.getElementsByClassName('item');
+    if (items.length == 0) {
+        var div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = '<p class="message">' + m.data.replace(/\s/g, '&nbsp;') + '</p>';
+        box.appendChild(div);
+        return;
+    };
+    var item = items[items.length-1];
+    var len = item.getElementsByClassName("message").length;
+    if (len > 0 && len < 1000) {
+        var p = document.createElement("p");
+        p.className = "message";
+        p.innerHTML = m.data.replace(/\s/g, '&nbsp;');
+        item.appendChild(p);
+    }else{
+        if (items.length >= 2) {
+            box.removeChild(items[0]);
+        };
+        var div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = '<p class="message">' + m.data.replace(/\s/g, '&nbsp;') + '</p>';
+        box.appendChild(div);
+    };
+    
+    box.scrollTop = document.getElementById('log-box').scrollHeight;
 };
