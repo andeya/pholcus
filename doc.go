@@ -36,7 +36,7 @@ Spider.Register()方法改为接受Spider类型（之前为*Spider），从而�
 优化任务停止条件，Spider.Root退出之前，任务不可终止
 修复动态规则解析bug
 同名采集规则的名称自动添加加"(2)"形式的序号后缀
-优化crawl采集引擎的随机停顿逻辑
+优化crawler采集引擎的随机停顿逻辑
 添加 Context.Log() 日志打印接口
 
 
