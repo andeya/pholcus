@@ -331,7 +331,6 @@ url页面内容的更新，框架无法直接支持判断，但是用户可以�
 "github.com/henrylee2cn/teleport"
 "golang.org/x/net/html/charset"
 "gopkg.in/mgo.v2"
-"github.com/PuerkitoBio/goquery"
 "github.com/robertkrimen/otto"
 "github.com/Shopify/sarama"
 "github.com/go-sql-driver/mysql"

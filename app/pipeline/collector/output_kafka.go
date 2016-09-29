@@ -56,9 +56,9 @@ func init() {
 			for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 				vd := datacell["Data"].(map[string]interface{})
 				if v, ok := vd[title].(string); ok || vd[title] == nil {
-					data["data"] = v
+					data[title] = v
 				} else {
-					data["data"] = util.JsonString(vd[title])
+					data[title] = util.JsonString(vd[title])
 				}
 			}
 			if self.Spider.OutDefaultField() {

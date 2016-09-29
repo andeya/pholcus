@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/PuerkitoBio/goquery"
+	"github.com/henrylee2cn/pholcus/common/goquery"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	. "github.com/henrylee2cn/pholcus/app/spider"

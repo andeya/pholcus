@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PuerkitoBio/goquery"
+	"github.com/henrylee2cn/pholcus/common/goquery"
 	"github.com/henrylee2cn/pholcus/common/mahonia"
 	"github.com/henrylee2cn/pholcus/common/ping"
 )
