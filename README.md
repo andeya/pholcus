@@ -342,4 +342,4 @@ url页面内容的更新，框架无法直接支持判断，但是用户可以�
 
 # 开源协议
 
-Pholcus（幽灵蛛）项目采用商业应用友好的[Apache License v2](https://github.com/henrylee2cn/pholcus/raw/master/LICENSE.md).发布
+Pholcus（幽灵蛛）项目采用商业应用友好的[Apache License v2](https://github.com/henrylee2cn/pholcus/raw/master/LICENSE).发布
