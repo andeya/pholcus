@@ -13,7 +13,7 @@ import (
 
 /************************ CSV 输出 ***************************/
 func init() {
-	DataOutput["csv"] = func(self *Collector, dataIndex int) (err error) {
+	DataOutput["csv"] = func(self *Collector) (err error) {
 		defer func() {
 			if p := recover(); p != nil {
 				err = fmt.Errorf("%v", p)
@@ -23,7 +23,7 @@ func init() {
 			namespace = util.FileNameReplace(self.namespace())
 			sheets    = make(map[string]*csv.Writer)
 		)
-		for _, datacell := range self.DockerQueue.Dockers[dataIndex] {
+		for _, datacell := range self.dataDocker {
 			var subNamespace = util.FileNameReplace(self.subNamespace(datacell))
 			if _, ok := sheets[subNamespace]; !ok {
 				folder := config.TEXT_DIR + "/" + cache.StartTime.Format("2006年01月02日 15时04分05秒") + "/" + joinNamespaces(namespace, subNamespace)

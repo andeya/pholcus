@@ -9,17 +9,15 @@ import (
 
 	"github.com/henrylee2cn/pholcus/app/pipeline/collector/data"
 	"github.com/henrylee2cn/pholcus/app/spider"
-	// "github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/runtime/cache"
 )
 
 // 结果收集与输出
 type Collector struct {
 	*spider.Spider                    //绑定的采集规则
-	*DockerQueue                      //分批输出结果的缓存块队列
 	DataChan       chan data.DataCell //文本数据收集通道
 	FileChan       chan data.FileCell //文件收集通道
-	stopFlag       chan bool          //长度为零时退出并输出
+	dataDocker     []data.DataCell    //分批输出结果缓存
 	outType        string             //输出方式
 	// size     [2]uint64 //数据总输出流量统计[文本，文件]，文本暂时未统计
 	dataBatch   uint64 //当前文本输出批次
@@ -32,16 +30,14 @@ type Collector struct {
 
 func NewCollector(sp *spider.Spider) *Collector {
 	var self = &Collector{}
-	var queueCap = cache.Task.DockerQueueCap
-	if cache.Task.DockerQueueCap < 2 {
-		queueCap = 2
-	}
 	self.Spider = sp
 	self.outType = cache.Task.OutType
-	self.DataChan = make(chan data.DataCell, queueCap)
-	self.FileChan = make(chan data.FileCell, queueCap)
-	self.DockerQueue = newDockerQueue(queueCap)
-	self.stopFlag = make(chan bool, 1)
+	if cache.Task.DockerCap < 1 {
+		cache.Task.DockerCap = 1
+	}
+	self.DataChan = make(chan data.DataCell, cache.Task.DockerCap)
+	self.FileChan = make(chan data.FileCell, cache.Task.DockerCap)
+	self.dataDocker = make([]data.DataCell, 0, cache.Task.DockerCap)
 	self.sum = [4]uint64{}
 	// self.size = [2]uint64{}
 	self.dataBatch = 0
@@ -71,38 +67,24 @@ func (self *Collector) CollectFile(fileCell data.FileCell) error {
 	return err
 }
 
-// 是否已发出停止命令
-func (self *Collector) beStopping() bool {
-	return len(self.stopFlag) == 0
-}
-
 // 停止
-func (self *Collector) Stop(forced bool) {
-	defer func() {
-		recover()
+func (self *Collector) Stop() {
+	go func() {
+		defer func() {
+			recover()
+		}()
+		close(self.DataChan)
 	}()
-	if forced {
-		go func() {
-			defer func() {
-				recover()
-			}()
-			close(self.DataChan)
+	go func() {
+		defer func() {
+			recover()
 		}()
-		go func() {
-			defer func() {
-				recover()
-			}()
-			close(self.FileChan)
-		}()
-	}
-	<-self.stopFlag
-	close(self.stopFlag)
+		close(self.FileChan)
+	}()
 }
 
 // 启动数据收集/输出管道
 func (self *Collector) Start() {
-	// 标记程序已启动
-	self.stopFlag <- true
 	// 启动输出协程
 	go func() {
 		dataStop := make(chan bool)
@@ -112,43 +94,24 @@ func (self *Collector) Start() {
 			defer func() {
 				recover()
 				// println("DataChanStop$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-
 			}()
-			// 只有当收到退出通知并且通道内无数据时，才退出循环
-			for !(self.beStopping() && len(self.DataChan) == 0) {
-				select {
-				case data := <-self.DataChan:
-					// 追加数据
-					self.Dockers[self.Curr()] = append(self.Dockers[self.Curr()], data)
+			for data := range self.DataChan {
+				// 缓存分批数据
+				self.dataDocker = append(self.dataDocker, data)
 
-					// 未达到设定的分批量时，仅缓存
-					if len(self.Dockers[self.Curr()]) < cache.Task.DockerCap {
-						continue
-					}
-
-					// 执行输出
-					atomic.AddUint64(&self.dataBatch, 1)
-					self.wait.Add(1)
-					go self.outputData(self.Curr())
-					// if self.beStopping() {
-					// println("self.DockerQueue.Change()^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^datalen", len(self.DataChan))
-					// }
-					// 更换一个空Docker用于curDocker
-					self.DockerQueue.Change()
-					// if self.beStopping() {
-					// println("self.DockerQueue.Change()$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$datalen", len(self.DataChan))
-					// }
-				default:
-					time.Sleep(400 * time.Millisecond)
+				// 未达到设定的分批量时继续收集数据
+				if len(self.dataDocker) < cache.Task.DockerCap {
+					continue
 				}
+
+				// 执行输出
+				self.dataBatch++
+				self.outputData()
 			}
 			// 将剩余收集到但未输出的数据输出
-			atomic.AddUint64(&self.dataBatch, 1)
-			self.wait.Add(1)
-			self.outputData(self.Curr())
+			self.dataBatch++
+			self.outputData()
 			close(dataStop)
-
-			close(self.DataChan)
 		}()
 
 		go func() {
@@ -157,20 +120,12 @@ func (self *Collector) Start() {
 				// println("FileChanStop$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 			}()
 			// 只有当收到退出通知并且通道内无数据时，才退出循环
-			for !(self.beStopping() && len(self.FileChan) == 0) {
-				select {
-				case file := <-self.FileChan:
-					atomic.AddUint64(&self.fileBatch, 1)
-					self.wait.Add(1)
-					go self.outputFile(file)
-
-				default:
-					time.Sleep(400 * time.Millisecond)
-				}
+			for file := range self.FileChan {
+				atomic.AddUint64(&self.fileBatch, 1)
+				self.wait.Add(1)
+				go self.outputFile(file)
 			}
 			close(fileStop)
-
-			close(self.FileChan)
 		}()
 
 		<-dataStop
@@ -184,6 +139,13 @@ func (self *Collector) Start() {
 		// 返回报告
 		self.Report()
 	}()
+}
+
+func (self *Collector) resetDataDocker() {
+	for _, cell := range self.dataDocker {
+		data.PutDataCell(cell)
+	}
+	self.dataDocker = self.dataDocker[:0]
 }
 
 // 获取文本数据总量

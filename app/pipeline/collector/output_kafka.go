@@ -28,7 +28,7 @@ func init() {
 		kafkaSenderLock.Unlock()
 	}
 
-	DataOutput["kafka"] = func(self *Collector, dataIndex int) error {
+	DataOutput["kafka"] = func(self *Collector) error {
 		_, err := kafka.GetProducer()
 		if err != nil {
 			return fmt.Errorf("kafka producer失败: %v", err)
@@ -37,7 +37,7 @@ func init() {
 			kafkas    = make(map[string]*kafka.KafkaSender)
 			namespace = util.FileNameReplace(self.namespace())
 		)
-		for _, datacell := range self.DockerQueue.Dockers[dataIndex] {
+		for _, datacell := range self.dataDocker {
 			subNamespace := util.FileNameReplace(self.subNamespace(datacell))
 			topicName := joinNamespaces(namespace, subNamespace)
 			sender, ok := kafkas[topicName]

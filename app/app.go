@@ -145,17 +145,15 @@ func (self *Logic) SetAppConf(k string, v interface{}) App {
 	}()
 	if k == "Limit" && v.(int64) <= 0 {
 		v = int64(spider.LIMIT)
+	} else if k == "DockerCap" && v.(int) < 1 {
+		v = int(1)
 	}
-
 	acv := reflect.ValueOf(self.AppConf).Elem()
 	key := strings.Title(k)
 	if acv.FieldByName(key).CanSet() {
 		acv.FieldByName(key).Set(reflect.ValueOf(v))
 	}
 
-	if k == "DockerCap" {
-		cache.AutoDockerQueueCap()
-	}
 	return self
 }
 
@@ -665,7 +663,6 @@ func (self *Logic) setAppConf(task *distribute.Task) {
 	self.AppConf.Pausetime = task.Pausetime
 	self.AppConf.OutType = task.OutType
 	self.AppConf.DockerCap = task.DockerCap
-	self.AppConf.DockerQueueCap = task.DockerQueueCap
 	self.AppConf.SuccessInherit = task.SuccessInherit
 	self.AppConf.FailureInherit = task.FailureInherit
 	self.AppConf.Limit = task.Limit
@@ -677,7 +674,6 @@ func (self *Logic) setTask(task *distribute.Task) {
 	task.Pausetime = self.AppConf.Pausetime
 	task.OutType = self.AppConf.OutType
 	task.DockerCap = self.AppConf.DockerCap
-	task.DockerQueueCap = self.AppConf.DockerQueueCap
 	task.SuccessInherit = self.AppConf.SuccessInherit
 	task.FailureInherit = self.AppConf.FailureInherit
 	task.Limit = self.AppConf.Limit

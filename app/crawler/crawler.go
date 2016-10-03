@@ -67,14 +67,14 @@ func (self *crawler) Run() {
 	<-c // 等待处理协程退出
 
 	// 停止数据收集/输出管道
-	self.Pipeline.Stop(false)
+	self.Pipeline.Stop()
 }
 
 // 主动终止
 func (self *crawler) Stop() {
 	// 主动崩溃爬虫运行协程
 	self.Spider.Stop()
-	self.Pipeline.Stop(true)
+	self.Pipeline.Stop()
 }
 
 func (self *crawler) run() {

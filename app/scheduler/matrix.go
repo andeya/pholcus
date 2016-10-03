@@ -73,7 +73,7 @@ func (self *Matrix) Push(req *request.Request) {
 
 	// 资源使用过多时等待，降低请求积存量
 	waited = false
-	for self.resCount > sdl.avgRes() {
+	for atomic.LoadInt32(&self.resCount) > sdl.avgRes() {
 		waited = true
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -181,7 +181,7 @@ func (self *Matrix) CanStop() bool {
 	if self.maxPage >= 0 {
 		return true
 	}
-	if self.resCount != 0 {
+	if atomic.LoadInt32(&self.resCount) != 0 {
 		return false
 	}
 	if self.Len() > 0 {
@@ -230,7 +230,7 @@ func (self *Matrix) Wait() {
 		// 主动终止任务时，不等待运行中任务自然结束
 		return
 	}
-	for self.resCount != 0 {
+	for atomic.LoadInt32(&self.resCount) != 0 {
 		time.Sleep(500 * time.Millisecond)
 	}
 }

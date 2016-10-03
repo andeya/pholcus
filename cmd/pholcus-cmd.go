@@ -142,6 +142,9 @@ retry:
 			if err != nil {
 				break
 			}
+			if dockercap < 1 {
+				dockercap = 1
+			}
 			cache.Task.DockerCap = dockercap
 		case "-a_success":
 			if value == "true" {
