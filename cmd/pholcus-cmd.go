@@ -69,13 +69,19 @@ func Run() {
 func run() {
 	// 创建蜘蛛队列
 	sps := []*spider.Spider{}
-	for _, idx := range strings.Split(*spiderflag, ",") {
-		idx = strings.TrimSpace(idx)
-		if idx == "" {
-			continue
+	*spiderflag = strings.TrimSpace(*spiderflag)
+	if *spiderflag == "*" {
+		sps = app.LogicApp.GetSpiderLib()
+
+	} else {
+		for _, idx := range strings.Split(*spiderflag, ",") {
+			idx = strings.TrimSpace(idx)
+			if idx == "" {
+				continue
+			}
+			i, _ := strconv.Atoi(idx)
+			sps = append(sps, app.LogicApp.GetSpiderLib()[i])
 		}
-		i, _ := strconv.Atoi(idx)
-		sps = append(sps, app.LogicApp.GetSpiderLib()[i])
 	}
 
 	app.LogicApp.SpiderPrepare(sps).Run()
