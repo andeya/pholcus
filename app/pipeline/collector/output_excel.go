@@ -13,7 +13,7 @@ import (
 
 /************************ excel 输出 ***************************/
 func init() {
-	DataOutput["excel"] = func(self *Collector, dataIndex int) (err error) {
+	DataOutput["excel"] = func(self *Collector) (err error) {
 		defer func() {
 			if p := recover(); p != nil {
 				err = fmt.Errorf("%v", p)
@@ -31,7 +31,7 @@ func init() {
 		file = xlsx.NewFile()
 
 		// 添加分类数据工作表
-		for _, datacell := range self.DockerQueue.Dockers[dataIndex] {
+		for _, datacell := range self.dataDocker {
 			var subNamespace = util.FileNameReplace(self.subNamespace(datacell))
 			if _, ok := sheets[subNamespace]; !ok {
 				// 添加工作表

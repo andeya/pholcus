@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PuerkitoBio/goquery"
+	"github.com/henrylee2cn/pholcus/common/goquery"
 	"github.com/henrylee2cn/pholcus/common/mahonia"
 	"github.com/henrylee2cn/pholcus/common/ping"
 )
@@ -214,4 +214,146 @@ func Pinger(address string, timeoutSecond int) error {
 
 func Ping(address string, timeoutSecond int) (alive bool, err error, timedelay time.Duration) {
 	return ping.Ping(address, timeoutSecond)
+}
+
+//html过滤注释
+//var htmlReg = regexp.MustCompile(`(<!--(.)*-->)|([\s\v]+/*([^(/\*)]|[^(\*/)])*\*/)|([\t\n\f\r\v\v]+[#|//][^\t\n\f\r\v]+)`) //|([\r|\f|\t|\n|\v])
+var htmlReg = regexp.MustCompile(`(\*{1,2}[\s\S]*?\*)|(<!-[\s\S]*?-->)|(^\s*\n)`) //(//[\s\S]*?\n)|
+
+//处理html文件--add by lyken 20160512
+func ProcessHtml(html string) string {
+	//去除注释
+	html = htmlReg.ReplaceAllString(html, "")
+	//re := regexp.MustCompile("<![\\S\\s]+?>")
+	//html = re.ReplaceAllString(html, "")
+
+	//将HTML标签全转换成小写
+	//re, _ = regexp.Compile("\\<[\\S\\s]+?\\>")
+	//html = re.ReplaceAllStringFunc(html, strings.ToLower)
+
+	//去除连续的换行符
+	//re, _ = regexp.Compile("\\s{2,}")
+	//html = re.ReplaceAllString(html, "\n")
+
+	return html
+}
+
+//清除换行--add by lyken 20160512
+func DepriveBreak(s string) string {
+	s = strings.Replace(s, "\n", "", -1)
+	s = strings.Replace(s, "\r", "", -1)
+	s = strings.Replace(s, "\t", "", -1)
+	s = strings.Replace(s, `\n`, "", -1)
+	s = strings.Replace(s, `\r`, "", -1)
+	s = strings.Replace(s, `\t`, "", -1)
+	return s
+}
+
+//多余的换行--add by lyken 20160819
+func DepriveMutiBreak(s string) string {
+	re, _ := regexp.Compile(`([^\n\f\r\t 　 ]*)([ 　 ]*[\n\f\r\t]+[ 　 ]*)+`)
+	return re.ReplaceAllString(s, "${1}\n")
+
+}
+
+//在原有网址上添加参数--add by lyken 20160901
+func HrefSub(src string, sub string) string {
+	if len(sub) > 0 {
+		if strings.Index(src, "?") > -1 {
+			src += "&" + sub
+		} else {
+			src += "?" + sub
+		}
+	}
+	return src
+}
+
+//域名获取 Reg
+var domainReg = regexp.MustCompile(`([a-zA-Z0-9]+://([a-zA-Z0-9\:\_\-\.])+(/)?)(.)*`)
+
+//网址组合--add by lyken 20160512
+func GetHerf(baseurl string, url string, herf string, mustBase bool) string {
+	if strings.HasPrefix(herf, `javascript:`) {
+		return ``
+	}
+	result := ""
+	herf = Deprive2(herf)
+	if !strings.HasSuffix(baseurl, "/") {
+		baseurl += "/"
+	}
+
+	if !mustBase && !strings.HasPrefix(url, baseurl) {
+		baseurl = domainReg.ReplaceAllString(url, "$1")
+	}
+
+	refIndex := strings.LastIndex(url, "/") + 1
+	/*sub := url[refIndex:]
+	if !strings.HasSuffix(url, "/") {
+		if strings.Index(sub, ".") == -1 &&
+			strings.Index(sub, "?") == -1 &&
+			strings.Index(sub, "#") == -1 {
+			url = url + `/`
+		} else {
+			url = url[:refIndex]
+		}
+	}*/
+	url = url[:refIndex]
+
+	/*refIndex = strings.LastIndex(herf, "/") + 1
+	sub = herf[refIndex:]
+	if len(sub) > 0 &&
+		strings.Index(sub, ".") == -1 &&
+		strings.Index(sub, "?") == -1 &&
+		strings.Index(sub, "#") == -1 {
+		herf = herf + `/`
+	}*/
+
+	if strings.HasPrefix(herf, "./../") {
+		herf = strings.Replace(herf, "./", "", 1)
+	}
+
+	if len(herf) == 0 {
+		result = ""
+	} else if herf == "/" {
+		result = baseurl
+	} else if strings.HasPrefix(herf, "./") {
+		/*reg := regexp.MustCompile(`^(./)(.*)`)
+		result = url + strings.Trim(reg.ReplaceAllString(herf, "$2"), " ")*/
+		result = url + strings.Replace(herf, "./", "", 1)
+	} else if strings.HasPrefix(herf, "/") {
+		//reg = regexp.MustCompile(`^(http)(s)?(://)([0-9A-Za-z.\-_]+)(/)(.*)`)
+		result = strings.Trim(baseurl, " ") + herf[1:]
+	} else if mustBase && !strings.HasPrefix(herf, baseurl) &&
+		(strings.Index(herf, "://") > -1 ||
+			(strings.Index(herf, "/") == -1 &&
+				strings.Count(herf, ".") > 3)) { //IP
+
+		result = ""
+	} else if strings.Index(herf, "://") > -1 ||
+		(strings.Index(herf, "/") == -1 && strings.Count(herf, ".") > 3) { //IP
+		result = herf
+	} else {
+		count := strings.Count(herf, "../")
+		if count > 0 {
+			urlArr := strings.SplitAfter(url, "/")
+			len := cap(urlArr) - count - 1
+			if len > 2 {
+				preUrl := ""
+				for i, str := range urlArr {
+					if len > i {
+						preUrl += str
+					}
+				}
+				result = preUrl + strings.Replace(herf, "../", "", -1)
+			}
+		} else {
+			result = url + herf
+		}
+	}
+
+	/*if strings.Count(result, "://") > 1 {
+		result = strings.SplitN(result, "://", 2)[1]
+	}*/
+
+	return result
 }

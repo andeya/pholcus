@@ -9,13 +9,12 @@ import (
 
 // 数据收集/输出管道
 type Pipeline interface {
-	Start()                    //启动
-	Stop()                     //停止
-	CollectData(data.DataCell) //收集数据单元
-	CollectFile(data.FileCell) //收集文件
-	Init(*spider.Spider)       //重置
+	Start()                          //启动
+	Stop()                           //停止
+	CollectData(data.DataCell) error //收集数据单元
+	CollectFile(data.FileCell) error //收集文件
 }
 
-func New() Pipeline {
-	return collector.NewCollector()
+func New(sp *spider.Spider) Pipeline {
+	return collector.NewCollector(sp)
 }

@@ -17,7 +17,6 @@ type AppConf struct {
 	Pausetime      int64  // 暂停时长参考/ms(随机: Pausetime/2 ~ Pausetime*2)
 	OutType        string // 输出方式
 	DockerCap      int    // 分段转储容器容量
-	DockerQueueCap int    // 分段输出池容量，不小于2
 	Limit          int64  // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数
 	ProxyMinute    int64  // 代理IP更换的间隔分钟数
 	SuccessInherit bool   // 继承历史成功记录
@@ -28,24 +27,6 @@ type AppConf struct {
 
 // 该初始值即默认值
 var Task = new(AppConf)
-
-// 根据Task.DockerCap智能调整分段输出池容量Task.DockerQueueCap
-func AutoDockerQueueCap() {
-	switch {
-	case Task.DockerCap <= 10:
-		Task.DockerQueueCap = 500
-	case Task.DockerCap <= 500:
-		Task.DockerQueueCap = 200
-	case Task.DockerCap <= 1000:
-		Task.DockerQueueCap = 100
-	case Task.DockerCap <= 10000:
-		Task.DockerQueueCap = 50
-	case Task.DockerCap <= 100000:
-		Task.DockerQueueCap = 10
-	default:
-		Task.DockerQueueCap = 4
-	}
-}
 
 //****************************************任务报告*******************************************\\
 
@@ -118,7 +99,4 @@ func WaitInit(order int) {
 func init() {
 	// 任务报告
 	ReportChan = make(chan *Report)
-
-	// 根据Task.DockerCap智能调整分段输出池容量Task.DockerQueueCap
-	AutoDockerQueueCap()
 }

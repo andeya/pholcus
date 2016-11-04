@@ -1,8 +1,8 @@
 package scheduler
 
 import (
-	"runtime"
 	"sync"
+	"time"
 
 	"github.com/henrylee2cn/pholcus/app/aid/proxy"
 	"github.com/henrylee2cn/pholcus/logs"
@@ -29,7 +29,7 @@ var sdl = &scheduler{
 
 func Init() {
 	for sdl.proxy == nil {
-		runtime.Gosched()
+		time.Sleep(100 * time.Millisecond)
 	}
 	sdl.matrices = []*Matrix{}
 	sdl.count = make(chan bool, cache.Task.ThreadNum)
@@ -74,20 +74,20 @@ func PauseRecover() {
 
 // 终止任务
 func Stop() {
+	// println("scheduler^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
 	sdl.Lock()
+	defer sdl.Unlock()
 	sdl.status = status.STOP
 	// 清空
-	go func() {
-		defer func() {
-			recover()
-		}()
-		for _, matrix := range sdl.matrices {
-			matrix.windup()
-		}
-		close(sdl.count)
-		sdl.matrices = []*Matrix{}
+	defer func() {
+		recover()
 	}()
-	sdl.Unlock()
+	// for _, matrix := range sdl.matrices {
+	// 	matrix.windup()
+	// }
+	close(sdl.count)
+	sdl.matrices = []*Matrix{}
+	// println("scheduler$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 }
 
 // 每个spider实例分配到的平均资源量
@@ -101,7 +101,7 @@ func (self *scheduler) avgRes() int32 {
 
 func (self *scheduler) checkStatus(s int) bool {
 	self.RLock()
-	defer self.RUnlock()
 	b := self.status == s
+	self.RUnlock()
 	return b
 }

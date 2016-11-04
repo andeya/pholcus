@@ -2,7 +2,7 @@
 
 Pholcus（幽灵蛛）是一款纯Go语言编写的支持分布式的高并发、重量级爬虫软件，定位于互联网数据采集，为具备一定Go或JS编程基础的人提供一个只需关注规则定制的功能强大的爬虫工具。
 
-它支持单机、服务端、客户端三种运行模式，拥有Web、GUI、命令行三种操作界面；规则简单灵活、批量任务并发、输出方式丰富（mysql/mongodb/csv/excel等）、有大量Demo共享；另外它还支持横纵向两种抓取模式，支持模拟登录和任务暂停、取消等一系列高级功能。
+它支持单机、服务端、客户端三种运行模式，拥有Web、GUI、命令行三种操作界面；规则简单灵活、批量任务并发、输出方式丰富（mysql/mongodb/kafka/csv/excel等）、有大量Demo共享；另外它还支持横纵向两种抓取模式，支持模拟登录和任务暂停、取消等一系列高级功能。
 
 ![image](https://github.com/henrylee2cn/pholcus/raw/master/doc/icon.png)
 
@@ -42,7 +42,7 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的支持分布式的高并发�
 
  10. 根据规则需求，提供自定义配置输入接口
 
- 11. 有mysql、mongodb、csv、excel、原文件下载共五种输出方式；
+ 11. 有mysql、mongodb、kafka、csv、excel、原文件下载共五种输出方式；
 
  12. 支持分批输出，且每批数量可控；
 
@@ -59,11 +59,14 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的支持分布式的高并发�
 
 &nbsp;
 
+# Go版本要求
+
+≥Go1.6
+
+&nbsp;
+
 # 下载安装
 
-1. 下载第三方依赖包源码，放至 GOPATH/src 目录下 [[点击下载 ZIP]](https://github.com/pholcus/dependent/archive/master.zip)
-
-2. 下载更新源码，命令行如下
 ```
 go get -u -v github.com/henrylee2cn/pholcus
 ```
@@ -322,41 +325,21 @@ url页面内容的更新，框架无法直接支持判断，但是用户可以�
 
 &nbsp;
 
-# 贡献者名单
-
-贡献者                          |贡献内容
---------------------------------|--------------------------------------------------
-henrylee2cn|软件作者 
-kas|surfer下载器中phantomjs内核 
-wang898jian|参与完全手册编写 
-
-
-&nbsp;
-
 # 第三方依赖包
 
 ```
-go get github.com/pholcus/spider_lib
-go get github.com/henrylee2cn/teleport
-go get github.com/PuerkitoBio/goquery
-go get github.com/robertkrimen/otto
-go get github.com/andybalholm/cascadia
-go get github.com/lxn/walk
-go get github.com/lxn/win
-go get github.com/go-sql-driver/mysql
-go get github.com/jteeuwen/go-bindata/...
-go get github.com/elazarl/go-bindata-assetfs/...
-go get gopkg.in/mgo.v2
-<以下需翻墙下载>
-go get golang.org/x/net/html
-go get golang.org/x/text/encoding
-go get golang.org/x/text/transform
+"github.com/henrylee2cn/teleport"
+"golang.org/x/net/html/charset"
+"gopkg.in/mgo.v2"
+"github.com/robertkrimen/otto"
+"github.com/Shopify/sarama"
+"github.com/go-sql-driver/mysql"
+"github.com/lxn/walk"
+"github.com/elazarl/go-bindata-assetfs"
+"github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
 ```
 > *<font size="2">（在此感谢以上开源项目的支持！）</font>*
 
-
-&nbsp;
-
 # 开源协议
 
-Pholcus（幽灵蛛）项目采用商业应用友好的[Apache License v2](https://github.com/henrylee2cn/pholcus/raw/master/doc/license.txt).发布
+Pholcus（幽灵蛛）项目采用商业应用友好的[Apache License v2](https://github.com/henrylee2cn/pholcus/raw/master/LICENSE).发布

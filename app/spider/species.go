@@ -21,7 +21,8 @@ var Species = &SpiderSpecies{
 
 // 向蜘蛛种类清单添加新种类
 func (self *SpiderSpecies) Add(sp *Spider) *Spider {
-	for i, name := 2, sp.Name; true; i++ {
+	name := sp.Name
+	for i := 2; true; i++ {
 		if _, ok := self.hash[name]; !ok {
 			sp.Name = name
 			self.hash[sp.Name] = sp
@@ -29,6 +30,7 @@ func (self *SpiderSpecies) Add(sp *Spider) *Spider {
 		}
 		name = fmt.Sprintf("%s(%d)", sp.Name, i)
 	}
+	sp.Name = name
 	self.list = append(self.list, sp)
 	return sp
 }

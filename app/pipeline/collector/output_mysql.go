@@ -19,9 +19,12 @@ func init() {
 
 	var getMysqlTable = func(name string) (*mysql.MyTable, bool) {
 		mysqlTableLock.RLock()
+		defer mysqlTableLock.RUnlock()
 		tab, ok := mysqlTable[name]
-		mysqlTableLock.RUnlock()
-		return tab, ok
+		if ok {
+			return tab.Clone(), true
+		}
+		return nil, false
 	}
 
 	var setMysqlTable = func(name string, tab *mysql.MyTable) {
@@ -30,7 +33,7 @@ func init() {
 		mysqlTableLock.Unlock()
 	}
 
-	DataOutput["mysql"] = func(self *Collector, dataIndex int) error {
+	DataOutput["mysql"] = func(self *Collector) error {
 		_, err := mysql.DB()
 		if err != nil {
 			return fmt.Errorf("Mysql数据库链接失败: %v", err)
@@ -39,7 +42,7 @@ func init() {
 			mysqls    = make(map[string]*mysql.MyTable)
 			namespace = util.FileNameReplace(self.namespace())
 		)
-		for _, datacell := range self.DockerQueue.Dockers[dataIndex] {
+		for _, datacell := range self.dataDocker {
 			subNamespace := util.FileNameReplace(self.subNamespace(datacell))
 			tName := joinNamespaces(namespace, subNamespace)
 			table, ok := mysqls[tName]

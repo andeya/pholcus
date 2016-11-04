@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -146,17 +145,15 @@ func (self *Logic) SetAppConf(k string, v interface{}) App {
 	}()
 	if k == "Limit" && v.(int64) <= 0 {
 		v = int64(spider.LIMIT)
+	} else if k == "DockerCap" && v.(int) < 1 {
+		v = int(1)
 	}
-
 	acv := reflect.ValueOf(self.AppConf).Elem()
 	key := strings.Title(k)
 	if acv.FieldByName(key).CanSet() {
 		acv.FieldByName(key).Set(reflect.ValueOf(v))
 	}
 
-	if k == "DockerCap" {
-		cache.AutoDockerQueueCap()
-	}
 	return self
 }
 
@@ -322,12 +319,20 @@ func (self *Logic) PauseRecover() {
 
 // Offline 模式下中途终止任务
 func (self *Logic) Stop() {
-	// 不可颠倒停止的顺序
-	self.setStatus(status.STOP)
-	self.CrawlerPool.Stop()
-	scheduler.Stop()
+	if self.status == status.STOPPED {
+		return
+	}
+	if self.status != status.STOP {
+		// 不可颠倒停止的顺序
+		self.setStatus(status.STOP)
+		// println("scheduler.Stop()")
+		scheduler.Stop()
+		// println("self.CrawlerPool.Stop()")
+		self.CrawlerPool.Stop()
+	}
+	// println("wait self.IsStopped()")
 	for !self.IsStopped() {
-		runtime.Gosched()
+		time.Sleep(time.Second)
 	}
 }
 
@@ -460,7 +465,7 @@ ReStartLabel:
 		return nil
 	}
 	if self.CountNodes() == 0 && self.TaskJar.Len() == 0 {
-		time.Sleep(5e7)
+		time.Sleep(time.Second)
 		goto ReStartLabel
 	}
 
@@ -470,7 +475,7 @@ ReStartLabel:
 			if self.CountNodes() == 0 {
 				goto ReStartLabel
 			}
-			time.Sleep(5e7)
+			time.Sleep(time.Second)
 		}
 	}
 	return self.TaskJar.Pull()
@@ -543,7 +548,7 @@ func (self *Logic) goRun(count int) {
 	for i = 0; i < count && self.Status() != status.STOP; i++ {
 	pause:
 		if self.IsPause() {
-			time.Sleep(1e9)
+			time.Sleep(time.Second)
 			goto pause
 		}
 		// 从爬行队列取出空闲蜘蛛，并发执行
@@ -553,7 +558,11 @@ func (self *Logic) goRun(count int) {
 				// 执行并返回结果消息
 				c.Init(self.SpiderQueue.GetByIndex(i)).Run()
 				// 任务结束后回收该蜘蛛
-				self.CrawlerPool.Free(c)
+				self.RWMutex.RLock()
+				if self.status != status.STOP {
+					self.CrawlerPool.Free(c)
+				}
+				self.RWMutex.RUnlock()
 			}(i, c)
 		}
 	}
@@ -561,6 +570,7 @@ func (self *Logic) goRun(count int) {
 	for ii := 0; ii < i; ii++ {
 		s := <-cache.ReportChan
 		if (s.DataNum == 0) && (s.FileNum == 0) {
+			logs.Log.App(" *     [任务小计：%s | KEYIN：%s]   无采集结果，用时 %v！\n", s.SpiderName, s.Keyin, s.Time)
 			continue
 		}
 		logs.Log.Informational(" * ")
@@ -653,7 +663,6 @@ func (self *Logic) setAppConf(task *distribute.Task) {
 	self.AppConf.Pausetime = task.Pausetime
 	self.AppConf.OutType = task.OutType
 	self.AppConf.DockerCap = task.DockerCap
-	self.AppConf.DockerQueueCap = task.DockerQueueCap
 	self.AppConf.SuccessInherit = task.SuccessInherit
 	self.AppConf.FailureInherit = task.FailureInherit
 	self.AppConf.Limit = task.Limit
@@ -665,7 +674,6 @@ func (self *Logic) setTask(task *distribute.Task) {
 	task.Pausetime = self.AppConf.Pausetime
 	task.OutType = self.AppConf.OutType
 	task.DockerCap = self.AppConf.DockerCap
-	task.DockerQueueCap = self.AppConf.DockerQueueCap
 	task.SuccessInherit = self.AppConf.SuccessInherit
 	task.FailureInherit = self.AppConf.FailureInherit
 	task.Limit = self.AppConf.Limit

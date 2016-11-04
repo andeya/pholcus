@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -102,7 +101,7 @@ func (self *Proxy) findOnline() *Proxy {
 		}(proxy)
 	}
 	for len(self.threadPool) > 0 {
-		runtime.Gosched()
+		time.Sleep(0.2e9)
 	}
 	log.Printf(" *     在线代理IP筛选完成，共计：%v 个\n", self.online)
 
@@ -202,7 +201,7 @@ func (self *Proxy) testAndSort(key string, testHost string) (*ProxyForHost, bool
 		}(proxy)
 	}
 	for len(self.threadPool) > 0 {
-		runtime.Gosched()
+		time.Sleep(0.2e9)
 	}
 	if proxyForHost.Len() > 0 {
 		sort.Sort(proxyForHost)

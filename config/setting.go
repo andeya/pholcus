@@ -12,8 +12,8 @@ import (
 
 // 配置文件涉及的默认配置。
 const (
-	crawlcap                int    = 50                          // 蜘蛛池最大容量
-	datachancap             int    = 2 << 14                     // 收集器容量(默认65536)
+	crawlcap int = 50 // 蜘蛛池最大容量
+	// datachancap             int    = 2 << 14                     // 收集器容量(默认65536)
 	logcap                  int64  = 10000                       // 日志缓存的容量
 	loglevel                string = "debug"                     // 全局日志打印级别（亦是日志文件输出级别）
 	logconsolelevel         string = "info"                      // 日志在控制台的显示级别
@@ -31,18 +31,20 @@ const (
 	mgoconngcsecond         int64  = 600                         // mongodb连接池GC时间，单位秒
 	mysqlconnstring         string = "root:@tcp(127.0.0.1:3306)" // mysql连接字符串
 	mysqlconncap            int    = 2048                        // mysql连接池容量
-	mysqlmaxallowedpacketmb int    = 1                           // mysql通信缓冲区的最大长度，单位MB，默认1MB
-	mode                    int    = status.UNSET                // 节点角色
-	port                    int    = 2015                        // 主节点端口
-	master                  string = "127.0.0.1"                 // 服务器(主节点)地址，不含端口
-	thread                  int    = 20                          // 全局最大并发量
-	pause                   int64  = 300                         // 暂停时长参考/ms(随机: Pausetime/2 ~ Pausetime*2)
-	outtype                 string = "csv"                       // 输出方式
-	dockercap               int    = 10000                       // 分段转储容器容量
-	limit                   int64  = 0                           // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数
-	proxyminute             int64  = 0                           // 代理IP更换的间隔分钟数
-	success                 bool   = true                        // 继承历史成功记录
-	failure                 bool   = true                        // 继承历史失败记录
+	mysqlmaxallowedpacketmb int    = 1                           //mysql通信缓冲区的最大长度，单位MB，默认1MB
+	kafkabrokers            string = "127.0.0.1:9092"            //kafka broker字符串,逗号分割
+
+	mode        int    = status.UNSET // 节点角色
+	port        int    = 2015         // 主节点端口
+	master      string = "127.0.0.1"  // 服务器(主节点)地址，不含端口
+	thread      int    = 20           // 全局最大并发量
+	pause       int64  = 300          // 暂停时长参考/ms(随机: Pausetime/2 ~ Pausetime*2)
+	outtype     string = "csv"        // 输出方式
+	dockercap   int    = 10000        // 分段转储容器容量
+	limit       int64  = 0            // 采集上限，0为不限，若在规则中设置初始值为LIMIT则为自定义限制，否则默认限制请求数
+	proxyminute int64  = 0            // 代理IP更换的间隔分钟数
+	success     bool   = true         // 继承历史成功记录
+	failure     bool   = true         // 继承历史失败记录
 )
 
 var setting = func() config.Configer {
@@ -73,7 +75,7 @@ var setting = func() config.Configer {
 
 func defaultConfig(iniconf config.Configer) {
 	iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
-	iniconf.Set("datachancap", strconv.Itoa(datachancap))
+	// iniconf.Set("datachancap", strconv.Itoa(datachancap))
 	iniconf.Set("log::cap", strconv.FormatInt(logcap, 10))
 	iniconf.Set("log::level", loglevel)
 	iniconf.Set("log::consolelevel", logconsolelevel)
@@ -92,6 +94,7 @@ func defaultConfig(iniconf config.Configer) {
 	iniconf.Set("mysql::connstring", mysqlconnstring)
 	iniconf.Set("mysql::conncap", strconv.Itoa(mysqlconncap))
 	iniconf.Set("mysql::maxallowedpacketmb", strconv.Itoa(mysqlmaxallowedpacketmb))
+	iniconf.Set("kafka::brokers", kafkabrokers)
 	iniconf.Set("run::mode", strconv.Itoa(mode))
 	iniconf.Set("run::port", strconv.Itoa(port))
 	iniconf.Set("run::master", master)
@@ -110,9 +113,9 @@ func trySet(iniconf config.Configer) {
 		iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
 	}
 
-	if v, e := iniconf.Int("datachancap"); v <= 0 || e != nil {
-		iniconf.Set("datachancap", strconv.Itoa(datachancap))
-	}
+	// if v, e := iniconf.Int("datachancap"); v <= 0 || e != nil {
+	// 	iniconf.Set("datachancap", strconv.Itoa(datachancap))
+	// }
 
 	if v, e := iniconf.Int64("log::cap"); v <= 0 || e != nil {
 		iniconf.Set("log::cap", strconv.FormatInt(logcap, 10))
@@ -190,6 +193,10 @@ func trySet(iniconf config.Configer) {
 
 	if v, e := iniconf.Int("mysql::maxallowedpacketmb"); v <= 0 || e != nil {
 		iniconf.Set("mysql::maxallowedpacketmb", strconv.Itoa(mysqlmaxallowedpacketmb))
+	}
+
+	if v := iniconf.String("kafka::brokers"); v == "" {
+		iniconf.Set("kafka::brokers", kafkabrokers)
 	}
 
 	if v, e := iniconf.Int("run::mode"); v < status.UNSET || v > status.CLIENT || e != nil {

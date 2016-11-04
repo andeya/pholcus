@@ -9,7 +9,7 @@ import (
 
 // 软件信息。
 const (
-	VERSION   string = "v1.0.0"                                      // 软件版本号
+	VERSION   string = "v1.2.0"                                      // 软件版本号
 	AUTHOR    string = "henrylee2cn"                                 // 软件作者
 	NAME      string = "Pholcus幽灵蛛数据采集"                              // 软件名
 	FULL_NAME string = NAME + "_" + VERSION + " （by " + AUTHOR + "）" // 软件全称
@@ -32,8 +32,8 @@ const (
 
 // 来自配置文件的配置项。
 var (
-	CRAWLS_CAP               int    = setting.DefaultInt("crawlcap", crawlcap)                                     // 蜘蛛池最大容量
-	DATA_CHAN_CAP            int    = setting.DefaultInt("datachancap", datachancap)                               // 收集器容量
+	CRAWLS_CAP int = setting.DefaultInt("crawlcap", crawlcap) // 蜘蛛池最大容量
+	// DATA_CHAN_CAP            int    = setting.DefaultInt("datachancap", datachancap)                               // 收集器容量
 	PHANTOMJS                string = setting.String("phantomjs")                                                  // Surfer-Phantom下载器：phantomjs程序路径
 	PROXY                    string = setting.String("proxylib")                                                   // 代理IP文件路径
 	SPIDER_DIR               string = setting.String("spiderdir")                                                  // 动态规则目录
@@ -46,12 +46,15 @@ var (
 	MYSQL_CONN_STR           string = setting.String("mysql::connstring")                                          // mysql连接字符串
 	MYSQL_CONN_CAP           int    = setting.DefaultInt("mysql::conncap", mysqlconncap)                           // mysql连接池容量
 	MYSQL_MAX_ALLOWED_PACKET int    = setting.DefaultInt("mysql::maxallowedpacket", mysqlmaxallowedpacketmb) << 20 // mysql通信缓冲区的最大长度
-	LOG_CAP                  int64  = setting.DefaultInt64("log::cap", logcap)                                     // 日志缓存的容量
-	LOG_LEVEL                int    = logLevel(setting.String("log::level"))                                       // 全局日志打印级别（亦是日志文件输出级别）
-	LOG_CONSOLE_LEVEL        int    = logLevel(setting.String("log::consolelevel"))                                // 日志在控制台的显示级别
-	LOG_FEEDBACK_LEVEL       int    = logLevel(setting.String("log::feedbacklevel"))                               // 客户端反馈至服务端的日志级别
-	LOG_LINEINFO             bool   = setting.DefaultBool("log::lineinfo", loglineinfo)                            // 日志是否打印行信息                                  // 客户端反馈至服务端的日志级别
-	LOG_SAVE                 bool   = setting.DefaultBool("log::save", logsave)                                    // 是否保存所有日志到本地文件
+
+	KAFKA_BORKERS string = setting.DefaultString("kafka::brokers", kafkabrokers) //kafka brokers
+
+	LOG_CAP            int64 = setting.DefaultInt64("log::cap", logcap)          // 日志缓存的容量
+	LOG_LEVEL          int   = logLevel(setting.String("log::level"))            // 全局日志打印级别（亦是日志文件输出级别）
+	LOG_CONSOLE_LEVEL  int   = logLevel(setting.String("log::consolelevel"))     // 日志在控制台的显示级别
+	LOG_FEEDBACK_LEVEL int   = logLevel(setting.String("log::feedbacklevel"))    // 客户端反馈至服务端的日志级别
+	LOG_LINEINFO       bool  = setting.DefaultBool("log::lineinfo", loglineinfo) // 日志是否打印行信息                                  // 客户端反馈至服务端的日志级别
+	LOG_SAVE           bool  = setting.DefaultBool("log::save", logsave)         // 是否保存所有日志到本地文件
 )
 
 func init() {

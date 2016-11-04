@@ -17,84 +17,101 @@ type (
 		Stop()
 	}
 	cq struct {
-		Cap    int
-		Src    map[Crawler]bool
-		status int
-		sync.Mutex
+		capacity int
+		count    int
+		usable   chan Crawler
+		all      []Crawler
+		status   int
+		sync.RWMutex
 	}
 )
 
 func NewCrawlerPool() CrawlerPool {
 	return &cq{
-		Src:    make(map[Crawler]bool),
 		status: status.RUN,
+		all:    make([]Crawler, 0, config.CRAWLS_CAP),
 	}
 }
 
 // 根据要执行的蜘蛛数量设置CrawlerPool
 // 在二次使用Pool实例时，可根据容量高效转换
 func (self *cq) Reset(spiderNum int) int {
+	self.Lock()
+	defer self.Unlock()
 	var wantNum int
 	if spiderNum < config.CRAWLS_CAP {
 		wantNum = spiderNum
 	} else {
 		wantNum = config.CRAWLS_CAP
 	}
-
-	hasNum := len(self.Src)
-	if wantNum > hasNum {
-		self.Cap = wantNum
-	} else {
-		self.Cap = hasNum
+	if wantNum <= 0 {
+		wantNum = 1
+	}
+	self.capacity = wantNum
+	self.count = 0
+	self.usable = make(chan Crawler, wantNum)
+	for _, crawler := range self.all {
+		if self.count < self.capacity {
+			self.usable <- crawler
+			self.count++
+		}
 	}
 	self.status = status.RUN
-	return self.Cap
+	return wantNum
 }
 
 // 并发安全地使用资源
 func (self *cq) Use() Crawler {
-	if self.status != status.RUN {
-		return nil
-	}
+	var crawler Crawler
 	for {
-		for k, v := range self.Src {
-			if !v {
-				self.Lock()
-				self.Src[k] = true
+		self.Lock()
+		if self.status == status.STOP {
+			self.Unlock()
+			return nil
+		}
+		select {
+		case crawler = <-self.usable:
+			self.Unlock()
+			return crawler
+		default:
+			if self.count < self.capacity {
+				crawler = New(self.count)
+				self.all = append(self.all, crawler)
+				self.count++
 				self.Unlock()
-				return k
+				return crawler
 			}
 		}
-		if len(self.Src) <= self.Cap {
-			self.Lock()
-			self.increment()
-			self.Unlock()
-		} else {
-			time.Sleep(5e8)
-		}
+		self.Unlock()
+		time.Sleep(time.Second)
 	}
 	return nil
 }
 
-func (self *cq) Free(c Crawler) {
-	self.Lock()
-	self.Src[c] = false
-	self.Unlock()
+func (self *cq) Free(crawler Crawler) {
+	self.RLock()
+	defer self.RUnlock()
+	if self.status == status.STOP || !crawler.CanStop() {
+		return
+	}
+	self.usable <- crawler
 }
 
 // 主动终止所有爬行任务
 func (self *cq) Stop() {
+	self.Lock()
+	// println("CrawlerPool^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+	if self.status == status.STOP {
+		self.Unlock()
+		return
+	}
 	self.status = status.STOP
-	for c := range self.Src {
-		c.Stop()
-	}
-	self.Src = make(map[Crawler]bool)
-}
+	close(self.usable)
+	self.usable = nil
+	self.Unlock()
 
-// 根据情况自动动态增加Crawl
-func (self *cq) increment() {
-	id := len(self.Src)
-	if id < self.Cap {
-		self.Src[New(id)] = false
+	for _, crawler := range self.all {
+		crawler.Stop()
 	}
+	// println("CrawlerPool$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 }

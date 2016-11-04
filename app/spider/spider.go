@@ -15,7 +15,7 @@ import (
 const (
 	KEYIN       = util.USE_KEYIN // 若使用Spider.Keyin，则须在规则中设置初始值为USE_KEYIN
 	LIMIT       = math.MaxInt64  // 如希望在规则中自定义控制Limit，则Limit初始值必须为LIMIT
-	ACTIVE_STOP = "——主动终止Spider——"
+	FORCED_STOP = "——主动终止Spider——"
 )
 
 type (
@@ -107,7 +107,7 @@ func (self *Spider) GetName() string {
 func (self *Spider) GetSubName() string {
 	self.once.Do(func() {
 		self.subName = self.GetKeyin()
-		if len([]rune(self.subName)) > 6 {
+		if len([]rune(self.subName)) > 8 {
 			self.subName = util.MakeHash(self.subName)
 		}
 	})
@@ -296,27 +296,35 @@ func (self *Spider) Start() {
 // 主动崩溃爬虫运行协程
 func (self *Spider) Stop() {
 	self.lock.Lock()
+	defer self.lock.Unlock()
+	if self.status == status.STOP {
+		return
+	}
 	self.status = status.STOP
 	// 取消所有定时器
 	if self.timer != nil {
 		self.timer.drop()
 		self.timer = nil
 	}
-	self.lock.Unlock()
 }
 
 func (self *Spider) CanStop() bool {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
 	return self.status != status.STOPPED && self.reqMatrix.CanStop()
+}
+
+func (self *Spider) IsStopping() bool {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
+	return self.status == status.STOP
 }
 
 // 若已主动终止任务，则崩溃爬虫协程
 func (self *Spider) tryPanic() {
-	self.lock.RLock()
-	if self.status == status.STOP {
-		self.lock.RUnlock()
-		panic(ACTIVE_STOP)
+	if self.IsStopping() {
+		panic(FORCED_STOP)
 	}
-	self.lock.RUnlock()
 }
 
 // 退出任务前收尾工作
