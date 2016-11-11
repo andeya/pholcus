@@ -36,11 +36,11 @@ func (self *Timer) sleep(id string) bool {
 	c.sleep()
 
 	self.RLock()
+	defer self.RUnlock()
 	if self.closed {
 		return false
 	}
 	_, ok = self.setting[id]
-	self.RUnlock()
 
 	return ok
 }
