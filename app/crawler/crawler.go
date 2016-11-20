@@ -1,7 +1,9 @@
 package crawler
 
 import (
+	"bytes"
 	"math/rand"
+	"runtime"
 	"time"
 
 	"github.com/henrylee2cn/pholcus/app/downloader"
@@ -115,7 +117,7 @@ func (self *crawler) Process(req *request.Request) {
 		sp      = self.Spider
 	)
 	defer func() {
-		if err := recover(); err != nil {
+		if p := recover(); p != nil {
 			if sp.IsStopping() {
 				// println("Process$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
 				return
@@ -126,7 +128,17 @@ func (self *crawler) Process(req *request.Request) {
 				cache.PageFailCount()
 			}
 			// 提示错误
-			logs.Log.Error(" *     Panic  [process][%v]: %v\n", downUrl, err)
+			stack := make([]byte, 4<<10) //4KB
+			length := runtime.Stack(stack, true)
+			start := bytes.Index(stack, []byte("/src/runtime/panic.go"))
+			stack = stack[start:length]
+			start = bytes.Index(stack, []byte("\n")) + 1
+			stack = stack[start:]
+			if end := bytes.Index(stack, []byte("\ngoroutine ")); end != -1 {
+				stack = stack[:end]
+			}
+			stack = bytes.Replace(stack, []byte("\n"), []byte("\r\n"), -1)
+			logs.Log.Error(" *     Panic  [process][%s]: %s\r\n[TRACE]\r\n%s", downUrl, p, stack)
 		}
 	}()
 
