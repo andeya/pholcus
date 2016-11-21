@@ -306,10 +306,17 @@ func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interfa
 
 	_, rule, found := self.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("蜘蛛 %s 调用Aid()时，指定的规则名不存在！", self.spider.GetName())
+		if len(ruleName) > 0 {
+			logs.Log.Error("调用蜘蛛 %s 不存在的规则: %s", self.spider.GetName(), ruleName[0])
+		} else {
+			logs.Log.Error("调用蜘蛛 %s 的Aid()时未指定的规则名", self.spider.GetName())
+		}
 		return nil
 	}
-
+	if rule.AidFunc == nil {
+		logs.Log.Error("蜘蛛 %s 的规则 %s 未定义AidFunc", self.spider.GetName(), ruleName[0])
+		return nil
+	}
 	return rule.AidFunc(self, aid)
 }
 
@@ -325,6 +332,10 @@ func (self *Context) Parse(ruleName ...string) *Context {
 	}
 	if !found {
 		self.spider.RuleTree.Root(self)
+		return self
+	}
+	if rule.ParseFunc == nil {
+		logs.Log.Error("蜘蛛 %s 的规则 %s 未定义ParseFunc", self.spider.GetName(), ruleName[0])
 		return self
 	}
 	rule.ParseFunc(self)
