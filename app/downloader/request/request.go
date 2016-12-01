@@ -1,6 +1,8 @@
 package request
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -139,7 +141,8 @@ func (self *Request) Serialize() string {
 // 请求的唯一识别码
 func (self *Request) Unique() string {
 	if self.unique == "" {
-		self.unique = util.MakeHash(self.Spider + self.Rule + self.Url + self.Method)
+		block := md5.Sum([]byte(self.Spider + self.Rule + self.Url + self.Method))
+		self.unique = hex.EncodeToString(block[:])
 	}
 	return self.unique
 }

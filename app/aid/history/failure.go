@@ -84,7 +84,7 @@ func (self *Failure) flush(provider string) (fLen int, err error) {
 		table, ok := getWriteMysqlTable(self.tabName)
 		if !ok {
 			table = mysql.New()
-			table.SetTableName(self.tabName).CustomPrimaryKey(`id VARCHAR(8) PRIMARY KEY`).AddColumn(`failure MEDIUMTEXT`)
+			table.SetTableName(self.tabName).CustomPrimaryKey(`id VARCHAR(255) NOT NULL PRIMARY KEY`).AddColumn(`failure MEDIUMTEXT`)
 			setWriteMysqlTable(self.tabName, table)
 			// 创建失败记录表
 			err = table.Create()
