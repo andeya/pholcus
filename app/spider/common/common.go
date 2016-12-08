@@ -148,8 +148,12 @@ func ConvertToString(src string, srcCode string, tagCode string) string {
 	return result
 }
 
+// func GBKToUTF8(src string) string {
+// 	return DecodeString(EncodeString(src, "ISO-8859-1"), "GBK")
+// }
+
 func GBKToUTF8(src string) string {
-	return DecodeString(EncodeString(src, "ISO-8859-1"), "GBK")
+	return DecodeString(src, "GB18030")
 }
 
 //将"&#21654;&#21857;&#33394;&#124;&#32511;&#33394;"转为"咖啡色|绿色"
