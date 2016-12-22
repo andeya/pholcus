@@ -1,10 +1,15 @@
 package web
 
 import (
+	"mime"
 	"net/http"
 
 	ws "github.com/henrylee2cn/pholcus/common/websocket"
 )
+
+func init() {
+	mime.AddExtensionType(".css", "text/css")
+}
 
 // 路由
 func Router() {
