@@ -126,7 +126,7 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 			continue
 		}
 		resp.Header = param.header
-		cookies := strings.Split(strings.TrimSpace(retResp.Cookie), ";")
+		cookies := strings.Split(strings.TrimSpace(retResp.Cookie), "; ")
 		for _, c := range cookies {
 			resp.Header.Add("Set-Cookie", c)
 		}
