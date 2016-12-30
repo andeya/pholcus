@@ -37,8 +37,8 @@ type (
 		jsFileMap     map[string]string //已存在的js文件
 	}
 	Response struct {
-		Cookie string
-		Body   string
+		Cookies []string
+		Body    string
 	}
 )
 
@@ -126,9 +126,8 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 			continue
 		}
 		resp.Header = param.header
-		cookies := strings.Split(strings.TrimSpace(retResp.Cookie), "; ")
-		for _, c := range cookies {
-			resp.Header.Add("Set-Cookie", c)
+		for _, cookie := range retResp.Cookies {
+			resp.Header.Add("Set-Cookie", cookie)
 		}
 		resp.Body = ioutil.NopCloser(strings.NewReader(retResp.Body))
 		break
@@ -192,14 +191,23 @@ page.open(url, function(status) {
     if (status !== 'success') {
         console.log('Unable to access network');
     } else {
-       	var cookie = page.evaluate(function(s) {
-            return document.cookie;
-        });
+       	var cookieArray = new Array();
+        var cookies = page.cookies;
+        for (i in cookies){
+        	//cookie一定会有name和value属性, http response.Cookies()函数据在解析时会拿字符串切分后的第一个元素为 key=value
+        	var cookieStr = cookies[i].name+'='+cookies[i].value
+        	for (var obj in cookies[i]){
+        		if(obj== 'name' || obj== 'value'){
+        			continue;
+        		}
+      			cookieStr =cookieStr+'; '+obj+'='+cookies[i][obj];
+    		}
+    		cookieArray.push(cookieStr);
+        }
         var resp = {
-            "Cookie": cookie,
+            "Cookies": cookieArray,
             "Body": page.content
         };
-        console.log(JSON.stringify(resp));
     }
     phantom.exit();
 });
@@ -231,14 +239,23 @@ page.open(url, 'post', postdata, function(status) {
     if (status !== 'success') {
         console.log('Unable to access network');
     } else {
-        var cookie = page.evaluate(function(s) {
-            return document.cookie;
-        });
+        var cookieArray = new Array();
+        var cookies = page.cookies;
+        for (i in cookies){
+        	//cookie一定会有name和value属性, http response.Cookies()函数据在解析时会拿字符串切分后的第一个元素为 key=value
+        	var cookieStr = cookies[i].name+'='+cookies[i].value
+        	for (var obj in cookies[i]){
+        		if(obj== 'name' || obj== 'value'){
+        			continue;
+        		}
+      			cookieStr =cookieStr+'; '+obj+'='+cookies[i][obj];
+    		}
+    		cookieArray.push(cookieStr);
+        }
         var resp = {
-            "Cookie": cookie,
+            "Cookies": cookieArray,
             "Body": page.content
         };
-        console.log(JSON.stringify(resp));
     }
     phantom.exit();
 });
