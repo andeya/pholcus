@@ -25,7 +25,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"robot/downloader/response"
 )
 
 // 基于Phantomjs的下载器实现，作为surfer的补充
