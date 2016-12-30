@@ -60,8 +60,7 @@ func NewPhantom(phantomjsFile, tempJsDir string) Surfer {
 		log.Printf("[E] Surfer: %v\n", err)
 		return phantom
 	}
-	phantom.createJsFile("get", getJs)
-	phantom.createJsFile("post", postJs)
+	phantom.createJsFile("js", js)
 	return phantom
 }
 
@@ -82,25 +81,14 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 	}
 	resp = param.writeback(resp)
 
-	var args []string
-	switch req.GetMethod() {
-	case "GET":
-		args = []string{
-			self.jsFileMap["get"],
-			req.GetUrl(),
-			param.header.Get("Cookie"),
-			encoding,
-			param.header.Get("User-Agent"),
-		}
-	case "POST", "POST-M":
-		args = []string{
-			self.jsFileMap["post"],
-			req.GetUrl(),
-			param.header.Get("Cookie"),
-			encoding,
-			param.header.Get("User-Agent"),
-			req.GetPostData(),
-		}
+	var args = []string{
+		self.jsFileMap["js"],
+		req.GetUrl(),
+		param.header.Get("Cookie"),
+		encoding,
+		param.header.Get("User-Agent"),
+		req.GetPostData(),
+		strings.ToLower(param.method),
 	}
 
 	for i := 0; i < param.tryTimes; i++ {
@@ -109,7 +97,8 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 			time.Sleep(param.retryPause)
 			continue
 		}
-		if cmd.Start() != nil || resp.Body == nil {
+		err = cmd.Start()
+		if err != nil || resp.Body == nil {
 			time.Sleep(param.retryPause)
 			continue
 		}
@@ -167,62 +156,15 @@ func (self *Phantom) createJsFile(fileName, jsCode string) {
 }
 
 /*
-* GET method
-* system.args[0] == get.js
-* system.args[1] == url
-* system.args[2] == cookie
-* system.args[3] == pageEncode
-* system.args[4] == userAgent
- */
-
-const getJs string = `
-var system = require('system');
-var page = require('webpage').create();
-var url = system.args[1];
-var cookie = system.args[2];
-var pageEncode = system.args[3];
-var userAgent = system.args[4];
-page.onResourceRequested = function(requestData, request) {
-    request.setHeader('Cookie', cookie)
-};
-phantom.outputEncoding = pageEncode;
-page.settings.userAgent = userAgent;
-page.open(url, function(status) {
-    if (status !== 'success') {
-        console.log('Unable to access network');
-    } else {
-       	var cookieArray = new Array();
-        var cookies = page.cookies;
-        for (i in cookies){
-        	//cookie一定会有name和value属性, http response.Cookies()函数据在解析时会拿字符串切分后的第一个元素为 key=value
-        	var cookieStr = cookies[i].name+'='+cookies[i].value
-        	for (var obj in cookies[i]){
-        		if(obj== 'name' || obj== 'value'){
-        			continue;
-        		}
-      			cookieStr =cookieStr+'; '+obj+'='+cookies[i][obj];
-    		}
-    		cookieArray.push(cookieStr);
-        }
-        var resp = {
-            "Cookies": cookieArray,
-            "Body": page.content
-        };
-    }
-    phantom.exit();
-});
-`
-
-/*
-* POST method
 * system.args[0] == post.js
 * system.args[1] == url
 * system.args[2] == cookie
 * system.args[3] == pageEncode
 * system.args[4] == userAgent
 * system.args[5] == postdata
+* system.args[6] == method
  */
-const postJs string = `
+const js string = `
 var system = require('system');
 var page = require('webpage').create();
 var url = system.args[1];
@@ -230,32 +172,33 @@ var cookie = system.args[2];
 var pageEncode = system.args[3];
 var userAgent = system.args[4];
 var postdata = system.args[5];
+var method = system.args[6];
 page.onResourceRequested = function(requestData, request) {
     request.setHeader('Cookie', cookie)
 };
 phantom.outputEncoding = pageEncode;
 page.settings.userAgent = userAgent;
-page.open(url, 'post', postdata, function(status) {
-    if (status !== 'success') {
+page.open(url, method, postdata, function(status) {
+   if (status !== 'success') {
         console.log('Unable to access network');
     } else {
-        var cookieArray = new Array();
-        var cookies = page.cookies;
-        for (i in cookies){
-        	//cookie一定会有name和value属性, http response.Cookies()函数据在解析时会拿字符串切分后的第一个元素为 key=value
-        	var cookieStr = cookies[i].name+'='+cookies[i].value
-        	for (var obj in cookies[i]){
-        		if(obj== 'name' || obj== 'value'){
+        var cookies = new Array();
+        for(var i in page.cookies) {
+        	var cookie = page.cookies[i];
+        	var c = cookie["name"] + "=" + cookie["value"];
+        	for (var obj in cookie){
+        		if(obj == 'name' || obj == 'value'){
         			continue;
         		}
-      			cookieStr =cookieStr+'; '+obj+'='+cookies[i][obj];
+				c +=  "; " +　obj + "=" +  cookie[obj];
     		}
-    		cookieArray.push(cookieStr);
-        }
+			cookies[i] = c;
+		}
         var resp = {
-            "Cookies": cookieArray,
+            "Cookies": cookies,
             "Body": page.content
         };
+        console.log(JSON.stringify(resp));
     }
     phantom.exit();
 });

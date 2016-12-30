@@ -17,17 +17,20 @@ package surfer
 
 import (
 	"net/http"
-	"os"
 	"sync"
+	// "os"
+	// "path"
+	// "path/filepath"
 )
 
 var (
-	surf          Surfer
-	phantom       Surfer
-	once_surf     sync.Once
-	once_phantom  sync.Once
-	tempJsDir     = "./tmp"
-	phantomjsFile = os.Getenv("GOPATH") + `\src\github.com\henrylee2cn\surfer\phantomjs\phantomjs`
+	surf         Surfer
+	phantom      Surfer
+	once_surf    sync.Once
+	once_phantom sync.Once
+	tempJsDir    = "./tmp"
+	// phantomjsFile = filepath.Clean(path.Join(os.Getenv("GOPATH"), `/src/github.com/henrylee2cn/surfer/phantomjs/phantomjs`))
+	phantomjsFile = `./phantomjs`
 )
 
 func Download(req Request) (resp *http.Response, err error) {
