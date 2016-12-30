@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"robot/downloader/response"
 )
 
 // 基于Phantomjs的下载器实现，作为surfer的补充
@@ -126,7 +127,10 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 			continue
 		}
 		resp.Header = param.header
-		resp.Header.Set("Set-Cookie", retResp.Cookie)
+		cookies := strings.Split(strings.TrimSpace(retResp.Cookie), ";")
+		for _, c := range cookies {
+			resp.Header.Add("Set-Cookie", c)
+		}
 		resp.Body = ioutil.NopCloser(strings.NewReader(retResp.Body))
 		break
 	}
