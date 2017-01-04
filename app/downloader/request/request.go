@@ -160,10 +160,12 @@ func (self *Request) GetUrl() string {
 	return self.Url
 }
 
+// 获取Http请求的方法名称 (注意这里不是指Http GET方法)
 func (self *Request) GetMethod() string {
 	return self.Method
 }
 
+// 设定Http请求方法的类型
 func (self *Request) SetMethod(method string) *Request {
 	self.Method = strings.ToUpper(method)
 	return self
