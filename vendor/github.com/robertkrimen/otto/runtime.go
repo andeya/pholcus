@@ -4,7 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"path"
 	"reflect"
+	"runtime"
+	"strconv"
 	"sync"
 
 	"github.com/robertkrimen/otto/ast"
@@ -55,6 +58,9 @@ type _runtime struct {
 	otto         *Otto
 	eval         *_object // The builtin eval, for determine indirect versus direct invocation
 	debugger     func(*Otto)
+	random       func() float64
+	stackLimit   int
+	traceLimit   int
 
 	labels []string // FIXME
 	lck    sync.Mutex
@@ -62,6 +68,14 @@ type _runtime struct {
 
 func (self *_runtime) enterScope(scope *_scope) {
 	scope.outer = self.scope
+	if self.scope != nil {
+		if self.stackLimit != 0 && self.scope.depth+1 >= self.stackLimit {
+			panic(self.panicRangeError("Maximum call stack size exceeded"))
+		}
+
+		scope.depth = self.scope.depth + 1
+	}
+
 	self.scope = scope
 }
 
@@ -113,7 +127,7 @@ func (self *_runtime) tryCatchEvaluate(inner func() Value) (tryValue Value, exce
 			switch caught := caught.(type) {
 			case _error:
 				exception = true
-				tryValue = toValue_object(self.newError(caught.name, caught.messageValue()))
+				tryValue = toValue_object(self.newError(caught.name, caught.messageValue(), 0))
 			case Value:
 				exception = true
 				tryValue = caught
@@ -177,13 +191,12 @@ func testObjectCoercible(value Value) (isObject bool, mustCoerce bool) {
 	case valueReference, valueEmpty, valueNull, valueUndefined:
 		return false, false
 	case valueNumber, valueString, valueBoolean:
-		isObject = false
-		mustCoerce = true
+		return false, true
 	case valueObject:
-		isObject = true
-		mustCoerce = false
+		return true, false
+	default:
+		panic("this should never happen")
 	}
-	return
 }
 
 func (self *_runtime) safeToValue(value interface{}) (Value, error) {
@@ -196,7 +209,9 @@ func (self *_runtime) safeToValue(value interface{}) (Value, error) {
 
 // convertNumeric converts numeric parameter val from js to that of type t if it is safe to do so, otherwise it panics.
 // This allows literals (int64), bitwise values (int32) and the general form (float64) of javascript numerics to be passed as parameters to go functions easily.
-func convertNumeric(val reflect.Value, t reflect.Type) reflect.Value {
+func (self *_runtime) convertNumeric(v Value, t reflect.Type) reflect.Value {
+	val := reflect.ValueOf(v.export())
+
 	if val.Kind() == t.Kind() {
 		return val
 	}
@@ -213,20 +228,20 @@ func convertNumeric(val reflect.Value, t reflect.Type) reflect.Value {
 			return reflect.ValueOf(f64)
 		case reflect.Float32:
 			if reflect.Zero(t).OverflowFloat(f64) {
-				panic("converting float64 to float32 would overflow")
+				panic(self.panicRangeError("converting float64 to float32 would overflow"))
 			}
 
 			return val.Convert(t)
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			i64 := int64(f64)
 			if float64(i64) != f64 {
-				panic(fmt.Sprintf("converting %v to %v would cause loss of precision", val.Type(), t))
+				panic(self.panicRangeError(fmt.Sprintf("converting %v to %v would cause loss of precision", val.Type(), t)))
 			}
 
 			// The float represents an integer
 			val = reflect.ValueOf(i64)
 		default:
-			panic(fmt.Sprintf("cannot convert %v to %v", val.Type(), t))
+			panic(self.panicTypeError(fmt.Sprintf("cannot convert %v to %v", val.Type(), t)))
 		}
 	}
 
@@ -236,15 +251,15 @@ func convertNumeric(val reflect.Value, t reflect.Type) reflect.Value {
 		switch t.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			if reflect.Zero(t).OverflowInt(i64) {
-				panic(fmt.Sprintf("converting %v to %v would overflow", val.Type(), t))
+				panic(self.panicRangeError(fmt.Sprintf("converting %v to %v would overflow", val.Type(), t)))
 			}
 			return val.Convert(t)
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			if i64 < 0 {
-				panic(fmt.Sprintf("converting %v to %v would underflow", val.Type(), t))
+				panic(self.panicRangeError(fmt.Sprintf("converting %v to %v would underflow", val.Type(), t)))
 			}
 			if reflect.Zero(t).OverflowUint(uint64(i64)) {
-				panic(fmt.Sprintf("converting %v to %v would overflow", val.Type(), t))
+				panic(self.panicRangeError(fmt.Sprintf("converting %v to %v would overflow", val.Type(), t)))
 			}
 			return val.Convert(t)
 		}
@@ -254,86 +269,214 @@ func convertNumeric(val reflect.Value, t reflect.Type) reflect.Value {
 		switch t.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			if u64 > math.MaxInt64 || reflect.Zero(t).OverflowInt(int64(u64)) {
-				panic(fmt.Sprintf("converting %v to %v would overflow", val.Type(), t))
+				panic(self.panicRangeError(fmt.Sprintf("converting %v to %v would overflow", val.Type(), t)))
 			}
 			return val.Convert(t)
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 			if reflect.Zero(t).OverflowUint(u64) {
-				panic(fmt.Sprintf("converting %v to %v would overflow", val.Type(), t))
+				panic(self.panicRangeError(fmt.Sprintf("converting %v to %v would overflow", val.Type(), t)))
 			}
 			return val.Convert(t)
 		}
 	}
 
-	panic(fmt.Sprintf("unsupported type %v for numeric conversion", val.Type()))
+	panic(self.panicTypeError(fmt.Sprintf("unsupported type %v for numeric conversion", val.Type())))
 }
 
-// callParamConvert converts request val to type t if possible.
+var typeOfValue = reflect.TypeOf(Value{})
+
+// convertCallParameter converts request val to type t if possible.
 // If the conversion fails due to overflow or type miss-match then it panics.
 // If no conversion is known then the original value is returned.
-func callParamConvert(val reflect.Value, t reflect.Type) reflect.Value {
-	if val.Kind() == reflect.Interface {
-		val = reflect.ValueOf(val.Interface())
+func (self *_runtime) convertCallParameter(v Value, t reflect.Type) reflect.Value {
+	if t == typeOfValue {
+		return reflect.ValueOf(v)
 	}
 
-	switch t.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
-		if val.Kind() == t.Kind() {
-			// Types already match
-			return val
-		}
-		return convertNumeric(val, t)
-	case reflect.Slice:
-		if val.Kind() != reflect.Slice {
-			// Conversion from none slice type to slice not possible
-			panic(fmt.Sprintf("cannot use %v as type %v", val, t))
-		}
-	default:
-		// No supported conversion
-		return val
-	}
-
-	elemType := t.Elem()
-	switch elemType.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64, reflect.Slice:
-		// Attempt to convert to slice of the type t
-		s := reflect.MakeSlice(reflect.SliceOf(elemType), val.Len(), val.Len())
-		for i := 0; i < val.Len(); i++ {
-			s.Index(i).Set(callParamConvert(val.Index(i), elemType))
-		}
-
-		return s
-	}
-
-	// Not a slice type we can convert
-	return val
-}
-
-// callSliceRequired returns true if CallSlice is required instead of Call.
-func callSliceRequired(param reflect.Type, val reflect.Value) bool {
-	vt := val.Type()
-	for param.Kind() == reflect.Slice {
-		if val.Kind() == reflect.Interface {
-			val = reflect.ValueOf(val.Interface())
-			vt = val.Type()
-		}
-
-		if vt.Kind() != reflect.Slice {
-			return false
-		}
-
-		vt = vt.Elem()
-		if val.Kind() != reflect.Invalid {
-			if val.Len() > 0 {
-				val = val.Index(0)
-			} else {
-				val = reflect.Value{}
+	if v.kind == valueObject {
+		if gso, ok := v._object().value.(*_goStructObject); ok {
+			if gso.value.Type().AssignableTo(t) {
+				return gso.value
 			}
 		}
-		param = param.Elem()
 	}
 
-	return true
+	if t.Kind() == reflect.Interface {
+		iv := reflect.ValueOf(v.export())
+		if iv.Type().AssignableTo(t) {
+			return iv
+		}
+	}
+
+	tk := t.Kind()
+
+	if tk == reflect.Ptr {
+		switch v.kind {
+		case valueEmpty, valueNull, valueUndefined:
+			return reflect.Zero(t)
+		default:
+			var vv reflect.Value
+			if err := catchPanic(func() { vv = self.convertCallParameter(v, t.Elem()) }); err == nil {
+				if vv.CanAddr() {
+					return vv.Addr()
+				}
+
+				pv := reflect.New(vv.Type())
+				pv.Elem().Set(vv)
+				return pv
+			}
+		}
+	}
+
+	switch tk {
+	case reflect.Bool:
+		return reflect.ValueOf(v.bool())
+	case reflect.String:
+		switch v.kind {
+		case valueString:
+			return reflect.ValueOf(v.value)
+		case valueNumber:
+			return reflect.ValueOf(fmt.Sprintf("%v", v.value))
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64:
+		switch v.kind {
+		case valueNumber:
+			return self.convertNumeric(v, t)
+		}
+	case reflect.Slice:
+		if o := v._object(); o != nil {
+			if lv := o.get("length"); lv.IsNumber() {
+				l := lv.number().int64
+
+				s := reflect.MakeSlice(t, int(l), int(l))
+
+				tt := t.Elem()
+
+				if o.class == "Array" {
+					for i := int64(0); i < l; i++ {
+						p, ok := o.property[strconv.FormatInt(i, 10)]
+						if !ok {
+							continue
+						}
+
+						e, ok := p.value.(Value)
+						if !ok {
+							continue
+						}
+
+						ev := self.convertCallParameter(e, tt)
+
+						s.Index(int(i)).Set(ev)
+					}
+				} else if o.class == "GoArray" {
+
+					var gslice bool
+					switch o.value.(type) {
+					case *_goSliceObject:
+						gslice = true
+					case *_goArrayObject:
+						gslice = false
+					}
+
+					for i := int64(0); i < l; i++ {
+						var p *_property
+						if gslice {
+							p = goSliceGetOwnProperty(o, strconv.FormatInt(i, 10))
+						} else {
+							p = goArrayGetOwnProperty(o, strconv.FormatInt(i, 10))
+						}
+						if p == nil {
+							continue
+						}
+
+						e, ok := p.value.(Value)
+						if !ok {
+							continue
+						}
+
+						ev := self.convertCallParameter(e, tt)
+
+						s.Index(int(i)).Set(ev)
+					}
+				}
+
+				return s
+			}
+		}
+	case reflect.Map:
+		if o := v._object(); o != nil && t.Key().Kind() == reflect.String {
+			m := reflect.MakeMap(t)
+
+			o.enumerate(false, func(k string) bool {
+				m.SetMapIndex(reflect.ValueOf(k), self.convertCallParameter(o.get(k), t.Elem()))
+				return true
+			})
+
+			return m
+		}
+	case reflect.Func:
+		if t.NumOut() > 1 {
+			panic(self.panicTypeError("converting JavaScript values to Go functions with more than one return value is currently not supported"))
+		}
+
+		if o := v._object(); o != nil && o.class == "Function" {
+			return reflect.MakeFunc(t, func(args []reflect.Value) []reflect.Value {
+				l := make([]interface{}, len(args))
+				for i, a := range args {
+					if a.CanInterface() {
+						l[i] = a.Interface()
+					}
+				}
+
+				rv, err := v.Call(nullValue, l...)
+				if err != nil {
+					panic(err)
+				}
+
+				if t.NumOut() == 0 {
+					return nil
+				}
+
+				return []reflect.Value{self.convertCallParameter(rv, t.Out(0))}
+			})
+		}
+	}
+
+	if tk == reflect.String {
+		if o := v._object(); o != nil && o.hasProperty("toString") {
+			if fn := o.get("toString"); fn.IsFunction() {
+				sv, err := fn.Call(v)
+				if err != nil {
+					panic(err)
+				}
+
+				var r reflect.Value
+				if err := catchPanic(func() { r = self.convertCallParameter(sv, t) }); err == nil {
+					return r
+				}
+			}
+		}
+
+		return reflect.ValueOf(v.String())
+	}
+
+	s := "OTTO DOES NOT UNDERSTAND THIS TYPE"
+	switch v.kind {
+	case valueBoolean:
+		s = "boolean"
+	case valueNull:
+		s = "null"
+	case valueNumber:
+		s = "number"
+	case valueString:
+		s = "string"
+	case valueUndefined:
+		s = "undefined"
+	case valueObject:
+		s = v.Class()
+	}
+
+	panic(self.panicTypeError("can't convert from %q to %q", s, t.String()))
 }
 
 func (self *_runtime) toValue(value interface{}) Value {
@@ -341,9 +484,27 @@ func (self *_runtime) toValue(value interface{}) Value {
 	case Value:
 		return value
 	case func(FunctionCall) Value:
-		return toValue_object(self.newNativeFunction("", value))
+		var name, file string
+		var line int
+		pc := reflect.ValueOf(value).Pointer()
+		fn := runtime.FuncForPC(pc)
+		if fn != nil {
+			name = fn.Name()
+			file, line = fn.FileLine(pc)
+			file = path.Base(file)
+		}
+		return toValue_object(self.newNativeFunction(name, file, line, value))
 	case _nativeFunction:
-		return toValue_object(self.newNativeFunction("", value))
+		var name, file string
+		var line int
+		pc := reflect.ValueOf(value).Pointer()
+		fn := runtime.FuncForPC(pc)
+		if fn != nil {
+			name = fn.Name()
+			file, line = fn.FileLine(pc)
+			file = path.Base(file)
+		}
+		return toValue_object(self.newNativeFunction(name, file, line, value))
 	case Object, *Object, _object, *_object:
 		// Nothing happens.
 		// FIXME We should really figure out what can come here.
@@ -351,6 +512,7 @@ func (self *_runtime) toValue(value interface{}) Value {
 	default:
 		{
 			value := reflect.ValueOf(value)
+
 			switch value.Kind() {
 			case reflect.Ptr:
 				switch reflect.Indirect(value).Kind() {
@@ -359,40 +521,75 @@ func (self *_runtime) toValue(value interface{}) Value {
 				case reflect.Array:
 					return toValue_object(self.newGoArray(value))
 				}
+			case reflect.Struct:
+				return toValue_object(self.newGoStructObject(value))
+			case reflect.Map:
+				return toValue_object(self.newGoMapObject(value))
+			case reflect.Slice:
+				return toValue_object(self.newGoSlice(value))
+			case reflect.Array:
+				return toValue_object(self.newGoArray(value))
 			case reflect.Func:
-				// TODO Maybe cache this?
-				return toValue_object(self.newNativeFunction("", func(call FunctionCall) Value {
-					argsCount := len(call.ArgumentList)
-					in := make([]reflect.Value, argsCount)
-					t := value.Type()
+				var name, file string
+				var line int
+				if v := reflect.ValueOf(value); v.Kind() == reflect.Ptr {
+					pc := v.Pointer()
+					fn := runtime.FuncForPC(pc)
+					if fn != nil {
+						name = fn.Name()
+						file, line = fn.FileLine(pc)
+						file = path.Base(file)
+					}
+				}
+
+				typ := value.Type()
+
+				return toValue_object(self.newNativeFunction(name, file, line, func(c FunctionCall) Value {
+					nargs := typ.NumIn()
+
+					if len(c.ArgumentList) != nargs {
+						if typ.IsVariadic() {
+							if len(c.ArgumentList) < nargs-1 {
+								panic(self.panicRangeError(fmt.Sprintf("expected at least %d arguments; got %d", nargs-1, len(c.ArgumentList))))
+							}
+						} else {
+							panic(self.panicRangeError(fmt.Sprintf("expected %d argument(s); got %d", nargs, len(c.ArgumentList))))
+						}
+					}
+
+					in := make([]reflect.Value, len(c.ArgumentList))
+
 					callSlice := false
-					paramsCount := t.NumIn()
-					lastParam := paramsCount - 1
-					lastArg := argsCount - 1
-					isVariadic := t.IsVariadic()
-					for i, value := range call.ArgumentList {
-						var paramType reflect.Type
-						if isVariadic && i == lastArg && argsCount == paramsCount {
-							// Variadic functions last parameter and parameter numbers match incoming args
-							paramType = t.In(lastArg)
-							val := reflect.ValueOf(value.export())
-							callSlice = callSliceRequired(paramType, val)
-							if callSlice {
-								in[i] = callParamConvert(reflect.ValueOf(value.export()), paramType)
-								continue
+
+					for i, a := range c.ArgumentList {
+						var t reflect.Type
+
+						n := i
+						if n >= nargs-1 && typ.IsVariadic() {
+							if n > nargs-1 {
+								n = nargs - 1
+							}
+
+							t = typ.In(n).Elem()
+						} else {
+							t = typ.In(n)
+						}
+
+						// if this is a variadic Go function, and the caller has supplied
+						// exactly the number of JavaScript arguments required, and this
+						// is the last JavaScript argument, try treating the it as the
+						// actual set of variadic Go arguments. if that succeeds, break
+						// out of the loop.
+						if typ.IsVariadic() && len(c.ArgumentList) == nargs && i == nargs-1 {
+							var v reflect.Value
+							if err := catchPanic(func() { v = self.convertCallParameter(a, typ.In(n)) }); err == nil {
+								in[i] = v
+								callSlice = true
+								break
 							}
 						}
 
-						if i >= lastParam {
-							if isVariadic {
-								paramType = t.In(lastParam).Elem()
-							} else {
-								paramType = t.In(lastParam)
-							}
-						} else {
-							paramType = t.In(i)
-						}
-						in[i] = callParamConvert(reflect.ValueOf(value.export()), paramType)
+						in[i] = self.convertCallParameter(a, t)
 					}
 
 					var out []reflect.Value
@@ -402,33 +599,24 @@ func (self *_runtime) toValue(value interface{}) Value {
 						out = value.Call(in)
 					}
 
-					l := len(out)
-					switch l {
+					switch len(out) {
 					case 0:
 						return Value{}
 					case 1:
 						return self.toValue(out[0].Interface())
-					}
+					default:
+						s := make([]interface{}, len(out))
+						for i, v := range out {
+							s[i] = self.toValue(v.Interface())
+						}
 
-					// Return an array of the values to emulate multi value return.
-					// In the future this can be used along side destructuring assignment.
-					s := make([]interface{}, l)
-					for i, v := range out {
-						s[i] = self.toValue(v.Interface())
+						return self.toValue(s)
 					}
-					return self.toValue(s)
 				}))
-			case reflect.Struct:
-				return toValue_object(self.newGoStructObject(value))
-			case reflect.Map:
-				return toValue_object(self.newGoMapObject(value))
-			case reflect.Slice:
-				return toValue_object(self.newGoSlice(value))
-			case reflect.Array:
-				return toValue_object(self.newGoArray(value))
 			}
 		}
 	}
+
 	return toValue(value)
 }
 
@@ -444,32 +632,35 @@ func (runtime *_runtime) newGoArray(value reflect.Value) *_object {
 	return self
 }
 
-func (runtime *_runtime) parse(filename string, src interface{}) (*ast.Program, error) {
-	return parser.ParseFile(nil, filename, src, 0)
+func (runtime *_runtime) parse(filename string, src, sm interface{}) (*ast.Program, error) {
+	return parser.ParseFileWithSourceMap(nil, filename, src, sm, 0)
 }
 
-func (runtime *_runtime) cmpl_parse(filename string, src interface{}) (*_nodeProgram, error) {
-	program, err := parser.ParseFile(nil, filename, src, 0)
+func (runtime *_runtime) cmpl_parse(filename string, src, sm interface{}) (*_nodeProgram, error) {
+	program, err := parser.ParseFileWithSourceMap(nil, filename, src, sm, 0)
 	if err != nil {
 		return nil, err
 	}
+
 	return cmpl_parse(program), nil
 }
 
-func (self *_runtime) parseSource(src interface{}) (*_nodeProgram, *ast.Program, error) {
+func (self *_runtime) parseSource(src, sm interface{}) (*_nodeProgram, *ast.Program, error) {
 	switch src := src.(type) {
 	case *ast.Program:
 		return nil, src, nil
 	case *Script:
 		return src.program, nil, nil
 	}
-	program, err := self.parse("", src)
+
+	program, err := self.parse("", src, sm)
+
 	return nil, program, err
 }
 
-func (self *_runtime) cmpl_runOrEval(src interface{}, eval bool) (Value, error) {
+func (self *_runtime) cmpl_runOrEval(src, sm interface{}, eval bool) (Value, error) {
 	result := Value{}
-	cmpl_program, program, err := self.parseSource(src)
+	cmpl_program, program, err := self.parseSource(src, sm)
 	if err != nil {
 		return result, err
 	}
@@ -488,12 +679,12 @@ func (self *_runtime) cmpl_runOrEval(src interface{}, eval bool) (Value, error) 
 	return result, err
 }
 
-func (self *_runtime) cmpl_run(src interface{}) (Value, error) {
-	return self.cmpl_runOrEval(src, false)
+func (self *_runtime) cmpl_run(src, sm interface{}) (Value, error) {
+	return self.cmpl_runOrEval(src, sm, false)
 }
 
-func (self *_runtime) cmpl_eval(src interface{}) (Value, error) {
-	return self.cmpl_runOrEval(src, true)
+func (self *_runtime) cmpl_eval(src, sm interface{}) (Value, error) {
+	return self.cmpl_runOrEval(src, sm, true)
 }
 
 func (self *_runtime) parseThrow(err error) {
@@ -513,14 +704,8 @@ func (self *_runtime) parseThrow(err error) {
 	panic(self.panicSyntaxError(err.Error()))
 }
 
-func (self *_runtime) parseOrThrow(source string) *ast.Program {
-	program, err := self.parse("", source)
-	self.parseThrow(err) // Will panic/throw appropriately
-	return program
-}
-
-func (self *_runtime) cmpl_parseOrThrow(source string) *_nodeProgram {
-	program, err := self.cmpl_parse("", source)
+func (self *_runtime) cmpl_parseOrThrow(src, sm interface{}) *_nodeProgram {
+	program, err := self.cmpl_parse("", src, sm)
 	self.parseThrow(err) // Will panic/throw appropriately
 	return program
 }

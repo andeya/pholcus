@@ -8,6 +8,7 @@ import (
 
 	"github.com/robertkrimen/otto/ast"
 	"github.com/robertkrimen/otto/file"
+	"github.com/robertkrimen/otto/underscore"
 )
 
 func firstErr(err error) error {
@@ -21,6 +22,10 @@ func firstErr(err error) error {
 var matchBeforeAfterSeparator = regexp.MustCompile(`(?m)^[ \t]*---$`)
 
 func testParse(src string) (parser *_parser, program *ast.Program, err error) {
+	return testParseWithMode(src, 0)
+}
+
+func testParseWithMode(src string, mode Mode) (parser *_parser, program *ast.Program, err error) {
 	defer func() {
 		if tmp := recover(); tmp != nil {
 			switch tmp := tmp.(type) {
@@ -35,7 +40,8 @@ func testParse(src string) (parser *_parser, program *ast.Program, err error) {
 			panic(tmp)
 		}
 	}()
-	parser = newParser("", src)
+	parser = _newParser("", src, 1, nil)
+	parser.mode = mode
 	program, err = parser.parse()
 	return
 }
@@ -86,7 +92,7 @@ func TestParseFunction(t *testing.T) {
 func TestParserErr(t *testing.T) {
 	tt(t, func() {
 		test := func(input string, expect interface{}) (*ast.Program, *_parser) {
-			parser := newParser("", input)
+			parser := _newParser("", input, 1, nil)
 			program, err := parser.parse()
 			is(firstErr(err), expect)
 			return program, parser
@@ -962,7 +968,7 @@ func Test_parseNumberLiteral(t *testing.T) {
 
 func TestPosition(t *testing.T) {
 	tt(t, func() {
-		parser := newParser("", "// Lorem ipsum")
+		parser := _newParser("", "// Lorem ipsum", 1, nil)
 
 		// Out of range, idx0 (error condition)
 		is(parser.slice(0, 1), "")
@@ -980,7 +986,7 @@ func TestPosition(t *testing.T) {
 		is(parser.str[0:14], "// Lorem ipsum")
 		is(parser.slice(1, 15), "// Lorem ipsum")
 
-		parser = newParser("", "(function(){ return 0; })")
+		parser = _newParser("", "(function(){ return 0; })", 1, nil)
 		program, err := parser.parse()
 		is(err, nil)
 
@@ -998,10 +1004,20 @@ func TestPosition(t *testing.T) {
 		is(node.Idx1(), file.Idx(25))
 		is(parser.slice(node.Idx0(), node.Idx1()), "function(){ return 0; }")
 
-		parser = newParser("", "(function(){ return abc; })")
+		parser = _newParser("", "(function(){ return abc; })", 1, nil)
 		program, err = parser.parse()
 		is(err, nil)
 		node = program.Body[0].(*ast.ExpressionStatement).Expression.(*ast.FunctionLiteral)
 		is(node.(*ast.FunctionLiteral).Source, "function(){ return abc; }")
 	})
+}
+
+func BenchmarkParser(b *testing.B) {
+	src := underscore.Source()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		parser := _newParser("", src, 1, nil)
+		parser.parse()
+	}
 }

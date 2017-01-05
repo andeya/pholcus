@@ -82,6 +82,9 @@ func (cmpl *_compiler) parseExpression(in ast.Expression) _nodeExpression {
 			identifier: in.Identifier.Name,
 		}
 
+	case *ast.EmptyExpression:
+		return nil
+
 	case *ast.FunctionLiteral:
 		name := ""
 		if in.Name != nil {
@@ -267,6 +270,9 @@ func (cmpl *_compiler) parseStatement(in ast.Statement) _nodeStatement {
 			out.body = append(out.body, body)
 		}
 		return out
+
+	case *ast.FunctionStatement:
+		return emptyStatement
 
 	case *ast.IfStatement:
 		return &_nodeIfStatement{

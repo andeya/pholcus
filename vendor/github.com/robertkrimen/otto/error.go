@@ -3,7 +3,6 @@ package otto
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/robertkrimen/otto/file"
 )
@@ -32,10 +31,31 @@ type _error struct {
 	offset int
 }
 
+func (err _error) format() string {
+	if len(err.name) == 0 {
+		return err.message
+	}
+	if len(err.message) == 0 {
+		return err.name
+	}
+	return fmt.Sprintf("%s: %s", err.name, err.message)
+}
+
+func (err _error) formatWithStack() string {
+	str := err.format() + "\n"
+	for _, frame := range err.trace {
+		str += "    at " + frame.location() + "\n"
+	}
+	return str
+}
+
 type _frame struct {
-	file   *file.File
-	offset int
-	callee string
+	native     bool
+	nativeFile string
+	nativeLine int
+	file       *file.File
+	offset     int
+	callee     string
 }
 
 var (
@@ -45,47 +65,31 @@ var (
 type _at int
 
 func (fr _frame) location() string {
-	if fr.file == nil {
-		return "<unknown>"
-	}
-	path := fr.file.Name()
-	line, column := _position(fr.file, fr.offset)
+	str := "<unknown>"
 
-	if path == "" {
-		path = "<anonymous>"
-	}
+	switch {
+	case fr.native:
+		str = "<native code>"
+		if fr.nativeFile != "" && fr.nativeLine != 0 {
+			str = fmt.Sprintf("%s:%d", fr.nativeFile, fr.nativeLine)
+		}
+	case fr.file != nil:
+		if p := fr.file.Position(file.Idx(fr.offset)); p != nil {
+			path, line, column := p.Filename, p.Line, p.Column
 
-	str := fmt.Sprintf("%s:%d:%d", path, line, column)
+			if path == "" {
+				path = "<anonymous>"
+			}
+
+			str = fmt.Sprintf("%s:%d:%d", path, line, column)
+		}
+	}
 
 	if fr.callee != "" {
 		str = fmt.Sprintf("%s (%s)", fr.callee, str)
 	}
 
 	return str
-}
-
-func _position(file *file.File, offset int) (line, column int) {
-	{
-		offset := offset - file.Base()
-		if offset < 0 {
-			return -offset, -1
-		}
-
-		src := file.Source()
-		if offset >= len(src) {
-			return -offset, -len(src)
-		}
-		src = src[:offset]
-
-		line := 1 + strings.Count(src, "\n")
-		column := 0
-		if index := strings.LastIndex(src, "\n"); index >= 0 {
-			column = offset - index
-		} else {
-			column = 1 + len(src)
-		}
-		return line, column
-	}
 }
 
 // An Error represents a runtime error, e.g. a TypeError, a ReferenceError, etc.
@@ -98,13 +102,7 @@ type Error struct {
 //    TypeError: 'def' is not a function
 //
 func (err Error) Error() string {
-	if len(err.name) == 0 {
-		return err.message
-	}
-	if len(err.message) == 0 {
-		return err.name
-	}
-	return fmt.Sprintf("%s: %s", err.name, err.message)
+	return err.format()
 }
 
 // String returns a description of the error and a trace of where the
@@ -115,11 +113,7 @@ func (err Error) Error() string {
 //        at <anonymous>:7:1/
 //
 func (err Error) String() string {
-	str := err.Error() + "\n"
-	for _, frame := range err.trace {
-		str += "    at " + frame.location() + "\n"
-	}
-	return str
+	return err.formatWithStack()
 }
 
 func (err _error) describe(format string, in ...interface{}) string {
@@ -140,7 +134,7 @@ func (rt *_runtime) typeErrorResult(throw bool) bool {
 	return false
 }
 
-func newError(rt *_runtime, name string, in ...interface{}) _error {
+func newError(rt *_runtime, name string, stackFramesToPop int, in ...interface{}) _error {
 	err := _error{
 		name:   name,
 		offset: -1,
@@ -148,33 +142,42 @@ func newError(rt *_runtime, name string, in ...interface{}) _error {
 	description := ""
 	length := len(in)
 
-	if rt != nil {
+	if rt != nil && rt.scope != nil {
 		scope := rt.scope
+
+		for i := 0; i < stackFramesToPop; i++ {
+			if scope.outer != nil {
+				scope = scope.outer
+			}
+		}
+
 		frame := scope.frame
+
 		if length > 0 {
 			if at, ok := in[length-1].(_at); ok {
 				in = in[0 : length-1]
 				if scope != nil {
 					frame.offset = int(at)
 				}
-				length -= 1
+				length--
 			}
 			if length > 0 {
 				description, in = in[0].(string), in[1:]
 			}
 		}
-		limit := 10
+
+		limit := rt.traceLimit
+
 		err.trace = append(err.trace, frame)
 		if scope != nil {
-			for limit > 0 {
-				scope = scope.outer
-				if scope == nil {
+			for scope = scope.outer; scope != nil; scope = scope.outer {
+				if limit--; limit == 0 {
 					break
 				}
+
 				if scope.frame.offset >= 0 {
 					err.trace = append(err.trace, scope.frame)
 				}
-				limit--
 			}
 		}
 	} else {
@@ -183,36 +186,37 @@ func newError(rt *_runtime, name string, in ...interface{}) _error {
 		}
 	}
 	err.message = err.describe(description, in...)
+
 	return err
 }
 
 func (rt *_runtime) panicTypeError(argumentList ...interface{}) *_exception {
 	return &_exception{
-		value: newError(rt, "TypeError", argumentList...),
+		value: newError(rt, "TypeError", 0, argumentList...),
 	}
 }
 
 func (rt *_runtime) panicReferenceError(argumentList ...interface{}) *_exception {
 	return &_exception{
-		value: newError(rt, "ReferenceError", argumentList...),
+		value: newError(rt, "ReferenceError", 0, argumentList...),
 	}
 }
 
 func (rt *_runtime) panicURIError(argumentList ...interface{}) *_exception {
 	return &_exception{
-		value: newError(rt, "URIError", argumentList...),
+		value: newError(rt, "URIError", 0, argumentList...),
 	}
 }
 
 func (rt *_runtime) panicSyntaxError(argumentList ...interface{}) *_exception {
 	return &_exception{
-		value: newError(rt, "SyntaxError", argumentList...),
+		value: newError(rt, "SyntaxError", 0, argumentList...),
 	}
 }
 
 func (rt *_runtime) panicRangeError(argumentList ...interface{}) *_exception {
 	return &_exception{
-		value: newError(rt, "RangeError", argumentList...),
+		value: newError(rt, "RangeError", 0, argumentList...),
 	}
 }
 
@@ -223,6 +227,9 @@ func catchPanic(function func()) (err error) {
 				caught = exception.eject()
 			}
 			switch caught := caught.(type) {
+			case *Error:
+				err = caught
+				return
 			case _error:
 				err = &Error{caught}
 				return

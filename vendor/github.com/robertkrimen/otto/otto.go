@@ -132,6 +132,7 @@ The following are some limitations with otto:
 
     * "use strict" will parse, but does nothing.
     * The regular expression engine (re2/regexp) is not fully compatible with the ECMA5 specification.
+    * Otto targets ES5. ES6 features (eg: Typed Arrays) are not supported.
 
 Regular Expression Incompatibility
 
@@ -227,6 +228,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/robertkrimen/otto/file"
 	"github.com/robertkrimen/otto/registry"
 )
 
@@ -244,6 +246,7 @@ func New() *Otto {
 		runtime: newContext(),
 	}
 	self.runtime.otto = self
+	self.runtime.traceLimit = 10
 	self.Set("console", self.runtime.newConsole())
 
 	registry.Apply(func(entry registry.Entry) {
@@ -289,7 +292,7 @@ func Run(src interface{}) (*Otto, Value, error) {
 // src may also be a Program, but if the AST has been modified, then runtime behavior is undefined.
 //
 func (self Otto) Run(src interface{}) (Value, error) {
-	value, err := self.runtime.cmpl_run(src)
+	value, err := self.runtime.cmpl_run(src, nil)
 	if !value.safe() {
 		value = Value{}
 	}
@@ -307,7 +310,7 @@ func (self Otto) Eval(src interface{}) (Value, error) {
 		defer self.runtime.leaveScope()
 	}
 
-	value, err := self.runtime.cmpl_eval(src)
+	value, err := self.runtime.cmpl_eval(src, nil)
 	if !value.safe() {
 		value = Value{}
 	}
@@ -363,6 +366,55 @@ func (self Otto) SetDebuggerHandler(fn func(vm *Otto)) {
 	self.runtime.debugger = fn
 }
 
+func (self Otto) SetRandomSource(fn func() float64) {
+	self.runtime.random = fn
+}
+
+// SetStackDepthLimit sets an upper limit to the depth of the JavaScript
+// stack. In simpler terms, this limits the number of "nested" function calls
+// you can make in a particular interpreter instance.
+//
+// Note that this doesn't take into account the Go stack depth. If your
+// JavaScript makes a call to a Go function, otto won't keep track of what
+// happens outside the interpreter. So if your Go function is infinitely
+// recursive, you're still in trouble.
+func (self Otto) SetStackDepthLimit(limit int) {
+	self.runtime.stackLimit = limit
+}
+
+// SetStackTraceLimit sets an upper limit to the number of stack frames that
+// otto will use when formatting an error's stack trace. By default, the limit
+// is 10. This is consistent with V8 and SpiderMonkey.
+//
+// TODO: expose via `Error.stackTraceLimit`
+func (self Otto) SetStackTraceLimit(limit int) {
+	self.runtime.traceLimit = limit
+}
+
+// MakeCustomError creates a new Error object with the given name and message,
+// returning it as a Value.
+func (self Otto) MakeCustomError(name, message string) Value {
+	return self.runtime.toValue(self.runtime.newError(name, self.runtime.toValue(message), 0))
+}
+
+// MakeRangeError creates a new RangeError object with the given message,
+// returning it as a Value.
+func (self Otto) MakeRangeError(message string) Value {
+	return self.runtime.toValue(self.runtime.newRangeError(self.runtime.toValue(message)))
+}
+
+// MakeSyntaxError creates a new SyntaxError object with the given message,
+// returning it as a Value.
+func (self Otto) MakeSyntaxError(message string) Value {
+	return self.runtime.toValue(self.runtime.newSyntaxError(self.runtime.toValue(message)))
+}
+
+// MakeTypeError creates a new TypeError object with the given message,
+// returning it as a Value.
+func (self Otto) MakeTypeError(message string) Value {
+	return self.runtime.toValue(self.runtime.newTypeError(self.runtime.toValue(message)))
+}
+
 // Context is a structure that contains information about the current execution
 // context.
 type Context struct {
@@ -375,8 +427,23 @@ type Context struct {
 	Stacktrace []string
 }
 
-// Context returns the current execution context of the vm
-func (self Otto) Context() (ctx Context) {
+// Context returns the current execution context of the vm, traversing up to
+// ten stack frames, and skipping any innermost native function stack frames.
+func (self Otto) Context() Context {
+	return self.ContextSkip(10, true)
+}
+
+// ContextLimit returns the current execution context of the vm, with a
+// specific limit on the number of stack frames to traverse, skipping any
+// innermost native function stack frames.
+func (self Otto) ContextLimit(limit int) Context {
+	return self.ContextSkip(limit, true)
+}
+
+// ContextSkip returns the current execution context of the vm, with a
+// specific limit on the number of stack frames to traverse, optionally
+// skipping any innermost native function stack frames.
+func (self Otto) ContextSkip(limit int, skipNative bool) (ctx Context) {
 	// Ensure we are operating in a scope
 	if self.runtime.scope == nil {
 		self.runtime.enterGlobalScope()
@@ -386,25 +453,40 @@ func (self Otto) Context() (ctx Context) {
 	scope := self.runtime.scope
 	frame := scope.frame
 
+	for skipNative && frame.native && scope.outer != nil {
+		scope = scope.outer
+		frame = scope.frame
+	}
+
 	// Get location information
 	ctx.Filename = "<unknown>"
 	ctx.Callee = frame.callee
-	if frame.file != nil {
-		ctx.Filename = frame.file.Name()
-		if ctx.Filename == "" {
-			ctx.Filename = "<anonymous>"
+
+	switch {
+	case frame.native:
+		ctx.Filename = frame.nativeFile
+		ctx.Line = frame.nativeLine
+		ctx.Column = 0
+	case frame.file != nil:
+		ctx.Filename = "<anonymous>"
+
+		if p := frame.file.Position(file.Idx(frame.offset)); p != nil {
+			ctx.Line = p.Line
+			ctx.Column = p.Column
+
+			if p.Filename != "" {
+				ctx.Filename = p.Filename
+			}
 		}
-		ctx.Line, ctx.Column = _position(frame.file, frame.offset)
 	}
 
 	// Get the current scope this Value
 	ctx.This = toValue_object(scope.this)
 
 	// Build stacktrace (up to 10 levels deep)
-	limit := 10
 	ctx.Symbols = make(map[string]Value)
 	ctx.Stacktrace = append(ctx.Stacktrace, frame.location())
-	for limit > 0 {
+	for limit != 0 {
 		// Get variables
 		stash := scope.lexical
 		for {
@@ -469,7 +551,7 @@ func (self Otto) Call(source string, this interface{}, argumentList ...interface
 	}()
 
 	if !construct && this == nil {
-		program, err := self.runtime.cmpl_parse("", source+"()")
+		program, err := self.runtime.cmpl_parse("", source+"()", nil)
 		if err == nil {
 			if node, ok := program.body[0].(*_nodeExpressionStatement); ok {
 				if node, ok := node.expression.(*_nodeCallExpression); ok {
@@ -534,7 +616,7 @@ func (self Otto) Call(source string, this interface{}, argumentList ...interface
 // If there is an error (like the source does not result in an object), then
 // nil and an error is returned.
 func (self Otto) Object(source string) (*Object, error) {
-	value, err := self.runtime.cmpl_run(source)
+	value, err := self.runtime.cmpl_run(source, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -639,9 +721,9 @@ func (self Object) Set(name string, value interface{}) error {
 	}
 }
 
-// Get the keys for the object
+// Keys gets the keys for the given object.
 //
-// Equivalent to calling Object.keys on the object
+// Equivalent to calling Object.keys on the object.
 func (self Object) Keys() []string {
 	var keys []string
 	self.object.enumerate(false, func(name string) bool {
@@ -649,6 +731,25 @@ func (self Object) Keys() []string {
 		return true
 	})
 	return keys
+}
+
+// KeysByParent gets the keys (and those of the parents) for the given object,
+// in order of "closest" to "furthest".
+func (self Object) KeysByParent() [][]string {
+	var a [][]string
+
+	for o := self.object; o != nil; o = o.prototype {
+		var l []string
+
+		o.enumerate(false, func(name string) bool {
+			l = append(l, name)
+			return true
+		})
+
+		a = append(a, l)
+	}
+
+	return a
 }
 
 // Class will return the class string of the object.

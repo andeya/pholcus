@@ -30,8 +30,8 @@ type Value struct {
 	value interface{}
 }
 
-func (vl Value) safe() bool {
-	return vl.kind < valueEmpty
+func (value Value) safe() bool {
+	return value.kind < valueEmpty
 }
 
 var (
@@ -271,11 +271,11 @@ func toValue_reflectValuePanic(value interface{}, kind reflect.Kind) {
 	// FIXME?
 	switch kind {
 	case reflect.Struct:
-		panic(newError(nil, "TypeError", "invalid value (struct): missing runtime: %v (%T)", value, value))
+		panic(newError(nil, "TypeError", 0, "invalid value (struct): missing runtime: %v (%T)", value, value))
 	case reflect.Map:
-		panic(newError(nil, "TypeError", "invalid value (map): missing runtime: %v (%T)", value, value))
+		panic(newError(nil, "TypeError", 0, "invalid value (map): missing runtime: %v (%T)", value, value))
 	case reflect.Slice:
-		panic(newError(nil, "TypeError", "invalid value (slice): missing runtime: %v (%T)", value, value))
+		panic(newError(nil, "TypeError", 0, "invalid value (slice): missing runtime: %v (%T)", value, value))
 	}
 }
 
@@ -375,7 +375,7 @@ func toValue(value interface{}) Value {
 		return toValue(reflect.ValueOf(value))
 	}
 	// FIXME?
-	panic(newError(nil, "TypeError", "invalid value: %v (%T)", value, value))
+	panic(newError(nil, "TypeError", 0, "invalid value: %v (%T)", value, value))
 }
 
 // String will return the value as a string.
@@ -689,17 +689,25 @@ func (self Value) export() interface{} {
 					continue
 				}
 				value := object.get(name).export()
+
 				t = reflect.TypeOf(value)
+
+				var k reflect.Kind
+				if t != nil {
+					k = t.Kind()
+				}
+
 				if state == 0 {
-					kind = t.Kind()
+					kind = k
 					state = 1
-				} else if state == 1 && kind != t.Kind() {
+				} else if state == 1 && kind != k {
 					state = 2
 				}
+
 				result = append(result, value)
 			}
 
-			if state != 1 || kind == reflect.Interface {
+			if state != 1 || kind == reflect.Interface || t == nil {
 				// No common type
 				return result
 			}

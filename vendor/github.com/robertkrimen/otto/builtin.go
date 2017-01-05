@@ -18,7 +18,7 @@ func builtinGlobal_eval(call FunctionCall) Value {
 		return src
 	}
 	runtime := call.runtime
-	program := runtime.cmpl_parseOrThrow(src.string())
+	program := runtime.cmpl_parseOrThrow(src.string(), nil)
 	if !call.eval {
 		// Not a direct call to eval, so we enter the global ExecutionContext
 		runtime.enterGlobalScope()
@@ -159,7 +159,7 @@ func builtinGlobal_parseFloat(call FunctionCall) Value {
 	}
 	value, err := strconv.ParseFloat(input, 64)
 	if err != nil {
-		for end := len(input); end > 0; end -= 1 {
+		for end := len(input); end > 0; end-- {
 			input := input[0:end]
 			if !parseFloat_matchValid.MatchString(input) {
 				return NaNValue()

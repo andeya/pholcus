@@ -83,7 +83,12 @@ type (
 
 	DotExpression struct {
 		Left       Expression
-		Identifier Identifier
+		Identifier *Identifier
+	}
+
+	EmptyExpression struct {
+		Begin file.Idx
+		End   file.Idx
 	}
 
 	FunctionLiteral struct {
@@ -185,6 +190,7 @@ func (*BracketExpression) _expressionNode()     {}
 func (*CallExpression) _expressionNode()        {}
 func (*ConditionalExpression) _expressionNode() {}
 func (*DotExpression) _expressionNode()         {}
+func (*EmptyExpression) _expressionNode()       {}
 func (*FunctionLiteral) _expressionNode()       {}
 func (*Identifier) _expressionNode()            {}
 func (*NewExpression) _expressionNode()         {}
@@ -271,6 +277,10 @@ type (
 		Body        Statement
 	}
 
+	FunctionStatement struct {
+		Function *FunctionLiteral
+	}
+
 	IfStatement struct {
 		If         file.Idx
 		Test       Expression
@@ -339,6 +349,7 @@ func (*EmptyStatement) _statementNode()      {}
 func (*ExpressionStatement) _statementNode() {}
 func (*ForInStatement) _statementNode()      {}
 func (*ForStatement) _statementNode()        {}
+func (*FunctionStatement) _statementNode()   {}
 func (*IfStatement) _statementNode()         {}
 func (*LabelledStatement) _statementNode()   {}
 func (*ReturnStatement) _statementNode()     {}
@@ -384,6 +395,8 @@ type Program struct {
 	DeclarationList []Declaration
 
 	File *file.File
+
+	Comments CommentMap
 }
 
 // ==== //
@@ -399,6 +412,7 @@ func (self *BracketExpression) Idx0() file.Idx     { return self.Left.Idx0() }
 func (self *CallExpression) Idx0() file.Idx        { return self.Callee.Idx0() }
 func (self *ConditionalExpression) Idx0() file.Idx { return self.Test.Idx0() }
 func (self *DotExpression) Idx0() file.Idx         { return self.Left.Idx0() }
+func (self *EmptyExpression) Idx0() file.Idx       { return self.Begin }
 func (self *FunctionLiteral) Idx0() file.Idx       { return self.Function }
 func (self *Identifier) Idx0() file.Idx            { return self.Idx }
 func (self *NewExpression) Idx0() file.Idx         { return self.New }
@@ -423,6 +437,7 @@ func (self *EmptyStatement) Idx0() file.Idx      { return self.Semicolon }
 func (self *ExpressionStatement) Idx0() file.Idx { return self.Expression.Idx0() }
 func (self *ForInStatement) Idx0() file.Idx      { return self.For }
 func (self *ForStatement) Idx0() file.Idx        { return self.For }
+func (self *FunctionStatement) Idx0() file.Idx   { return self.Function.Idx0() }
 func (self *IfStatement) Idx0() file.Idx         { return self.If }
 func (self *LabelledStatement) Idx0() file.Idx   { return self.Label.Idx0() }
 func (self *Program) Idx0() file.Idx             { return self.Body[0].Idx0() }
@@ -447,6 +462,7 @@ func (self *BracketExpression) Idx1() file.Idx     { return self.RightBracket + 
 func (self *CallExpression) Idx1() file.Idx        { return self.RightParenthesis + 1 }
 func (self *ConditionalExpression) Idx1() file.Idx { return self.Test.Idx1() }
 func (self *DotExpression) Idx1() file.Idx         { return self.Identifier.Idx1() }
+func (self *EmptyExpression) Idx1() file.Idx       { return self.End }
 func (self *FunctionLiteral) Idx1() file.Idx       { return self.Body.Idx1() }
 func (self *Identifier) Idx1() file.Idx            { return file.Idx(int(self.Idx) + len(self.Name)) }
 func (self *NewExpression) Idx1() file.Idx         { return self.RightParenthesis + 1 }
@@ -481,6 +497,7 @@ func (self *EmptyStatement) Idx1() file.Idx      { return self.Semicolon + 1 }
 func (self *ExpressionStatement) Idx1() file.Idx { return self.Expression.Idx1() }
 func (self *ForInStatement) Idx1() file.Idx      { return self.Body.Idx1() }
 func (self *ForStatement) Idx1() file.Idx        { return self.Body.Idx1() }
+func (self *FunctionStatement) Idx1() file.Idx   { return self.Function.Idx1() }
 func (self *IfStatement) Idx1() file.Idx {
 	if self.Alternate != nil {
 		return self.Alternate.Idx1()

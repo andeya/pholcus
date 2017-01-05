@@ -803,3 +803,57 @@ func Test_debugger(t *testing.T) {
 		is(err, nil)
 	})
 }
+
+func Test_random(t *testing.T) {
+	tt(t, func() {
+		vm := New()
+		vm.SetRandomSource(func() float64 { return 1 })
+
+		r, err := vm.Run(`Math.random()`)
+		is(err, nil)
+		f, err := r.ToFloat()
+		is(err, nil)
+		is(f, 1)
+	})
+
+	tt(t, func() {
+		vm := New()
+
+		r1, err := vm.Run(`Math.random()`)
+		is(err, nil)
+		f1, err := r1.ToFloat()
+		is(err, nil)
+
+		r2, err := vm.Run(`Math.random()`)
+		is(err, nil)
+		f2, err := r2.ToFloat()
+		is(err, nil)
+
+		is(f1 == f2, false)
+	})
+}
+
+func Test_stringArray(t *testing.T) {
+	getStrings := func() []string {
+		return []string{"these", "are", "strings"}
+	}
+	concatStrings := func(a []string) string {
+		if len(a) == 0 {
+			return ""
+		}
+		r := a[0]
+		for i := 1; i < len(a); i++ {
+			r += " "
+			r += a[i]
+		}
+		return r
+	}
+	tt(t, func() {
+		vm := New()
+		vm.Set("getStrings", getStrings)
+		vm.Set("concatStrings", concatStrings)
+		r1, err := vm.Run(`var a = getStrings(); concatStrings(a)`)
+		is(err, nil)
+		is(r1, "these are strings")
+	})
+}

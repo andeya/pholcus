@@ -11,11 +11,20 @@ import (
 func (self *_parser) parseIdentifier() *ast.Identifier {
 	literal := self.literal
 	idx := self.idx
+	if self.mode&StoreComments != 0 {
+		self.comments.MarkComments(ast.LEADING)
+	}
 	self.next()
-	return &ast.Identifier{
+	exp := &ast.Identifier{
 		Name: literal,
 		Idx:  idx,
 	}
+
+	if self.mode&StoreComments != 0 {
+		self.comments.SetExpression(exp)
+	}
+
+	return exp
 }
 
 func (self *_parser) parsePrimaryExpression() ast.Expression {
@@ -90,6 +99,9 @@ func (self *_parser) parsePrimaryExpression() ast.Expression {
 	case token.LEFT_PARENTHESIS:
 		self.expect(token.LEFT_PARENTHESIS)
 		expression := self.parseExpression()
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.expect(token.RIGHT_PARENTHESIS)
 		return expression
 	case token.THIS:
@@ -177,12 +189,18 @@ func (self *_parser) parseVariableDeclaration(declarationList *[]*ast.VariableEx
 		Name: literal,
 		Idx:  idx,
 	}
+	if self.mode&StoreComments != 0 {
+		self.comments.SetExpression(node)
+	}
 
 	if declarationList != nil {
 		*declarationList = append(*declarationList, node)
 	}
 
 	if self.token == token.ASSIGN {
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.next()
 		node.Initializer = self.parseAssignmentExpression()
 	}
@@ -196,9 +214,16 @@ func (self *_parser) parseVariableDeclarationList(var_ file.Idx) []ast.Expressio
 	var list []ast.Expression
 
 	for {
-		list = append(list, self.parseVariableDeclaration(&declarationList))
+		if self.mode&StoreComments != 0 {
+			self.comments.MarkComments(ast.LEADING)
+		}
+		decl := self.parseVariableDeclaration(&declarationList)
+		list = append(list, decl)
 		if self.token != token.COMMA {
 			break
+		}
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
 		}
 		self.next()
 	}
@@ -214,7 +239,11 @@ func (self *_parser) parseVariableDeclarationList(var_ file.Idx) []ast.Expressio
 func (self *_parser) parseObjectPropertyKey() (string, string) {
 	idx, tkn, literal := self.idx, self.token, self.literal
 	value := ""
+	if self.mode&StoreComments != 0 {
+		self.comments.MarkComments(ast.KEY)
+	}
 	self.next()
+
 	switch tkn {
 	case token.IDENTIFIER:
 		value = literal
@@ -242,7 +271,6 @@ func (self *_parser) parseObjectPropertyKey() (string, string) {
 }
 
 func (self *_parser) parseObjectProperty() ast.Property {
-
 	literal, value := self.parseObjectPropertyKey()
 	if literal == "get" && self.token != token.COLON {
 		idx := self.idx
@@ -276,25 +304,38 @@ func (self *_parser) parseObjectProperty() ast.Property {
 		}
 	}
 
+	if self.mode&StoreComments != 0 {
+		self.comments.MarkComments(ast.COLON)
+	}
 	self.expect(token.COLON)
 
-	return ast.Property{
+	exp := ast.Property{
 		Key:   value,
 		Kind:  "value",
 		Value: self.parseAssignmentExpression(),
 	}
+
+	if self.mode&StoreComments != 0 {
+		self.comments.SetExpression(exp.Value)
+	}
+	return exp
 }
 
 func (self *_parser) parseObjectLiteral() ast.Expression {
 	var value []ast.Property
 	idx0 := self.expect(token.LEFT_BRACE)
 	for self.token != token.RIGHT_BRACE && self.token != token.EOF {
-		property := self.parseObjectProperty()
-		value = append(value, property)
+		value = append(value, self.parseObjectProperty())
 		if self.token == token.COMMA {
+			if self.mode&StoreComments != 0 {
+				self.comments.Unset()
+			}
 			self.next()
 			continue
 		}
+	}
+	if self.mode&StoreComments != 0 {
+		self.comments.MarkComments(ast.FINAL)
 	}
 	idx1 := self.expect(token.RIGHT_BRACE)
 
@@ -306,19 +347,34 @@ func (self *_parser) parseObjectLiteral() ast.Expression {
 }
 
 func (self *_parser) parseArrayLiteral() ast.Expression {
-
 	idx0 := self.expect(token.LEFT_BRACKET)
 	var value []ast.Expression
 	for self.token != token.RIGHT_BRACKET && self.token != token.EOF {
 		if self.token == token.COMMA {
+			// This kind of comment requires a special empty expression node.
+			empty := &ast.EmptyExpression{self.idx, self.idx}
+
+			if self.mode&StoreComments != 0 {
+				self.comments.SetExpression(empty)
+				self.comments.Unset()
+			}
+			value = append(value, empty)
 			self.next()
-			value = append(value, nil)
 			continue
 		}
-		value = append(value, self.parseAssignmentExpression())
+
+		exp := self.parseAssignmentExpression()
+
+		value = append(value, exp)
 		if self.token != token.RIGHT_BRACKET {
+			if self.mode&StoreComments != 0 {
+				self.comments.Unset()
+			}
 			self.expect(token.COMMA)
 		}
+	}
+	if self.mode&StoreComments != 0 {
+		self.comments.MarkComments(ast.FINAL)
 	}
 	idx1 := self.expect(token.RIGHT_BRACKET)
 
@@ -330,15 +386,28 @@ func (self *_parser) parseArrayLiteral() ast.Expression {
 }
 
 func (self *_parser) parseArgumentList() (argumentList []ast.Expression, idx0, idx1 file.Idx) {
+	if self.mode&StoreComments != 0 {
+		self.comments.Unset()
+	}
 	idx0 = self.expect(token.LEFT_PARENTHESIS)
 	if self.token != token.RIGHT_PARENTHESIS {
 		for {
-			argumentList = append(argumentList, self.parseAssignmentExpression())
+			exp := self.parseAssignmentExpression()
+			if self.mode&StoreComments != 0 {
+				self.comments.SetExpression(exp)
+			}
+			argumentList = append(argumentList, exp)
 			if self.token != token.COMMA {
 				break
 			}
+			if self.mode&StoreComments != 0 {
+				self.comments.Unset()
+			}
 			self.next()
 		}
+	}
+	if self.mode&StoreComments != 0 {
+		self.comments.Unset()
 	}
 	idx1 = self.expect(token.RIGHT_PARENTHESIS)
 	return
@@ -346,12 +415,17 @@ func (self *_parser) parseArgumentList() (argumentList []ast.Expression, idx0, i
 
 func (self *_parser) parseCallExpression(left ast.Expression) ast.Expression {
 	argumentList, idx0, idx1 := self.parseArgumentList()
-	return &ast.CallExpression{
+	exp := &ast.CallExpression{
 		Callee:           left,
 		LeftParenthesis:  idx0,
 		ArgumentList:     argumentList,
 		RightParenthesis: idx1,
 	}
+
+	if self.mode&StoreComments != 0 {
+		self.comments.SetExpression(exp)
+	}
+	return exp
 }
 
 func (self *_parser) parseDotMember(left ast.Expression) ast.Expression {
@@ -370,7 +444,7 @@ func (self *_parser) parseDotMember(left ast.Expression) ast.Expression {
 
 	return &ast.DotExpression{
 		Left: left,
-		Identifier: ast.Identifier{
+		Identifier: &ast.Identifier{
 			Idx:  idx,
 			Name: literal,
 		},
@@ -402,6 +476,11 @@ func (self *_parser) parseNewExpression() ast.Expression {
 		node.LeftParenthesis = idx0
 		node.RightParenthesis = idx1
 	}
+
+	if self.mode&StoreComments != 0 {
+		self.comments.SetExpression(node)
+	}
+
 	return node
 }
 
@@ -411,7 +490,15 @@ func (self *_parser) parseLeftHandSideExpression() ast.Expression {
 	if self.token == token.NEW {
 		left = self.parseNewExpression()
 	} else {
+		if self.mode&StoreComments != 0 {
+			self.comments.MarkComments(ast.LEADING)
+			self.comments.MarkPrimary()
+		}
 		left = self.parsePrimaryExpression()
+	}
+
+	if self.mode&StoreComments != 0 {
+		self.comments.SetExpression(left)
 	}
 
 	for {
@@ -437,9 +524,26 @@ func (self *_parser) parseLeftHandSideExpressionAllowCall() ast.Expression {
 
 	var left ast.Expression
 	if self.token == token.NEW {
+		var newComments []*ast.Comment
+		if self.mode&StoreComments != 0 {
+			newComments = self.comments.FetchAll()
+			self.comments.MarkComments(ast.LEADING)
+			self.comments.MarkPrimary()
+		}
 		left = self.parseNewExpression()
+		if self.mode&StoreComments != 0 {
+			self.comments.CommentMap.AddComments(left, newComments, ast.LEADING)
+		}
 	} else {
+		if self.mode&StoreComments != 0 {
+			self.comments.MarkComments(ast.LEADING)
+			self.comments.MarkPrimary()
+		}
 		left = self.parsePrimaryExpression()
+	}
+
+	if self.mode&StoreComments != 0 {
+		self.comments.SetExpression(left)
 	}
 
 	for {
@@ -468,6 +572,9 @@ func (self *_parser) parsePostfixExpression() ast.Expression {
 		}
 		tkn := self.token
 		idx := self.idx
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.next()
 		switch operand.(type) {
 		case *ast.Identifier, *ast.DotExpression, *ast.BracketExpression:
@@ -476,12 +583,18 @@ func (self *_parser) parsePostfixExpression() ast.Expression {
 			self.nextStatement()
 			return &ast.BadExpression{From: idx, To: self.idx}
 		}
-		return &ast.UnaryExpression{
+		exp := &ast.UnaryExpression{
 			Operator: tkn,
 			Idx:      idx,
 			Operand:  operand,
 			Postfix:  true,
 		}
+
+		if self.mode&StoreComments != 0 {
+			self.comments.SetExpression(exp)
+		}
+
+		return exp
 	}
 
 	return operand
@@ -495,7 +608,11 @@ func (self *_parser) parseUnaryExpression() ast.Expression {
 	case token.DELETE, token.VOID, token.TYPEOF:
 		tkn := self.token
 		idx := self.idx
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.next()
+
 		return &ast.UnaryExpression{
 			Operator: tkn,
 			Idx:      idx,
@@ -504,6 +621,9 @@ func (self *_parser) parseUnaryExpression() ast.Expression {
 	case token.INCREMENT, token.DECREMENT:
 		tkn := self.token
 		idx := self.idx
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.next()
 		operand := self.parseUnaryExpression()
 		switch operand.(type) {
@@ -530,7 +650,11 @@ func (self *_parser) parseMultiplicativeExpression() ast.Expression {
 	for self.token == token.MULTIPLY || self.token == token.SLASH ||
 		self.token == token.REMAINDER {
 		tkn := self.token
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.next()
+
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
@@ -547,7 +671,11 @@ func (self *_parser) parseAdditiveExpression() ast.Expression {
 
 	for self.token == token.PLUS || self.token == token.MINUS {
 		tkn := self.token
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.next()
+
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
@@ -565,7 +693,11 @@ func (self *_parser) parseShiftExpression() ast.Expression {
 	for self.token == token.SHIFT_LEFT || self.token == token.SHIFT_RIGHT ||
 		self.token == token.UNSIGNED_SHIFT_RIGHT {
 		tkn := self.token
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.next()
+
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
@@ -589,32 +721,47 @@ func (self *_parser) parseRelationalExpression() ast.Expression {
 	switch self.token {
 	case token.LESS, token.LESS_OR_EQUAL, token.GREATER, token.GREATER_OR_EQUAL:
 		tkn := self.token
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.next()
-		return &ast.BinaryExpression{
+
+		exp := &ast.BinaryExpression{
 			Operator:   tkn,
 			Left:       left,
 			Right:      self.parseRelationalExpression(),
 			Comparison: true,
 		}
+		return exp
 	case token.INSTANCEOF:
 		tkn := self.token
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.next()
-		return &ast.BinaryExpression{
+
+		exp := &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
 			Right:    self.parseRelationalExpression(),
 		}
+		return exp
 	case token.IN:
 		if !allowIn {
 			return left
 		}
 		tkn := self.token
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.next()
-		return &ast.BinaryExpression{
+
+		exp := &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
 			Right:    self.parseRelationalExpression(),
 		}
+		return exp
 	}
 
 	return left
@@ -627,7 +774,11 @@ func (self *_parser) parseEqualityExpression() ast.Expression {
 	for self.token == token.EQUAL || self.token == token.NOT_EQUAL ||
 		self.token == token.STRICT_EQUAL || self.token == token.STRICT_NOT_EQUAL {
 		tkn := self.token
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.next()
+
 		left = &ast.BinaryExpression{
 			Operator:   tkn,
 			Left:       left,
@@ -644,8 +795,12 @@ func (self *_parser) parseBitwiseAndExpression() ast.Expression {
 	left := next()
 
 	for self.token == token.AND {
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		tkn := self.token
 		self.next()
+
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
@@ -661,8 +816,12 @@ func (self *_parser) parseBitwiseExclusiveOrExpression() ast.Expression {
 	left := next()
 
 	for self.token == token.EXCLUSIVE_OR {
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		tkn := self.token
 		self.next()
+
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
@@ -678,8 +837,12 @@ func (self *_parser) parseBitwiseOrExpression() ast.Expression {
 	left := next()
 
 	for self.token == token.OR {
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		tkn := self.token
 		self.next()
+
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
@@ -695,8 +858,12 @@ func (self *_parser) parseLogicalAndExpression() ast.Expression {
 	left := next()
 
 	for self.token == token.LOGICAL_AND {
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		tkn := self.token
 		self.next()
+
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
@@ -712,8 +879,12 @@ func (self *_parser) parseLogicalOrExpression() ast.Expression {
 	left := next()
 
 	for self.token == token.LOGICAL_OR {
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		tkn := self.token
 		self.next()
+
 		left = &ast.BinaryExpression{
 			Operator: tkn,
 			Left:     left,
@@ -728,14 +899,23 @@ func (self *_parser) parseConditionlExpression() ast.Expression {
 	left := self.parseLogicalOrExpression()
 
 	if self.token == token.QUESTION_MARK {
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.next()
+
 		consequent := self.parseAssignmentExpression()
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.expect(token.COLON)
-		return &ast.ConditionalExpression{
+		exp := &ast.ConditionalExpression{
 			Test:       left,
 			Consequent: consequent,
 			Alternate:  self.parseAssignmentExpression(),
 		}
+
+		return exp
 	}
 
 	return left
@@ -775,6 +955,9 @@ func (self *_parser) parseAssignmentExpression() ast.Expression {
 
 	if operator != 0 {
 		idx := self.idx
+		if self.mode&StoreComments != 0 {
+			self.comments.Unset()
+		}
 		self.next()
 		switch left.(type) {
 		case *ast.Identifier, *ast.DotExpression, *ast.BracketExpression:
@@ -783,11 +966,18 @@ func (self *_parser) parseAssignmentExpression() ast.Expression {
 			self.nextStatement()
 			return &ast.BadExpression{From: idx, To: self.idx}
 		}
-		return &ast.AssignExpression{
+
+		exp := &ast.AssignExpression{
 			Left:     left,
 			Operator: operator,
 			Right:    self.parseAssignmentExpression(),
 		}
+
+		if self.mode&StoreComments != 0 {
+			self.comments.SetExpression(exp)
+		}
+
+		return exp
 	}
 
 	return left
