@@ -71,7 +71,7 @@ Pholcus（幽灵蛛）是一款纯Go语言编写的支持分布式的高并发�
 go get -u -v github.com/henrylee2cn/pholcus
 ```
 
-备注：Pholcus公开维护的spider规则库地址 <https://github.com/pholcus/spider_lib>
+备注：Pholcus公开维护的spider规则库地址 <https://github.com/henrylee2cn/pholcus_lib>
 
 &nbsp;
 
@@ -82,8 +82,8 @@ package main
 
 import (
     "github.com/henrylee2cn/pholcus/exec"
-    _ "github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
-    // _ "spider_lib_pte" // 同样你也可以自由添加自己的规则库
+    _ "github.com/henrylee2cn/pholcus_lib" // 此为公开维护的spider规则库
+    // _ "pholcus_lib_pte" // 同样你也可以自由添加自己的规则库
 )
 
 func main() {
@@ -336,7 +336,7 @@ url页面内容的更新，框架无法直接支持判断，但是用户可以�
 "github.com/go-sql-driver/mysql"
 "github.com/lxn/walk"
 "github.com/elazarl/go-bindata-assetfs"
-"github.com/pholcus/spider_lib" // 此为公开维护的spider规则库
+"github.com/henrylee2cn/pholcus_lib" // 此为公开维护的spider规则库
 ```
 > *<font size="2">（在此感谢以上开源项目的支持！）</font>*
 
