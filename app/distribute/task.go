@@ -1,4 +1,4 @@
-﻿package distribute
+package distribute
 
 // 用于分布式分发的任务
 type Task struct {

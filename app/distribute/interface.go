@@ -1,4 +1,4 @@
-﻿package distribute
+package distribute
 
 // 分布式的接口
 type Distributer interface {

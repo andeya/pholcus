@@ -1,4 +1,4 @@
-﻿package distribute
+package distribute
 
 import (
 	"encoding/json"

@@ -1,4 +1,4 @@
-﻿package status
+package status
 
 // 运行模式
 const (

@@ -35,10 +35,10 @@
 package web
 
 import (
-	"github.com/elazarl/go-bindata-assetfs"
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"github.com/elazarl/go-bindata-assetfs"
 	"io"
 	"io/ioutil"
 	"os"
@@ -750,36 +750,36 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"views/bootstrap/css/bootstrap-theme.css": viewsBootstrapCssBootstrapThemeCss,
-	"views/bootstrap/css/bootstrap-theme.css.map": viewsBootstrapCssBootstrapThemeCssMap,
-	"views/bootstrap/css/bootstrap-theme.min.css": viewsBootstrapCssBootstrapThemeMinCss,
-	"views/bootstrap/css/bootstrap.css": viewsBootstrapCssBootstrapCss,
-	"views/bootstrap/css/bootstrap.css.map": viewsBootstrapCssBootstrapCssMap,
-	"views/bootstrap/css/bootstrap.min.css": viewsBootstrapCssBootstrapMinCss,
-	"views/bootstrap/fonts/glyphicons-halflings-regular.eot": viewsBootstrapFontsGlyphiconsHalflingsRegularEot,
-	"views/bootstrap/fonts/glyphicons-halflings-regular.svg": viewsBootstrapFontsGlyphiconsHalflingsRegularSvg,
-	"views/bootstrap/fonts/glyphicons-halflings-regular.ttf": viewsBootstrapFontsGlyphiconsHalflingsRegularTtf,
-	"views/bootstrap/fonts/glyphicons-halflings-regular.woff": viewsBootstrapFontsGlyphiconsHalflingsRegularWoff,
+	"views/bootstrap/css/bootstrap-theme.css":                  viewsBootstrapCssBootstrapThemeCss,
+	"views/bootstrap/css/bootstrap-theme.css.map":              viewsBootstrapCssBootstrapThemeCssMap,
+	"views/bootstrap/css/bootstrap-theme.min.css":              viewsBootstrapCssBootstrapThemeMinCss,
+	"views/bootstrap/css/bootstrap.css":                        viewsBootstrapCssBootstrapCss,
+	"views/bootstrap/css/bootstrap.css.map":                    viewsBootstrapCssBootstrapCssMap,
+	"views/bootstrap/css/bootstrap.min.css":                    viewsBootstrapCssBootstrapMinCss,
+	"views/bootstrap/fonts/glyphicons-halflings-regular.eot":   viewsBootstrapFontsGlyphiconsHalflingsRegularEot,
+	"views/bootstrap/fonts/glyphicons-halflings-regular.svg":   viewsBootstrapFontsGlyphiconsHalflingsRegularSvg,
+	"views/bootstrap/fonts/glyphicons-halflings-regular.ttf":   viewsBootstrapFontsGlyphiconsHalflingsRegularTtf,
+	"views/bootstrap/fonts/glyphicons-halflings-regular.woff":  viewsBootstrapFontsGlyphiconsHalflingsRegularWoff,
 	"views/bootstrap/fonts/glyphicons-halflings-regular.woff2": viewsBootstrapFontsGlyphiconsHalflingsRegularWoff2,
-	"views/bootstrap/js/bootstrap.js": viewsBootstrapJsBootstrapJs,
-	"views/bootstrap/js/bootstrap.min.js": viewsBootstrapJsBootstrapMinJs,
-	"views/bootstrap/js/npm.js": viewsBootstrapJsNpmJs,
-	"views/css/pholcus.css": viewsCssPholcusCss,
-	"views/index.html": viewsIndexHtml,
-	"views/js/app.js": viewsJsAppJs,
-	"views/js/jquery.githubRepoWidget2.js": viewsJsJqueryGithubrepowidget2Js,
-	"views/js/jquery.min.js": viewsJsJqueryMinJs,
-	"views/js/jquery.min.map": viewsJsJqueryMinMap,
-	"views/js/tpl.js": viewsJsTplJs,
-	"views/layer/extend/layer.ext.js": viewsLayerExtendLayerExtJs,
-	"views/layer/layer.js": viewsLayerLayerJs,
-	"views/layer/skin/default/icon-ext.png": viewsLayerSkinDefaultIconExtPng,
-	"views/layer/skin/default/icon.png": viewsLayerSkinDefaultIconPng,
-	"views/layer/skin/default/loading-0.gif": viewsLayerSkinDefaultLoading0Gif,
-	"views/layer/skin/default/loading-1.gif": viewsLayerSkinDefaultLoading1Gif,
-	"views/layer/skin/default/loading-2.gif": viewsLayerSkinDefaultLoading2Gif,
-	"views/layer/skin/layer.css": viewsLayerSkinLayerCss,
-	"views/layer/skin/layer.ext.css": viewsLayerSkinLayerExtCss,
+	"views/bootstrap/js/bootstrap.js":                          viewsBootstrapJsBootstrapJs,
+	"views/bootstrap/js/bootstrap.min.js":                      viewsBootstrapJsBootstrapMinJs,
+	"views/bootstrap/js/npm.js":                                viewsBootstrapJsNpmJs,
+	"views/css/pholcus.css":                                    viewsCssPholcusCss,
+	"views/index.html":                                         viewsIndexHtml,
+	"views/js/app.js":                                          viewsJsAppJs,
+	"views/js/jquery.githubRepoWidget2.js":                     viewsJsJqueryGithubrepowidget2Js,
+	"views/js/jquery.min.js":                                   viewsJsJqueryMinJs,
+	"views/js/jquery.min.map":                                  viewsJsJqueryMinMap,
+	"views/js/tpl.js":                                          viewsJsTplJs,
+	"views/layer/extend/layer.ext.js":                          viewsLayerExtendLayerExtJs,
+	"views/layer/layer.js":                                     viewsLayerLayerJs,
+	"views/layer/skin/default/icon-ext.png":                    viewsLayerSkinDefaultIconExtPng,
+	"views/layer/skin/default/icon.png":                        viewsLayerSkinDefaultIconPng,
+	"views/layer/skin/default/loading-0.gif":                   viewsLayerSkinDefaultLoading0Gif,
+	"views/layer/skin/default/loading-1.gif":                   viewsLayerSkinDefaultLoading1Gif,
+	"views/layer/skin/default/loading-2.gif":                   viewsLayerSkinDefaultLoading2Gif,
+	"views/layer/skin/layer.css":                               viewsLayerSkinLayerCss,
+	"views/layer/skin/layer.ext.css":                           viewsLayerSkinLayerExtCss,
 }
 
 // AssetDir returns the file names below a certain
@@ -821,28 +821,29 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
 	"views": &bintree{nil, map[string]*bintree{
 		"bootstrap": &bintree{nil, map[string]*bintree{
 			"css": &bintree{nil, map[string]*bintree{
-				"bootstrap-theme.css": &bintree{viewsBootstrapCssBootstrapThemeCss, map[string]*bintree{}},
+				"bootstrap-theme.css":     &bintree{viewsBootstrapCssBootstrapThemeCss, map[string]*bintree{}},
 				"bootstrap-theme.css.map": &bintree{viewsBootstrapCssBootstrapThemeCssMap, map[string]*bintree{}},
 				"bootstrap-theme.min.css": &bintree{viewsBootstrapCssBootstrapThemeMinCss, map[string]*bintree{}},
-				"bootstrap.css": &bintree{viewsBootstrapCssBootstrapCss, map[string]*bintree{}},
-				"bootstrap.css.map": &bintree{viewsBootstrapCssBootstrapCssMap, map[string]*bintree{}},
-				"bootstrap.min.css": &bintree{viewsBootstrapCssBootstrapMinCss, map[string]*bintree{}},
+				"bootstrap.css":           &bintree{viewsBootstrapCssBootstrapCss, map[string]*bintree{}},
+				"bootstrap.css.map":       &bintree{viewsBootstrapCssBootstrapCssMap, map[string]*bintree{}},
+				"bootstrap.min.css":       &bintree{viewsBootstrapCssBootstrapMinCss, map[string]*bintree{}},
 			}},
 			"fonts": &bintree{nil, map[string]*bintree{
-				"glyphicons-halflings-regular.eot": &bintree{viewsBootstrapFontsGlyphiconsHalflingsRegularEot, map[string]*bintree{}},
-				"glyphicons-halflings-regular.svg": &bintree{viewsBootstrapFontsGlyphiconsHalflingsRegularSvg, map[string]*bintree{}},
-				"glyphicons-halflings-regular.ttf": &bintree{viewsBootstrapFontsGlyphiconsHalflingsRegularTtf, map[string]*bintree{}},
-				"glyphicons-halflings-regular.woff": &bintree{viewsBootstrapFontsGlyphiconsHalflingsRegularWoff, map[string]*bintree{}},
+				"glyphicons-halflings-regular.eot":   &bintree{viewsBootstrapFontsGlyphiconsHalflingsRegularEot, map[string]*bintree{}},
+				"glyphicons-halflings-regular.svg":   &bintree{viewsBootstrapFontsGlyphiconsHalflingsRegularSvg, map[string]*bintree{}},
+				"glyphicons-halflings-regular.ttf":   &bintree{viewsBootstrapFontsGlyphiconsHalflingsRegularTtf, map[string]*bintree{}},
+				"glyphicons-halflings-regular.woff":  &bintree{viewsBootstrapFontsGlyphiconsHalflingsRegularWoff, map[string]*bintree{}},
 				"glyphicons-halflings-regular.woff2": &bintree{viewsBootstrapFontsGlyphiconsHalflingsRegularWoff2, map[string]*bintree{}},
 			}},
 			"js": &bintree{nil, map[string]*bintree{
-				"bootstrap.js": &bintree{viewsBootstrapJsBootstrapJs, map[string]*bintree{}},
+				"bootstrap.js":     &bintree{viewsBootstrapJsBootstrapJs, map[string]*bintree{}},
 				"bootstrap.min.js": &bintree{viewsBootstrapJsBootstrapMinJs, map[string]*bintree{}},
-				"npm.js": &bintree{viewsBootstrapJsNpmJs, map[string]*bintree{}},
+				"npm.js":           &bintree{viewsBootstrapJsNpmJs, map[string]*bintree{}},
 			}},
 		}},
 		"css": &bintree{nil, map[string]*bintree{
@@ -850,11 +851,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 		"index.html": &bintree{viewsIndexHtml, map[string]*bintree{}},
 		"js": &bintree{nil, map[string]*bintree{
-			"app.js": &bintree{viewsJsAppJs, map[string]*bintree{}},
+			"app.js":                      &bintree{viewsJsAppJs, map[string]*bintree{}},
 			"jquery.githubRepoWidget2.js": &bintree{viewsJsJqueryGithubrepowidget2Js, map[string]*bintree{}},
-			"jquery.min.js": &bintree{viewsJsJqueryMinJs, map[string]*bintree{}},
-			"jquery.min.map": &bintree{viewsJsJqueryMinMap, map[string]*bintree{}},
-			"tpl.js": &bintree{viewsJsTplJs, map[string]*bintree{}},
+			"jquery.min.js":               &bintree{viewsJsJqueryMinJs, map[string]*bintree{}},
+			"jquery.min.map":              &bintree{viewsJsJqueryMinMap, map[string]*bintree{}},
+			"tpl.js":                      &bintree{viewsJsTplJs, map[string]*bintree{}},
 		}},
 		"layer": &bintree{nil, map[string]*bintree{
 			"extend": &bintree{nil, map[string]*bintree{
@@ -863,13 +864,13 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"layer.js": &bintree{viewsLayerLayerJs, map[string]*bintree{}},
 			"skin": &bintree{nil, map[string]*bintree{
 				"default": &bintree{nil, map[string]*bintree{
-					"icon-ext.png": &bintree{viewsLayerSkinDefaultIconExtPng, map[string]*bintree{}},
-					"icon.png": &bintree{viewsLayerSkinDefaultIconPng, map[string]*bintree{}},
+					"icon-ext.png":  &bintree{viewsLayerSkinDefaultIconExtPng, map[string]*bintree{}},
+					"icon.png":      &bintree{viewsLayerSkinDefaultIconPng, map[string]*bintree{}},
 					"loading-0.gif": &bintree{viewsLayerSkinDefaultLoading0Gif, map[string]*bintree{}},
 					"loading-1.gif": &bintree{viewsLayerSkinDefaultLoading1Gif, map[string]*bintree{}},
 					"loading-2.gif": &bintree{viewsLayerSkinDefaultLoading2Gif, map[string]*bintree{}},
 				}},
-				"layer.css": &bintree{viewsLayerSkinLayerCss, map[string]*bintree{}},
+				"layer.css":     &bintree{viewsLayerSkinLayerCss, map[string]*bintree{}},
 				"layer.ext.css": &bintree{viewsLayerSkinLayerExtCss, map[string]*bintree{}},
 			}},
 		}},
@@ -922,7 +923,6 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-
 
 func assetFS() *assetfs.AssetFS {
 	for k := range _bintree.Children {

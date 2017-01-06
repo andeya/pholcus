@@ -1,4 +1,4 @@
-﻿package distribute
+package distribute
 
 // 任务仓库
 type TaskJar struct {
