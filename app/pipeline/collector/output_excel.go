@@ -69,7 +69,7 @@ func init() {
 				row.AddCell().Value = datacell["DownloadTime"].(string)
 			}
 		}
-		folder := config.TEXT_DIR + "/" + cache.StartTime.Format("2006年01月02日 15时04分05秒")
+		folder := config.TEXT_DIR + "/" + cache.StartTime.Format("2006-01-02 150405")
 		filename := fmt.Sprintf("%v/%v__%v-%v.xlsx", folder, util.FileNameReplace(self.namespace()), self.sum[0], self.sum[1])
 
 		// 创建/打开目录
