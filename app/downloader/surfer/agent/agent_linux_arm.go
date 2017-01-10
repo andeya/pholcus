@@ -1,4 +1,4 @@
-// +build linux,armv6l
+// +build linux,arm
 
 package agent
 
