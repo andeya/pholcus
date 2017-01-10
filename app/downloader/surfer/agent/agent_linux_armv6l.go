@@ -1,4 +1,4 @@
-// +build linux,!armv6l
+// +build linux,armv6l
 
 package agent
 
@@ -27,8 +27,8 @@ func osVersion() string {
 	return charsToString(buf.Release)
 }
 
-// charsToString converts a [65]int8 byte array into a string.
-func charsToString(ca [65]int8) string {
+// charsToString converts a [65]uint8 byte array into a string.
+func charsToString(ca [65]uint8) string {
 	s := make([]byte, len(ca))
 	var lens int
 	for ; lens < len(ca); lens++ {
