@@ -46,18 +46,17 @@ func Run() {
 	log.Printf("[pholcus] Server running on %v\n", addr)
 
 	// 自动打开web浏览器
-	var open string
+	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":
-		open = "start"
+		cmd = exec.Command("cmd", "/c", "start", "http://localhost:"+strconv.Itoa(*port))
 	case "darwin":
-		open = "open"
+		cmd = exec.Command("open", "http://localhost:"+strconv.Itoa(*port))
 	}
-	if open != "" {
+	if cmd != nil {
 		go func() {
 			log.Println("[pholcus] Open the default browser after two seconds...")
 			time.Sleep(time.Second * 2)
-			cmd := exec.Command("cmd", "/c", open, "http://localhost:"+strconv.Itoa(*port))
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			cmd.Run()
