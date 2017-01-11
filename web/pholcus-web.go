@@ -7,7 +7,11 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
+	"os/exec"
+	"runtime"
 	"strconv"
+	"time"
 
 	"github.com/henrylee2cn/pholcus/app"
 	"github.com/henrylee2cn/pholcus/logs"
@@ -39,8 +43,28 @@ func Run() {
 	// 预绑定路由
 	Router()
 
+	log.Printf("[pholcus] Server running on %v\n", addr)
+
+	// 自动打开web浏览器
+	var open string
+	switch runtime.GOOS {
+	case "windows":
+		open = "start"
+	case "darwin":
+		open = "open"
+	}
+	if open != "" {
+		go func() {
+			log.Println("[pholcus] Open the default browser after two seconds...")
+			time.Sleep(time.Second * 2)
+			cmd := exec.Command("cmd", "/c", open, "http://localhost:"+strconv.Itoa(*port))
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Run()
+		}()
+	}
+
 	// 监听端口
-	log.Printf("[pholcus] server Running on %v\n", addr)
 	err := http.ListenAndServe(addr, nil) //设置监听的端口
 	if err != nil {
 		logs.Log.Emergency("ListenAndServe: %v", err)
