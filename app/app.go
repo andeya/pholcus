@@ -524,7 +524,7 @@ func (self *Logic) exec() {
 	logs.Log.Informational(" *     执行任务总数(任务数[*自定义配置数])为 %v 个\n", count)
 	logs.Log.Informational(" *     采集引擎池容量为 %v\n", crawlerCap)
 	logs.Log.Informational(" *     并发协程最多 %v 个\n", self.AppConf.ThreadNum)
-	logs.Log.Informational(" *     随机停顿区间为 %v~%v 毫秒\n", self.AppConf.Pausetime/2, self.AppConf.Pausetime*2)
+	logs.Log.Informational(" *     默认随机停顿 %v~%v 毫秒\n", self.AppConf.Pausetime/2, self.AppConf.Pausetime*2)
 	logs.Log.App(" *                                                                                                 —— 开始抓取，请耐心等候 ——")
 	logs.Log.Informational(` *********************************************************************************************************************************** `)
 
