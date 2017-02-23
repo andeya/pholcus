@@ -171,7 +171,7 @@ xxx.pholcus.html
 ```
 <Spider>
     <Name>HTML动态规则示例</Name>
-    <DeScription>HTML动态规则示例 [Auto Page] [http://xxx.xxx.xxx]</DeScription>
+    <Description>HTML动态规则示例 [Auto Page] [http://xxx.xxx.xxx]</Description>
     <Pausetime>300</Pausetime>
     <EnableLimit>false</EnableLimit>
     <EnableCookie>true</EnableCookie>
