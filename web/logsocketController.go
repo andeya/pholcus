@@ -1,105 +1,98 @@
 package web
 
 import (
+	"regexp"
+	"sync"
+	"sync/atomic"
+
 	ws "github.com/henrylee2cn/pholcus/common/websocket"
 	"github.com/henrylee2cn/pholcus/logs"
 )
 
-// log发送api
+// send log api
 func wsLogHandle(conn *ws.Conn) {
 	defer func() {
 		if p := recover(); p != nil {
 			logs.Log.Error("%v", p)
 		}
 	}()
-	var err error
+	// var err error
 	sess, _ := globalSessions.SessionStart(nil, conn.Request())
 	sessID := sess.SessionID()
-	if Lsc.connPool[sessID] == nil {
+	connPool := Lsc.connPool.Load().(map[string]*ws.Conn)
+	if connPool[sessID] == nil {
 		Lsc.Add(sessID, conn)
 	}
-	go func() {
-		defer func() {
-			// 关闭web前端log输出并断开websocket连接
-			Lsc.Remove(sessID, conn)
-		}()
-		for {
-			if err := ws.JSON.Receive(conn, nil); err != nil {
-				// logs.Log.Debug("websocket log接收出错断开 (%v) !", err)
-				return
-			}
-		}
+	defer func() {
+		Lsc.Remove(sessID)
 	}()
-
-	for msg := range Lsc.lvPool[sessID].logChan {
-		if _, err = ws.Message.Send(conn, msg); err != nil {
+	for {
+		if err := ws.JSON.Receive(conn, nil); err != nil {
 			return
 		}
 	}
 }
 
 type LogSocketController struct {
-	connPool map[string]*ws.Conn
-	lvPool   map[string]*LogView
+	connPool atomic.Value
+	lock     sync.Mutex
 }
 
+var (
+	// Lsc log set
+	Lsc = func() *LogSocketController {
+		l := new(LogSocketController)
+		l.connPool.Store(make(map[string]*ws.Conn))
+		return l
+	}()
+	colorRegexp = regexp.MustCompile("\033\\[[0-9]{1,2}m")
+)
+
 func (self *LogSocketController) Write(p []byte) (int, error) {
-	for sessID, lv := range self.lvPool {
-		if self.connPool[sessID] != nil {
-			lv.Write(p)
+	defer func() {
+		recover()
+	}()
+	p = colorRegexp.ReplaceAll(p, []byte{})
+	connPool := self.connPool.Load().(map[string]*ws.Conn)
+	for sessID, conn := range connPool {
+		_, err := ws.Message.Send(conn, (string(p) + "\r\n"))
+		if err != nil {
+			self.Remove(sessID)
 		}
 	}
 	return len(p), nil
 }
 
 func (self *LogSocketController) Add(sessID string, conn *ws.Conn) {
-	self.connPool[sessID] = conn
-	self.lvPool[sessID] = newLogView()
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	connPool := self.connPool.Load().(map[string]*ws.Conn)
+	newConnPool := make(map[string]*ws.Conn, len(connPool)+1)
+	for k, v := range connPool {
+		newConnPool[k] = v
+	}
+	newConnPool[sessID] = conn
+	self.connPool.Store(newConnPool)
 }
 
-func (self *LogSocketController) Remove(sessID string, conn *ws.Conn) {
+func (self *LogSocketController) Remove(sessID string) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
 	defer func() {
 		recover()
 	}()
-	if self.connPool[sessID] == nil {
+	connPool := self.connPool.Load().(map[string]*ws.Conn)
+	conn := connPool[sessID]
+	if conn == nil {
 		return
 	}
-	lv := self.lvPool[sessID]
-	lv.closed = true
-	close(lv.logChan)
 	conn.Close()
-	delete(self.connPool, sessID)
-	delete(self.lvPool, sessID)
-}
-
-var Lsc = &LogSocketController{
-	connPool: make(map[string]*ws.Conn),
-	lvPool:   make(map[string]*LogView),
-}
-
-// 设置所有log输出位置为Log
-type LogView struct {
-	closed  bool
-	logChan chan string
-}
-
-func newLogView() *LogView {
-	return &LogView{
-		logChan: make(chan string, 1024),
-		closed:  false,
+	newConnPool := make(map[string]*ws.Conn, len(connPool)+1)
+	for k, v := range connPool {
+		if k != sessID {
+			newConnPool[k] = v
+		}
 	}
-}
-
-func (self *LogView) Write(p []byte) (int, error) {
-	if self.closed {
-		goto end
-	}
-	defer func() { recover() }()
-	self.logChan <- (string(p) + "\r\n")
-end:
-	return len(p), nil
-}
-
-func (self *LogView) Sprint() string {
-	return <-self.logChan
+	self.connPool.Store(newConnPool)
 }

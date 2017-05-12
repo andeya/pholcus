@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
@@ -17,7 +18,6 @@ import (
 	"github.com/henrylee2cn/pholcus/common/ping"
 	"github.com/henrylee2cn/pholcus/config"
 	"github.com/henrylee2cn/pholcus/logs"
-	"sync/atomic"
 )
 
 type Proxy struct {
