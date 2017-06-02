@@ -1,0 +1,64 @@
+﻿<Spider>
+    <Name>163</Name>
+    <Description>163 抓取</Description>
+    <Pausetime>1000</Pausetime>
+    <EnableLimit>false</EnableLimit>
+    <EnableCookie>true</EnableCookie>
+    <EnableKeyin>false</EnableKeyin>
+    <NotDefaultField>false</NotDefaultField>
+    <Namespace>
+        <Script></Script>
+    </Namespace>
+    <SubNamespace>
+        <Script></Script>
+    </SubNamespace>
+    <Root>
+        <Script param="ctx">
+        ctx.JsAddQueue({
+            Url: "http://news.163.com",
+            Rule: "homepage"
+        });
+        </Script>
+    </Root>
+    <Rule name="homepage">
+        <AidFunc>
+            <Script param="ctx,aid">
+            </Script>
+        </AidFunc>
+        <ParseFunc>
+            <Script param="ctx">
+			var query = ctx.GetDom();
+			var adom = query.Find("#js_top_news a");
+			var alen = adom.Length()
+			var i = 0;
+			while(true){
+				var nowhref = adom.Slice(i,i+1).Attr("href");
+				
+				ctx.JsAddQueue({
+					Url: nowhref[0],
+					Rule: "wenzhang"
+				});
+				
+				console.log(nowhref[0]+"    "+i);
+				i=i+1;
+			}
+            </Script>
+        </ParseFunc>
+    </Rule>
+	<Rule name="wenzhang">
+        <AidFunc>
+            <Script param="ctx,aid">
+            </Script>
+        </AidFunc>
+        <ParseFunc>
+            <Script param="ctx">
+            console.log(ctx.GetRuleName());
+			console.log(ctx.GetUrl());
+			
+            ctx.Output({
+                "全部1": ctx.GetText()
+            });
+            </Script>
+        </ParseFunc>
+    </Rule>
+</Spider>

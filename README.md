@@ -135,6 +135,10 @@ $ pholcus -_ui=cmd -a_mode=0 -c_spider=3,8 -a_outtype=csv -a_thread=20 -a_docker
 
 &nbsp;
 
+*注意：*Mac下如使用代理IP功能，请务必获取root用户权限，否则无法通过`ping`获取可以代理！
+
+&nbsp;
+
 # 运行时目录文件
 
 ```
@@ -171,7 +175,7 @@ xxx.pholcus.html
 ```
 <Spider>
     <Name>HTML动态规则示例</Name>
-    <DeScription>HTML动态规则示例 [Auto Page] [http://xxx.xxx.xxx]</DeScription>
+    <Description>HTML动态规则示例 [Auto Page] [http://xxx.xxx.xxx]</Description>
     <Pausetime>300</Pausetime>
     <EnableLimit>false</EnableLimit>
     <EnableCookie>true</EnableCookie>
@@ -296,6 +300,26 @@ func init() {
     }.Register()
 }
 ```
+
+&nbsp;
+
+# 代理IP
+
+- 代理IP写在`/pholcus_pkg/proxy.lib`文件，格式如下，一行一个IP：
+
+```
+http://183.141.168.95:3128
+https://60.13.146.92:8088
+http://59.59.4.22:8090
+https://180.119.78.78:8090
+https://222.178.56.73:8118
+http://115.228.57.254:3128
+http://49.84.106.160:9000
+```
+
+- 在操作界面选择“代理IP更换频率”或命令行设置`-a_proxyminute`参数，进行使用
+
+- *注意：*Mac下如使用代理IP功能，请务必获取root用户权限，否则无法通过ping获取可以代理！
 
 &nbsp;
 

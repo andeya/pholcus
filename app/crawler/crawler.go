@@ -42,7 +42,7 @@ func New(id int) Crawler {
 func (self *crawler) Init(sp *spider.Spider) Crawler {
 	self.Spider = sp.ReqmatrixInit()
 	self.Pipeline = pipeline.New(sp)
-	self.pause[0] = cache.Task.Pausetime / 2
+	self.pause[0] = sp.Pausetime / 2
 	if self.pause[0] > 0 {
 		self.pause[1] = self.pause[0] * 3
 	} else {
