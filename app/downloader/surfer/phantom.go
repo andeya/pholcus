@@ -93,18 +93,11 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 
 	for i := 0; i < param.tryTimes; i++ {
 		cmd := exec.Command(self.PhantomjsFile, args...)
-		if resp.Body, err = cmd.StdoutPipe(); err != nil {
-			time.Sleep(param.retryPause)
-			continue
+		b, err := cmd.CombinedOutput()
+		if cmd.Process != nil {
+			cmd.Process.Kill()
 		}
-		err = cmd.Start()
-		if err != nil || resp.Body == nil {
-			time.Sleep(param.retryPause)
-			continue
-		}
-		var b []byte
-		b, err = ioutil.ReadAll(resp.Body)
-		if err != nil {
+		if err != nil || len(b) == 0 {
 			time.Sleep(param.retryPause)
 			continue
 		}
