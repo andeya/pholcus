@@ -42,7 +42,7 @@ func init() {
 			mysqls    = make(map[string]*mysql.MyTable)
 			namespace = util.FileNameReplace(self.namespace())
 		)
-		for _, datacell := range self.dataDocker {
+		for i, datacell := range self.dataDocker {
 			subNamespace := util.FileNameReplace(self.subNamespace(datacell))
 			tName := joinNamespaces(namespace, subNamespace)
 			table, ok := mysqls[tName]
@@ -81,10 +81,13 @@ func init() {
 				data = append(data, datacell["Url"].(string), datacell["ParentUrl"].(string), datacell["DownloadTime"].(string))
 			}
 			table.AutoInsert(data)
+			if i%100 == 0 {
+				for _, tab := range mysqls {
+					util.CheckErr(tab.FlushInsert())
+				}
+			}
 		}
-		for _, tab := range mysqls {
-			util.CheckErr(tab.FlushInsert())
-		}
+		
 		mysqls = nil
 		return nil
 	}
