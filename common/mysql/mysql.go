@@ -18,7 +18,7 @@ import (
 type MyTable struct {
 	tableName        string
 	columnNames      [][2]string   // 标题字段
-	rowsCount        int           // 行数
+	rowsCount        int           // 当前缓存的待插入数据的行数
 	args             []interface{} // 数据
 	sqlCode          string
 	customPrimaryKey bool
@@ -135,6 +135,10 @@ func (self *MyTable) addRow(value []string) *MyTable {
 
 //智能插入数据，每次1行
 func (self *MyTable) AutoInsert(value []string) *MyTable {
+	if self.rowsCount > 100 {
+		util.CheckErr(self.FlushInsert())
+		return self.AutoInsert(value)
+	}
 	var nsize int
 	for _, v := range value {
 		nsize += len(v)
