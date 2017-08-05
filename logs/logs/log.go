@@ -104,6 +104,7 @@ type BeeLogger struct {
 	msg                 chan *logMsg
 	steal               chan *logMsg
 	stealLevel          int
+	stealLevelPreset    int
 	outputs             map[string]LoggerInterface
 	status              int
 }
@@ -125,9 +126,9 @@ func NewLogger(channellen int64, stealLevel ...int) *BeeLogger {
 	bl.status = WORK
 	bl.steal = make(chan *logMsg, channellen)
 	if len(stealLevel) > 0 {
-		bl.stealLevel = stealLevel[0]
+		bl.stealLevelPreset = stealLevel[0]
 	} else {
-		bl.stealLevel = LevelNothing
+		bl.stealLevelPreset = LevelNothing
 	}
 	return bl
 }
@@ -384,6 +385,15 @@ func (bl *BeeLogger) GoOn() {
 		return
 	}
 	bl.SetStatus(WORK)
+}
+
+// EnableStealOne set whether to enable steal-one.
+func (bl *BeeLogger) EnableStealOne(enable bool) {
+	if enable {
+		bl.stealLevel = bl.stealLevelPreset
+	} else {
+		bl.stealLevel = LevelNothing
+	}
 }
 
 // get a log message
