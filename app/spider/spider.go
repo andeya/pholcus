@@ -52,6 +52,7 @@ type (
 		ItemFields []string                                           // 结果字段列表(选填，写上可保证字段顺序)
 		ParseFunc  func(*Context)                                     // 内容解析函数
 		AidFunc    func(*Context, map[string]interface{}) interface{} // 通用辅助函数
+		ErrorFunc  func(*Context)
 	}
 )
 
@@ -219,6 +220,7 @@ func (self *Spider) Copy() *Spider {
 
 		ghost.RuleTree.Trunk[k].ParseFunc = v.ParseFunc
 		ghost.RuleTree.Trunk[k].AidFunc = v.AidFunc
+		ghost.RuleTree.Trunk[k].ErrorFunc = v.ErrorFunc
 	}
 
 	ghost.Description = self.Description

@@ -300,6 +300,29 @@ func (self *Context) UpsertItemField(field string, ruleName ...string) (index in
 
 // 调用指定Rule下辅助函数AidFunc()。
 // 用ruleName指定匹配的AidFunc，为空时默认当前规则。
+func (self *Context) Error(ruleName ...string) interface{} {
+	// 若已主动终止任务，则崩溃爬虫协程
+	self.spider.tryPanic()
+
+	_, rule, found := self.getRule(ruleName...)
+	if !found {
+		if len(ruleName) > 0 {
+			logs.Log.Error("调用蜘蛛 %s 不存在的规则: %s", self.spider.GetName(), ruleName[0])
+		} else {
+			logs.Log.Error("调用蜘蛛 %s 的Aid()时未指定的规则名", self.spider.GetName())
+		}
+		return nil
+	}
+	if rule.ErrorFunc == nil {
+		logs.Log.Error("蜘蛛 %s 的规则 %s 未定义ErrorFunc", self.spider.GetName(), ruleName[0])
+		return nil
+	}
+	rule.ErrorFunc(self)
+	return self
+}
+
+// 调用指定Rule下辅助函数AidFunc()。
+// 用ruleName指定匹配的AidFunc，为空时默认当前规则。
 func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interface{} {
 	// 若已主动终止任务，则崩溃爬虫协程
 	self.spider.tryPanic()
