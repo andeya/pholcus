@@ -152,6 +152,7 @@ func (self *crawler) Process(req *request.Request) {
 		}
 		// 提示错误
 		logs.Log.Error(" *     Fail  [download][%v]: %v\n", downUrl, err)
+		ctx.Error(req.GetRuleName())
 		return
 	}
 
