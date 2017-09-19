@@ -2,10 +2,12 @@ package collector
 
 import (
 	"fmt"
+	"regexp"
 	"sync"
 
 	"github.com/henrylee2cn/pholcus/common/kafka"
 	"github.com/henrylee2cn/pholcus/common/util"
+	"github.com/henrylee2cn/pholcus/logs"
 )
 
 /************************ Kafka 输出 ***************************/
@@ -28,6 +30,8 @@ func init() {
 		kafkaSenderLock.Unlock()
 	}
 
+	var topic = regexp.MustCompile("^[0-9a-zA-Z_-]+$")
+
 	DataOutput["kafka"] = func(self *Collector) error {
 		_, err := kafka.GetProducer()
 		if err != nil {
@@ -40,6 +44,10 @@ func init() {
 		for _, datacell := range self.dataDocker {
 			subNamespace := util.FileNameReplace(self.subNamespace(datacell))
 			topicName := joinNamespaces(namespace, subNamespace)
+			if !topic.MatchString(topicName) {
+				logs.Log.Error("topic格式要求'^[0-9a-zA-Z_-]+$'，当前为：%s", topicName)
+				continue
+			}
 			sender, ok := kafkas[topicName]
 			if !ok {
 				sender, ok = getKafkaSender(topicName)
