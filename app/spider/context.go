@@ -230,15 +230,18 @@ func (self *Context) FileOutput(name ...string) {
 	_, s := path.Split(self.GetUrl())
 	n := strings.Split(s, "?")[0]
 
-	baseName := strings.Split(n, ".")[0]
+	var baseName, ext string
 
-	var ext string
 	if len(name) > 0 {
 		p, n := path.Split(name[0])
-		if baseName2 := strings.Split(n, ".")[0]; baseName2 != "" {
+		ext = path.Ext(n)
+		if baseName2 := strings.TrimSuffix(n, ext); baseName2 != "" {
 			baseName = p + baseName2
 		}
+	}
+	if baseName == "" {
 		ext = path.Ext(n)
+		baseName = strings.TrimSuffix(n, ext)
 	}
 	if ext == "" {
 		ext = path.Ext(n)
