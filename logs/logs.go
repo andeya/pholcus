@@ -18,7 +18,9 @@ type (
 		Rest()
 		// 恢复暂停状态，继续输出日志
 		GoOn()
-		// 按先后顺序实时截获日志，每次返回1条，normal标记日志是否被关闭
+		// 是否开启日志捕获副本模式
+		EnableStealOne(bool)
+		// 按先后顺序实时捕获日志副本，每次返回1条，normal标记日志是否被关闭
 		StealOne() (level int, msg string, normal bool)
 		// 正常关闭日志输出
 		Close()

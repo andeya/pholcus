@@ -173,6 +173,7 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 
 	switch self.AppConf.Mode {
 	case status.SERVER:
+		logs.Log.EnableStealOne(false)
 		if self.checkPort() {
 			logs.Log.Informational("                                                                                               ！！当前运行模式为：[ 服务器 ] 模式！！")
 			self.Teleport.SetAPI(distribute.MasterApi(self)).Server(":" + strconv.Itoa(self.AppConf.Port))
@@ -184,9 +185,11 @@ func (self *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 			self.Teleport.SetAPI(distribute.SlaveApi(self)).Client(self.AppConf.Master, ":"+strconv.Itoa(self.AppConf.Port))
 			// 开启节点间log打印
 			self.canSocketLog = true
+			logs.Log.EnableStealOne(true)
 			go self.socketLog()
 		}
 	case status.OFFLINE:
+		logs.Log.EnableStealOne(false)
 		logs.Log.Informational("                                                                                               ！！当前运行模式为：[ 单机 ] 模式！！")
 		return self
 	default:
