@@ -216,8 +216,8 @@ func (self *Context) Output(item interface{}, ruleName ...string) {
 }
 
 // 输出文件。
-// name指定文件名，为空时默认保持原文件名不变。
-func (self *Context) FileOutput(name ...string) {
+// nameOrExt指定文件名或仅扩展名，为空时默认保持原文件名（包括扩展名）不变。
+func (self *Context) FileOutput(nameOrExt ...string) {
 	// 读取完整文件流
 	bytes, err := ioutil.ReadAll(self.Response.Body)
 	self.Response.Body.Close()
@@ -232,16 +232,15 @@ func (self *Context) FileOutput(name ...string) {
 
 	var baseName, ext string
 
-	if len(name) > 0 {
-		p, n := path.Split(name[0])
+	if len(nameOrExt) > 0 {
+		p, n := path.Split(nameOrExt[0])
 		ext = path.Ext(n)
 		if baseName2 := strings.TrimSuffix(n, ext); baseName2 != "" {
 			baseName = p + baseName2
 		}
 	}
 	if baseName == "" {
-		ext = path.Ext(n)
-		baseName = strings.TrimSuffix(n, ext)
+		baseName = strings.TrimSuffix(n, path.Ext(n))
 	}
 	if ext == "" {
 		ext = path.Ext(n)
