@@ -3,7 +3,6 @@
 package app
 
 import (
-	"fmt"
 	"io"
 	"reflect"
 	"strconv"
@@ -125,7 +124,7 @@ func (self *Logic) LogGoOn() App {
 func (self *Logic) GetAppConf(k ...string) interface{} {
 	defer func() {
 		if err := recover(); err != nil {
-			logs.Log.Error(fmt.Sprintf("%v", err))
+			logs.Log.Error("%v", err)
 		}
 	}()
 	if len(k) == 0 {
@@ -140,7 +139,7 @@ func (self *Logic) GetAppConf(k ...string) interface{} {
 func (self *Logic) SetAppConf(k string, v interface{}) App {
 	defer func() {
 		if err := recover(); err != nil {
-			logs.Log.Error(fmt.Sprintf("%v", err))
+			logs.Log.Error("%v", err)
 		}
 	}()
 	if k == "Limit" && v.(int64) <= 0 {
