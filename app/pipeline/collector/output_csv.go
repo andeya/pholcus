@@ -44,6 +44,12 @@ func init() {
 					logs.Log.Error("%v", err)
 					continue
 				}
+				defer func() {
+					// 发送缓存数据流
+					sheets[subNamespace].Flush()
+					// 关闭文件
+					file.Close()
+				}()
 
 				file.WriteString("\xEF\xBB\xBF") // 写入UTF-8 BOM
 
@@ -53,13 +59,6 @@ func init() {
 					th = append(th, "当前链接", "上级链接", "下载时间")
 				}
 				sheets[subNamespace].Write(th)
-
-				defer func(file *os.File) {
-					// 发送缓存数据流
-					sheets[subNamespace].Flush()
-					// 关闭文件
-					file.Close()
-				}(file)
 			}
 
 			row := []string{}
