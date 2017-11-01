@@ -594,7 +594,10 @@ func (self *Context) initDom() *goquery.Document {
 	var err error
 	self.dom, err = goquery.NewDocumentFromReader(bytes.NewReader(self.text))
 	if err != nil {
-		panic(err.Error())
+		self.dom, err = goquery.NewDocumentFromResponse(self.GetResponse())
+		if err!=nil {
+			panic(err.Error())
+		}
 	}
 	return self.dom
 }
