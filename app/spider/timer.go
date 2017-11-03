@@ -51,16 +51,16 @@ func (self *Timer) set(id string, tol time.Duration, bell *Bell) bool {
 	self.Lock()
 	defer self.Unlock()
 	if self.closed {
-		logs.Log.Critical("************************ ……设置定时器 <%s> 失败，定时系统已关闭 ……************************", id)
+		logs.Log.Critical("************************ ……设置定时器 [%s] 失败，定时系统已关闭 ……************************", id)
 		return false
 	}
 	c, ok := newClock(id, tol, bell)
 	if !ok {
-		logs.Log.Critical("************************ ……设置定时器 <%s> 失败，参数不正确 ……************************", id)
+		logs.Log.Critical("************************ ……设置定时器 [%s] 失败，参数不正确 ……************************", id)
 		return ok
 	}
 	self.setting[id] = c
-	logs.Log.Critical("************************ ……设置定时器 <%s> 成功 ……************************", id)
+	logs.Log.Critical("************************ ……设置定时器 [%s] 成功 ……************************", id)
 	return ok
 }
 
