@@ -94,13 +94,13 @@ func (self *crawler) run() {
 
 		// 执行请求
 		self.UseOne()
-		go func(req *request.Request) {
+		go func() {
 			defer func() {
 				self.FreeOne()
 			}()
 			logs.Log.Debug(" *     Start: %v", req.GetUrl())
 			self.Process(req)
-		}(req)
+		}()
 
 		// 随机等待
 		self.sleep()
