@@ -91,9 +91,10 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 		strings.ToLower(param.method),
 	}
 
+	var b []byte
 	for i := 0; i < param.tryTimes; i++ {
 		cmd := exec.Command(self.PhantomjsFile, args...)
-		b, err := cmd.CombinedOutput()
+		b, err = cmd.CombinedOutput()
 		if cmd.Process != nil {
 			cmd.Process.Kill()
 		}
