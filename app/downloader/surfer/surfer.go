@@ -17,10 +17,8 @@ package surfer
 
 import (
 	"net/http"
+	"net/http/cookiejar"
 	"sync"
-	// "os"
-	// "path"
-	// "path/filepath"
 )
 
 var (
@@ -31,15 +29,16 @@ var (
 	tempJsDir    = "./tmp"
 	// phantomjsFile = filepath.Clean(path.Join(os.Getenv("GOPATH"), `/src/github.com/henrylee2cn/surfer/phantomjs/phantomjs`))
 	phantomjsFile = `./phantomjs`
+	cookieJar, _  = cookiejar.New(nil)
 )
 
 func Download(req Request) (resp *http.Response, err error) {
 	switch req.GetDownloaderID() {
 	case SurfID:
-		once_surf.Do(func() { surf = New() })
+		once_surf.Do(func() { surf = New(cookieJar) })
 		resp, err = surf.Download(req)
 	case PhomtomJsID:
-		once_phantom.Do(func() { phantom = NewPhantom(phantomjsFile, tempJsDir) })
+		once_phantom.Do(func() { phantom = NewPhantom(phantomjsFile, tempJsDir, cookieJar) })
 		resp, err = phantom.Download(req)
 	}
 	return

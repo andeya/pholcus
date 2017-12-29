@@ -3,6 +3,7 @@ package downloader
 import (
 	"errors"
 	"net/http"
+	"net/http/cookiejar"
 
 	"github.com/henrylee2cn/pholcus/app/downloader/request"
 	"github.com/henrylee2cn/pholcus/app/downloader/surfer"
@@ -15,10 +16,13 @@ type Surfer struct {
 	phantom surfer.Surfer
 }
 
-var SurferDownloader = &Surfer{
-	surf:    surfer.New(),
-	phantom: surfer.NewPhantom(config.PHANTOMJS, config.PHANTOMJS_TEMP),
-}
+var (
+	cookieJar, _     = cookiejar.New(nil)
+	SurferDownloader = &Surfer{
+		surf:    surfer.New(cookieJar),
+		phantom: surfer.NewPhantom(config.PHANTOMJS, config.PHANTOMJS_TEMP, cookieJar),
+	}
+)
 
 func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.Context {
 	ctx := spider.GetContext(sp, cReq)
