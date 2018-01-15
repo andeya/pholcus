@@ -54,6 +54,9 @@ func GetContext(sp *Spider, req *request.Request) *Context {
 }
 
 func PutContext(ctx *Context) {
+
+	ctx.Response.Body.Close() // too many open files bug remove
+
 	ctx.items = ctx.items[:0]
 	ctx.files = ctx.files[:0]
 	ctx.spider = nil
