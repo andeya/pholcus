@@ -18,7 +18,10 @@ func init() {
 	DataOutput["mgo"] = func(self *Collector) error {
 		//连接数据库
 		if mgo.Error() != nil {
-			return fmt.Errorf("MongoBD数据库链接失败: %v", mgo.Error())
+			mgo.Refresh()
+			if mgo.Error() != nil { // try again
+				return fmt.Errorf("MongoBD数据库链接失败: %v", mgo.Error())
+			}
 		}
 		return mgo.Call(func(src pool.Src) error {
 			var (
