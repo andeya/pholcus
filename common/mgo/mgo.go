@@ -23,7 +23,9 @@ var (
 		config.MGO_CONN_CAP/5,
 		func() (pool.Src, error) {
 			if err != nil || session.Ping() != nil {
-				session.Close()
+				if session != nil {
+					session.Close()
+				}
 				Refresh()
 			}
 			return &MgoSrc{session.Clone()}, err
