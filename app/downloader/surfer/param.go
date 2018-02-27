@@ -122,6 +122,8 @@ func (self *Param) writeback(resp *http.Response) *http.Response {
 		resp.Request = new(http.Request)
 	}
 
+	resp.Header = make(http.Header)
+
 	resp.Request.Method = self.method
 	resp.Request.Header = self.header
 	resp.Request.Host = self.url.Host
