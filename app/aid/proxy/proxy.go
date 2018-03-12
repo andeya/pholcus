@@ -45,7 +45,7 @@ const (
 func New() *Proxy {
 	p := &Proxy{
 		ipRegexp:    regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`),
-		proxyRegexp: regexp.MustCompile(`http[s]?://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`),
+		proxyRegexp: regexp.MustCompile(`https?://([\w]*:[\w]*@)?[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`),
 		allIps:      map[string]string{},
 		all:         map[string]bool{},
 		usable:      make(map[string]*ProxyForHost),
