@@ -27,14 +27,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/henrylee2cn/goutil"
 	"github.com/henrylee2cn/pholcus/app/downloader/surfer/agent"
 )
 
-// Default is the default Download implementation.
+// Surf is the default Download implementation.
 type Surf struct {
 	CookieJar *cookiejar.Jar
 }
 
+// New 创建一个Surf下载器
 func New(jar ...*cookiejar.Jar) Surfer {
 	s := new(Surf)
 	if len(jar) != 0 {
@@ -45,11 +47,13 @@ func New(jar ...*cookiejar.Jar) Surfer {
 	return s
 }
 
+// Download 实现surfer下载器接口
 func (self *Surf) Download(req Request) (resp *http.Response, err error) {
 	param, err := NewParam(req)
 	if err != nil {
 		return nil, err
 	}
+	param.header.Set("Connection", "close")
 	param.client = self.buildClient(param)
 	resp, err = self.httpRequest(param)
 
@@ -79,6 +83,27 @@ func (self *Surf) Download(req Request) (resp *http.Response, err error) {
 	return
 }
 
+var dnsCache = &DnsCache{ipPortLib: goutil.AtomicMap()}
+
+// DnsCache DNS cache
+type DnsCache struct {
+	ipPortLib goutil.Map
+}
+
+// Reg registers DNS to cache.
+func (d *DnsCache) Reg(addr, ipPort string) {
+	d.ipPortLib.Store(addr, ipPort)
+}
+
+// Query queries DNS from cache.
+func (d *DnsCache) Query(addr string) (string, bool) {
+	ipPort, ok := d.ipPortLib.Load(addr)
+	if !ok {
+		return "", false
+	}
+	return ipPort.(string), true
+}
+
 // buildClient creates, configures, and returns a *http.Client type.
 func (self *Surf) buildClient(param *Param) *http.Client {
 	client := &http.Client{
@@ -91,7 +116,20 @@ func (self *Surf) buildClient(param *Param) *http.Client {
 
 	transport := &http.Transport{
 		Dial: func(network, addr string) (net.Conn, error) {
-			c, err := net.DialTimeout(network, addr, param.dialTimeout)
+			var (
+				c          net.Conn
+				err        error
+				ipPort, ok = dnsCache.Query(addr)
+			)
+			if !ok {
+				ipPort = addr
+				defer func() {
+					if err == nil {
+						dnsCache.Reg(addr, c.RemoteAddr().String())
+					}
+				}()
+			}
+			c, err = net.DialTimeout(network, ipPort, param.dialTimeout)
 			if err != nil {
 				return nil, err
 			}
