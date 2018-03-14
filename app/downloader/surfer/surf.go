@@ -90,12 +90,17 @@ type DnsCache struct {
 	ipPortLib goutil.Map
 }
 
-// Reg registers DNS to cache.
+// Reg registers ipPort to DNS cache.
 func (d *DnsCache) Reg(addr, ipPort string) {
 	d.ipPortLib.Store(addr, ipPort)
 }
 
-// Query queries DNS from cache.
+// Del deletes ipPort from DNS cache.
+func (d *DnsCache) Del(addr string) {
+	d.ipPortLib.Delete(addr)
+}
+
+// Query queries ipPort from DNS cache.
 func (d *DnsCache) Query(addr string) (string, bool) {
 	ipPort, ok := d.ipPortLib.Load(addr)
 	if !ok {
@@ -126,6 +131,12 @@ func (self *Surf) buildClient(param *Param) *http.Client {
 				defer func() {
 					if err == nil {
 						dnsCache.Reg(addr, c.RemoteAddr().String())
+					}
+				}()
+			} else {
+				defer func() {
+					if err != nil {
+						dnsCache.Del(addr)
 					}
 				}()
 			}
