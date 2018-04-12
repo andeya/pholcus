@@ -21,16 +21,18 @@ import (
 )
 
 type Proxy struct {
-	ipRegexp    *regexp.Regexp
-	proxyRegexp *regexp.Regexp
-	allIps      map[string]string
-	all         map[string]bool
-	online      int64
-	usable      map[string]*ProxyForHost
-	ticker      *time.Ticker
-	tickMinute  int64
-	threadPool  chan bool
-	surf        surfer.Surfer
+	ipRegexp           *regexp.Regexp
+	urlRegexp          *regexp.Regexp
+	proxyIPTypeRegexp  *regexp.Regexp
+	proxyUrlTypeRegexp *regexp.Regexp
+	allIps             map[string]string
+	all                map[string]bool
+	online             int64
+	usable             map[string]*ProxyForHost
+	ticker             *time.Ticker
+	tickMinute         int64
+	threadPool         chan bool
+	surf               surfer.Surfer
 	sync.Mutex
 }
 
@@ -44,13 +46,15 @@ const (
 
 func New() *Proxy {
 	p := &Proxy{
-		ipRegexp:    regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`),
-		proxyRegexp: regexp.MustCompile(`https?://([\w]*:[\w]*@)?[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`),
-		allIps:      map[string]string{},
-		all:         map[string]bool{},
-		usable:      make(map[string]*ProxyForHost),
-		threadPool:  make(chan bool, MAX_THREAD_NUM),
-		surf:        surfer.New(),
+		ipRegexp:           regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`),
+		urlRegexp:          regexp.MustCompile(`(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)`),
+		proxyIPTypeRegexp:  regexp.MustCompile(`https?://([\w]*:[\w]*@)?[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`),
+		proxyUrlTypeRegexp: regexp.MustCompile(`https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)`),
+		allIps:             map[string]string{},
+		all:                map[string]bool{},
+		usable:             make(map[string]*ProxyForHost),
+		threadPool:         make(chan bool, MAX_THREAD_NUM),
+		surf:               surfer.New(),
 	}
 	go p.Update()
 	return p
@@ -71,12 +75,18 @@ func (self *Proxy) Update() *Proxy {
 	b, _ := ioutil.ReadAll(f)
 	f.Close()
 
-	proxys := self.proxyRegexp.FindAllString(string(b), -1)
-	for _, proxy := range proxys {
+	proxysIPType := self.proxyIPTypeRegexp.FindAllString(string(b), -1)
+	for _, proxy := range proxysIPType {
 		self.allIps[proxy] = self.ipRegexp.FindString(proxy)
 		self.all[proxy] = false
-		// fmt.Printf("+ 代理IP %v：%v\n", i, proxy)
 	}
+
+	proxysUrlType := self.proxyUrlTypeRegexp.FindAllString(string(b), -1)
+	for _, proxy := range proxysUrlType {
+		self.allIps[proxy] = self.urlRegexp.FindString(proxy)
+		self.all[proxy] = false
+	}
+
 	log.Printf(" *     读取代理IP: %v 条\n", len(self.all))
 
 	self.findOnline()
