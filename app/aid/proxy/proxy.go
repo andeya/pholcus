@@ -22,7 +22,6 @@ import (
 
 type Proxy struct {
 	ipRegexp           *regexp.Regexp
-	urlRegexp          *regexp.Regexp
 	proxyIPTypeRegexp  *regexp.Regexp
 	proxyUrlTypeRegexp *regexp.Regexp
 	allIps             map[string]string
@@ -47,9 +46,8 @@ const (
 func New() *Proxy {
 	p := &Proxy{
 		ipRegexp:           regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`),
-		urlRegexp:          regexp.MustCompile(`(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)`),
 		proxyIPTypeRegexp:  regexp.MustCompile(`https?://([\w]*:[\w]*@)?[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+`),
-		proxyUrlTypeRegexp: regexp.MustCompile(`https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)`),
+		proxyUrlTypeRegexp: regexp.MustCompile(`((https?|ftp):\/\/)?(([^:\n\r]+):([^@\n\r]+)@)?((www\.)?([^/\n\r:]+)):?([0-9]{1,5})?\/?([^?\n\r]+)?\??([^#\n\r]*)?#?([^\n\r]*)`),
 		allIps:             map[string]string{},
 		all:                map[string]bool{},
 		usable:             make(map[string]*ProxyForHost),
@@ -83,7 +81,8 @@ func (self *Proxy) Update() *Proxy {
 
 	proxysUrlType := self.proxyUrlTypeRegexp.FindAllString(string(b), -1)
 	for _, proxy := range proxysUrlType {
-		self.allIps[proxy] = self.urlRegexp.FindString(proxy)
+		gvalue := self.proxyUrlTypeRegexp.FindStringSubmatch(proxy)
+		self.allIps[proxy] = gvalue[6]
 		self.all[proxy] = false
 	}
 
@@ -102,6 +101,7 @@ func (self *Proxy) findOnline() *Proxy {
 		self.threadPool <- true
 		go func(proxy string) {
 			alive, _, _ := ping.Ping(self.allIps[proxy], CONN_TIMEOUT)
+			log.Println("liguoqinjim ping", self.allIps[proxy])
 			self.Lock()
 			self.all[proxy] = alive
 			self.Unlock()
@@ -202,7 +202,8 @@ func (self *Proxy) testAndSort(key string, testHost string) (*ProxyForHost, bool
 		}
 		self.threadPool <- true
 		go func(proxy string) {
-			alive, timedelay := self.findUsable(proxy, testHost)
+			//alive, timedelay := self.findUsable(proxy, testHost)
+			alive, timedelay := self.findUsable2(proxy)
 			if alive {
 				proxyForHost.Mutex.Lock()
 				proxyForHost.proxys = append(proxyForHost.proxys, proxy)
@@ -231,6 +232,20 @@ func (self *Proxy) findUsable(proxy string, testHost string) (alive bool, timede
 		Url:         testHost,
 		Method:      "HEAD",
 		Header:      make(http.Header),
+		DialTimeout: time.Second * time.Duration(DAIL_TIMEOUT),
+		ConnTimeout: time.Second * time.Duration(CONN_TIMEOUT),
+		TryTimes:    TRY_TIMES,
+	}
+	req.SetProxy(proxy)
+	_, err := self.surf.Download(req)
+	return err == nil, time.Since(t0)
+}
+
+func (self *Proxy) findUsable2(proxy string) (alive bool, timedelay time.Duration) {
+	t0 := time.Now()
+	req := &request.Request{
+		Url:         "http://httpbin.org/",
+		Method:      "GET",
 		DialTimeout: time.Second * time.Duration(DAIL_TIMEOUT),
 		ConnTimeout: time.Second * time.Duration(CONN_TIMEOUT),
 		TryTimes:    TRY_TIMES,
