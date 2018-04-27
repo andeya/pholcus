@@ -201,7 +201,6 @@ func (self *Proxy) testAndSort(key string, testHost string) (*ProxyForHost, bool
 		}
 		self.threadPool <- true
 		go func(proxy string) {
-			//alive, timedelay := self.findUsable(proxy, testHost)
 			alive, timedelay := self.findUsable(proxy, testHost)
 			if alive {
 				proxyForHost.Mutex.Lock()
@@ -237,27 +236,10 @@ func (self *Proxy) findUsable(proxy string, testHost string) (alive bool, timede
 	}
 	req.SetProxy(proxy)
 	resp, err := self.surf.Download(req)
-	if err != nil {
-		return false, 0
-	}
 
 	if resp.StatusCode != http.StatusOK {
 		return false, 0
 	}
 
-	return true, time.Since(t0)
-}
-
-func (self *Proxy) findUsable2(proxy string) (alive bool, timedelay time.Duration) {
-	t0 := time.Now()
-	req := &request.Request{
-		Url:         "http://httpbin.org/",
-		Method:      "GET",
-		DialTimeout: time.Second * time.Duration(DAIL_TIMEOUT),
-		ConnTimeout: time.Second * time.Duration(CONN_TIMEOUT),
-		TryTimes:    TRY_TIMES,
-	}
-	req.SetProxy(proxy)
-	_, err := self.surf.Download(req)
 	return err == nil, time.Since(t0)
 }
