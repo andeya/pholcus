@@ -101,7 +101,6 @@ func (self *Proxy) findOnline() *Proxy {
 		self.threadPool <- true
 		go func(proxy string) {
 			alive, _, _ := ping.Ping(self.allIps[proxy], CONN_TIMEOUT)
-			log.Println("liguoqinjim ping", self.allIps[proxy])
 			self.Lock()
 			self.all[proxy] = alive
 			self.Unlock()
@@ -203,7 +202,7 @@ func (self *Proxy) testAndSort(key string, testHost string) (*ProxyForHost, bool
 		self.threadPool <- true
 		go func(proxy string) {
 			//alive, timedelay := self.findUsable(proxy, testHost)
-			alive, timedelay := self.findUsable2(proxy)
+			alive, timedelay := self.findUsable(proxy, testHost)
 			if alive {
 				proxyForHost.Mutex.Lock()
 				proxyForHost.proxys = append(proxyForHost.proxys, proxy)
@@ -237,8 +236,16 @@ func (self *Proxy) findUsable(proxy string, testHost string) (alive bool, timede
 		TryTimes:    TRY_TIMES,
 	}
 	req.SetProxy(proxy)
-	_, err := self.surf.Download(req)
-	return err == nil, time.Since(t0)
+	resp, err := self.surf.Download(req)
+	if err != nil {
+		return false, 0
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return false, 0
+	}
+
+	return true, time.Since(t0)
 }
 
 func (self *Proxy) findUsable2(proxy string) (alive bool, timedelay time.Duration) {
