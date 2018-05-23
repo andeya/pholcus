@@ -115,7 +115,7 @@ pholcus -h
 
 > *<font size="2">Web版操作界面截图如下：*
 
-![image](https://github.com/henrylee2cn/pholcus/raw/master/doc/webshow_1.jpg)
+![image](https://github.com/henrylee2cn/pholcus/raw/master/doc/webshow_1.png)
 
 &nbsp;
 
