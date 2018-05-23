@@ -45,7 +45,7 @@ var (
 		l.connPool.Store(make(map[string]*ws.Conn))
 		return l
 	}()
-	colorRegexp = regexp.MustCompile("\033\\[[0-9]{1,2}m")
+	colorRegexp = regexp.MustCompile("\033\\[[0-9;]{1,4}m")
 )
 
 func (self *LogSocketController) Write(p []byte) (int, error) {
