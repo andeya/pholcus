@@ -70,9 +70,8 @@ func (self *Request) Prepare() error {
 	URL, err := url.Parse(self.Url)
 	if err != nil {
 		return err
-	} else {
-		self.Url = URL.String()
 	}
+	self.Url = URL.String()
 
 	if self.Method == "" {
 		self.Method = "GET"
