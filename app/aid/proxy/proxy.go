@@ -26,7 +26,7 @@ type Proxy struct {
 	proxyUrlTypeRegexp *regexp.Regexp
 	allIps             map[string]string
 	all                map[string]bool
-	online             int64
+	online             int32
 	usable             map[string]*ProxyForHost
 	ticker             *time.Ticker
 	tickMinute         int64
@@ -59,7 +59,7 @@ func New() *Proxy {
 }
 
 // 代理IP数量
-func (self *Proxy) Count() int64 {
+func (self *Proxy) Count() int32 {
 	return self.online
 }
 
@@ -105,7 +105,7 @@ func (self *Proxy) findOnline() *Proxy {
 			self.all[proxy] = alive
 			self.Unlock()
 			if alive {
-				atomic.AddInt64(&self.online, 1)
+				atomic.AddInt32(&self.online, 1)
 			}
 			<-self.threadPool
 		}(proxy)
@@ -113,7 +113,7 @@ func (self *Proxy) findOnline() *Proxy {
 	for len(self.threadPool) > 0 {
 		time.Sleep(0.2e9)
 	}
-	self.online = atomic.LoadInt64(&self.online)
+	self.online = atomic.LoadInt32(&self.online)
 	log.Printf(" *     在线代理IP筛选完成，共计：%v 个\n", self.online)
 
 	return self
