@@ -18,22 +18,22 @@ import (
 func CleanHtml(str string, depth int) string {
 	if depth > 0 {
 		//将HTML标签全转换成小写
-		re, _ := regexp.Compile("\\<[\\S\\s]+?\\>")
+		re, _ := regexp.Compile("<[\\S\\s]+?>")
 		str = re.ReplaceAllStringFunc(str, strings.ToLower)
 	}
 	if depth > 1 {
 		//去除STYLE
-		re, _ := regexp.Compile("\\<style[\\S\\s]+?\\</style\\>")
+		re, _ := regexp.Compile("<style[\\S\\s]+?</style>")
 		str = re.ReplaceAllString(str, "")
 	}
 	if depth > 2 {
 		//去除SCRIPT
-		re, _ := regexp.Compile("\\<script[\\S\\s]+?\\</script\\>")
+		re, _ := regexp.Compile("<script[\\S\\s]+?</script>")
 		str = re.ReplaceAllString(str, "")
 	}
 	if depth > 3 {
 		//去除所有尖括号内的HTML代码，并换成换行符
-		re, _ := regexp.Compile("\\<[\\S\\s]+?\\>")
+		re, _ := regexp.Compile("<[\\S\\s]+?>")
 		str = re.ReplaceAllString(str, "\n")
 	}
 	if depth > 4 {
@@ -232,7 +232,7 @@ func ProcessHtml(html string) string {
 	//html = re.ReplaceAllString(html, "")
 
 	//将HTML标签全转换成小写
-	//re, _ = regexp.Compile("\\<[\\S\\s]+?\\>")
+	//re, _ = regexp.Compile("<[\\S\\s]+?>")
 	//html = re.ReplaceAllStringFunc(html, strings.ToLower)
 
 	//去除连续的换行符
