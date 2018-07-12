@@ -134,6 +134,9 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 		strings.ToLower(param.method),
 		fmt.Sprint(int(req.GetDialTimeout() / time.Millisecond)),
 	}
+	if req.GetProxy() != "" {
+		args = append([]string{"--proxy=" + req.GetProxy()}, args...)
+	}
 
 	for i := 0; i < param.tryTimes; i++ {
 		if i != 0 {
