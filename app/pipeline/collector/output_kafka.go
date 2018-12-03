@@ -43,7 +43,7 @@ func init() {
 		)
 		for _, datacell := range self.dataDocker {
 			subNamespace := util.FileNameReplace(self.subNamespace(datacell))
-			topicName := joinNamespaces(namespace, subNamespace)
+			topicName := namespace//joinNamespaces(namespace, subNamespace)
 			if !topic.MatchString(topicName) {
 				logs.Log.Error("topic格式要求'^[0-9a-zA-Z_-]+$'，当前为：%s", topicName)
 				continue
@@ -66,16 +66,22 @@ func init() {
 				if v, ok := vd[title].(string); ok || vd[title] == nil {
 					data[title] = v
 				} else {
-					data[title] = util.JsonString(vd[title])
+					data[title] = vd[title]//util.JsonString(vd[title])
 				}
+			}
+			if len(subNamespace) == 0 {
+				err := sender.Push(data)
+				util.CheckErr(err)
+			}else {
+				sender.SetKey(subNamespace)
+				err = sender.PushWithKey(data)
+				util.CheckErr(err)
 			}
 			if self.Spider.OutDefaultField() {
 				data["url"] = datacell["Url"].(string)
 				data["parent_url"] = datacell["ParentUrl"].(string)
 				data["download_time"] = datacell["DownloadTime"].(string)
 			}
-			err := sender.Push(data)
-			util.CheckErr(err)
 		}
 		kafkas = nil
 		return nil

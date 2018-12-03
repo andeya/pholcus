@@ -20,6 +20,7 @@ var (
 
 type KafkaSender struct {
 	topic string
+	key string
 }
 
 func GetProducer() (sarama.SyncProducer, error) {
@@ -46,6 +47,10 @@ func New() *KafkaSender {
 
 func (p *KafkaSender) SetTopic(topic string) {
 	p.topic = topic
+}
+
+func (p *KafkaSender) SetKey(key string) {
+	p.key = key
 }
 
 func (p *KafkaSender) Push(data map[string]interface{}) error {
