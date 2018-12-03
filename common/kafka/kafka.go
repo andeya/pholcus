@@ -9,6 +9,7 @@ import (
 	"github.com/henrylee2cn/pholcus/logs"
 
 	"github.com/Shopify/sarama"
+	"time"
 )
 
 var (
@@ -51,6 +52,17 @@ func (p *KafkaSender) SetTopic(topic string) {
 
 func (p *KafkaSender) SetKey(key string) {
 	p.key = key
+}
+
+func (p *KafkaSender) PushWithKey(data map[string]interface{}) error {
+	val := util.JsonString(data)
+	_, _, e := producer.SendMessage(&sarama.ProducerMessage{
+		Topic:     p.topic,
+		Key:       sarama.StringEncoder(p.key),
+		Value:     sarama.StringEncoder(val),
+		Timestamp: time.Now(),
+	})
+	return e
 }
 
 func (p *KafkaSender) Push(data map[string]interface{}) error {
