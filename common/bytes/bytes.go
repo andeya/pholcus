@@ -43,9 +43,6 @@ func (*Bytes) Format(b uint64) string {
 	case b < MB:
 		value /= KB
 		multiple = "KB"
-	case b < MB:
-		value /= KB
-		multiple = "KB"
 	case b < GB:
 		value /= MB
 		multiple = "MB"
