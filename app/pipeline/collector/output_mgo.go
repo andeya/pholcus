@@ -20,7 +20,7 @@ func init() {
 		if mgo.Error() != nil {
 			mgo.Refresh()
 			if mgo.Error() != nil { // try again
-				return fmt.Errorf("MongoBD数据库链接失败: %v", mgo.Error())
+				return fmt.Errorf("mongoBD数据库链接失败: %v", mgo.Error())
 			}
 		}
 		return mgo.Call(func(src pool.Src) error {

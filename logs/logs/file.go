@@ -224,7 +224,7 @@ func (w *FileLogWriter) DoRotate() error {
 		}
 		// return error if the last file checked still existed
 		if err == nil {
-			return fmt.Errorf("Rotate: Cannot find free log number to rename %s\n", w.Filename)
+			return fmt.Errorf("rotate: Cannot find free log number to rename %s\n", w.Filename)
 		}
 
 		// block Logger's io.Writer
@@ -238,13 +238,13 @@ func (w *FileLogWriter) DoRotate() error {
 		// Rename the file to its newfound home
 		err = os.Rename(w.Filename, fname)
 		if err != nil {
-			return fmt.Errorf("Rotate: %s\n", err)
+			return fmt.Errorf("rotate: %s\n", err)
 		}
 
 		// re-start logger
 		err = w.startLogger()
 		if err != nil {
-			return fmt.Errorf("Rotate StartLogger: %s\n", err)
+			return fmt.Errorf("rotate StartLogger: %s\n", err)
 		}
 
 		go w.deleteOldLog()
@@ -258,7 +258,7 @@ func (w *FileLogWriter) deleteOldLog() {
 	filepath.Walk(dir, func(path string, info os.FileInfo, err error) (returnErr error) {
 		defer func() {
 			if r := recover(); r != nil {
-				returnErr = fmt.Errorf("Unable to delete old log '%s', error: %+v", path, r)
+				returnErr = fmt.Errorf("unable to delete old log '%s', error: %+v", path, r)
 				fmt.Println(returnErr)
 			}
 		}()

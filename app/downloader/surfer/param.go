@@ -142,9 +142,9 @@ func (self *Param) checkRedirect(req *http.Request, via []*http.Request) error {
 	}
 	if len(via) >= self.redirectTimes {
 		if self.redirectTimes < 0 {
-			return fmt.Errorf("not allow redirects.")
+			return fmt.Errorf("not allow redirects")
 		}
-		return fmt.Errorf("stopped after %v redirects.", self.redirectTimes)
+		return fmt.Errorf("stopped after %v redirects", self.redirectTimes)
 	}
 	return nil
 }

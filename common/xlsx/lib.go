@@ -857,14 +857,14 @@ func ReadZipReader(r *zip.Reader) (*File, error) {
 		}
 	}
 	if workbookRels == nil {
-		return nil, fmt.Errorf("xl/_rels/workbook.xml.rels not found in input xlsx.")
+		return nil, fmt.Errorf("xl/_rels/workbook.xml.rels not found in input xlsx")
 	}
 	sheetXMLMap, err = readWorkbookRelationsFromZipFile(workbookRels)
 	if err != nil {
 		return nil, err
 	}
 	if len(worksheets) == 0 {
-		return nil, fmt.Errorf("Input xlsx contains no worksheets.")
+		return nil, fmt.Errorf("input xlsx contains no worksheets")
 	}
 	file.worksheets = worksheets
 	reftable, err = readSharedStringsFromZipFile(sharedStrings)

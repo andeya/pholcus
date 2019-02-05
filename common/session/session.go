@@ -333,7 +333,7 @@ func (manager *Manager) sessionID() (string, error) {
 	b := make([]byte, manager.config.SessionIDLength)
 	n, err := rand.Read(b)
 	if n != len(b) || err != nil {
-		return "", fmt.Errorf("Could not successfully read from the system CSPRNG.")
+		return "", fmt.Errorf("could not successfully read from the system CSPRNG")
 	}
 	return hex.EncodeToString(b), nil
 }

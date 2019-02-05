@@ -36,7 +36,7 @@ func init() {
 	DataOutput["mysql"] = func(self *Collector) error {
 		_, err := mysql.DB()
 		if err != nil {
-			return fmt.Errorf("Mysql数据库链接失败: %v", err)
+			return fmt.Errorf("mysql数据库链接失败: %v", err)
 		}
 		var (
 			mysqls    = make(map[string]*mysql.MyTable)

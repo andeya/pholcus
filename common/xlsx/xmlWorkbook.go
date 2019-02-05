@@ -173,7 +173,7 @@ func getWorksheetFromSheet(sheet xlsxSheet, worksheets map[string]*zip.File, she
 
 	f := worksheetFileForSheet(sheet, worksheets, sheetXMLMap)
 	if f == nil {
-		return nil, fmt.Errorf("Unable to find sheet '%s'", sheet)
+		return nil, fmt.Errorf("unable to find sheet '%s'", sheet)
 	}
 	rc, error = f.Open()
 	if error != nil {
