@@ -19,39 +19,58 @@ const (
 )
 
 type CustomWidget struct {
+	// Window
+
+	Background         Brush
+	ContextMenuItems   []MenuItem
+	DoubleBuffering    bool
+	Enabled            Property
+	Font               Font
+	MaxSize            Size
+	MinSize            Size
+	Name               string
+	OnBoundsChanged    walk.EventHandler
+	OnKeyDown          walk.KeyEventHandler
+	OnKeyPress         walk.KeyEventHandler
+	OnKeyUp            walk.KeyEventHandler
+	OnMouseDown        walk.MouseEventHandler
+	OnMouseMove        walk.MouseEventHandler
+	OnMouseUp          walk.MouseEventHandler
+	OnSizeChanged      walk.EventHandler
+	Persistent         bool
+	RightToLeftReading bool
+	ToolTipText        Property
+	Visible            Property
+
+	// Widget
+
+	Alignment          Alignment2D
+	AlwaysConsumeSpace bool
+	Column             int
+	ColumnSpan         int
+	GraphicsEffects    []walk.WidgetGraphicsEffect
+	Row                int
+	RowSpan            int
+	StretchFactor      int
+
+	// CustomWidget
+
 	AssignTo            **walk.CustomWidget
-	Name                string
-	Enabled             Property
-	Visible             Property
-	Font                Font
-	ToolTipText         Property
-	MinSize             Size
-	MaxSize             Size
-	StretchFactor       int
-	Row                 int
-	RowSpan             int
-	Column              int
-	ColumnSpan          int
-	AlwaysConsumeSpace  bool
-	ContextMenuItems    []MenuItem
-	OnKeyDown           walk.KeyEventHandler
-	OnKeyPress          walk.KeyEventHandler
-	OnKeyUp             walk.KeyEventHandler
-	OnMouseDown         walk.MouseEventHandler
-	OnMouseMove         walk.MouseEventHandler
-	OnMouseUp           walk.MouseEventHandler
-	OnSizeChanged       walk.EventHandler
-	Style               uint32
-	Paint               walk.PaintFunc
 	ClearsBackground    bool
 	InvalidatesOnResize bool
+	Paint               walk.PaintFunc
 	PaintMode           PaintMode
+	Style               uint32
 }
 
 func (cw CustomWidget) Create(builder *Builder) error {
 	w, err := walk.NewCustomWidget(builder.Parent(), uint(cw.Style), cw.Paint)
 	if err != nil {
 		return err
+	}
+
+	if cw.AssignTo != nil {
+		*cw.AssignTo = w
 	}
 
 	return builder.InitWidget(cw, w, func() error {
@@ -62,14 +81,6 @@ func (cw CustomWidget) Create(builder *Builder) error {
 		w.SetInvalidatesOnResize(cw.InvalidatesOnResize)
 		w.SetPaintMode(walk.PaintMode(cw.PaintMode))
 
-		if cw.AssignTo != nil {
-			*cw.AssignTo = w
-		}
-
 		return nil
 	})
-}
-
-func (w CustomWidget) WidgetInfo() (name string, disabled, hidden bool, font *Font, toolTipText string, minSize, maxSize Size, stretchFactor, row, rowSpan, column, columnSpan int, alwaysConsumeSpace bool, contextMenuItems []MenuItem, OnKeyDown walk.KeyEventHandler, OnKeyPress walk.KeyEventHandler, OnKeyUp walk.KeyEventHandler, OnMouseDown walk.MouseEventHandler, OnMouseMove walk.MouseEventHandler, OnMouseUp walk.MouseEventHandler, OnSizeChanged walk.EventHandler) {
-	return w.Name, false, false, &w.Font, "", w.MinSize, w.MaxSize, w.StretchFactor, w.Row, w.RowSpan, w.Column, w.ColumnSpan, w.AlwaysConsumeSpace, w.ContextMenuItems, w.OnKeyDown, w.OnKeyPress, w.OnKeyUp, w.OnMouseDown, w.OnMouseMove, w.OnMouseUp, w.OnSizeChanged
 }

@@ -14,14 +14,26 @@ func init() {
 
 type Spacer struct {
 	WidgetBase
-	sizeHint    Size
-	layoutFlags LayoutFlags
+	sizeHint          Size
+	layoutFlags       LayoutFlags
+	greedyLocallyOnly bool
 }
 
-func newSpacer(parent Container, layoutFlags LayoutFlags, sizeHint Size) (*Spacer, error) {
+type SpacerCfg struct {
+	LayoutFlags       LayoutFlags
+	SizeHint          Size
+	GreedyLocallyOnly bool
+}
+
+func NewSpacerWithCfg(parent Container, cfg *SpacerCfg) (*Spacer, error) {
+	return newSpacer(parent, cfg.LayoutFlags, cfg.SizeHint, cfg.GreedyLocallyOnly)
+}
+
+func newSpacer(parent Container, layoutFlags LayoutFlags, sizeHint Size, greedyLocallyOnly bool) (*Spacer, error) {
 	s := &Spacer{
-		layoutFlags: layoutFlags,
-		sizeHint:    sizeHint,
+		layoutFlags:       layoutFlags,
+		sizeHint:          sizeHint,
+		greedyLocallyOnly: greedyLocallyOnly,
 	}
 
 	if err := InitWidget(
@@ -37,19 +49,19 @@ func newSpacer(parent Container, layoutFlags LayoutFlags, sizeHint Size) (*Space
 }
 
 func NewHSpacer(parent Container) (*Spacer, error) {
-	return newSpacer(parent, ShrinkableHorz|ShrinkableVert|GrowableHorz|GreedyHorz, Size{})
+	return newSpacer(parent, ShrinkableHorz|ShrinkableVert|GrowableHorz|GreedyHorz, Size{}, false)
 }
 
 func NewHSpacerFixed(parent Container, width int) (*Spacer, error) {
-	return newSpacer(parent, 0, Size{width, 0})
+	return newSpacer(parent, 0, Size{width, 0}, false)
 }
 
 func NewVSpacer(parent Container) (*Spacer, error) {
-	return newSpacer(parent, ShrinkableHorz|ShrinkableVert|GrowableVert|GreedyVert, Size{})
+	return newSpacer(parent, ShrinkableHorz|ShrinkableVert|GrowableVert|GreedyVert, Size{}, false)
 }
 
 func NewVSpacerFixed(parent Container, height int) (*Spacer, error) {
-	return newSpacer(parent, 0, Size{0, height})
+	return newSpacer(parent, 0, Size{0, height}, false)
 }
 
 func (s *Spacer) LayoutFlags() LayoutFlags {

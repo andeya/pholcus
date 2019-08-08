@@ -2,6 +2,7 @@ package goutil
 
 import (
 	"reflect"
+	"runtime"
 	"unicode"
 	"unicode/utf8"
 )
@@ -20,4 +21,14 @@ func IsExportedOrBuiltinType(t reflect.Type) bool {
 func IsExportedName(name string) bool {
 	rune, _ := utf8.DecodeRuneInString(name)
 	return unicode.IsUpper(rune)
+}
+
+// ObjectName gets the type name of the object
+func ObjectName(obj interface{}) string {
+	v := reflect.ValueOf(obj)
+	t := v.Type()
+	if t.Kind() == reflect.Func {
+		return runtime.FuncForPC(v.Pointer()).Name()
+	}
+	return t.String()
 }

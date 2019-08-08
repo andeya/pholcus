@@ -359,7 +359,7 @@ func (file *GridFile) assertMode(mode gfsFileMode) {
 
 // SetChunkSize sets size of saved chunks.  Once the file is written to, it
 // will be split in blocks of that size and each block saved into an
-// independent chunk document.  The default chunk size is 256kb.
+// independent chunk document.  The default chunk size is 255kb.
 //
 // It is a runtime error to call this function once the file has started
 // being written to.
@@ -528,10 +528,16 @@ func (file *GridFile) completeWrite() {
 		}
 		file.doc.MD5 = hexsum
 		file.err = file.gfs.Files.Insert(file.doc)
-		file.gfs.Chunks.EnsureIndexKey("files_id", "n")
 	}
 	if file.err != nil {
 		file.gfs.Chunks.RemoveAll(bson.D{{"files_id", file.doc.Id}})
+	}
+	if file.err == nil {
+		index := Index{
+			Key:    []string{"files_id", "n"},
+			Unique: true,
+		}
+		file.err = file.gfs.Chunks.EnsureIndex(index)
 	}
 }
 
@@ -692,7 +698,7 @@ func (file *GridFile) Seek(offset int64, whence int) (pos int64, err error) {
 // Read reads into b the next available data from the file and
 // returns the number of bytes written and an error in case
 // something wrong happened.  At the end of the file, n will
-// be zero and err will be set to os.EOF.
+// be zero and err will be set to io.EOF.
 //
 // The parameters and behavior of this function turn the file
 // into an io.Reader.

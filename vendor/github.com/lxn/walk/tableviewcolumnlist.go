@@ -27,22 +27,6 @@ func (l *TableViewColumnList) At(index int) *TableViewColumn {
 	return l.items[index]
 }
 
-func (l *TableViewColumnList) atInListView(index int) *TableViewColumn {
-	var idx int
-
-	for _, item := range l.items {
-		if item.visible {
-			if idx == index {
-				return item
-			}
-
-			idx++
-		}
-	}
-
-	return nil
-}
-
 // Clear removes all TableViewColumns from the list.
 func (l *TableViewColumnList) Clear() error {
 	for _ = range l.items {

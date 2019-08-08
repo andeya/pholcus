@@ -9,7 +9,8 @@ package walk
 type Alignment1D uint
 
 const (
-	AlignNear Alignment1D = iota
+	AlignDefault Alignment1D = iota
+	AlignNear
 	AlignCenter
 	AlignFar
 )
@@ -17,7 +18,8 @@ const (
 type Alignment2D uint
 
 const (
-	AlignHNearVNear Alignment2D = iota
+	AlignHVDefault Alignment2D = iota
+	AlignHNearVNear
 	AlignHCenterVNear
 	AlignHFarVNear
 	AlignHNearVCenter

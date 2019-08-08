@@ -10,22 +10,29 @@ import (
 	"github.com/lxn/walk"
 )
 
+type ImageViewMode int
+
+const (
+	ImageViewModeIdeal   = ImageViewMode(walk.ImageViewModeIdeal)
+	ImageViewModeCorner  = ImageViewMode(walk.ImageViewModeCorner)
+	ImageViewModeCenter  = ImageViewMode(walk.ImageViewModeCenter)
+	ImageViewModeShrink  = ImageViewMode(walk.ImageViewModeShrink)
+	ImageViewModeZoom    = ImageViewMode(walk.ImageViewModeZoom)
+	ImageViewModeStretch = ImageViewMode(walk.ImageViewModeStretch)
+)
+
 type ImageView struct {
-	AssignTo           **walk.ImageView
-	Name               string
-	Enabled            Property
-	Visible            Property
-	Font               Font
-	ToolTipText        Property
-	MinSize            Size
-	MaxSize            Size
-	StretchFactor      int
-	Row                int
-	RowSpan            int
-	Column             int
-	ColumnSpan         int
-	AlwaysConsumeSpace bool
+	// Window
+
+	Background         Brush
 	ContextMenuItems   []MenuItem
+	DoubleBuffering    bool
+	Enabled            Property
+	Font               Font
+	MaxSize            Size
+	MinSize            Size
+	Name               string
+	OnBoundsChanged    walk.EventHandler
 	OnKeyDown          walk.KeyEventHandler
 	OnKeyPress         walk.KeyEventHandler
 	OnKeyUp            walk.KeyEventHandler
@@ -33,7 +40,28 @@ type ImageView struct {
 	OnMouseMove        walk.MouseEventHandler
 	OnMouseUp          walk.MouseEventHandler
 	OnSizeChanged      walk.EventHandler
-	Image              walk.Image
+	Persistent         bool
+	RightToLeftReading bool
+	ToolTipText        Property
+	Visible            Property
+
+	// Widget
+
+	Alignment          Alignment2D
+	AlwaysConsumeSpace bool
+	Column             int
+	ColumnSpan         int
+	GraphicsEffects    []walk.WidgetGraphicsEffect
+	Row                int
+	RowSpan            int
+	StretchFactor      int
+
+	// ImageView
+
+	AssignTo **walk.ImageView
+	Image    Property
+	Margin   Property
+	Mode     ImageViewMode
 }
 
 func (iv ImageView) Create(builder *Builder) error {
@@ -42,19 +70,13 @@ func (iv ImageView) Create(builder *Builder) error {
 		return err
 	}
 
-	return builder.InitWidget(iv, w, func() error {
-		if err := w.SetImage(iv.Image); err != nil {
-			return err
-		}
+	if iv.AssignTo != nil {
+		*iv.AssignTo = w
+	}
 
-		if iv.AssignTo != nil {
-			*iv.AssignTo = w
-		}
+	return builder.InitWidget(iv, w, func() error {
+		w.SetMode(walk.ImageViewMode(iv.Mode))
 
 		return nil
 	})
-}
-
-func (w ImageView) WidgetInfo() (name string, disabled, hidden bool, font *Font, toolTipText string, minSize, maxSize Size, stretchFactor, row, rowSpan, column, columnSpan int, alwaysConsumeSpace bool, contextMenuItems []MenuItem, OnKeyDown walk.KeyEventHandler, OnKeyPress walk.KeyEventHandler, OnKeyUp walk.KeyEventHandler, OnMouseDown walk.MouseEventHandler, OnMouseMove walk.MouseEventHandler, OnMouseUp walk.MouseEventHandler, OnSizeChanged walk.EventHandler) {
-	return w.Name, false, false, &w.Font, "", w.MinSize, w.MaxSize, w.StretchFactor, w.Row, w.RowSpan, w.Column, w.ColumnSpan, w.AlwaysConsumeSpace, w.ContextMenuItems, w.OnKeyDown, w.OnKeyPress, w.OnKeyUp, w.OnMouseDown, w.OnMouseMove, w.OnMouseUp, w.OnSizeChanged
 }

@@ -16,36 +16,52 @@ import (
 )
 
 type ListBox struct {
+	// Window
+
+	Background         Brush
+	ContextMenuItems   []MenuItem
+	DoubleBuffering    bool
+	Enabled            Property
+	Font               Font
+	MaxSize            Size
+	MinSize            Size
+	Name               string
+	OnBoundsChanged    walk.EventHandler
+	OnKeyDown          walk.KeyEventHandler
+	OnKeyPress         walk.KeyEventHandler
+	OnKeyUp            walk.KeyEventHandler
+	OnMouseDown        walk.MouseEventHandler
+	OnMouseMove        walk.MouseEventHandler
+	OnMouseUp          walk.MouseEventHandler
+	OnSizeChanged      walk.EventHandler
+	Persistent         bool
+	RightToLeftReading bool
+	ToolTipText        Property
+	Visible            Property
+
+	// Widget
+
+	Alignment          Alignment2D
+	AlwaysConsumeSpace bool
+	Column             int
+	ColumnSpan         int
+	GraphicsEffects    []walk.WidgetGraphicsEffect
+	Row                int
+	RowSpan            int
+	StretchFactor      int
+
+	// ListBox
+
 	AssignTo                 **walk.ListBox
-	Name                     string
-	Enabled                  Property
-	Visible                  Property
-	Font                     Font
-	ToolTipText              Property
-	MinSize                  Size
-	MaxSize                  Size
-	StretchFactor            int
-	Row                      int
-	RowSpan                  int
-	Column                   int
-	ColumnSpan               int
-	AlwaysConsumeSpace       bool
-	ContextMenuItems         []MenuItem
-	OnKeyDown                walk.KeyEventHandler
-	OnKeyPress               walk.KeyEventHandler
-	OnKeyUp                  walk.KeyEventHandler
-	OnMouseDown              walk.MouseEventHandler
-	OnMouseMove              walk.MouseEventHandler
-	OnMouseUp                walk.MouseEventHandler
-	OnSizeChanged            walk.EventHandler
-	MultiSelection           bool
-	Format                   string
-	Precision                int
 	DataMember               string
+	Format                   string
+	ItemStyler               walk.ListItemStyler
 	Model                    interface{}
+	MultiSelection           bool
 	OnCurrentIndexChanged    walk.EventHandler
-	OnSelectedIndexesChanged walk.EventHandler
 	OnItemActivated          walk.EventHandler
+	OnSelectedIndexesChanged walk.EventHandler
+	Precision                int
 }
 
 func (lb ListBox) Create(builder *Builder) error {
@@ -55,16 +71,28 @@ func (lb ListBox) Create(builder *Builder) error {
 		return errors.New("ListBox.Create: DataMember must be empty for []string models.")
 	}
 
-	if lb.MultiSelection {
-		w, err = walk.NewListBoxWithStyle(builder.Parent(), win.LBS_EXTENDEDSEL)
-	} else {
-		w, err = walk.NewListBox(builder.Parent())
+	var style uint32
+
+	if lb.ItemStyler != nil {
+		style |= win.LBS_OWNERDRAWVARIABLE
 	}
+	if lb.MultiSelection {
+		style |= win.LBS_EXTENDEDSEL
+	}
+
+	w, err = walk.NewListBoxWithStyle(builder.Parent(), style)
 	if err != nil {
 		return err
 	}
 
+	if lb.AssignTo != nil {
+		*lb.AssignTo = w
+	}
+
 	return builder.InitWidget(lb, w, func() error {
+		if lb.ItemStyler != nil {
+			w.SetItemStyler(lb.ItemStyler)
+		}
 		w.SetFormat(lb.Format)
 		w.SetPrecision(lb.Precision)
 
@@ -86,14 +114,6 @@ func (lb ListBox) Create(builder *Builder) error {
 			w.ItemActivated().Attach(lb.OnItemActivated)
 		}
 
-		if lb.AssignTo != nil {
-			*lb.AssignTo = w
-		}
-
 		return nil
 	})
-}
-
-func (w ListBox) WidgetInfo() (name string, disabled, hidden bool, font *Font, toolTipText string, minSize, maxSize Size, stretchFactor, row, rowSpan, column, columnSpan int, alwaysConsumeSpace bool, contextMenuItems []MenuItem, OnKeyDown walk.KeyEventHandler, OnKeyPress walk.KeyEventHandler, OnKeyUp walk.KeyEventHandler, OnMouseDown walk.MouseEventHandler, OnMouseMove walk.MouseEventHandler, OnMouseUp walk.MouseEventHandler, OnSizeChanged walk.EventHandler) {
-	return w.Name, false, false, &w.Font, "", w.MinSize, w.MaxSize, w.StretchFactor, w.Row, w.RowSpan, w.Column, w.ColumnSpan, w.AlwaysConsumeSpace, w.ContextMenuItems, w.OnKeyDown, w.OnKeyPress, w.OnKeyUp, w.OnMouseDown, w.OnMouseMove, w.OnMouseUp, w.OnSizeChanged
 }

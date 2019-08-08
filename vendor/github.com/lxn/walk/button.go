@@ -7,6 +7,10 @@
 package walk
 
 import (
+	"fmt"
+	"strconv"
+	"unsafe"
+
 	"github.com/lxn/win"
 )
 
@@ -23,7 +27,9 @@ type Button struct {
 	checkedChangedPublisher EventPublisher
 	clickedPublisher        EventPublisher
 	textChangedPublisher    EventPublisher
+	imageChangedPublisher   EventPublisher
 	image                   Image
+	persistent              bool
 }
 
 func (b *Button) init() {
@@ -37,14 +43,61 @@ func (b *Button) init() {
 		},
 		b.CheckedChanged()))
 
+	b.MustRegisterProperty("Image", NewProperty(
+		func() interface{} {
+			return b.Image()
+		},
+		func(v interface{}) error {
+			var img Image
+
+			switch val := v.(type) {
+			case Image:
+				img = val
+
+			case int:
+				var err error
+				if img, err = Resources.Image(strconv.Itoa(val)); err != nil {
+					return err
+				}
+
+			case string:
+				var err error
+				if img, err = Resources.Image(val); err != nil {
+					return err
+				}
+
+			default:
+				return ErrInvalidType
+			}
+
+			b.SetImage(img)
+
+			return nil
+		},
+		b.imageChangedPublisher.Event()))
+
 	b.MustRegisterProperty("Text", NewProperty(
 		func() interface{} {
 			return b.Text()
 		},
 		func(v interface{}) error {
-			return b.SetText(v.(string))
+			return b.SetText(assertStringOr(v, ""))
 		},
 		b.textChangedPublisher.Event()))
+}
+
+func (b *Button) MinSizeHint() Size {
+	var s win.SIZE
+
+	b.SendMessage(win.BCM_GETIDEALSIZE, 0, uintptr(unsafe.Pointer(&s)))
+
+	return maxSize(Size{int(s.CX), int(s.CY)}, b.dialogBaseUnitsToPixels(Size{50, 14}))
+}
+
+func (b *Button) ApplyDPI(dpi int) {
+	b.WidgetBase.ApplyDPI(dpi)
+
+	b.SetImage(b.image)
 }
 
 func (b *Button) Image() Image {
@@ -52,33 +105,33 @@ func (b *Button) Image() Image {
 }
 
 func (b *Button) SetImage(image Image) error {
-	var typ uintptr
 	var handle uintptr
-	switch img := image.(type) {
-	case nil:
-		// zeroes are good
+	if image != nil {
+		bmp, err := iconCache.Bitmap(image, b.DPI())
+		if err != nil {
+			return err
+		}
 
-	case *Bitmap:
-		typ = win.IMAGE_BITMAP
-		handle = uintptr(img.hBmp)
-
-	case *Icon:
-		typ = win.IMAGE_ICON
-		handle = uintptr(img.hIcon)
-
-	default:
-		return newError("image must be either *walk.Bitmap or *walk.Icon")
+		handle = uintptr(bmp.hBmp)
 	}
 
-	b.SendMessage(win.BM_SETIMAGE, typ, handle)
+	b.SendMessage(win.BM_SETIMAGE, win.IMAGE_BITMAP, handle)
 
 	b.image = image
 
-	return b.updateParentLayout()
+	b.updateParentLayout()
+
+	b.imageChangedPublisher.Publish()
+
+	return nil
+}
+
+func (b *Button) ImageChanged() *Event {
+	return b.imageChangedPublisher.Event()
 }
 
 func (b *Button) Text() string {
-	return windowText(b.hWnd)
+	return b.text()
 }
 
 func (b *Button) SetText(value string) error {
@@ -86,7 +139,7 @@ func (b *Button) SetText(value string) error {
 		return nil
 	}
 
-	if err := setWindowText(b.hWnd, value); err != nil {
+	if err := b.setText(value); err != nil {
 		return err
 	}
 
@@ -121,6 +174,29 @@ func (b *Button) setChecked(checked bool) {
 
 func (b *Button) CheckedChanged() *Event {
 	return b.checkedChangedPublisher.Event()
+}
+
+func (b *Button) Persistent() bool {
+	return b.persistent
+}
+
+func (b *Button) SetPersistent(value bool) {
+	b.persistent = value
+}
+
+func (b *Button) SaveState() error {
+	return b.WriteState(fmt.Sprintf("%t", b.Checked()))
+}
+
+func (b *Button) RestoreState() error {
+	s, err := b.ReadState()
+	if err != nil {
+		return err
+	}
+
+	b.SetChecked(s == "true")
+
+	return nil
 }
 
 func (b *Button) Clicked() *Event {

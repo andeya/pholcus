@@ -2,12 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// +build !appengine
+// +build gc
+// +build !noasm
+
 #include "textflag.h"
 
-// func decode(dst, src []byte) int
-//
 // The asm code generally follows the pure Go code in decode_other.go, except
 // where marked with a "!!!".
+
+// func decode(dst, src []byte) int
 //
 // All local variables fit into registers. The non-zero stack size is only to
 // spill registers and push args when issuing a CALL. The register allocation:
@@ -112,7 +116,7 @@ doLit:
 	CMPQ BX, $16
 	JLT  callMemmove
 
-	// !!! Implement the copy from src to dst as two 8-byte loads and stores.
+	// !!! Implement the copy from src to dst as a 16-byte load and store.
 	// (Decode's documentation says that dst and src must not overlap.)
 	//
 	// This always copies 16 bytes, instead of only length bytes, but that's
@@ -120,13 +124,11 @@ doLit:
 	// will fix up the overrun. Otherwise, Decode returns a nil []byte (and a
 	// non-nil error), so the overrun will be ignored.
 	//
-	// Note that on amd64, it is legal and cheap to issue unaligned 8-byte
-	// loads and stores. This technique probably wouldn't be as effective on
-	// architectures that are fussier about alignment.
-	MOVQ 0(SI), AX
-	MOVQ AX, 0(DI)
-	MOVQ 8(SI), BX
-	MOVQ BX, 8(DI)
+	// Note that on amd64, it is legal and cheap to issue unaligned 8-byte or
+	// 16-byte loads and stores. This technique probably wouldn't be as
+	// effective on architectures that are fussier about alignment.
+	MOVOU 0(SI), X0
+	MOVOU X0, 0(DI)
 
 	// d += length
 	// s += length
@@ -224,6 +226,25 @@ tagLit63:
 // ----------------------------------------
 // The code below handles copy tags.
 
+tagCopy4:
+	// case tagCopy4:
+	// s += 5
+	ADDQ $5, SI
+
+	// if uint(s) > uint(len(src)) { etc }
+	MOVQ SI, BX
+	SUBQ R11, BX
+	CMPQ BX, R12
+	JA   errCorrupt
+
+	// length = 1 + int(src[s-5])>>2
+	SHRQ $2, CX
+	INCQ CX
+
+	// offset = int(uint32(src[s-4]) | uint32(src[s-3])<<8 | uint32(src[s-2])<<16 | uint32(src[s-1])<<24)
+	MOVLQZX -4(SI), DX
+	JMP     doCopy
+
 tagCopy2:
 	// case tagCopy2:
 	// s += 3
@@ -239,7 +260,7 @@ tagCopy2:
 	SHRQ $2, CX
 	INCQ CX
 
-	// offset = int(src[s-2]) | int(src[s-1])<<8
+	// offset = int(uint32(src[s-2]) | uint32(src[s-1])<<8)
 	MOVWQZX -2(SI), DX
 	JMP     doCopy
 
@@ -249,7 +270,7 @@ tagCopy:
 	//	- CX == src[s]
 	CMPQ BX, $2
 	JEQ  tagCopy2
-	JA   errUC4T
+	JA   tagCopy4
 
 	// case tagCopy1:
 	// s += 2
@@ -261,7 +282,7 @@ tagCopy:
 	CMPQ BX, R12
 	JA   errCorrupt
 
-	// offset = int(src[s-2])&0xe0<<3 | int(src[s-1])
+	// offset = int(uint32(src[s-2])&0xe0<<3 | uint32(src[s-1]))
 	MOVQ    CX, DX
 	ANDQ    $0xe0, DX
 	SHLQ    $3, DX
@@ -310,7 +331,9 @@ doCopy:
 	//
 	// First, try using two 8-byte load/stores, similar to the doLit technique
 	// above. Even if dst[d:d+length] and dst[d-offset:] can overlap, this is
-	// still OK if offset >= 8.
+	// still OK if offset >= 8. Note that this has to be two 8-byte load/stores
+	// and not one 16-byte load/store, and the first store has to be before the
+	// second load, due to the overlap if offset is in the range [8, 16).
 	//
 	// if length > 16 || offset < 8 || len(dst)-d < 16 {
 	//   goto slowForwardCopy
@@ -464,9 +487,4 @@ end:
 errCorrupt:
 	// return decodeErrCodeCorrupt
 	MOVQ $1, ret+48(FP)
-	RET
-
-errUC4T:
-	// return decodeErrCodeUnsupportedCopy4Tag
-	MOVQ $3, ret+48(FP)
 	RET

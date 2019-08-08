@@ -7,14 +7,9 @@
 package win
 
 import (
-	"runtime"
 	"syscall"
 	"unsafe"
 )
-
-func init() {
-	runtime.LockOSThread()
-}
 
 const (
 	S_OK           = 0x00000000
@@ -41,24 +36,6 @@ type (
 	BOOL    int32
 	HRESULT int32
 )
-
-func MustLoadLibrary(name string) uintptr {
-	lib, err := syscall.LoadLibrary(name)
-	if err != nil {
-		panic(err)
-	}
-
-	return uintptr(lib)
-}
-
-func MustGetProcAddress(lib uintptr, name string) uintptr {
-	addr, err := syscall.GetProcAddress(syscall.Handle(lib), name)
-	if err != nil {
-		panic(err)
-	}
-
-	return uintptr(addr)
-}
 
 func SUCCEEDED(hr HRESULT) bool {
 	return hr >= 0

@@ -9,11 +9,33 @@ package walk
 import (
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
 )
 
 type Validator interface {
 	Validate(v interface{}) error
+}
+
+type ValidationError struct {
+	title   string
+	message string
+}
+
+func NewValidationError(title, message string) *ValidationError {
+	return &ValidationError{title: title, message: message}
+}
+
+func (ve *ValidationError) Title() string {
+	return ve.title
+}
+
+func (ve *ValidationError) Message() string {
+	return ve.message
+}
+
+func (ve *ValidationError) Error() string {
+	return fmt.Sprintf("%s - %s", ve.title, ve.message)
 }
 
 type RangeValidator struct {
@@ -22,8 +44,8 @@ type RangeValidator struct {
 }
 
 func NewRangeValidator(min, max float64) (*RangeValidator, error) {
-	if max <= min {
-		return nil, errors.New("max <= min")
+	if max < min {
+		return nil, errors.New("max < min")
 	}
 
 	return &RangeValidator{min: min, max: max}, nil
@@ -37,11 +59,32 @@ func (rv *RangeValidator) Max() float64 {
 	return rv.max
 }
 
+func (rv *RangeValidator) Reset(min, max float64) error {
+	if max < min {
+		return errors.New("max < min")
+	}
+
+	rv.min, rv.max = min, max
+
+	return nil
+}
+
 func (rv *RangeValidator) Validate(v interface{}) error {
 	f64 := v.(float64)
 
 	if f64 < rv.min || f64 > rv.max {
-		return errors.New(tr("The number is out of the allowed range.", "walk"))
+		var msg string
+		if math.Abs(rv.min-math.Floor(rv.min)) < math.SmallestNonzeroFloat64 &&
+			math.Abs(rv.max-math.Floor(rv.max)) < math.SmallestNonzeroFloat64 {
+
+			msg = fmt.Sprintf(tr("Please enter a number from %.f to %.f.", "walk"),
+				rv.min, rv.max)
+		} else {
+			msg = fmt.Sprintf(tr("Please enter a number from %s to %s.", "walk"),
+				FormatFloatGrouped(rv.min, 2), FormatFloatGrouped(rv.max, 2))
+		}
+
+		return NewValidationError(tr("Number out of allowed range", "walk"), msg)
 	}
 
 	return nil
@@ -100,7 +143,9 @@ func SelectionRequiredValidator() Validator {
 func (selectionRequiredValidator) Validate(v interface{}) error {
 	if v == nil {
 		// For Widgets like ComboBox nil is passed to indicate "no selection".
-		return errors.New(tr("A selection is required.", "walk"))
+		return NewValidationError(
+			tr("Selection Required", "walk"),
+			tr("Please select one of the provided options.", "walk"))
 	}
 
 	return nil

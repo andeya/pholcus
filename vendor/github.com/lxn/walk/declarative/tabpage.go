@@ -11,28 +11,51 @@ import (
 )
 
 type TabPage struct {
-	AssignTo         **walk.TabPage
-	Name             string
-	Enabled          Property
-	Visible          Property
-	Font             Font
-	ToolTipText      Property
-	MinSize          Size
-	MaxSize          Size
-	ContextMenuItems []MenuItem
-	OnKeyDown        walk.KeyEventHandler
-	OnKeyPress       walk.KeyEventHandler
-	OnKeyUp          walk.KeyEventHandler
-	OnMouseDown      walk.MouseEventHandler
-	OnMouseMove      walk.MouseEventHandler
-	OnMouseUp        walk.MouseEventHandler
-	OnSizeChanged    walk.EventHandler
-	DataBinder       DataBinder
-	Layout           Layout
-	Children         []Widget
-	Image            *walk.Bitmap
-	Title            Property
-	Content          Widget
+	// Window
+
+	Background         Brush
+	ContextMenuItems   []MenuItem
+	DoubleBuffering    bool
+	Enabled            Property
+	Font               Font
+	MaxSize            Size
+	MinSize            Size
+	Name               string
+	OnBoundsChanged    walk.EventHandler
+	OnKeyDown          walk.KeyEventHandler
+	OnKeyPress         walk.KeyEventHandler
+	OnKeyUp            walk.KeyEventHandler
+	OnMouseDown        walk.MouseEventHandler
+	OnMouseMove        walk.MouseEventHandler
+	OnMouseUp          walk.MouseEventHandler
+	OnSizeChanged      walk.EventHandler
+	Persistent         bool
+	RightToLeftReading bool
+	ToolTipText        Property
+	Visible            Property
+
+	// Widget
+
+	AlwaysConsumeSpace bool
+	Column             int
+	ColumnSpan         int
+	GraphicsEffects    []walk.WidgetGraphicsEffect
+	Row                int
+	RowSpan            int
+	StretchFactor      int
+
+	// Container
+
+	Children   []Widget
+	DataBinder DataBinder
+	Layout     Layout
+
+	// TabPage
+
+	AssignTo **walk.TabPage
+	Content  Widget
+	Image    Property
+	Title    Property
 }
 
 func (tp TabPage) Create(builder *Builder) error {
@@ -41,29 +64,17 @@ func (tp TabPage) Create(builder *Builder) error {
 		return err
 	}
 
-	return builder.InitWidget(tp, w, func() error {
-		if err := w.SetImage(tp.Image); err != nil {
-			return err
-		}
+	if tp.AssignTo != nil {
+		*tp.AssignTo = w
+	}
 
+	return builder.InitWidget(tp, w, func() error {
 		if tp.Content != nil && len(tp.Children) == 0 {
 			if err := tp.Content.Create(builder); err != nil {
 				return err
 			}
 		}
 
-		if tp.AssignTo != nil {
-			*tp.AssignTo = w
-		}
-
 		return nil
 	})
-}
-
-func (w TabPage) WidgetInfo() (name string, disabled, hidden bool, font *Font, toolTipText string, minSize, maxSize Size, stretchFactor, row, rowSpan, column, columnSpan int, alwaysConsumeSpace bool, contextMenuItems []MenuItem, OnKeyDown walk.KeyEventHandler, OnKeyPress walk.KeyEventHandler, OnKeyUp walk.KeyEventHandler, OnMouseDown walk.MouseEventHandler, OnMouseMove walk.MouseEventHandler, OnMouseUp walk.MouseEventHandler, OnSizeChanged walk.EventHandler) {
-	return w.Name, false, false, &w.Font, "", w.MinSize, w.MaxSize, 0, 0, 0, 0, 0, false, w.ContextMenuItems, w.OnKeyDown, w.OnKeyPress, w.OnKeyUp, w.OnMouseDown, w.OnMouseMove, w.OnMouseUp, w.OnSizeChanged
-}
-
-func (tp TabPage) ContainerInfo() (DataBinder, Layout, []Widget) {
-	return tp.DataBinder, tp.Layout, tp.Children
 }

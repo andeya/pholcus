@@ -12,6 +12,20 @@ type actionListObserver interface {
 	onClearingActions() error
 }
 
+type nopActionListObserver struct{}
+
+func (nopActionListObserver) onInsertedAction(action *Action) error {
+	return nil
+}
+
+func (nopActionListObserver) onRemovingAction(action *Action) error {
+	return nil
+}
+
+func (nopActionListObserver) onClearingActions() error {
+	return nil
+}
+
 type ActionList struct {
 	actions  []*Action
 	observer actionListObserver

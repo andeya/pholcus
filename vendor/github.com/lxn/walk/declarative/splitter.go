@@ -11,21 +11,17 @@ import (
 )
 
 type HSplitter struct {
-	AssignTo           **walk.Splitter
-	Name               string
-	Enabled            Property
-	Visible            Property
-	Font               Font
-	ToolTipText        Property
-	MinSize            Size
-	MaxSize            Size
-	StretchFactor      int
-	Row                int
-	RowSpan            int
-	Column             int
-	ColumnSpan         int
-	AlwaysConsumeSpace bool
+	// Window
+
+	Background         Brush
 	ContextMenuItems   []MenuItem
+	DoubleBuffering    bool
+	Enabled            Property
+	Font               Font
+	MaxSize            Size
+	MinSize            Size
+	Name               string
+	OnBoundsChanged    walk.EventHandler
 	OnKeyDown          walk.KeyEventHandler
 	OnKeyPress         walk.KeyEventHandler
 	OnKeyUp            walk.KeyEventHandler
@@ -33,15 +29,41 @@ type HSplitter struct {
 	OnMouseMove        walk.MouseEventHandler
 	OnMouseUp          walk.MouseEventHandler
 	OnSizeChanged      walk.EventHandler
-	DataBinder         DataBinder
-	Children           []Widget
-	HandleWidth        int
+	Persistent         bool
+	RightToLeftReading bool
+	ToolTipText        Property
+	Visible            Property
+
+	// Widget
+
+	Alignment          Alignment2D
+	AlwaysConsumeSpace bool
+	Column             int
+	ColumnSpan         int
+	GraphicsEffects    []walk.WidgetGraphicsEffect
+	Row                int
+	RowSpan            int
+	StretchFactor      int
+
+	// Container
+
+	Children   []Widget
+	DataBinder DataBinder
+
+	// Splitter
+
+	AssignTo    **walk.Splitter
+	HandleWidth int
 }
 
 func (s HSplitter) Create(builder *Builder) error {
 	w, err := walk.NewHSplitter(builder.Parent())
 	if err != nil {
 		return err
+	}
+
+	if s.AssignTo != nil {
+		*s.AssignTo = w
 	}
 
 	w.SetSuspended(true)
@@ -57,38 +79,21 @@ func (s HSplitter) Create(builder *Builder) error {
 			}
 		}
 
-		if s.AssignTo != nil {
-			*s.AssignTo = w
-		}
-
 		return nil
 	})
 }
 
-func (w HSplitter) WidgetInfo() (name string, disabled, hidden bool, font *Font, toolTipText string, minSize, maxSize Size, stretchFactor, row, rowSpan, column, columnSpan int, alwaysConsumeSpace bool, contextMenuItems []MenuItem, OnKeyDown walk.KeyEventHandler, OnKeyPress walk.KeyEventHandler, OnKeyUp walk.KeyEventHandler, OnMouseDown walk.MouseEventHandler, OnMouseMove walk.MouseEventHandler, OnMouseUp walk.MouseEventHandler, OnSizeChanged walk.EventHandler) {
-	return w.Name, false, false, &w.Font, "", w.MinSize, w.MaxSize, w.StretchFactor, w.Row, w.RowSpan, w.Column, w.ColumnSpan, w.AlwaysConsumeSpace, w.ContextMenuItems, w.OnKeyDown, w.OnKeyPress, w.OnKeyUp, w.OnMouseDown, w.OnMouseMove, w.OnMouseUp, w.OnSizeChanged
-}
-
-func (s HSplitter) ContainerInfo() (DataBinder, Layout, []Widget) {
-	return s.DataBinder, nil, s.Children
-}
-
 type VSplitter struct {
-	AssignTo           **walk.Splitter
-	Name               string
-	Enabled            Property
-	Visible            Property
-	Font               Font
-	ToolTipText        Property
-	MinSize            Size
-	MaxSize            Size
-	StretchFactor      int
-	Row                int
-	RowSpan            int
-	Column             int
-	ColumnSpan         int
-	AlwaysConsumeSpace bool
+	// Window
+
+	Background         Brush
 	ContextMenuItems   []MenuItem
+	Enabled            Property
+	Font               Font
+	MaxSize            Size
+	MinSize            Size
+	Name               string
+	OnBoundsChanged    walk.EventHandler
 	OnKeyDown          walk.KeyEventHandler
 	OnKeyPress         walk.KeyEventHandler
 	OnKeyUp            walk.KeyEventHandler
@@ -96,9 +101,29 @@ type VSplitter struct {
 	OnMouseMove        walk.MouseEventHandler
 	OnMouseUp          walk.MouseEventHandler
 	OnSizeChanged      walk.EventHandler
-	DataBinder         DataBinder
-	Children           []Widget
-	HandleWidth        int
+	Persistent         bool
+	RightToLeftReading bool
+	ToolTipText        Property
+	Visible            Property
+
+	// Widget
+
+	AlwaysConsumeSpace bool
+	Column             int
+	ColumnSpan         int
+	Row                int
+	RowSpan            int
+	StretchFactor      int
+
+	// Container
+
+	Children   []Widget
+	DataBinder DataBinder
+
+	// Splitter
+
+	AssignTo    **walk.Splitter
+	HandleWidth int
 }
 
 func (s VSplitter) Create(builder *Builder) error {
@@ -107,6 +132,16 @@ func (s VSplitter) Create(builder *Builder) error {
 		return err
 	}
 
+	if s.AssignTo != nil {
+		*s.AssignTo = w
+	}
+
+	w.SetSuspended(true)
+	builder.Defer(func() error {
+		w.SetSuspended(false)
+		return nil
+	})
+
 	return builder.InitWidget(s, w, func() error {
 		if s.HandleWidth > 0 {
 			if err := w.SetHandleWidth(s.HandleWidth); err != nil {
@@ -114,18 +149,6 @@ func (s VSplitter) Create(builder *Builder) error {
 			}
 		}
 
-		if s.AssignTo != nil {
-			*s.AssignTo = w
-		}
-
 		return nil
 	})
-}
-
-func (w VSplitter) WidgetInfo() (name string, disabled, hidden bool, font *Font, toolTipText string, minSize, maxSize Size, stretchFactor, row, rowSpan, column, columnSpan int, alwaysConsumeSpace bool, contextMenuItems []MenuItem, OnKeyDown walk.KeyEventHandler, OnKeyPress walk.KeyEventHandler, OnKeyUp walk.KeyEventHandler, OnMouseDown walk.MouseEventHandler, OnMouseMove walk.MouseEventHandler, OnMouseUp walk.MouseEventHandler, OnSizeChanged walk.EventHandler) {
-	return w.Name, false, false, &w.Font, "", w.MinSize, w.MaxSize, w.StretchFactor, w.Row, w.RowSpan, w.Column, w.ColumnSpan, w.AlwaysConsumeSpace, w.ContextMenuItems, w.OnKeyDown, w.OnKeyPress, w.OnKeyUp, w.OnMouseDown, w.OnMouseMove, w.OnMouseUp, w.OnSizeChanged
-}
-
-func (s VSplitter) ContainerInfo() (DataBinder, Layout, []Widget) {
-	return s.DataBinder, nil, s.Children
 }

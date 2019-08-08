@@ -10,13 +10,11 @@ import (
 	"bytes"
 	"fmt"
 	"image"
-	"image/color"
+	"runtime"
 	"strings"
 	"syscall"
 	"unsafe"
-)
 
-import (
 	"github.com/lxn/win"
 )
 
@@ -49,6 +47,18 @@ type Window interface {
 	// parent.
 	Bounds() Rectangle
 
+	// BoundsPixels returns the outer bounding box Rectangle of the Window, including
+	// decorations.
+	//
+	// For a Form, like *MainWindow or *Dialog, the Rectangle is in screen
+	// coordinates, for a child Window the coordinates are relative to its
+	// parent.
+	BoundsPixels() Rectangle
+
+	// BoundsChanged returns an *Event that you can attach to for handling bounds
+	// changed events for the Window.
+	BoundsChanged() *Event
+
 	// BringToTop moves the Window to the top of the keyboard focus order.
 	BringToTop() error
 
@@ -56,13 +66,17 @@ type Window interface {
 	// excluding decorations.
 	ClientBounds() Rectangle
 
+	// ClientBoundsPixels returns the inner bounding box Rectangle of the Window,
+	// excluding decorations.
+	ClientBoundsPixels() Rectangle
+
 	// ContextMenu returns the context menu of the Window.
 	//
 	// By default this is nil.
 	ContextMenu() *Menu
 
 	// CreateCanvas creates and returns a *Canvas that can be used to draw
-	// inside the ClientBounds of the Window.
+	// inside the ClientBoundsPixels of the Window.
 	//
 	// Remember to call the Dispose method on the canvas to release resources,
 	// when you no longer need it.
@@ -85,6 +99,13 @@ type Window interface {
 	// of.
 	Disposing() *Event
 
+	// DoubleBuffering returns whether double buffering of the
+	// drawing is enabled, which may help reduce flicker.
+	DoubleBuffering() bool
+
+	// DPI returns the current DPI value of the Window.
+	DPI() int
+
 	// Enabled returns if the Window is enabled for user interaction.
 	Enabled() bool
 
@@ -105,6 +126,9 @@ type Window interface {
 
 	// Height returns the outer height of the Window, including decorations.
 	Height() int
+
+	// HeightPixels returns the outer height of the Window, including decorations.
+	HeightPixels() int
 
 	// Invalidate schedules a full repaint of the Window.
 	Invalidate() error
@@ -131,12 +155,26 @@ type Window interface {
 	// has a Layout. RootWidgets, like *MainWindow and *Dialog, also honor this.
 	MaxSize() Size
 
+	// MaxSizePixels returns the maximum allowed outer Size for the Window, including
+	// decorations.
+	//
+	// For child windows, this is only relevant when the parent of the Window
+	// has a Layout. RootWidgets, like *MainWindow and *Dialog, also honor this.
+	MaxSizePixels() Size
+
 	// MinSize returns the minimum allowed outer Size for the Window, including
 	// decorations.
 	//
 	// For child windows, this is only relevant when the parent of the Window
 	// has a Layout. RootWidgets, like *MainWindow and *Dialog, also honor this.
 	MinSize() Size
+
+	// MinSizePixels returns the minimum allowed outer Size for the Window, including
+	// decorations.
+	//
+	// For child windows, this is only relevant when the parent of the Window
+	// has a Layout. RootWidgets, like *MainWindow and *Dialog, also honor this.
+	MinSizePixels() Size
 
 	// MouseDown returns a *MouseEvent that you can attach to for handling
 	// mouse down events for the Window.
@@ -152,6 +190,10 @@ type Window interface {
 
 	// Name returns the name of the Window.
 	Name() string
+
+	// RightToLeftReading returns whether the reading order of the Window
+	// is from right to left.
+	RightToLeftReading() bool
 
 	// Screenshot returns an image of the window.
 	Screenshot() (*image.RGBA, error)
@@ -170,15 +212,31 @@ type Window interface {
 	// parent.
 	SetBounds(value Rectangle) error
 
+	// SetBoundsPixels sets the outer bounding box Rectangle of the Window, including
+	// decorations.
+	//
+	// For a Form, like *MainWindow or *Dialog, the Rectangle is in screen
+	// coordinates, for a child Window the coordinates are relative to its
+	// parent.
+	SetBoundsPixels(value Rectangle) error
+
 	// SetClientSize sets the Size of the inner bounding box of the Window,
 	// excluding decorations.
 	SetClientSize(value Size) error
+
+	// SetClientSizePixels sets the Size of the inner bounding box of the Window,
+	// excluding decorations.
+	SetClientSizePixels(value Size) error
 
 	// SetContextMenu sets the context menu of the Window.
 	SetContextMenu(value *Menu)
 
 	// SetCursor sets the Cursor of the Window.
 	SetCursor(value Cursor)
+
+	// SetDoubleBuffering enables or disables double buffering of the
+	// drawing, which may help reduce flicker.
+	SetDoubleBuffering(value bool) error
 
 	// SetEnabled sets if the Window is enabled for user interaction.
 	SetEnabled(value bool)
@@ -192,11 +250,20 @@ type Window interface {
 	// SetHeight sets the outer height of the Window, including decorations.
 	SetHeight(value int) error
 
+	// SetHeightPixels sets the outer height of the Window, including decorations.
+	SetHeightPixels(value int) error
+
 	// SetMinMaxSize sets the minimum and maximum outer Size of the Window,
 	// including decorations.
 	//
 	// Use walk.Size{} to make the respective limit be ignored.
 	SetMinMaxSize(min, max Size) error
+
+	// SetMinMaxSizePixels sets the minimum and maximum outer Size of the Window,
+	// including decorations.
+	//
+	// Use walk.Size{} to make the respective limit be ignored.
+	SetMinMaxSizePixels(min, max Size) error
 
 	// SetName sets the name of the Window.
 	//
@@ -205,8 +272,15 @@ type Window interface {
 	// details.
 	SetName(name string)
 
+	// SetRightToLeftReading sets whether the reading order of the Window
+	// is from right to left.
+	SetRightToLeftReading(rtl bool) error
+
 	// SetSize sets the outer Size of the Window, including decorations.
 	SetSize(value Size) error
+
+	// SetSizePixels sets the outer Size of the Window, including decorations.
+	SetSizePixels(value Size) error
 
 	// SetSuspended sets if the Window is suspended for layout and repainting
 	// purposes.
@@ -222,18 +296,34 @@ type Window interface {
 	// SetWidth sets the outer width of the Window, including decorations.
 	SetWidth(value int) error
 
+	// SetWidthPixels sets the outer width of the Window, including decorations.
+	SetWidthPixels(value int) error
+
 	// SetX sets the x coordinate of the Window, relative to the screen for
 	// RootWidgets like *MainWindow or *Dialog and relative to the parent for
 	// child Windows.
 	SetX(value int) error
+
+	// SetXPixels sets the x coordinate of the Window, relative to the screen for
+	// RootWidgets like *MainWindow or *Dialog and relative to the parent for
+	// child Windows.
+	SetXPixels(value int) error
 
 	// SetY sets the y coordinate of the Window, relative to the screen for
 	// RootWidgets like *MainWindow or *Dialog and relative to the parent for
 	// child Windows.
 	SetY(value int) error
 
+	// SetYPixels sets the y coordinate of the Window, relative to the screen for
+	// RootWidgets like *MainWindow or *Dialog and relative to the parent for
+	// child Windows.
+	SetYPixels(value int) error
+
 	// Size returns the outer Size of the Window, including decorations.
 	Size() Size
+
+	// SizePixels returns the outer Size of the Window, including decorations.
+	SizePixels() Size
 
 	// SizeChanged returns an *Event that you can attach to for handling size
 	// changed events for the Window.
@@ -250,8 +340,15 @@ type Window interface {
 	// Visible returns if the Window is visible.
 	Visible() bool
 
+	// VisibleChanged returns an Event that you can attach to for handling
+	// visible changed events for the Window.
+	VisibleChanged() *Event
+
 	// Width returns the outer width of the Window, including decorations.
 	Width() int
+
+	// WidthPixels returns the outer width of the Window, including decorations.
+	WidthPixels() int
 
 	// WndProc is the window procedure of the window.
 	//
@@ -264,20 +361,41 @@ type Window interface {
 	// child Windows.
 	X() int
 
+	// XPixels returns the x coordinate of the Window, relative to the screen for
+	// RootWidgets like *MainWindow or *Dialog and relative to the parent for
+	// child Windows.
+	XPixels() int
+
 	// Y returns the y coordinate of the Window, relative to the screen for
 	// RootWidgets like *MainWindow or *Dialog and relative to the parent for
 	// child Windows.
 	Y() int
+
+	// YPixels returns the y coordinate of the Window, relative to the screen for
+	// RootWidgets like *MainWindow or *Dialog and relative to the parent for
+	// child Windows.
+	YPixels() int
+}
+
+type calcTextSizeInfo struct {
+	width int
+	font  fontInfo
+	text  string
+	size  Size
+	dpi   int
 }
 
 // WindowBase implements many operations common to all Windows.
 type WindowBase struct {
+	nopActionListObserver
 	window                  Window
 	hWnd                    win.HWND
 	origWndProcPtr          uintptr
 	name                    string
 	font                    *Font
+	hFont                   win.HFONT
 	contextMenu             *Menu
+	shortcutActions         *ActionList
 	disposables             []Disposable
 	disposingPublisher      EventPublisher
 	dropFilesPublisher      DropFilesEventPublisher
@@ -288,14 +406,12 @@ type WindowBase struct {
 	mouseUpPublisher        MouseEventPublisher
 	mouseMovePublisher      MouseEventPublisher
 	mouseWheelPublisher     MouseEventPublisher
+	boundsChangedPublisher  EventPublisher
 	sizeChangedPublisher    EventPublisher
 	maxSize                 Size
 	minSize                 Size
 	background              Brush
 	cursor                  Cursor
-	suspended               bool
-	visible                 bool
-	enabled                 bool
 	name2Property           map[string]Property
 	enabledProperty         Property
 	enabledChangedPublisher EventPublisher
@@ -303,6 +419,10 @@ type WindowBase struct {
 	visibleChangedPublisher EventPublisher
 	focusedProperty         Property
 	focusedChangedPublisher EventPublisher
+	calcTextSizeInfoPrev    *calcTextSizeInfo
+	suspended               bool
+	visible                 bool
+	enabled                 bool
 }
 
 var (
@@ -321,7 +441,15 @@ func MustRegisterWindowClass(className string) {
 	MustRegisterWindowClassWithWndProcPtr(className, defaultWndProcPtr)
 }
 
+func MustRegisterWindowClassWithStyle(className string, style uint32) {
+	MustRegisterWindowClassWithWndProcPtrAndStyle(className, defaultWndProcPtr, style)
+}
+
 func MustRegisterWindowClassWithWndProcPtr(className string, wndProcPtr uintptr) {
+	MustRegisterWindowClassWithWndProcPtrAndStyle(className, wndProcPtr, 0)
+}
+
+func MustRegisterWindowClassWithWndProcPtrAndStyle(className string, wndProcPtr uintptr, style uint32) {
 	if registeredWindowClasses[className] {
 		panic("window class already registered")
 	}
@@ -331,12 +459,15 @@ func MustRegisterWindowClassWithWndProcPtr(className string, wndProcPtr uintptr)
 		panic("GetModuleHandle")
 	}
 
-	hIcon := win.LoadIcon(0, (*uint16)(unsafe.Pointer(uintptr(win.IDI_APPLICATION))))
+	hIcon := win.LoadIcon(hInst, win.MAKEINTRESOURCE(7)) // rsrc uses 7 for app icon
+	if hIcon == 0 {
+		hIcon = win.LoadIcon(0, win.MAKEINTRESOURCE(win.IDI_APPLICATION))
+	}
 	if hIcon == 0 {
 		panic("LoadIcon")
 	}
 
-	hCursor := win.LoadCursor(0, (*uint16)(unsafe.Pointer(uintptr(win.IDC_ARROW))))
+	hCursor := win.LoadCursor(0, win.MAKEINTRESOURCE(win.IDC_ARROW))
 	if hCursor == 0 {
 		panic("LoadCursor")
 	}
@@ -349,6 +480,7 @@ func MustRegisterWindowClassWithWndProcPtr(className string, wndProcPtr uintptr)
 	wc.HCursor = hCursor
 	wc.HbrBackground = win.COLOR_BTNFACE + 1
 	wc.LpszClassName = syscall.StringToUTF16Ptr(className)
+	wc.Style = style
 
 	if atom := win.RegisterClassEx(&wc); atom == 0 {
 		panic("RegisterClassEx")
@@ -357,10 +489,16 @@ func MustRegisterWindowClassWithWndProcPtr(className string, wndProcPtr uintptr)
 	registeredWindowClasses[className] = true
 }
 
+var lockedOSThread bool
+
 // InitWindow initializes a window.
 //
 // Widgets should be initialized using InitWidget instead.
 func InitWindow(window, parent Window, className string, style, exStyle uint32) error {
+	if !lockedOSThread {
+		runtime.LockOSThread()
+	}
+
 	wb := window.AsWindowBase()
 	wb.window = window
 	wb.enabled = true
@@ -369,31 +507,44 @@ func InitWindow(window, parent Window, className string, style, exStyle uint32) 
 	wb.name2Property = make(map[string]Property)
 
 	var hwndParent win.HWND
+	var hMenu win.HMENU
 	if parent != nil {
 		hwndParent = parent.Handle()
 
 		if widget, ok := window.(Widget); ok {
 			if container, ok := parent.(Container); ok {
+				if cb := container.AsContainerBase(); cb != nil {
+					hMenu = win.HMENU(cb.NextChildID())
+				}
 				widget.AsWidgetBase().parent = container
 			}
 		}
 	}
 
-	wb.hWnd = win.CreateWindowEx(
-		exStyle,
-		syscall.StringToUTF16Ptr(className),
-		nil,
-		style|win.WS_CLIPSIBLINGS,
-		win.CW_USEDEFAULT,
-		win.CW_USEDEFAULT,
-		win.CW_USEDEFAULT,
-		win.CW_USEDEFAULT,
-		hwndParent,
-		0,
-		0,
-		nil)
-	if wb.hWnd == 0 {
-		return lastError("CreateWindowEx")
+	var windowName *uint16
+	if len(wb.name) != 0 {
+		windowName = syscall.StringToUTF16Ptr(wb.name)
+	}
+
+	if hwnd := window.Handle(); hwnd == 0 {
+		wb.hWnd = win.CreateWindowEx(
+			exStyle,
+			syscall.StringToUTF16Ptr(className),
+			windowName,
+			style|win.WS_CLIPSIBLINGS,
+			win.CW_USEDEFAULT,
+			win.CW_USEDEFAULT,
+			win.CW_USEDEFAULT,
+			win.CW_USEDEFAULT,
+			hwndParent,
+			hMenu,
+			0,
+			nil)
+		if wb.hWnd == 0 {
+			return lastError("CreateWindowEx")
+		}
+	} else {
+		wb.hWnd = hwnd
 	}
 
 	succeeded := false
@@ -413,7 +564,7 @@ func InitWindow(window, parent Window, className string, style, exStyle uint32) 
 		}
 	}
 
-	setWindowFont(wb.hWnd, defaultFont)
+	SetWindowFont(wb.hWnd, defaultFont)
 
 	if form, ok := window.(Form); ok {
 		if fb := form.AsFormBase(); fb != nil {
@@ -443,7 +594,7 @@ func InitWindow(window, parent Window, className string, style, exStyle uint32) 
 
 	wb.visibleProperty = NewBoolProperty(
 		func() bool {
-			return window.Visible()
+			return window.AsWindowBase().visible
 		},
 		func(b bool) error {
 			wb.window.SetVisible(b)
@@ -453,7 +604,7 @@ func InitWindow(window, parent Window, className string, style, exStyle uint32) 
 
 	wb.focusedProperty = NewReadOnlyBoolProperty(
 		func() bool {
-			return wb.Focused()
+			return wb.window.Focused()
 		},
 		wb.focusedChangedPublisher.Event())
 
@@ -476,18 +627,15 @@ func InitWrapperWindow(window Window) error {
 
 	wb.window = window
 
-	if widget, ok := window.(Widget); ok {
-		widgetBase := widget.AsWidgetBase()
+	if container, ok := window.(Container); ok {
+		children := container.Children()
 
-		if widgetBase.parent != nil {
-			children := widgetBase.parent.Children().items
+		if wlo, ok := window.(widgetListObserver); ok {
+			children.observer = wlo
+		}
 
-			for i, w := range children {
-				if w.AsWidgetBase() == widgetBase {
-					children[i] = widget
-					break
-				}
-			}
+		for _, child := range children.items {
+			child.parent = container
 		}
 	}
 
@@ -510,20 +658,36 @@ func (wb *WindowBase) Property(name string) Property {
 }
 
 func (wb *WindowBase) hasStyleBits(bits uint32) bool {
-	style := uint32(win.GetWindowLong(wb.hWnd, win.GWL_STYLE))
+	return hasWindowLongBits(wb.hWnd, win.GWL_STYLE, bits)
+}
 
-	return style&bits == bits
+func (wb *WindowBase) hasExtendedStyleBits(bits uint32) bool {
+	return hasWindowLongBits(wb.hWnd, win.GWL_EXSTYLE, bits)
+}
+
+func hasWindowLongBits(hwnd win.HWND, index int32, bits uint32) bool {
+	value := uint32(win.GetWindowLong(hwnd, index))
+
+	return value&bits == bits
 }
 
 func (wb *WindowBase) setAndClearStyleBits(set, clear uint32) error {
-	style := uint32(win.GetWindowLong(wb.hWnd, win.GWL_STYLE))
-	if style == 0 {
+	return setAndClearWindowLongBits(wb.hWnd, win.GWL_STYLE, set, clear)
+}
+
+func (wb *WindowBase) setAndClearExtendedStyleBits(set, clear uint32) error {
+	return setAndClearWindowLongBits(wb.hWnd, win.GWL_EXSTYLE, set, clear)
+}
+
+func setAndClearWindowLongBits(hwnd win.HWND, index int32, set, clear uint32) error {
+	value := uint32(win.GetWindowLong(hwnd, index))
+	if value == 0 {
 		return lastError("GetWindowLong")
 	}
 
-	if newStyle := style&^clear | set; newStyle != style {
+	if newValue := value&^clear | set; newValue != value {
 		win.SetLastError(0)
-		if win.SetWindowLong(wb.hWnd, win.GWL_STYLE, int32(newStyle)) == 0 {
+		if win.SetWindowLong(hwnd, index, int32(newValue)) == 0 {
 			return lastError("SetWindowLong")
 		}
 	}
@@ -532,6 +696,14 @@ func (wb *WindowBase) setAndClearStyleBits(set, clear uint32) error {
 }
 
 func (wb *WindowBase) ensureStyleBits(bits uint32, set bool) error {
+	return ensureWindowLongBits(wb.hWnd, win.GWL_STYLE, bits, set)
+}
+
+func (wb *WindowBase) ensureExtendedStyleBits(bits uint32, set bool) error {
+	return ensureWindowLongBits(wb.hWnd, win.GWL_EXSTYLE, bits, set)
+}
+
+func ensureWindowLongBits(hwnd win.HWND, index int32, bits uint32, set bool) error {
 	var setBits uint32
 	var clearBits uint32
 	if set {
@@ -539,7 +711,7 @@ func (wb *WindowBase) ensureStyleBits(bits uint32, set bool) error {
 	} else {
 		clearBits = bits
 	}
-	return wb.setAndClearStyleBits(setBits, clearBits)
+	return setAndClearWindowLongBits(hwnd, index, setBits, clearBits)
 }
 
 // Handle returns the window handle of the Window.
@@ -605,6 +777,10 @@ func (wb *WindowBase) Dispose() {
 		d.Dispose()
 	}
 
+	if wb.background != nil {
+		wb.background.detachWindow(wb)
+	}
+
 	hWnd := wb.hWnd
 	if hWnd != 0 {
 		wb.disposingPublisher.Publish()
@@ -654,6 +830,17 @@ func (wb *WindowBase) SetContextMenu(value *Menu) {
 	wb.contextMenu = value
 }
 
+// ShortcutActions returns the list of actions that will be triggered if their
+// shortcut is pressed when this window or one of its descendants has the
+// keyboard focus.
+func (wb *WindowBase) ShortcutActions() *ActionList {
+	if wb.shortcutActions == nil {
+		wb.shortcutActions = newActionList(wb)
+	}
+
+	return wb.shortcutActions
+}
+
 // Background returns the background Brush of the *WindowBase.
 //
 // By default this is nil.
@@ -662,10 +849,28 @@ func (wb *WindowBase) Background() Brush {
 }
 
 // SetBackground sets the background Brush of the *WindowBase.
-func (wb *WindowBase) SetBackground(value Brush) {
-	wb.background = value
+func (wb *WindowBase) SetBackground(background Brush) {
+	if wb.background != nil {
+		wb.background.detachWindow(wb)
+	}
+
+	wb.background = background
+
+	if background != nil {
+		background.attachWindow(wb)
+	}
 
 	wb.Invalidate()
+
+	// Sliders need some extra encouragement...
+	walkDescendants(wb, func(w Window) bool {
+		if s, ok := w.(*Slider); ok {
+			s.SetRange(s.MinValue(), s.MaxValue()+1)
+			s.SetRange(s.MinValue(), s.MaxValue()-1)
+		}
+
+		return true
+	})
 }
 
 // Cursor returns the Cursor of the *WindowBase.
@@ -680,6 +885,81 @@ func (wb *WindowBase) SetCursor(value Cursor) {
 	wb.cursor = value
 }
 
+// DoubleBuffering returns whether double buffering of the
+// drawing is enabled, which may help reduce flicker.
+func (wb *WindowBase) DoubleBuffering() bool {
+	return wb.hasExtendedStyleBits(win.WS_EX_COMPOSITED)
+}
+
+// SetDoubleBuffering enables or disables double buffering of the
+// drawing, which may help reduce flicker.
+func (wb *WindowBase) SetDoubleBuffering(enabled bool) error {
+	return wb.ensureExtendedStyleBits(win.WS_EX_COMPOSITED, enabled)
+}
+
+type ApplySysColorser interface {
+	ApplySysColors()
+}
+
+func (wb *WindowBase) ApplySysColors() {
+	wb.Invalidate()
+}
+
+// DPI returns the current DPI value of the WindowBase.
+func (wb *WindowBase) DPI() int {
+	return int(win.GetDpiForWindow(wb.hWnd))
+}
+
+type ApplyDPIer interface {
+	ApplyDPI(dpi int)
+}
+
+func (wb *WindowBase) ApplyDPI(dpi int) {
+	if af, ok := wb.window.(applyFonter); ok {
+		af.applyFont(wb.window.Font())
+	}
+}
+
+func (wb *WindowBase) IntFrom96DPI(value int) int {
+	return IntFrom96DPI(value, wb.DPI())
+}
+
+func (wb *WindowBase) IntTo96DPI(value int) int {
+	return IntTo96DPI(value, wb.DPI())
+}
+
+func (wb *WindowBase) MarginsFrom96DPI(value Margins) Margins {
+	return MarginsFrom96DPI(value, wb.DPI())
+}
+
+func (wb *WindowBase) MarginsTo96DPI(value Margins) Margins {
+	return MarginsTo96DPI(value, wb.DPI())
+}
+
+func (wb *WindowBase) PointFrom96DPI(value Point) Point {
+	return PointFrom96DPI(value, wb.DPI())
+}
+
+func (wb *WindowBase) PointTo96DPI(value Point) Point {
+	return PointTo96DPI(value, wb.DPI())
+}
+
+func (wb *WindowBase) RectangleFrom96DPI(value Rectangle) Rectangle {
+	return RectangleFrom96DPI(value, wb.DPI())
+}
+
+func (wb *WindowBase) RectangleTo96DPI(value Rectangle) Rectangle {
+	return RectangleTo96DPI(value, wb.DPI())
+}
+
+func (wb *WindowBase) SizeFrom96DPI(value Size) Size {
+	return SizeFrom96DPI(value, wb.DPI())
+}
+
+func (wb *WindowBase) SizeTo96DPI(value Size) Size {
+	return SizeTo96DPI(value, wb.DPI())
+}
+
 // Enabled returns if the *WindowBase is enabled for user interaction.
 func (wb *WindowBase) Enabled() bool {
 	return wb.enabled
@@ -690,6 +970,10 @@ func (wb *WindowBase) SetEnabled(enabled bool) {
 	wb.enabled = enabled
 
 	wb.window.(applyEnableder).applyEnabled(wb.window.Enabled())
+
+	if widget, ok := wb.window.(Widget); ok {
+		widget.AsWidgetBase().invalidateBorderInParent()
+	}
 
 	wb.enabledChangedPublisher.Publish()
 }
@@ -732,12 +1016,35 @@ type applyFonter interface {
 	applyFont(font *Font)
 }
 
-func (wb *WindowBase) applyFont(font *Font) {
-	setWindowFont(wb.hWnd, font)
+type ApplyFonter interface {
+	ApplyFont(font *Font)
 }
 
-func setWindowFont(hwnd win.HWND, font *Font) {
-	win.SendMessage(hwnd, win.WM_SETFONT, uintptr(font.handleForDPI(0)), 1)
+func (wb *WindowBase) applyFont(font *Font) {
+	if hFont := font.handleForDPI(wb.DPI()); hFont != wb.hFont {
+		wb.hFont = hFont
+
+		setWindowFont(wb.hWnd, hFont)
+	}
+
+	if af, ok := wb.window.(ApplyFonter); ok {
+		af.ApplyFont(font)
+	}
+}
+
+func SetWindowFont(hwnd win.HWND, font *Font) {
+	dpi := int(win.GetDpiForWindow(hwnd))
+	setWindowFont(hwnd, font.handleForDPI(dpi))
+}
+
+func setWindowFont(hwnd win.HWND, hFont win.HFONT) {
+	win.SendMessage(hwnd, win.WM_SETFONT, uintptr(hFont), 1)
+
+	if window := windowFromHandle(hwnd); window != nil {
+		if widget, ok := window.(Widget); ok {
+			widget.AsWidgetBase().updateParentLayoutWithReset(false)
+		}
+	}
 }
 
 // Suspended returns if the *WindowBase is suspended for layout and repainting
@@ -783,6 +1090,23 @@ func (wb *WindowBase) Invalidate() error {
 	return nil
 }
 
+func (wb *WindowBase) text() string {
+	return windowText(wb.hWnd)
+}
+
+func (wb *WindowBase) setText(text string) error {
+	if err := setWindowText(wb.hWnd, text); err != nil {
+		return err
+	}
+
+	if wb.calcTextSizeInfoPrev != nil {
+		wb.calcTextSizeInfoPrev.font.family = ""
+		wb.calcTextSizeInfoPrev.text = text
+	}
+
+	return nil
+}
+
 func windowText(hwnd win.HWND) string {
 	textLength := win.SendMessage(hwnd, win.WM_GETTEXTLENGTH, 0, 0)
 	buf := make([]uint16, textLength+1)
@@ -798,6 +1122,64 @@ func setWindowText(hwnd win.HWND, text string) error {
 	return nil
 }
 
+func (wb *WindowBase) RestoreState() (err error) {
+	wb.ForEachDescendant(func(widget Widget) bool {
+		if persistable, ok := widget.(Persistable); ok && persistable.Persistent() {
+			if err = persistable.RestoreState(); err != nil {
+				return false
+			}
+		}
+
+		if _, ok := widget.(Container); ok {
+			return false
+		}
+
+		return true
+	})
+
+	return
+}
+
+func (wb *WindowBase) SaveState() (err error) {
+	wb.ForEachDescendant(func(widget Widget) bool {
+		if persistable, ok := widget.(Persistable); ok && persistable.Persistent() {
+			if err = persistable.SaveState(); err != nil {
+				return false
+			}
+		}
+
+		if _, ok := widget.(Container); ok {
+			return false
+		}
+
+		return true
+	})
+
+	return
+}
+
+func forEachDescendant(hwnd win.HWND, lParam uintptr) uintptr {
+	if window := windowFromHandle(hwnd); window != nil && forEachDescendantCallback(window.(Widget)) {
+		return 1
+	}
+
+	return 0
+}
+
+var (
+	forEachDescendantCallbackPtr = syscall.NewCallback(forEachDescendant)
+	forEachDescendantCallback    func(widget Widget) bool
+)
+
+func (wb *WindowBase) ForEachDescendant(f func(widget Widget) bool) {
+	forEachDescendantCallback = f
+	defer func() {
+		forEachDescendantCallback = nil
+	}()
+
+	win.EnumChildWindows(wb.hWnd, forEachDescendantCallbackPtr, 0)
+}
+
 // Visible returns if the *WindowBase is visible.
 func (wb *WindowBase) Visible() bool {
 	return win.IsWindowVisible(wb.hWnd)
@@ -805,21 +1187,41 @@ func (wb *WindowBase) Visible() bool {
 
 // SetVisible sets if the *WindowBase is visible.
 func (wb *WindowBase) SetVisible(visible bool) {
+	old := wb.Visible()
+
 	setWindowVisible(wb.hWnd, visible)
 
 	wb.visible = visible
 
+	walkDescendants(wb.window, func(w Window) bool {
+		w.AsWindowBase().visibleChangedPublisher.Publish()
+
+		return true
+	})
+
+	if visible == old {
+		return
+	}
+
 	if widget, ok := wb.window.(Widget); ok {
-		widget.AsWidgetBase().updateParentLayout()
+		wb := widget.AsWidgetBase()
+		wb.invalidateBorderInParent()
+		wb.updateParentLayoutWithReset(true)
 	}
 
 	wb.visibleChangedPublisher.Publish()
 }
 
+// VisibleChanged returns an Event that you can attach to for handling
+// visible changed events for the Window.
+func (wb *WindowBase) VisibleChanged() *Event {
+	return wb.visibleChangedPublisher.Event()
+}
+
 func setWindowVisible(hwnd win.HWND, visible bool) {
 	var cmd int32
 	if visible {
-		cmd = win.SW_SHOW
+		cmd = win.SW_SHOWNA
 	} else {
 		cmd = win.SW_HIDE
 	}
@@ -840,6 +1242,23 @@ func (wb *WindowBase) BringToTop() error {
 //
 // The coordinates are relative to the screen.
 func (wb *WindowBase) Bounds() Rectangle {
+	return wb.RectangleTo96DPI(wb.BoundsPixels())
+}
+
+// SetBounds sets the outer bounding box Rectangle of the *WindowBase,
+// including decorations.
+//
+// For a Form, like *MainWindow or *Dialog, the Rectangle is in screen
+// coordinates, for a child Window the coordinates are relative to its parent.
+func (wb *WindowBase) SetBounds(bounds Rectangle) error {
+	return wb.SetBoundsPixels(wb.RectangleFrom96DPI(bounds))
+}
+
+// BoundsPixels returns the outer bounding box Rectangle of the *WindowBase, including
+// decorations.
+//
+// The coordinates are relative to the screen.
+func (wb *WindowBase) BoundsPixels() Rectangle {
 	var r win.RECT
 
 	if !win.GetWindowRect(wb.hWnd, &r) {
@@ -855,12 +1274,12 @@ func (wb *WindowBase) Bounds() Rectangle {
 	}
 }
 
-// SetBounds sets the outer bounding box Rectangle of the *WindowBase,
+// SetBoundsPixels sets the outer bounding box Rectangle of the *WindowBase,
 // including decorations.
 //
 // For a Form, like *MainWindow or *Dialog, the Rectangle is in screen
 // coordinates, for a child Window the coordinates are relative to its parent.
-func (wb *WindowBase) SetBounds(bounds Rectangle) error {
+func (wb *WindowBase) SetBoundsPixels(bounds Rectangle) error {
 	if !win.MoveWindow(
 		wb.hWnd,
 		int32(bounds.X),
@@ -884,6 +1303,15 @@ func (wb *WindowBase) MinSize() Size {
 	return wb.minSize
 }
 
+// MinSizePixels returns the minimum allowed outer Size for the *WindowBase, including
+// decorations.
+//
+// For child windows, this is only relevant when the parent of the *WindowBase
+// has a Layout. RootWidgets, like *MainWindow and *Dialog, also honor this.
+func (wb *WindowBase) MinSizePixels() Size {
+	return wb.SizeFrom96DPI(wb.minSize)
+}
+
 // MaxSize returns the maximum allowed outer Size for the *WindowBase, including
 // decorations.
 //
@@ -891,6 +1319,15 @@ func (wb *WindowBase) MinSize() Size {
 // has a Layout. RootWidgets, like *MainWindow and *Dialog, also honor this.
 func (wb *WindowBase) MaxSize() Size {
 	return wb.maxSize
+}
+
+// MaxSizePixels returns the maximum allowed outer Size for the *WindowBase, including
+// decorations.
+//
+// For child windows, this is only relevant when the parent of the *WindowBase
+// has a Layout. RootWidgets, like *MainWindow and *Dialog, also honor this.
+func (wb *WindowBase) MaxSizePixels() Size {
+	return wb.SizeFrom96DPI(wb.maxSize)
 }
 
 // SetMinMaxSize sets the minimum and maximum outer Size of the *WindowBase,
@@ -905,24 +1342,48 @@ func (wb *WindowBase) SetMinMaxSize(min, max Size) error {
 		max.Height > 0 && max.Height < min.Height {
 		return newError("max must be greater as or equal to min")
 	}
-
 	wb.minSize = min
 	wb.maxSize = max
-
 	return nil
 }
 
-var dialogBaseUnitsUTF16StringPtr = syscall.StringToUTF16Ptr("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+// SetMinMaxSizePixels sets the minimum and maximum outer Size of the *WindowBase,
+// including decorations.
+//
+// Use walk.Size{} to make the respective limit be ignored.
+func (wb *WindowBase) SetMinMaxSizePixels(min, max Size) error {
+	return wb.SetMinMaxSize(wb.SizeTo96DPI(min), wb.SizeTo96DPI(max))
+}
+
+type fontInfoAndDPI struct {
+	fontInfo
+	dpi int
+}
+
+var (
+	dialogBaseUnitsUTF16StringPtr  = syscall.StringToUTF16Ptr("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
+	fontInfoAndDPI2DialogBaseUnits = make(map[fontInfoAndDPI]Size)
+)
 
 func (wb *WindowBase) dialogBaseUnits() Size {
 	// The window may use a font different from that in WindowBase,
 	// like e.g. NumberEdit does, so we try to use the right one.
-	window := windowFromHandle(wb.hWnd)
+	font := wb.window.Font()
+	fi := fontInfoAndDPI{
+		fontInfo: fontInfo{
+			family:    font.Family(),
+			pointSize: font.PointSize(),
+			style:     font.Style(),
+		},
+		dpi: wb.DPI()}
+	if s, ok := fontInfoAndDPI2DialogBaseUnits[fi]; ok {
+		return s
+	}
 
 	hdc := win.GetDC(wb.hWnd)
 	defer win.ReleaseDC(wb.hWnd, hdc)
 
-	hFont := window.Font().handleForDPI(0)
+	hFont := font.handleForDPI(wb.DPI())
 	hFontOld := win.SelectObject(hdc, win.HGDIOBJ(hFont))
 	defer win.SelectObject(hdc, win.HGDIOBJ(hFontOld))
 
@@ -940,11 +1401,14 @@ func (wb *WindowBase) dialogBaseUnits() Size {
 		newError("GetTextExtentPoint32 failed")
 	}
 
-	return Size{int((size.CX/26 + 1) / 2), int(tm.TmHeight)}
+	s := Size{int((size.CX/26 + 1) / 2), int(tm.TmHeight)}
+
+	fontInfoAndDPI2DialogBaseUnits[fi] = s
+
+	return s
 }
 
 func (wb *WindowBase) dialogBaseUnitsToPixels(dlus Size) (pixels Size) {
-	// FIXME: Cache dialog base units on font change.
 	base := wb.dialogBaseUnits()
 
 	return Size{
@@ -954,109 +1418,230 @@ func (wb *WindowBase) dialogBaseUnitsToPixels(dlus Size) (pixels Size) {
 }
 
 func (wb *WindowBase) calculateTextSizeImpl(text string) Size {
-	hdc := win.GetDC(wb.hWnd)
-	if hdc == 0 {
-		newError("GetDC failed")
-		return Size{}
-	}
-	defer win.ReleaseDC(wb.hWnd, hdc)
+	return wb.calculateTextSizeImplForWidth(text, 0)
+}
 
-	hFontOld := win.SelectObject(hdc, win.HGDIOBJ(wb.window.Font().handleForDPI(0)))
-	defer win.SelectObject(hdc, hFontOld)
+func (wb *WindowBase) calculateTextSizeImplForWidth(text string, width int) Size {
+	font := wb.window.Font()
+
+	dpi := wb.DPI()
+
+	if wb.calcTextSizeInfoPrev != nil &&
+		width == wb.calcTextSizeInfoPrev.width &&
+		font.family == wb.calcTextSizeInfoPrev.font.family &&
+		font.pointSize == wb.calcTextSizeInfoPrev.font.pointSize &&
+		font.style == wb.calcTextSizeInfoPrev.font.style &&
+		text == wb.calcTextSizeInfoPrev.text &&
+		dpi == wb.calcTextSizeInfoPrev.dpi {
+		return wb.calcTextSizeInfoPrev.size
+	}
+
+	if wb.calcTextSizeInfoPrev != nil && dpi != wb.calcTextSizeInfoPrev.dpi {
+		width = int(float64(width) * float64(dpi) / float64(wb.calcTextSizeInfoPrev.dpi))
+	}
 
 	var size Size
-	lines := strings.Split(text, "\n")
+	if width > 0 {
+		canvas, err := wb.CreateCanvas()
+		if err != nil {
+			return size
+		}
+		defer canvas.Dispose()
 
-	for _, line := range lines {
-		var s win.SIZE
-		str := syscall.StringToUTF16(strings.TrimRight(line, "\r "))
-
-		if !win.GetTextExtentPoint32(hdc, &str[0], int32(len(str)-1), &s) {
-			newError("GetTextExtentPoint32 failed")
-			return Size{}
+		bounds, _, err := canvas.measureTextForDPI(text, font, Rectangle{Width: width, Height: 9999999}, 0, dpi)
+		if err != nil {
+			return size
 		}
 
-		size.Width = maxi(size.Width, int(s.CX))
-		size.Height += int(s.CY)
+		size = bounds.Size()
+	} else {
+		hdc := win.GetDC(wb.hWnd)
+		if hdc == 0 {
+			newError("GetDC failed")
+			return Size{}
+		}
+		defer win.ReleaseDC(wb.hWnd, hdc)
+
+		hFontOld := win.SelectObject(hdc, win.HGDIOBJ(font.handleForDPI(dpi)))
+		defer win.SelectObject(hdc, hFontOld)
+
+		lines := strings.Split(text, "\n")
+
+		for _, line := range lines {
+			var s win.SIZE
+			str := syscall.StringToUTF16(strings.TrimRight(line, "\r "))
+
+			if !win.GetTextExtentPoint32(hdc, &str[0], int32(len(str)-1), &s) {
+				newError("GetTextExtentPoint32 failed")
+				return Size{}
+			}
+
+			size.Width = maxi(size.Width, int(s.CX))
+			size.Height += int(s.CY)
+		}
 	}
+
+	if wb.calcTextSizeInfoPrev == nil {
+		wb.calcTextSizeInfoPrev = new(calcTextSizeInfo)
+	}
+
+	wb.calcTextSizeInfoPrev.width = width
+	wb.calcTextSizeInfoPrev.font.family = font.family
+	wb.calcTextSizeInfoPrev.font.pointSize = font.pointSize
+	wb.calcTextSizeInfoPrev.font.style = font.style
+	wb.calcTextSizeInfoPrev.text = text
+	wb.calcTextSizeInfoPrev.size = size
+	wb.calcTextSizeInfoPrev.dpi = dpi
 
 	return size
 }
 
 func (wb *WindowBase) calculateTextSize() Size {
-	return wb.calculateTextSizeImpl(windowText(wb.hWnd))
+	return wb.calculateTextSizeForWidth(0)
+}
+
+func (wb *WindowBase) calculateTextSizeForWidth(width int) Size {
+	var text string
+	if wb.calcTextSizeInfoPrev != nil {
+		// setText copied the new text here for us.
+		text = wb.calcTextSizeInfoPrev.text
+	}
+
+	if text == "" {
+		text = wb.text()
+	}
+
+	return wb.calculateTextSizeImplForWidth(text, width)
 }
 
 // Size returns the outer Size of the *WindowBase, including decorations.
 func (wb *WindowBase) Size() Size {
-	return wb.window.Bounds().Size()
+	return wb.SizeTo96DPI(wb.SizePixels())
+}
+
+// SizePixels returns the outer Size of the *WindowBase, including decorations.
+func (wb *WindowBase) SizePixels() Size {
+	return wb.window.BoundsPixels().Size()
 }
 
 // SetSize sets the outer Size of the *WindowBase, including decorations.
 func (wb *WindowBase) SetSize(size Size) error {
-	bounds := wb.window.Bounds()
+	return wb.SetSizePixels(wb.SizeFrom96DPI(size))
+}
 
-	return wb.SetBounds(bounds.SetSize(size))
+// SetSizePixels sets the outer Size of the *WindowBase, including decorations.
+func (wb *WindowBase) SetSizePixels(size Size) error {
+	bounds := wb.window.BoundsPixels()
+
+	return wb.SetBoundsPixels(bounds.SetSize(size))
 }
 
 // X returns the x coordinate of the *WindowBase, relative to the screen for
 // RootWidgets like *MainWindow or *Dialog and relative to the parent for
 // child Windows.
 func (wb *WindowBase) X() int {
-	return wb.window.Bounds().X
+	return wb.IntTo96DPI(wb.XPixels())
+}
+
+// XPixels returns the x coordinate of the *WindowBase, relative to the screen for
+// RootWidgets like *MainWindow or *Dialog and relative to the parent for
+// child Windows.
+func (wb *WindowBase) XPixels() int {
+	return wb.window.BoundsPixels().X
 }
 
 // SetX sets the x coordinate of the *WindowBase, relative to the screen for
 // RootWidgets like *MainWindow or *Dialog and relative to the parent for
 // child Windows.
 func (wb *WindowBase) SetX(value int) error {
-	bounds := wb.window.Bounds()
+	return wb.SetXPixels(wb.IntFrom96DPI(value))
+}
+
+// SetXPixels sets the x coordinate of the *WindowBase, relative to the screen for
+// RootWidgets like *MainWindow or *Dialog and relative to the parent for
+// child Windows.
+func (wb *WindowBase) SetXPixels(value int) error {
+	bounds := wb.window.BoundsPixels()
 	bounds.X = value
 
-	return wb.SetBounds(bounds)
+	return wb.SetBoundsPixels(bounds)
 }
 
 // Y returns the y coordinate of the *WindowBase, relative to the screen for
 // RootWidgets like *MainWindow or *Dialog and relative to the parent for
 // child Windows.
 func (wb *WindowBase) Y() int {
-	return wb.window.Bounds().Y
+	return wb.IntTo96DPI(wb.YPixels())
+}
+
+// YPixels returns the y coordinate of the *WindowBase, relative to the screen for
+// RootWidgets like *MainWindow or *Dialog and relative to the parent for
+// child Windows.
+func (wb *WindowBase) YPixels() int {
+	return wb.window.BoundsPixels().Y
 }
 
 // SetY sets the y coordinate of the *WindowBase, relative to the screen for
 // RootWidgets like *MainWindow or *Dialog and relative to the parent for
 // child Windows.
 func (wb *WindowBase) SetY(value int) error {
-	bounds := wb.window.Bounds()
+	return wb.SetYPixels(wb.IntFrom96DPI(value))
+}
+
+// SetYPixels sets the y coordinate of the *WindowBase, relative to the screen for
+// RootWidgets like *MainWindow or *Dialog and relative to the parent for
+// child Windows.
+func (wb *WindowBase) SetYPixels(value int) error {
+	bounds := wb.window.BoundsPixels()
 	bounds.Y = value
 
-	return wb.SetBounds(bounds)
+	return wb.SetBoundsPixels(bounds)
 }
 
 // Width returns the outer width of the *WindowBase, including decorations.
 func (wb *WindowBase) Width() int {
-	return wb.window.Bounds().Width
+	return wb.IntTo96DPI(wb.WidthPixels())
+}
+
+// WidthPixels returns the outer width of the *WindowBase, including decorations.
+func (wb *WindowBase) WidthPixels() int {
+	return wb.window.BoundsPixels().Width
 }
 
 // SetWidth sets the outer width of the *WindowBase, including decorations.
 func (wb *WindowBase) SetWidth(value int) error {
-	bounds := wb.window.Bounds()
+	return wb.SetWidthPixels(wb.IntFrom96DPI(value))
+}
+
+// SetWidthPixels sets the outer width of the *WindowBase, including decorations.
+func (wb *WindowBase) SetWidthPixels(value int) error {
+	bounds := wb.window.BoundsPixels()
 	bounds.Width = value
 
-	return wb.SetBounds(bounds)
+	return wb.SetBoundsPixels(bounds)
 }
 
 // Height returns the outer height of the *WindowBase, including decorations.
 func (wb *WindowBase) Height() int {
-	return wb.window.Bounds().Height
+	return wb.IntTo96DPI(wb.HeightPixels())
+}
+
+// HeightPixels returns the outer height of the *WindowBase, including decorations.
+func (wb *WindowBase) HeightPixels() int {
+	return wb.window.BoundsPixels().Height
 }
 
 // SetHeight sets the outer height of the *WindowBase, including decorations.
 func (wb *WindowBase) SetHeight(value int) error {
-	bounds := wb.window.Bounds()
+	return wb.SetHeightPixels(wb.IntFrom96DPI(value))
+}
+
+// SetHeightPixels sets the outer height of the *WindowBase, including decorations.
+func (wb *WindowBase) SetHeightPixels(value int) error {
+	bounds := wb.window.BoundsPixels()
 	bounds.Height = value
 
-	return wb.SetBounds(bounds)
+	return wb.SetBoundsPixels(bounds)
 }
 
 func windowClientBounds(hwnd win.HWND) Rectangle {
@@ -1078,58 +1663,66 @@ func windowClientBounds(hwnd win.HWND) Rectangle {
 // ClientBounds returns the inner bounding box Rectangle of the *WindowBase,
 // excluding decorations.
 func (wb *WindowBase) ClientBounds() Rectangle {
+	return wb.RectangleTo96DPI(wb.ClientBoundsPixels())
+}
+
+// ClientBoundsPixels returns the inner bounding box Rectangle of the *WindowBase,
+// excluding decorations.
+func (wb *WindowBase) ClientBoundsPixels() Rectangle {
 	return windowClientBounds(wb.hWnd)
 }
 
-func (wb *WindowBase) sizeFromClientSize(clientSize Size) Size {
+func (wb *WindowBase) sizeFromClientSizePixels(clientSize Size) Size {
 	window := wb.window
-	s := window.Size()
-	cs := window.ClientBounds().Size()
+	s := window.SizePixels()
+	cs := window.ClientBoundsPixels().Size()
 	ncs := Size{s.Width - cs.Width, s.Height - cs.Height}
 
 	return Size{clientSize.Width + ncs.Width, clientSize.Height + ncs.Height}
 }
 
+func (wb *WindowBase) clientSizeFromSizePixels(size Size) Size {
+	window := wb.window
+	s := window.SizePixels()
+	cs := window.ClientBoundsPixels().Size()
+	ncs := Size{s.Width - cs.Width, s.Height - cs.Height}
+
+	return Size{size.Width - ncs.Width, size.Height - ncs.Height}
+}
+
 // SetClientSize sets the Size of the inner bounding box of the *WindowBase,
 // excluding decorations.
 func (wb *WindowBase) SetClientSize(value Size) error {
-	return wb.SetSize(wb.sizeFromClientSize(value))
+	return wb.SetClientSizePixels(wb.SizeFrom96DPI(value))
+}
+
+// SetClientSizePixels sets the Size of the inner bounding box of the *WindowBase,
+// excluding decorations.
+func (wb *WindowBase) SetClientSizePixels(value Size) error {
+	return wb.SetSizePixels(wb.sizeFromClientSizePixels(value))
+}
+
+// RightToLeftReading returns whether the reading order of the Window
+// is from right to left.
+func (wb *WindowBase) RightToLeftReading() bool {
+	return wb.hasExtendedStyleBits(win.WS_EX_RTLREADING)
+}
+
+// SetRightToLeftReading sets whether the reading order of the Window
+// is from right to left.
+func (wb *WindowBase) SetRightToLeftReading(rtl bool) error {
+	return wb.ensureExtendedStyleBits(win.WS_EX_RTLREADING, rtl)
 }
 
 // Screenshot returns an image of the window.
 func (wb *WindowBase) Screenshot() (*image.RGBA, error) {
-	if hBmp, err := hBitmapFromWindow(wb); err != nil {
+	bmp, err := NewBitmapFromWindow(wb)
+	if err != nil {
 		return nil, err
-	} else {
-
-		var bi win.BITMAPINFO
-		bi.BmiHeader.BiSize = uint32(unsafe.Sizeof(bi.BmiHeader))
-		hdc := win.GetDC(0)
-		if ret := win.GetDIBits(hdc, hBmp, 0, 0, nil, &bi, win.DIB_RGB_COLORS); ret == 0 {
-			return nil, newError("GetDIBits get bitmapinfo failed")
-		}
-
-		buf := make([]byte, bi.BmiHeader.BiSizeImage)
-		bi.BmiHeader.BiCompression = win.BI_RGB
-		if ret := win.GetDIBits(hdc, hBmp, 0, uint32(bi.BmiHeader.BiHeight), &buf[0], &bi, win.DIB_RGB_COLORS); ret == 0 {
-			return nil, newError("GetDIBits failed")
-		}
-
-		width := int(bi.BmiHeader.BiWidth)
-		height := int(bi.BmiHeader.BiHeight)
-		im := image.NewRGBA(image.Rect(0, 0, width, height))
-		n := 0
-		for y := 0; y < height; y++ {
-			for x := 0; x < width; x++ {
-				r := buf[n+2]
-				g := buf[n+1]
-				b := buf[n+0]
-				n += 4
-				im.Set(x, height-y, color.RGBA{r, g, b, 255})
-			}
-		}
-		return im, nil
 	}
+	defer bmp.Dispose()
+
+	return bmp.ToImage()
 }
 
 // FocusedWindow returns the Window that has the keyboard input focus.
@@ -1158,12 +1751,12 @@ func (wb *WindowBase) FocusedChanged() *Event {
 }
 
 // CreateCanvas creates and returns a *Canvas that can be used to draw
-// inside the ClientBounds of the *WindowBase.
+// inside the ClientBoundsPixels of the *WindowBase.
 //
 // Remember to call the Dispose method on the canvas to release resources,
 // when you no longer need it.
 func (wb *WindowBase) CreateCanvas() (*Canvas, error) {
-	return newCanvasFromHWND(wb.hWnd)
+	return newCanvasFromWindow(wb.window)
 }
 
 func (wb *WindowBase) setTheme(appName string) error {
@@ -1220,10 +1813,24 @@ func (wb *WindowBase) MouseWheel() *MouseEvent {
 	return wb.mouseWheelPublisher.Event()
 }
 
-func (wb *WindowBase) publishMouseEvent(publisher *MouseEventPublisher, wParam, lParam uintptr) {
+func (wb *WindowBase) publishMouseEvent(publisher *MouseEventPublisher, msg uint32, wParam, lParam uintptr) {
 	x := int(win.GET_X_LPARAM(lParam))
 	y := int(win.GET_Y_LPARAM(lParam))
-	button := MouseButton(wParam&win.MK_LBUTTON | wParam&win.MK_RBUTTON | wParam&win.MK_MBUTTON)
+
+	var button MouseButton
+	switch msg {
+	case win.WM_LBUTTONUP:
+		button = LeftButton
+
+	case win.WM_RBUTTONUP:
+		button = RightButton
+
+	case win.WM_MBUTTONUP:
+		button = MiddleButton
+
+	default:
+		button = MouseButton(wParam&win.MK_LBUTTON | wParam&win.MK_RBUTTON | wParam&win.MK_MBUTTON)
+	}
 
 	publisher.Publish(x, y, button)
 }
@@ -1242,6 +1849,12 @@ func (wb *WindowBase) SizeChanged() *Event {
 	return wb.sizeChangedPublisher.Event()
 }
 
+// BoundsChanged returns an *Event that you can attach to for handling bounds
+// changed events for the *WindowBase.
+func (wb *WindowBase) BoundsChanged() *Event {
+	return wb.boundsChangedPublisher.Event()
+}
+
 // Synchronize enqueues func f to be called some time later by the main
 // goroutine from inside a message loop.
 func (wb *WindowBase) Synchronize(f func()) {
@@ -1250,7 +1863,7 @@ func (wb *WindowBase) Synchronize(f func()) {
 	win.PostMessage(wb.hWnd, syncMsgId, 0, 0)
 }
 
-func (wb *WindowBase) getState() (string, error) {
+func (wb *WindowBase) ReadState() (string, error) {
 	settings := appSingleton.settings
 	if settings == nil {
 		return "", newError("App().Settings() must not be nil")
@@ -1260,7 +1873,7 @@ func (wb *WindowBase) getState() (string, error) {
 	return state, nil
 }
 
-func (wb *WindowBase) putState(state string) error {
+func (wb *WindowBase) WriteState(state string) error {
 	settings := appSingleton.settings
 	if settings == nil {
 		return newError("App().Settings() must not be nil")
@@ -1371,6 +1984,108 @@ func (wb *WindowBase) handleKeyUp(wParam, lParam uintptr) {
 	wb.keyUpPublisher.Publish(Key(wParam))
 }
 
+func (wb *WindowBase) backgroundEffective() (Brush, Window) {
+	wnd := wb.window
+	bg := wnd.Background()
+
+	if widget, ok := wb.window.(Widget); ok {
+		for bg == nullBrushSingleton && widget != nil {
+			if hwndParent := win.GetParent(widget.Handle()); hwndParent != 0 {
+				if parent := windowFromHandle(hwndParent); parent != nil {
+					wnd = parent
+					bg = parent.Background()
+
+					widget, _ = parent.(Widget)
+				} else {
+					break
+				}
+			} else {
+				break
+			}
+		}
+	}
+
+	if bg != nil {
+		if pwb, ok := bg.(perWindowBrush); ok {
+			bg = pwb.delegateForWindow(wnd.AsWindowBase())
+		}
+	}
+
+	return bg, wnd
+}
+
+func (wb *WindowBase) prepareDCForBackground(hdc win.HDC, hwnd win.HWND, brushWnd Window) {
+	win.SetBkMode(hdc, win.TRANSPARENT)
+
+	var bgRC win.RECT
+	win.GetWindowRect(brushWnd.Handle(), &bgRC)
+
+	var rc win.RECT
+	win.GetWindowRect(hwnd, &rc)
+
+	win.SetBrushOrgEx(hdc, bgRC.Left-rc.Left, bgRC.Top-rc.Top, nil)
+}
+
+func (wb *WindowBase) handleWMCTLCOLOR(wParam, lParam uintptr) uintptr {
+	hwnd := win.HWND(lParam)
+	hdc := win.HDC(wParam)
+
+	type TextColorer interface {
+		TextColor() Color
+	}
+
+	wnd := windowFromHandle(hwnd)
+	if wnd == nil {
+		switch windowFromHandle(win.GetParent(hwnd)).(type) {
+		case *ComboBox:
+			// nop
+			return 0
+		}
+
+		wnd = wb
+	} else if tc, ok := wnd.(TextColorer); ok {
+		color := tc.TextColor()
+		if color == 0 {
+			color = Color(win.GetSysColor(win.COLOR_WINDOWTEXT))
+		}
+		win.SetTextColor(hdc, win.COLORREF(color))
+	}
+
+	if bg, wnd := wnd.AsWindowBase().backgroundEffective(); bg != nil {
+		wb.prepareDCForBackground(hdc, hwnd, wnd)
+
+		type Colorer interface {
+			Color() Color
+		}
+
+		if c, ok := bg.(Colorer); ok {
+			win.SetBkColor(hdc, win.COLORREF(c.Color()))
+		}
+
+		return uintptr(bg.handle())
+	}
+
+	switch wnd.(type) {
+	case *LineEdit, *numberLineEdit, *TextEdit:
+		type ReadOnlyer interface {
+			ReadOnly() bool
+		}
+
+		var sysColor int
+		if ro, ok := wnd.(ReadOnlyer); ok && ro.ReadOnly() {
+			sysColor = win.COLOR_BTNFACE
+		} else {
+			sysColor = win.COLOR_WINDOW
+		}
+
+		win.SetBkColor(hdc, win.COLORREF(win.GetSysColor(sysColor)))
+
+		return uintptr(win.GetSysColorBrush(sysColor))
+	}
+
+	return 0
+}
+
 // WndProc is the window procedure of the window.
 //
 // When implementing your own WndProc to add or modify behavior, call the
@@ -1380,17 +2095,26 @@ func (wb *WindowBase) WndProc(hwnd win.HWND, msg uint32, wParam, lParam uintptr)
 
 	switch msg {
 	case win.WM_ERASEBKGND:
-		if wb.background == nil {
+		if _, ok := window.(Widget); !ok {
+			return 0
+		}
+
+		bg, wnd := wb.backgroundEffective()
+		if bg == nil {
 			break
 		}
 
-		canvas, err := newCanvasFromHDC(win.HDC(wParam))
+		hdc := win.HDC(wParam)
+
+		canvas, err := newCanvasFromHDC(hdc)
 		if err != nil {
 			break
 		}
 		defer canvas.Dispose()
 
-		if err := canvas.FillRectangle(wb.background, wb.ClientBounds()); err != nil {
+		wb.prepareDCForBackground(hdc, hwnd, wnd)
+
+		if err := canvas.FillRectangle(bg, wb.ClientBoundsPixels()); err != nil {
 			break
 		}
 
@@ -1409,7 +2133,7 @@ func (wb *WindowBase) WndProc(hwnd win.HWND, msg uint32, wParam, lParam uintptr)
 			// be generated for PushButton.)
 			win.SetCapture(wb.hWnd)
 		}
-		wb.publishMouseEvent(&wb.mouseDownPublisher, wParam, lParam)
+		wb.publishMouseEvent(&wb.mouseDownPublisher, msg, wParam, lParam)
 
 	case win.WM_LBUTTONUP, win.WM_MBUTTONUP, win.WM_RBUTTONUP:
 		if msg == win.WM_LBUTTONUP && wb.origWndProcPtr == 0 {
@@ -1418,15 +2142,33 @@ func (wb *WindowBase) WndProc(hwnd win.HWND, msg uint32, wParam, lParam uintptr)
 				lastError("ReleaseCapture")
 			}
 		}
-		wb.publishMouseEvent(&wb.mouseUpPublisher, wParam, lParam)
+		wb.publishMouseEvent(&wb.mouseUpPublisher, msg, wParam, lParam)
 
 	case win.WM_MOUSEMOVE:
-		wb.publishMouseEvent(&wb.mouseMovePublisher, wParam, lParam)
+		wb.publishMouseEvent(&wb.mouseMovePublisher, msg, wParam, lParam)
 
 	case win.WM_MOUSEWHEEL:
 		wb.publishMouseWheelEvent(&wb.mouseWheelPublisher, wParam, lParam)
 
 	case win.WM_SETFOCUS, win.WM_KILLFOCUS:
+		switch wnd := wb.window.(type) {
+		case *splitterHandle:
+			// nop
+
+		case Widget:
+			parent := wnd.Parent()
+			if parent == nil {
+				hwndParent := win.GetParent(wnd.Handle())
+				for parent == nil && hwndParent != 0 {
+					hwndParent = win.GetParent(hwndParent)
+					if wnd := windowFromHandle(hwndParent); wnd != nil {
+						parent, _ = wnd.(Container)
+					}
+				}
+			}
+			wnd.AsWidgetBase().invalidateBorderInParent()
+		}
+
 		wb.focusedChangedPublisher.Publish()
 
 	case win.WM_SETCURSOR:
@@ -1448,12 +2190,18 @@ func (wb *WindowBase) WndProc(hwnd win.HWND, msg uint32, wParam, lParam uintptr)
 
 		var handle win.HWND
 		if widget, ok := sourceWindow.(Widget); ok {
-			handle = ancestor(widget).Handle()
-		} else {
+			if form := ancestor(widget); form != nil {
+				handle = form.Handle()
+			}
+		}
+
+		if handle == 0 {
 			handle = sourceWindow.Handle()
 		}
 
 		if contextMenu != nil {
+			contextMenu.updateItemsWithImageForWindow(wb.window)
+
 			win.TrackPopupMenuEx(
 				contextMenu.hMenu,
 				win.TPM_NOANIMATION,
@@ -1474,7 +2222,19 @@ func (wb *WindowBase) WndProc(hwnd win.HWND, msg uint32, wParam, lParam uintptr)
 		wb.dropFilesPublisher.Publish(win.HDROP(wParam))
 
 	case win.WM_SIZE, win.WM_SIZING:
+		if msg == win.WM_SIZE {
+			if widget, ok := wb.window.(Widget); ok {
+				widget.AsWidgetBase().invalidateBorderInParent()
+			}
+		}
+
 		wb.sizeChangedPublisher.Publish()
+
+	case win.WM_WINDOWPOSCHANGED:
+		wb.boundsChangedPublisher.Publish()
+
+	case win.WM_THEMECHANGED:
+		wb.window.(ApplySysColorser).ApplySysColors()
 
 	case win.WM_DESTROY:
 		if wb.origWndProcPtr != 0 {

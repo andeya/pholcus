@@ -8,24 +8,21 @@ package declarative
 
 import (
 	"github.com/lxn/walk"
+	"github.com/lxn/win"
 )
 
 type Composite struct {
-	AssignTo           **walk.Composite
-	Name               string
-	Enabled            Property
-	Visible            Property
-	Font               Font
-	ToolTipText        Property
-	MinSize            Size
-	MaxSize            Size
-	StretchFactor      int
-	Row                int
-	RowSpan            int
-	Column             int
-	ColumnSpan         int
-	AlwaysConsumeSpace bool
+	// Window
+
+	Background         Brush
 	ContextMenuItems   []MenuItem
+	DoubleBuffering    bool
+	Enabled            Property
+	Font               Font
+	MaxSize            Size
+	MinSize            Size
+	Name               string
+	OnBoundsChanged    walk.EventHandler
 	OnKeyDown          walk.KeyEventHandler
 	OnKeyPress         walk.KeyEventHandler
 	OnKeyUp            walk.KeyEventHandler
@@ -33,15 +30,48 @@ type Composite struct {
 	OnMouseMove        walk.MouseEventHandler
 	OnMouseUp          walk.MouseEventHandler
 	OnSizeChanged      walk.EventHandler
-	DataBinder         DataBinder
-	Layout             Layout
-	Children           []Widget
+	Persistent         bool
+	RightToLeftReading bool
+	ToolTipText        Property
+	Visible            Property
+
+	// Widget
+
+	Alignment          Alignment2D
+	AlwaysConsumeSpace bool
+	Column             int
+	ColumnSpan         int
+	GraphicsEffects    []walk.WidgetGraphicsEffect
+	Row                int
+	RowSpan            int
+	StretchFactor      int
+
+	// Container
+
+	Children   []Widget
+	DataBinder DataBinder
+	Layout     Layout
+
+	// Composite
+
+	AssignTo    **walk.Composite
+	Border      bool
+	Expressions func() map[string]walk.Expression
+	Functions   map[string]func(args ...interface{}) (interface{}, error)
 }
 
 func (c Composite) Create(builder *Builder) error {
-	w, err := walk.NewComposite(builder.Parent())
+	var style uint32
+	if c.Border {
+		style |= win.WS_BORDER
+	}
+	w, err := walk.NewCompositeWithStyle(builder.Parent(), style)
 	if err != nil {
 		return err
+	}
+
+	if c.AssignTo != nil {
+		*c.AssignTo = w
 	}
 
 	w.SetSuspended(true)
@@ -51,18 +81,17 @@ func (c Composite) Create(builder *Builder) error {
 	})
 
 	return builder.InitWidget(c, w, func() error {
-		if c.AssignTo != nil {
-			*c.AssignTo = w
+		if c.Expressions != nil {
+			for name, expr := range c.Expressions() {
+				builder.expressions[name] = expr
+			}
+		}
+		if c.Functions != nil {
+			for name, fn := range c.Functions {
+				builder.functions[name] = fn
+			}
 		}
 
 		return nil
 	})
-}
-
-func (w Composite) WidgetInfo() (name string, disabled, hidden bool, font *Font, toolTipText string, minSize, maxSize Size, stretchFactor, row, rowSpan, column, columnSpan int, alwaysConsumeSpace bool, contextMenuItems []MenuItem, OnKeyDown walk.KeyEventHandler, OnKeyPress walk.KeyEventHandler, OnKeyUp walk.KeyEventHandler, OnMouseDown walk.MouseEventHandler, OnMouseMove walk.MouseEventHandler, OnMouseUp walk.MouseEventHandler, OnSizeChanged walk.EventHandler) {
-	return w.Name, false, false, &w.Font, "", w.MinSize, w.MaxSize, w.StretchFactor, w.Row, w.RowSpan, w.Column, w.ColumnSpan, w.AlwaysConsumeSpace, w.ContextMenuItems, w.OnKeyDown, w.OnKeyPress, w.OnKeyUp, w.OnMouseDown, w.OnMouseMove, w.OnMouseUp, w.OnSizeChanged
-}
-
-func (c Composite) ContainerInfo() (DataBinder, Layout, []Widget) {
-	return c.DataBinder, c.Layout, c.Children
 }

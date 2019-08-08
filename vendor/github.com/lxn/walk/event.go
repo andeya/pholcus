@@ -37,6 +37,22 @@ func (p *EventPublisher) Event() *Event {
 }
 
 func (p *EventPublisher) Publish() {
+	events := inProgressEventsByForm[appSingleton.activeForm]
+	events = append(events, &p.event)
+	inProgressEventsByForm[appSingleton.activeForm] = events
+
+	defer func() {
+		events = events[:len(events)-1]
+		if len(events) == 0 {
+			delete(inProgressEventsByForm, appSingleton.activeForm)
+		} else {
+			inProgressEventsByForm[appSingleton.activeForm] = events
+			return
+		}
+
+		performScheduledLayouts()
+	}()
+
 	for _, handler := range p.event.handlers {
 		if handler != nil {
 			handler()

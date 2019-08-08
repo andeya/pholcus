@@ -7,6 +7,7 @@
 package win
 
 import (
+	"golang.org/x/sys/windows"
 	"syscall"
 	"unsafe"
 )
@@ -81,11 +82,14 @@ const (
 
 // NotifyIcon flags
 const (
-	NIF_MESSAGE = 0x00000001
-	NIF_ICON    = 0x00000002
-	NIF_TIP     = 0x00000004
-	NIF_STATE   = 0x00000008
-	NIF_INFO    = 0x00000010
+	NIF_MESSAGE  = 0x00000001
+	NIF_ICON     = 0x00000002
+	NIF_TIP      = 0x00000004
+	NIF_STATE    = 0x00000008
+	NIF_INFO     = 0x00000010
+	NIF_GUID     = 0x00000020
+	NIF_REALTIME = 0x00000040
+	NIF_SHOWTIP  = 0x00000080
 )
 
 // NotifyIcon messages
@@ -105,15 +109,33 @@ const (
 
 // NotifyIcon info flags
 const (
-	NIIF_NONE    = 0x00000000
-	NIIF_INFO    = 0x00000001
-	NIIF_WARNING = 0x00000002
-	NIIF_ERROR   = 0x00000003
-	NIIF_USER    = 0x00000004
-	NIIF_NOSOUND = 0x00000010
+	NIIF_NONE               = 0x00000000
+	NIIF_INFO               = 0x00000001
+	NIIF_WARNING            = 0x00000002
+	NIIF_ERROR              = 0x00000003
+	NIIF_USER               = 0x00000004
+	NIIF_NOSOUND            = 0x00000010
+	NIIF_LARGE_ICON         = 0x00000020
+	NIIF_RESPECT_QUIET_TIME = 0x00000080
 )
 
-const NOTIFYICON_VERSION = 3
+// NotifyIcon notifications
+const (
+	NIN_SELECT           = WM_USER + 0
+	NIN_KEYSELECT        = WM_USER + 1
+	NIN_BALLOONSHOW      = WM_USER + 2
+	NIN_BALLOONHIDE      = WM_USER + 3
+	NIN_BALLOONTIMEOUT   = WM_USER + 4
+	NIN_BALLOONUSERCLICK = WM_USER + 5
+	NIN_POPUPOPEN        = WM_USER + 6
+	NIN_POPUPCLOSE       = WM_USER + 7
+)
+
+// NotifyIcon versions
+const (
+	NOTIFYICON_VERSION   = 3
+	NOTIFYICON_VERSION_4 = 4
+)
 
 // SHGetFileInfo flags
 const (
@@ -137,6 +159,116 @@ const (
 	SHGFI_ATTR_SPECIFIED    = 0x000020000
 )
 
+// SHGetStockIconInfo flags
+const (
+	SHGSI_ICONLOCATION  = 0
+	SHGSI_ICON          = 0x000000100
+	SHGSI_SYSICONINDEX  = 0x000004000
+	SHGSI_LINKOVERLAY   = 0x000008000
+	SHGSI_SELECTED      = 0x000010000
+	SHGSI_LARGEICON     = 0x000000000
+	SHGSI_SMALLICON     = 0x000000001
+	SHGSI_SHELLICONSIZE = 0x000000004
+)
+
+// SHSTOCKICONID values
+const (
+	SIID_DOCNOASSOC        = 0
+	SIID_DOCASSOC          = 1
+	SIID_APPLICATION       = 2
+	SIID_FOLDER            = 3
+	SIID_FOLDEROPEN        = 4
+	SIID_DRIVE525          = 5
+	SIID_DRIVE35           = 6
+	SIID_DRIVEREMOVE       = 7
+	SIID_DRIVEFIXED        = 8
+	SIID_DRIVENET          = 9
+	SIID_DRIVENETDISABLED  = 10
+	SIID_DRIVECD           = 11
+	SIID_DRIVERAM          = 12
+	SIID_WORLD             = 13
+	SIID_SERVER            = 15
+	SIID_PRINTER           = 16
+	SIID_MYNETWORK         = 17
+	SIID_FIND              = 22
+	SIID_HELP              = 23
+	SIID_SHARE             = 28
+	SIID_LINK              = 29
+	SIID_SLOWFILE          = 30
+	SIID_RECYCLER          = 31
+	SIID_RECYCLERFULL      = 32
+	SIID_MEDIACDAUDIO      = 40
+	SIID_LOCK              = 47
+	SIID_AUTOLIST          = 49
+	SIID_PRINTERNET        = 50
+	SIID_SERVERSHARE       = 51
+	SIID_PRINTERFAX        = 52
+	SIID_PRINTERFAXNET     = 53
+	SIID_PRINTERFILE       = 54
+	SIID_STACK             = 55
+	SIID_MEDIASVCD         = 56
+	SIID_STUFFEDFOLDER     = 57
+	SIID_DRIVEUNKNOWN      = 58
+	SIID_DRIVEDVD          = 59
+	SIID_MEDIADVD          = 60
+	SIID_MEDIADVDRAM       = 61
+	SIID_MEDIADVDRW        = 62
+	SIID_MEDIADVDR         = 63
+	SIID_MEDIADVDROM       = 64
+	SIID_MEDIACDAUDIOPLUS  = 65
+	SIID_MEDIACDRW         = 66
+	SIID_MEDIACDR          = 67
+	SIID_MEDIACDBURN       = 68
+	SIID_MEDIABLANKCD      = 69
+	SIID_MEDIACDROM        = 70
+	SIID_AUDIOFILES        = 71
+	SIID_IMAGEFILES        = 72
+	SIID_VIDEOFILES        = 73
+	SIID_MIXEDFILES        = 74
+	SIID_FOLDERBACK        = 75
+	SIID_FOLDERFRONT       = 76
+	SIID_SHIELD            = 77
+	SIID_WARNING           = 78
+	SIID_INFO              = 79
+	SIID_ERROR             = 80
+	SIID_KEY               = 81
+	SIID_SOFTWARE          = 82
+	SIID_RENAME            = 83
+	SIID_DELETE            = 84
+	SIID_MEDIAAUDIODVD     = 85
+	SIID_MEDIAMOVIEDVD     = 86
+	SIID_MEDIAENHANCEDCD   = 87
+	SIID_MEDIAENHANCEDDVD  = 88
+	SIID_MEDIAHDDVD        = 89
+	SIID_MEDIABLURAY       = 90
+	SIID_MEDIAVCD          = 91
+	SIID_MEDIADVDPLUSR     = 92
+	SIID_MEDIADVDPLUSRW    = 93
+	SIID_DESKTOPPC         = 94
+	SIID_MOBILEPC          = 95
+	SIID_USERS             = 96
+	SIID_MEDIASMARTMEDIA   = 97
+	SIID_MEDIACOMPACTFLASH = 98
+	SIID_DEVICECELLPHONE   = 99
+	SIID_DEVICECAMERA      = 100
+	SIID_DEVICEVIDEOCAMERA = 101
+	SIID_DEVICEAUDIOPLAYER = 102
+	SIID_NETWORKCONNECT    = 103
+	SIID_INTERNET          = 104
+	SIID_ZIPFILE           = 105
+	SIID_SETTINGS          = 106
+	SIID_DRIVEHDDVD        = 132
+	SIID_DRIVEBD           = 133
+	SIID_MEDIAHDDVDROM     = 134
+	SIID_MEDIAHDDVDR       = 135
+	SIID_MEDIAHDDVDRAM     = 136
+	SIID_MEDIABDROM        = 137
+	SIID_MEDIABDR          = 138
+	SIID_MEDIABDRE         = 139
+	SIID_CLUSTEREDDRIVE    = 140
+	SIID_MAX_ICONS         = 175
+)
+
 type NOTIFYICONDATA struct {
 	CbSize           uint32
 	HWnd             HWND
@@ -152,6 +284,7 @@ type NOTIFYICONDATA struct {
 	SzInfoTitle      [64]uint16
 	DwInfoFlags      uint32
 	GuidItem         syscall.GUID
+	HBalloonIcon     HICON
 }
 
 type SHFILEINFO struct {
@@ -173,40 +306,56 @@ type BROWSEINFO struct {
 	IImage         int32
 }
 
+type SHSTOCKICONINFO struct {
+	CbSize         uint32
+	HIcon          HICON
+	ISysImageIndex int32
+	IIcon          int32
+	SzPath         [MAX_PATH]uint16
+}
+
 var (
 	// Library
-	libshell32 uintptr
+	libshell32 *windows.LazyDLL
 
 	// Functions
-	dragAcceptFiles        uintptr
-	dragFinish             uintptr
-	dragQueryFile          uintptr
-	shBrowseForFolder      uintptr
-	shGetFileInfo          uintptr
-	shGetPathFromIDList    uintptr
-	shGetSpecialFolderPath uintptr
-	shParseDisplayName     uintptr
-	shell_NotifyIcon       uintptr
+	dragAcceptFiles        *windows.LazyProc
+	dragFinish             *windows.LazyProc
+	dragQueryFile          *windows.LazyProc
+	extractIcon            *windows.LazyProc
+	shBrowseForFolder      *windows.LazyProc
+	shDefExtractIcon       *windows.LazyProc
+	shGetFileInfo          *windows.LazyProc
+	shGetPathFromIDList    *windows.LazyProc
+	shGetSpecialFolderPath *windows.LazyProc
+	shParseDisplayName     *windows.LazyProc
+	shGetStockIconInfo     *windows.LazyProc
+	shellExecute           *windows.LazyProc
+	shell_NotifyIcon       *windows.LazyProc
 )
 
 func init() {
 	// Library
-	libshell32 = MustLoadLibrary("shell32.dll")
+	libshell32 = windows.NewLazySystemDLL("shell32.dll")
 
 	// Functions
-	dragAcceptFiles = MustGetProcAddress(libshell32, "DragAcceptFiles")
-	dragFinish = MustGetProcAddress(libshell32, "DragFinish")
-	dragQueryFile = MustGetProcAddress(libshell32, "DragQueryFileW")
-	shBrowseForFolder = MustGetProcAddress(libshell32, "SHBrowseForFolderW")
-	shGetFileInfo = MustGetProcAddress(libshell32, "SHGetFileInfoW")
-	shGetPathFromIDList = MustGetProcAddress(libshell32, "SHGetPathFromIDListW")
-	shGetSpecialFolderPath = MustGetProcAddress(libshell32, "SHGetSpecialFolderPathW")
-	shParseDisplayName = MustGetProcAddress(libshell32, "SHParseDisplayName")
-	shell_NotifyIcon = MustGetProcAddress(libshell32, "Shell_NotifyIconW")
+	dragAcceptFiles = libshell32.NewProc("DragAcceptFiles")
+	dragFinish = libshell32.NewProc("DragFinish")
+	dragQueryFile = libshell32.NewProc("DragQueryFileW")
+	extractIcon = libshell32.NewProc("ExtractIconW")
+	shBrowseForFolder = libshell32.NewProc("SHBrowseForFolderW")
+	shDefExtractIcon = libshell32.NewProc("SHDefExtractIconW")
+	shGetFileInfo = libshell32.NewProc("SHGetFileInfoW")
+	shGetPathFromIDList = libshell32.NewProc("SHGetPathFromIDListW")
+	shGetSpecialFolderPath = libshell32.NewProc("SHGetSpecialFolderPathW")
+	shGetStockIconInfo = libshell32.NewProc("SHGetStockIconInfo")
+	shellExecute = libshell32.NewProc("ShellExecuteW")
+	shell_NotifyIcon = libshell32.NewProc("Shell_NotifyIconW")
+	shParseDisplayName = libshell32.NewProc("SHParseDisplayName")
 }
 
 func DragAcceptFiles(hWnd HWND, fAccept bool) bool {
-	ret, _, _ := syscall.Syscall(dragAcceptFiles, 2,
+	ret, _, _ := syscall.Syscall(dragAcceptFiles.Addr(), 2,
 		uintptr(hWnd),
 		uintptr(BoolToBOOL(fAccept)),
 		0)
@@ -215,7 +364,7 @@ func DragAcceptFiles(hWnd HWND, fAccept bool) bool {
 }
 
 func DragQueryFile(hDrop HDROP, iFile uint, lpszFile *uint16, cch uint) uint {
-	ret, _, _ := syscall.Syscall6(dragQueryFile, 4,
+	ret, _, _ := syscall.Syscall6(dragQueryFile.Addr(), 4,
 		uintptr(hDrop),
 		uintptr(iFile),
 		uintptr(unsafe.Pointer(lpszFile)),
@@ -227,14 +376,23 @@ func DragQueryFile(hDrop HDROP, iFile uint, lpszFile *uint16, cch uint) uint {
 }
 
 func DragFinish(hDrop HDROP) {
-	syscall.Syscall(dragAcceptFiles, 1,
+	syscall.Syscall(dragAcceptFiles.Addr(), 1,
 		uintptr(hDrop),
 		0,
 		0)
 }
 
+func ExtractIcon(hInst HINSTANCE, exeFileName *uint16, iconIndex int32) HICON {
+	ret, _, _ := syscall.Syscall(extractIcon.Addr(), 3,
+		uintptr(hInst),
+		uintptr(unsafe.Pointer(exeFileName)),
+		uintptr(iconIndex))
+
+	return HICON(ret)
+}
+
 func SHBrowseForFolder(lpbi *BROWSEINFO) uintptr {
-	ret, _, _ := syscall.Syscall(shBrowseForFolder, 1,
+	ret, _, _ := syscall.Syscall(shBrowseForFolder.Addr(), 1,
 		uintptr(unsafe.Pointer(lpbi)),
 		0,
 		0)
@@ -242,8 +400,20 @@ func SHBrowseForFolder(lpbi *BROWSEINFO) uintptr {
 	return ret
 }
 
+func SHDefExtractIcon(pszIconFile *uint16, iIndex int32, uFlags uint32, phiconLarge, phiconSmall *HICON, nIconSize uint32) HRESULT {
+	ret, _, _ := syscall.Syscall6(shDefExtractIcon.Addr(), 6,
+		uintptr(unsafe.Pointer(pszIconFile)),
+		uintptr(iIndex),
+		uintptr(uFlags),
+		uintptr(unsafe.Pointer(phiconLarge)),
+		uintptr(unsafe.Pointer(phiconSmall)),
+		uintptr(nIconSize))
+
+	return HRESULT(ret)
+}
+
 func SHGetFileInfo(pszPath *uint16, dwFileAttributes uint32, psfi *SHFILEINFO, cbFileInfo, uFlags uint32) uintptr {
-	ret, _, _ := syscall.Syscall6(shGetFileInfo, 5,
+	ret, _, _ := syscall.Syscall6(shGetFileInfo.Addr(), 5,
 		uintptr(unsafe.Pointer(pszPath)),
 		uintptr(dwFileAttributes),
 		uintptr(unsafe.Pointer(psfi)),
@@ -255,7 +425,7 @@ func SHGetFileInfo(pszPath *uint16, dwFileAttributes uint32, psfi *SHFILEINFO, c
 }
 
 func SHGetPathFromIDList(pidl uintptr, pszPath *uint16) bool {
-	ret, _, _ := syscall.Syscall(shGetPathFromIDList, 2,
+	ret, _, _ := syscall.Syscall(shGetPathFromIDList.Addr(), 2,
 		pidl,
 		uintptr(unsafe.Pointer(pszPath)),
 		0)
@@ -264,7 +434,7 @@ func SHGetPathFromIDList(pidl uintptr, pszPath *uint16) bool {
 }
 
 func SHGetSpecialFolderPath(hwndOwner HWND, lpszPath *uint16, csidl CSIDL, fCreate bool) bool {
-	ret, _, _ := syscall.Syscall6(shGetSpecialFolderPath, 4,
+	ret, _, _ := syscall.Syscall6(shGetSpecialFolderPath.Addr(), 4,
 		uintptr(hwndOwner),
 		uintptr(unsafe.Pointer(lpszPath)),
 		uintptr(csidl),
@@ -276,7 +446,7 @@ func SHGetSpecialFolderPath(hwndOwner HWND, lpszPath *uint16, csidl CSIDL, fCrea
 }
 
 func SHParseDisplayName(pszName *uint16, pbc uintptr, ppidl *uintptr, sfgaoIn uint32, psfgaoOut *uint32) HRESULT {
-	ret, _, _ := syscall.Syscall6(shParseDisplayName, 5,
+	ret, _, _ := syscall.Syscall6(shParseDisplayName.Addr(), 5,
 		uintptr(unsafe.Pointer(pszName)),
 		pbc,
 		uintptr(unsafe.Pointer(ppidl)),
@@ -287,8 +457,35 @@ func SHParseDisplayName(pszName *uint16, pbc uintptr, ppidl *uintptr, sfgaoIn ui
 	return HRESULT(ret)
 }
 
+func SHGetStockIconInfo(stockIconId int32, uFlags uint32, stockIcon *SHSTOCKICONINFO) HRESULT {
+	if shGetStockIconInfo.Find() != nil {
+		return HRESULT(0)
+	}
+	ret, _, _ := syscall.Syscall6(shGetStockIconInfo.Addr(), 3,
+		uintptr(stockIconId),
+		uintptr(uFlags),
+		uintptr(unsafe.Pointer(stockIcon)),
+		0,
+		0,
+		0,
+	)
+	return HRESULT(ret)
+}
+
+func ShellExecute(hWnd HWND, verb *uint16, file *uint16, args *uint16, cwd *uint16, showCmd int) bool {
+	ret, _, _ := syscall.Syscall6(shellExecute.Addr(), 6,
+		uintptr(hWnd),
+		uintptr(unsafe.Pointer(verb)),
+		uintptr(unsafe.Pointer(file)),
+		uintptr(unsafe.Pointer(args)),
+		uintptr(unsafe.Pointer(cwd)),
+		uintptr(showCmd),
+	)
+	return ret != 0
+}
+
 func Shell_NotifyIcon(dwMessage uint32, lpdata *NOTIFYICONDATA) bool {
-	ret, _, _ := syscall.Syscall(shell_NotifyIcon, 2,
+	ret, _, _ := syscall.Syscall(shell_NotifyIcon.Addr(), 2,
 		uintptr(dwMessage),
 		uintptr(unsafe.Pointer(lpdata)),
 		0)

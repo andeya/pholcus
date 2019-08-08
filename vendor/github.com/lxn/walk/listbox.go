@@ -9,12 +9,11 @@ package walk
 import (
 	"fmt"
 	"math/big"
+	"reflect"
 	"syscall"
 	"time"
 	"unsafe"
-)
 
-import (
 	"github.com/lxn/win"
 )
 
@@ -22,16 +21,28 @@ type ListBox struct {
 	WidgetBase
 	model                           ListModel
 	providedModel                   interface{}
+	styler                          ListItemStyler
+	style                           ListItemStyle
 	dataMember                      string
 	format                          string
 	precision                       int
 	prevCurIndex                    int
 	itemsResetHandlerHandle         int
 	itemChangedHandlerHandle        int
+	itemsInsertedHandlerHandle      int
+	itemsRemovedHandlerHandle       int
 	maxItemTextWidth                int
+	lastWidth                       int
+	lastWidthsMeasuredFor           []int
 	currentIndexChangedPublisher    EventPublisher
 	selectedIndexesChangedPublisher EventPublisher
 	itemActivatedPublisher          EventPublisher
+	themeNormalBGColor              Color
+	themeNormalTextColor            Color
+	themeSelectedBGColor            Color
+	themeSelectedTextColor          Color
+	themeSelectedNotFocusedBGColor  Color
+	trackingMouseEvent              bool
 }
 
 func NewListBox(parent Container) (*ListBox, error) {
@@ -58,6 +69,36 @@ func NewListBoxWithStyle(parent Container, style uint32) (*ListBox, error) {
 		}
 	}()
 
+	lb.setTheme("Explorer")
+
+	lb.style.dpi = lb.DPI()
+
+	lb.ApplySysColors()
+
+	lb.GraphicsEffects().Add(InteractionEffect)
+	lb.GraphicsEffects().Add(FocusEffect)
+
+	lb.MustRegisterProperty("CurrentIndex", NewProperty(
+		func() interface{} {
+			return lb.CurrentIndex()
+		},
+		func(v interface{}) error {
+			return lb.SetCurrentIndex(assertIntOr(v, -1))
+		},
+		lb.CurrentIndexChanged()))
+
+	lb.MustRegisterProperty("CurrentItem", NewReadOnlyProperty(
+		func() interface{} {
+			if i := lb.CurrentIndex(); i > -1 {
+				if rm, ok := lb.providedModel.(reflectModel); ok {
+					return reflect.ValueOf(rm.Items()).Index(i).Interface()
+				}
+			}
+
+			return nil
+		},
+		lb.CurrentIndexChanged()))
+
 	lb.MustRegisterProperty("HasCurrentItem", NewReadOnlyBoolProperty(
 		func() bool {
 			return lb.CurrentIndex() != -1
@@ -71,6 +112,44 @@ func NewListBoxWithStyle(parent Container, style uint32) (*ListBox, error) {
 
 func (*ListBox) LayoutFlags() LayoutFlags {
 	return ShrinkableHorz | ShrinkableVert | GrowableHorz | GrowableVert | GreedyHorz | GreedyVert
+}
+
+func (lb *ListBox) ItemStyler() ListItemStyler {
+	return lb.styler
+}
+
+func (lb *ListBox) SetItemStyler(styler ListItemStyler) {
+	lb.styler = styler
+}
+
+func (lb *ListBox) ApplySysColors() {
+	lb.WidgetBase.ApplySysColors()
+
+	var hc win.HIGHCONTRAST
+	hc.CbSize = uint32(unsafe.Sizeof(hc))
+	if win.SystemParametersInfo(win.SPI_GETHIGHCONTRAST, hc.CbSize, unsafe.Pointer(&hc), 0) {
+		lb.style.highContrastActive = hc.DwFlags&win.HCF_HIGHCONTRASTON != 0
+	}
+
+	lb.themeNormalBGColor = Color(win.GetSysColor(win.COLOR_WINDOW))
+	lb.themeNormalTextColor = Color(win.GetSysColor(win.COLOR_WINDOWTEXT))
+	lb.themeSelectedBGColor = Color(win.GetSysColor(win.COLOR_HIGHLIGHT))
+	lb.themeSelectedTextColor = Color(win.GetSysColor(win.COLOR_HIGHLIGHTTEXT))
+	lb.themeSelectedNotFocusedBGColor = Color(win.GetSysColor(win.COLOR_BTNFACE))
+}
+
+func (lb *ListBox) ApplyDPI(dpi int) {
+	lb.style.dpi = dpi
+
+	lb.WidgetBase.ApplyDPI(dpi)
+}
+
+func (lb *ListBox) applyFont(font *Font) {
+	lb.WidgetBase.applyFont(font)
+
+	for i := range lb.lastWidthsMeasuredFor {
+		lb.lastWidthsMeasuredFor[i] = 0
+	}
 }
 
 func (lb *ListBox) itemString(index int) string {
@@ -102,6 +181,14 @@ func (lb *ListBox) insertItemAt(index int) error {
 	return nil
 }
 
+func (lb *ListBox) removeItem(index int) error {
+	if win.LB_ERR == int(lb.SendMessage(win.LB_DELETESTRING, uintptr(index), 0)) {
+		return newError("SendMessage(LB_DELETESTRING)")
+	}
+
+	return nil
+}
+
 // reread all the items from list model
 func (lb *ListBox) resetItems() error {
 	lb.SetSuspended(true)
@@ -119,15 +206,64 @@ func (lb *ListBox) resetItems() error {
 
 	count := lb.model.ItemCount()
 
+	lb.lastWidthsMeasuredFor = make([]int, count)
+
 	for i := 0; i < count; i++ {
 		if err := lb.insertItemAt(i); err != nil {
 			return err
 		}
 	}
 
-	// Update the listbox width (this sets the correct horizontal scrollbar).
-	sh := lb.SizeHint()
-	lb.SendMessage(win.LB_SETHORIZONTALEXTENT, uintptr(sh.Width), 0)
+	if lb.styler == nil {
+		// Update the listbox width (this sets the correct horizontal scrollbar).
+		sh := lb.SizeHint()
+		lb.SendMessage(win.LB_SETHORIZONTALEXTENT, uintptr(sh.Width), 0)
+	}
+
+	return nil
+}
+
+func (lb *ListBox) ensureVisibleItemsHeightUpToDate() error {
+	if lb.styler == nil {
+		return nil
+	}
+
+	if !lb.Suspended() {
+		lb.SetSuspended(true)
+		defer lb.SetSuspended(false)
+	}
+
+	topIndex := int(lb.SendMessage(win.LB_GETTOPINDEX, 0, 0))
+	offset := maxi(0, topIndex-10)
+	count := lb.model.ItemCount()
+	var rc win.RECT
+	lb.SendMessage(win.LB_GETITEMRECT, uintptr(offset), uintptr(unsafe.Pointer(&rc)))
+	width := lb.IntTo96DPI(int(rc.Right - rc.Left))
+	offsetTop := int(rc.Top)
+	lbHeight := lb.HeightPixels()
+
+	var pastBottomCount int
+	for i := offset; i >= 0 && i < count; i++ {
+		if lb.lastWidthsMeasuredFor[i] == lb.lastWidth {
+			continue
+		}
+
+		lb.SendMessage(win.LB_GETITEMRECT, uintptr(i), uintptr(unsafe.Pointer(&rc)))
+
+		if int(rc.Top)-offsetTop > lbHeight {
+			if pastBottomCount++; pastBottomCount > 10 {
+				break
+			}
+		}
+
+		height := lb.IntFrom96DPI(lb.styler.ItemHeight(i, width))
+
+		lb.SendMessage(win.LB_SETITEMHEIGHT, uintptr(i), uintptr(height))
+
+		lb.lastWidthsMeasuredFor[i] = lb.lastWidth
+	}
+
+	lb.SendMessage(win.LB_SETTOPINDEX, uintptr(topIndex), 0)
 
 	return nil
 }
@@ -145,14 +281,58 @@ func (lb *ListBox) attachModel() {
 
 		lb.insertItemAt(index)
 
+		if lb.styler != nil {
+			var rc win.RECT
+			lb.SendMessage(win.LB_GETITEMRECT, uintptr(index), uintptr(unsafe.Pointer(&rc)))
+			width := lb.IntTo96DPI(int(rc.Right - rc.Left))
+
+			height := lb.IntFrom96DPI(lb.styler.ItemHeight(index, width))
+
+			lb.SendMessage(win.LB_SETITEMHEIGHT, uintptr(index), uintptr(height))
+
+			lb.lastWidthsMeasuredFor[index] = lb.lastWidth
+		}
+
 		lb.SetCurrentIndex(lb.prevCurIndex)
 	}
 	lb.itemChangedHandlerHandle = lb.model.ItemChanged().Attach(itemChangedHandler)
+
+	lb.itemsInsertedHandlerHandle = lb.model.ItemsInserted().Attach(func(from, to int) {
+		if !lb.Suspended() {
+			lb.SetSuspended(true)
+			defer lb.SetSuspended(false)
+		}
+
+		for i := from; i <= to; i++ {
+			lb.insertItemAt(i)
+		}
+
+		lb.lastWidthsMeasuredFor = append(lb.lastWidthsMeasuredFor[:from], append(make([]int, to-from+1), lb.lastWidthsMeasuredFor[from:]...)...)
+
+		lb.ensureVisibleItemsHeightUpToDate()
+	})
+
+	lb.itemsRemovedHandlerHandle = lb.model.ItemsRemoved().Attach(func(from, to int) {
+		if !lb.Suspended() {
+			lb.SetSuspended(true)
+			defer lb.SetSuspended(false)
+		}
+
+		for i := to; i >= from; i-- {
+			lb.removeItem(i)
+		}
+
+		lb.lastWidthsMeasuredFor = append(lb.lastWidthsMeasuredFor[:from], lb.lastWidthsMeasuredFor[to:]...)
+
+		lb.ensureVisibleItemsHeightUpToDate()
+	})
 }
 
 func (lb *ListBox) detachModel() {
 	lb.model.ItemsReset().Detach(lb.itemsResetHandlerHandle)
 	lb.model.ItemChanged().Detach(lb.itemChangedHandlerHandle)
+	lb.model.ItemsInserted().Detach(lb.itemsInsertedHandlerHandle)
+	lb.model.ItemsRemoved().Detach(lb.itemsRemovedHandlerHandle)
 }
 
 // Model returns the model of the ListBox.
@@ -190,7 +370,11 @@ func (lb *ListBox) SetModel(mdl interface{}) error {
 		lb.attachModel()
 	}
 
-	return lb.resetItems()
+	if err := lb.resetItems(); err != nil {
+		return err
+	}
+
+	return lb.ensureVisibleItemsHeightUpToDate()
 }
 
 // DataMember returns the member from the model of the ListBox that is displayed
@@ -297,6 +481,18 @@ func (lb *ListBox) SizeHint() Size {
 	return Size{w, h}
 }
 
+func (lb *ListBox) ItemVisible(index int) bool {
+	topIndex := int(lb.SendMessage(win.LB_GETTOPINDEX, 0, 0))
+	var rc win.RECT
+	lb.SendMessage(win.LB_GETITEMRECT, uintptr(index), uintptr(unsafe.Pointer(&rc)))
+
+	return index >= topIndex && int(rc.Top) < lb.HeightPixels()
+}
+
+func (lb *ListBox) EnsureItemVisible(index int) {
+	lb.SendMessage(win.LB_SETTOPINDEX, uintptr(index), 0)
+}
+
 func (lb *ListBox) CurrentIndex() int {
 	return int(int32(lb.SendMessage(win.LB_GETCURSEL, 0, 0)))
 }
@@ -354,9 +550,156 @@ func (lb *ListBox) ItemActivated() *Event {
 
 func (lb *ListBox) WndProc(hwnd win.HWND, msg uint32, wParam, lParam uintptr) uintptr {
 	switch msg {
+	case win.WM_MEASUREITEM:
+		if lb.styler == nil {
+			break
+		}
+
+		mis := (*win.MEASUREITEMSTRUCT)(unsafe.Pointer(lParam))
+
+		mis.ItemHeight = uint32(lb.IntFrom96DPI(lb.styler.DefaultItemHeight()))
+
+		return win.TRUE
+
+	case win.WM_DRAWITEM:
+		dis := (*win.DRAWITEMSTRUCT)(unsafe.Pointer(lParam))
+
+		if lb.styler == nil || dis.ItemID < 0 || dis.ItemAction != win.ODA_DRAWENTIRE {
+			return win.TRUE
+		}
+
+		lb.style.index = int(dis.ItemID)
+		lb.style.rc = dis.RcItem
+		lb.style.bounds = lb.RectangleTo96DPI(rectangleFromRECT(dis.RcItem))
+		lb.style.state = dis.ItemState
+		lb.style.hwnd = lb.hWnd
+		lb.style.hdc = dis.HDC
+		lb.style.Font = lb.Font()
+
+		if dis.ItemAction == win.ODA_FOCUS {
+			return win.TRUE
+		}
+
+		var hTheme win.HTHEME
+		if !lb.style.highContrastActive {
+			if hTheme = win.OpenThemeData(lb.hWnd, syscall.StringToUTF16Ptr("Listview")); hTheme != 0 {
+				defer win.CloseThemeData(hTheme)
+			}
+		}
+		lb.style.hTheme = hTheme
+
+		if dis.ItemState&win.ODS_CHECKED != 0 {
+			if lb.style.highContrastActive || lb.Focused() {
+				lb.style.BackgroundColor = lb.themeSelectedBGColor
+				lb.style.TextColor = lb.themeSelectedTextColor
+			} else {
+				lb.style.BackgroundColor = lb.themeSelectedNotFocusedBGColor
+				lb.style.TextColor = lb.themeNormalTextColor
+			}
+		} else if int(dis.ItemID) == lb.style.hoverIndex {
+			if hTheme == 0 {
+				lb.style.BackgroundColor = lb.themeNormalBGColor
+			} else {
+				lb.style.BackgroundColor = lb.themeSelectedBGColor
+			}
+			lb.style.TextColor = lb.themeNormalTextColor
+		} else {
+			lb.style.BackgroundColor = lb.themeNormalBGColor
+			lb.style.TextColor = lb.themeNormalTextColor
+		}
+		if lb.themeNormalTextColor == RGB(0, 0, 0) {
+			lb.style.LineColor = RGB(0, 0, 0)
+		} else {
+			lb.style.LineColor = RGB(255, 255, 255)
+		}
+
+		lb.style.DrawBackground()
+
+		lb.styler.StyleItem(&lb.style)
+
+		defer func() {
+			lb.style.bounds = Rectangle{}
+			if lb.style.canvas != nil {
+				lb.style.canvas.Dispose()
+				lb.style.canvas = nil
+			}
+			lb.style.hdc = 0
+		}()
+
+		return win.TRUE
+
+	case win.WM_SIZE:
+		if lb.styler != nil && lb.styler.ItemHeightDependsOnWidth() {
+			width := lb.WidthPixels()
+			if width != lb.lastWidth {
+				lb.lastWidth = width
+				lb.lastWidthsMeasuredFor = make([]int, lb.model.ItemCount())
+			}
+		}
+
+		lb.ensureVisibleItemsHeightUpToDate()
+
+	case win.WM_VSCROLL:
+		lb.ensureVisibleItemsHeightUpToDate()
+
+	case win.WM_MOUSEWHEEL:
+		lb.ensureVisibleItemsHeightUpToDate()
+
+	case win.WM_LBUTTONDOWN:
+		lb.Invalidate()
+
+	case win.WM_MOUSEMOVE:
+		if !lb.trackingMouseEvent {
+			var tme win.TRACKMOUSEEVENT
+			tme.CbSize = uint32(unsafe.Sizeof(tme))
+			tme.DwFlags = win.TME_LEAVE
+			tme.HwndTrack = lb.hWnd
+
+			lb.trackingMouseEvent = win.TrackMouseEvent(&tme)
+		}
+
+		oldHoverIndex := lb.style.hoverIndex
+
+		result := uint32(lb.SendMessage(win.LB_ITEMFROMPOINT, 0, lParam))
+		if win.HIWORD(result) == 0 {
+			index := int(win.LOWORD(result))
+
+			var rc win.RECT
+			lb.SendMessage(win.LB_GETITEMRECT, uintptr(index), uintptr(unsafe.Pointer(&rc)))
+
+			lp := uint32(lParam)
+			x := int32(win.LOWORD(lp))
+			y := int32(win.HIWORD(lp))
+
+			if x >= rc.Left && x <= rc.Right && y >= rc.Top && y <= rc.Bottom {
+				lb.style.hoverIndex = index
+
+				win.InvalidateRect(lb.hWnd, &rc, true)
+			}
+		}
+
+		if lb.style.hoverIndex != oldHoverIndex {
+			if wParam&win.MK_LBUTTON != 0 {
+				lb.Invalidate()
+			} else {
+				lb.invalidateItem(oldHoverIndex)
+				lb.invalidateItem(lb.style.hoverIndex)
+			}
+		}
+
+	case win.WM_MOUSELEAVE:
+		lb.trackingMouseEvent = false
+
+		index := lb.style.hoverIndex
+
+		lb.style.hoverIndex = -1
+
+		lb.invalidateItem(index)
+
 	case win.WM_COMMAND:
 		switch win.HIWORD(uint32(wParam)) {
 		case win.LBN_SELCHANGE:
+			lb.ensureVisibleItemsHeightUpToDate()
 			lb.prevCurIndex = lb.CurrentIndex()
 			lb.currentIndexChangedPublisher.Publish()
 			lb.selectedIndexesChangedPublisher.Publish()
@@ -387,4 +730,11 @@ func (lb *ListBox) WndProc(hwnd win.HWND, msg uint32, wParam, lParam uintptr) ui
 	}
 
 	return lb.WidgetBase.WndProc(hwnd, msg, wParam, lParam)
+}
+
+func (lb *ListBox) invalidateItem(index int) {
+	var rc win.RECT
+	lb.SendMessage(win.LB_GETITEMRECT, uintptr(index), uintptr(unsafe.Pointer(&rc)))
+
+	win.InvalidateRect(lb.hWnd, &rc, true)
 }

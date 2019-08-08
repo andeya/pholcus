@@ -55,6 +55,9 @@ Prichard
 
 ## Path Syntax
 
+Below is a quick overview of the path syntax, for more complete information please
+check out [GJSON Syntax](SYNTAX.md).
+
 A path is a series of keys separated by a dot.
 A key may contain special wildcard characters '\*' and '?'.
 To access an array value use the index as the key.
@@ -68,9 +71,9 @@ The dot and wildcard characters can be escaped with '\\'.
   "children": ["Sara","Alex","Jack"],
   "fav.movie": "Deer Hunter",
   "friends": [
-    {"first": "Dale", "last": "Murphy", "age": 44},
-    {"first": "Roger", "last": "Craig", "age": 68},
-    {"first": "Jane", "last": "Murphy", "age": 47}
+    {"first": "Dale", "last": "Murphy", "age": 44, "nets": ["ig", "fb", "tw"]},
+    {"first": "Roger", "last": "Craig", "age": 68, "nets": ["fb", "tw"]},
+    {"first": "Jane", "last": "Murphy", "age": 47, "nets": ["ig", "tw"]}
   ]
 }
 ```
@@ -87,16 +90,24 @@ The dot and wildcard characters can be escaped with '\\'.
 "friends.1.last"     >> "Craig"
 ```
 
-You can also query an array for the first match by using `#[...]`, or find all matches with `#[...]#`. 
-Queries support the `==`, `!=`, `<`, `<=`, `>`, `>=` comparison operators and the simple pattern matching `%` (like) and `!%` (not like) operators.
+You can also query an array for the first match by using `#(...)`, or find all 
+matches with `#(...)#`. Queries support the `==`, `!=`, `<`, `<=`, `>`, `>=` 
+comparison operators and the simple pattern matching `%` (like) and `!%` 
+(not like) operators.
 
 ```
-friends.#[last=="Murphy"].first    >> "Dale"
-friends.#[last=="Murphy"]#.first   >> ["Dale","Jane"]
-friends.#[age>45]#.last            >> ["Craig","Murphy"]
-friends.#[first%"D*"].last         >> "Murphy"
-friends.#[first!%"D*"].last        >> "Craig"
+friends.#(last=="Murphy").first    >> "Dale"
+friends.#(last=="Murphy")#.first   >> ["Dale","Jane"]
+friends.#(age>45)#.last            >> ["Craig","Murphy"]
+friends.#(first%"D*").last         >> "Murphy"
+friends.#(first!%"D*").last        >> "Craig"
+friends.#(nets.#(=="fb"))#.first   >> ["Dale","Roger"]
 ```
+
+*Please note that prior to v1.3.0, queries used the `#[...]` brackets. This was
+changed in v1.3.0 as to avoid confusion with the new
+[multipath](SYNTAX.md#multipaths) syntax. For backwards compatibility, 
+`#[...]` will continue to work until the next major release.*
 
 ## Result Type
 
@@ -260,7 +271,7 @@ For example:
 ..1                   >> {"name": "Alexa", "age": 34}
 ..3                   >> {"name": "Deloise", "age": 44}
 ..#.name              >> ["Gilbert","Alexa","May","Deloise"]
-..#[name="May"].age   >> 57
+..#(name="May").age   >> 57
 ```
 
 The `ForEachLines` function will iterate through JSON lines.
@@ -305,7 +316,7 @@ for _, name := range result.Array() {
 You can also query an object inside an array:
 
 ```go
-name := gjson.Get(json, `programmers.#[lastName="Hunter"].firstName`)
+name := gjson.Get(json, `programmers.#(lastName="Hunter").firstName`)
 println(name.String())  // prints "Elliotte"
 ```
 

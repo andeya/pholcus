@@ -66,10 +66,11 @@ const (
 )
 
 var (
-	CLSID_WebBrowser        = CLSID{0x8856F961, 0x340A, 0x11D0, [8]byte{0xA9, 0x6B, 0x00, 0xC0, 0x4F, 0xD7, 0x05, 0xA2}}
-	DIID_DWebBrowserEvents2 = IID{0x34A715A0, 0x6587, 0x11D0, [8]byte{0x92, 0x4A, 0x00, 0x20, 0xAF, 0xC7, 0xAC, 0x4D}}
-	IID_IWebBrowser2        = IID{0xD30C1661, 0xCDAF, 0x11D0, [8]byte{0x8A, 0x3E, 0x00, 0xC0, 0x4F, 0xC9, 0xE2, 0x6E}}
-	IID_IDocHostUIHandler   = IID{0xBD3F23C0, 0xD43E, 0x11CF, [8]byte{0x89, 0x3B, 0x00, 0xAA, 0x00, 0xBD, 0xCE, 0x1A}}
+	CLSID_WebBrowser            = CLSID{0x8856F961, 0x340A, 0x11D0, [8]byte{0xA9, 0x6B, 0x00, 0xC0, 0x4F, 0xD7, 0x05, 0xA2}}
+	DIID_DWebBrowserEvents2     = IID{0x34A715A0, 0x6587, 0x11D0, [8]byte{0x92, 0x4A, 0x00, 0x20, 0xAF, 0xC7, 0xAC, 0x4D}}
+	IID_IWebBrowser2            = IID{0xD30C1661, 0xCDAF, 0x11D0, [8]byte{0x8A, 0x3E, 0x00, 0xC0, 0x4F, 0xC9, 0xE2, 0x6E}}
+	IID_IDocHostUIHandler       = IID{0xBD3F23C0, 0xD43E, 0x11CF, [8]byte{0x89, 0x3B, 0x00, 0xAA, 0x00, 0xBD, 0xCE, 0x1A}}
+	IID_IOleInPlaceActiveObject = IID{0x00000117, 0x0000, 0x0000, [8]byte{0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46}}
 )
 
 type DWebBrowserEvents2Vtbl struct {
@@ -162,6 +163,15 @@ type IWebBrowser2Vtbl struct {
 
 type IWebBrowser2 struct {
 	LpVtbl *IWebBrowser2Vtbl
+}
+
+func (wb2 *IWebBrowser2) QueryInterface(riid REFIID, ppvObject *unsafe.Pointer) HRESULT {
+	ret, _, _ := syscall.Syscall(wb2.LpVtbl.QueryInterface, 3,
+		uintptr(unsafe.Pointer(wb2)),
+		uintptr(unsafe.Pointer(riid)),
+		uintptr(unsafe.Pointer(ppvObject)))
+
+	return HRESULT(ret)
 }
 
 func (wb2 *IWebBrowser2) Release() HRESULT {
@@ -270,4 +280,48 @@ type DOCHOSTUIINFO struct {
 	DwDoubleClick uint32
 	PchHostCss    *uint16
 	PchHostNS     *uint16
+}
+
+type IOleInPlaceActiveObjectVtbl struct {
+	QueryInterface        uintptr
+	AddRef                uintptr
+	Release               uintptr
+	GetWindow             uintptr
+	ContextSensitiveHelp  uintptr
+	TranslateAccelerator  uintptr
+	OnFrameWindowActivate uintptr
+	OnDocWindowActivate   uintptr
+	ResizeBorder          uintptr
+	EnableModeless        uintptr
+}
+
+type IOleInPlaceActiveObject struct {
+	LpVtbl *IOleInPlaceActiveObjectVtbl
+}
+
+func (activeObj *IOleInPlaceActiveObject) Release() HRESULT {
+	ret, _, _ := syscall.Syscall(activeObj.LpVtbl.Release, 1,
+		uintptr(unsafe.Pointer(activeObj)),
+		0,
+		0)
+
+	return HRESULT(ret)
+}
+
+func (activeObj *IOleInPlaceActiveObject) GetWindow(hWndPtr *HWND) HRESULT {
+	ret, _, _ := syscall.Syscall(activeObj.LpVtbl.GetWindow, 2,
+		uintptr(unsafe.Pointer(activeObj)),
+		uintptr(unsafe.Pointer(hWndPtr)),
+		0)
+
+	return HRESULT(ret)
+}
+
+func (activeObj *IOleInPlaceActiveObject) TranslateAccelerator(msg *MSG) HRESULT {
+	ret, _, _ := syscall.Syscall(activeObj.LpVtbl.TranslateAccelerator, 2,
+		uintptr(unsafe.Pointer(activeObj)),
+		uintptr(unsafe.Pointer(msg)),
+		0)
+
+	return HRESULT(ret)
 }

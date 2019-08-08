@@ -8,9 +8,7 @@ package walk
 
 import (
 	"sort"
-)
 
-import (
 	"github.com/lxn/win"
 )
 
@@ -22,19 +20,24 @@ const (
 )
 
 type BoxLayout struct {
-	container          Container
-	margins            Margins
-	spacing            int
+	LayoutBase
 	orientation        Orientation
 	hwnd2StretchFactor map[win.HWND]int
-	resetNeeded        bool
 }
 
 func newBoxLayout(orientation Orientation) *BoxLayout {
-	return &BoxLayout{
+	l := &BoxLayout{
+		LayoutBase: LayoutBase{
+			sizeAndDPI2MinSize: make(map[sizeAndDPI]Size),
+			margins96dpi:       Margins{9, 9, 9, 9},
+			spacing96dpi:       6,
+		},
 		orientation:        orientation,
 		hwnd2StretchFactor: make(map[win.HWND]int),
 	}
+	l.layout = l
+
+	return l
 }
 
 func NewHBoxLayout() *BoxLayout {
@@ -43,42 +46,6 @@ func NewHBoxLayout() *BoxLayout {
 
 func NewVBoxLayout() *BoxLayout {
 	return newBoxLayout(Vertical)
-}
-
-func (l *BoxLayout) Container() Container {
-	return l.container
-}
-
-func (l *BoxLayout) SetContainer(value Container) {
-	if value != l.container {
-		if l.container != nil {
-			l.container.SetLayout(nil)
-		}
-
-		l.container = value
-
-		if value != nil && value.Layout() != Layout(l) {
-			value.SetLayout(l)
-
-			l.Update(true)
-		}
-	}
-}
-
-func (l *BoxLayout) Margins() Margins {
-	return l.margins
-}
-
-func (l *BoxLayout) SetMargins(value Margins) error {
-	if value.HNear < 0 || value.VNear < 0 || value.HFar < 0 || value.VFar < 0 {
-		return newError("margins must be positive")
-	}
-
-	l.margins = value
-
-	l.Update(false)
-
-	return nil
 }
 
 func (l *BoxLayout) Orientation() Orientation {
@@ -95,24 +62,6 @@ func (l *BoxLayout) SetOrientation(value Orientation) error {
 		}
 
 		l.orientation = value
-
-		l.Update(false)
-	}
-
-	return nil
-}
-
-func (l *BoxLayout) Spacing() int {
-	return l.spacing
-}
-
-func (l *BoxLayout) SetSpacing(value int) error {
-	if value != l.spacing {
-		if value < 0 {
-			return newError("spacing cannot be negative")
-		}
-
-		l.spacing = value
 
 		l.Update(false)
 	}
@@ -162,12 +111,12 @@ func (l *BoxLayout) cleanupStretchFactors() {
 }
 
 type widgetInfo struct {
-	index   int
-	minSize int
-	maxSize int
-	stretch int
-	greedy  bool
-	widget  Widget
+	index      int
+	minSize    int
+	maxSize    int
+	stretch    int
+	greedy     bool
+	widgetBase *WidgetBase
 }
 
 type widgetInfoList []widgetInfo
@@ -177,8 +126,8 @@ func (l widgetInfoList) Len() int {
 }
 
 func (l widgetInfoList) Less(i, j int) bool {
-	_, iIsSpacer := l[i].widget.(*Spacer)
-	_, jIsSpacer := l[j].widget.(*Spacer)
+	_, iIsSpacer := l[i].widgetBase.window.(*Spacer)
+	_, jIsSpacer := l[j].widgetBase.window.(*Spacer)
 
 	if l[i].greedy == l[j].greedy {
 		if iIsSpacer == jIsSpacer {
@@ -201,38 +150,132 @@ func (l widgetInfoList) Swap(i, j int) {
 	l[i], l[j] = l[j], l[i]
 }
 
-func (l *BoxLayout) widgets() []Widget {
-	children := l.container.Children()
-	widgets := make([]Widget, 0, children.Len())
-
-	for i := 0; i < cap(widgets); i++ {
-		widget := children.At(i)
-
-		if !shouldLayoutWidget(widget) {
-			continue
-		}
-
-		ps := widget.SizeHint()
-		if ps.Width == 0 && ps.Height == 0 && widget.LayoutFlags() == 0 {
-			continue
-		}
-
-		widgets = append(widgets, widget)
-	}
-
-	return widgets
-}
-
 func (l *BoxLayout) LayoutFlags() LayoutFlags {
 	if l.container == nil {
 		return 0
 	}
 
+	return boxLayoutFlags(l.orientation, l.container.Children())
+}
+
+func (l *BoxLayout) MinSize() Size {
+	if l.container == nil {
+		return Size{}
+	}
+
+	return l.MinSizeForSize(l.container.ClientBoundsPixels().Size())
+}
+
+func (l *BoxLayout) MinSizeForSize(size Size) Size {
+	if l.container == nil {
+		return Size{}
+	}
+
+	dpi := l.container.DPI()
+
+	if min, ok := l.sizeAndDPI2MinSize[sizeAndDPI{size, dpi}]; ok {
+		return min
+	}
+
+	bounds := Rectangle{Width: size.Width, Height: size.Height}
+
+	items, err := boxLayoutItems(widgetsToLayout(l.Container().Children()), l.orientation, l.alignment, bounds, l.margins, l.spacing, l.hwnd2StretchFactor)
+	if err != nil {
+		return Size{}
+	}
+
+	s := Size{l.margins.HNear + l.margins.HFar, l.margins.VNear + l.margins.VFar}
+
+	var maxSecondary int
+
+	for _, item := range items {
+		min := minSizeEffective(item.widget)
+
+		if hfw, ok := item.widget.(HeightForWidther); ok {
+			item.bounds.Height = hfw.HeightForWidth(item.bounds.Width)
+		} else {
+			item.bounds.Height = min.Height
+		}
+		item.bounds.Width = min.Width
+
+		if l.orientation == Horizontal {
+			maxSecondary = maxi(maxSecondary, item.bounds.Height)
+
+			s.Width += item.bounds.Width
+		} else {
+			maxSecondary = maxi(maxSecondary, item.bounds.Width)
+
+			s.Height += item.bounds.Height
+		}
+	}
+
+	if l.orientation == Horizontal {
+		s.Width += (len(items) - 1) * l.spacing
+		s.Height += maxSecondary
+	} else {
+		s.Height += (len(items) - 1) * l.spacing
+		s.Width += maxSecondary
+	}
+
+	if s.Width > 0 && s.Height > 0 {
+		l.sizeAndDPI2MinSize[sizeAndDPI{size, dpi}] = s
+	}
+
+	return s
+}
+
+func (l *BoxLayout) Update(reset bool) error {
+	if l.container == nil {
+		return nil
+	}
+
+	l.sizeAndDPI2MinSize = make(map[sizeAndDPI]Size)
+
+	if reset {
+		l.resetNeeded = true
+	}
+
+	if l.container.Suspended() {
+		return nil
+	}
+
+	if widget, ok := l.container.(Widget); ok {
+		if form := widget.Form(); form == nil || form.Suspended() {
+			return nil
+		}
+	}
+
+	if !performingScheduledLayouts && scheduleLayout(l) {
+		return nil
+	}
+
+	l.dirty = false
+
+	if l.resetNeeded {
+		l.resetNeeded = false
+
+		l.cleanupStretchFactors()
+	}
+
+	ifContainerIsScrollViewDoCoolSpecialLayoutStuff(l)
+
+	items, err := boxLayoutItems(widgetsToLayout(l.Container().Children()), l.orientation, l.alignment, l.container.ClientBoundsPixels(), l.margins, l.spacing, l.hwnd2StretchFactor)
+	if err != nil {
+		return err
+	}
+
+	if err := applyLayoutResults(l.container, items); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func boxLayoutFlags(orientation Orientation, children *WidgetList) LayoutFlags {
 	var flags LayoutFlags
 	var hasNonShrinkableHorz bool
 	var hasNonShrinkableVert bool
 
-	children := l.container.Children()
 	count := children.Len()
 	if count == 0 {
 		return ShrinkableHorz | ShrinkableVert | GrowableHorz | GrowableVert
@@ -240,8 +283,14 @@ func (l *BoxLayout) LayoutFlags() LayoutFlags {
 		for i := 0; i < count; i++ {
 			widget := children.At(i)
 
-			if !shouldLayoutWidget(widget) {
+			if _, ok := widget.(*splitterHandle); ok || !shouldLayoutWidget(widget) {
 				continue
+			}
+
+			if s, ok := widget.(*Spacer); ok {
+				if s.greedyLocallyOnly {
+					continue
+				}
 			}
 
 			f := widget.LayoutFlags()
@@ -255,7 +304,7 @@ func (l *BoxLayout) LayoutFlags() LayoutFlags {
 		}
 	}
 
-	if l.orientation == Horizontal {
+	if orientation == Horizontal {
 		flags |= GrowableHorz
 
 		if hasNonShrinkableVert {
@@ -272,63 +321,11 @@ func (l *BoxLayout) LayoutFlags() LayoutFlags {
 	return flags
 }
 
-func (l *BoxLayout) MinSize() Size {
-	if l.container == nil {
-		return Size{}
+func boxLayoutItems(widgets []Widget, orientation Orientation, alignment Alignment2D, bounds Rectangle, margins Margins, spacing int, hwnd2StretchFactor map[win.HWND]int) ([]layoutResultItem, error) {
+	if len(widgets) == 0 {
+		return nil, nil
 	}
 
-	widgets := l.widgets()
-	var s Size
-
-	for _, widget := range widgets {
-		min := minSizeEffective(widget)
-
-		if l.orientation == Horizontal {
-			s.Width += min.Width
-			s.Height = maxi(s.Height, min.Height)
-		} else {
-			s.Height += min.Height
-			s.Width = maxi(s.Width, min.Width)
-		}
-	}
-
-	if l.orientation == Horizontal {
-		s.Width += l.spacing * (len(widgets) - 1)
-		s.Width += l.margins.HNear + l.margins.HFar
-		s.Height += l.margins.VNear + l.margins.VFar
-	} else {
-		s.Height += l.spacing * (len(widgets) - 1)
-		s.Height += l.margins.VNear + l.margins.VFar
-		s.Width += l.margins.HNear + l.margins.HFar
-	}
-
-	return s
-}
-
-func (l *BoxLayout) Update(reset bool) error {
-	if l.container == nil {
-		return nil
-	}
-
-	if reset {
-		l.resetNeeded = true
-	}
-
-	if l.container.Suspended() {
-		return nil
-	}
-
-	if l.resetNeeded {
-		l.resetNeeded = false
-
-		// Make GC happy.
-		l.cleanupStretchFactors()
-	}
-
-	// Begin by finding out which widgets we care about.
-	widgets := l.widgets()
-
-	// Prepare some useful data.
 	var greedyNonSpacerCount int
 	var greedySpacerCount int
 	var stretchFactorsTotal [3]int
@@ -342,7 +339,7 @@ func (l *BoxLayout) Update(reset bool) error {
 	sortedWidgetInfo := widgetInfoList(make([]widgetInfo, len(widgets)))
 
 	for i, widget := range widgets {
-		sf := l.hwnd2StretchFactor[widget.Handle()]
+		sf := hwnd2StretchFactor[widget.Handle()]
 		if sf == 0 {
 			sf = 1
 		}
@@ -350,15 +347,13 @@ func (l *BoxLayout) Update(reset bool) error {
 
 		flags := widget.LayoutFlags()
 
-		min := widget.MinSize()
-		max := widget.MaxSize()
-		minHint := widget.MinSizeHint()
+		max := widget.MaxSizePixels()
 		pref := widget.SizeHint()
 
-		if l.orientation == Horizontal {
+		if orientation == Horizontal {
 			growable2[i] = flags&GrowableVert > 0
 
-			minSizes[i] = maxi(min.Width, minHint.Width)
+			minSizes[i] = minSizeEffective(widget).Width
 
 			if max.Width > 0 {
 				maxSizes[i] = max.Width
@@ -374,7 +369,11 @@ func (l *BoxLayout) Update(reset bool) error {
 		} else {
 			growable2[i] = flags&GrowableHorz > 0
 
-			minSizes[i] = maxi(min.Height, minHint.Height)
+			if hfw, ok := widget.(HeightForWidther); ok {
+				minSizes[i] = hfw.HeightForWidth(bounds.Width - margins.HNear - margins.HFar)
+			} else {
+				minSizes[i] = minSizeEffective(widget).Height
+			}
 
 			if max.Height > 0 {
 				maxSizes[i] = max.Height
@@ -393,7 +392,7 @@ func (l *BoxLayout) Update(reset bool) error {
 		sortedWidgetInfo[i].minSize = minSizes[i]
 		sortedWidgetInfo[i].maxSize = maxSizes[i]
 		sortedWidgetInfo[i].stretch = sf
-		sortedWidgetInfo[i].widget = widget
+		sortedWidgetInfo[i].widgetBase = widget.AsWidgetBase()
 
 		minSizesRemaining += minSizes[i]
 
@@ -412,22 +411,20 @@ func (l *BoxLayout) Update(reset bool) error {
 
 	sort.Stable(sortedWidgetInfo)
 
-	cb := l.container.ClientBounds()
 	var start1, start2, space1, space2 int
-	if l.orientation == Horizontal {
-		start1 = cb.X + l.margins.HNear
-		start2 = cb.Y + l.margins.VNear
-		space1 = cb.Width - l.margins.HNear - l.margins.HFar
-		space2 = cb.Height - l.margins.VNear - l.margins.VFar
+	if orientation == Horizontal {
+		start1 = bounds.X + margins.HNear
+		start2 = bounds.Y + margins.VNear
+		space1 = bounds.Width - margins.HNear - margins.HFar
+		space2 = bounds.Height - margins.VNear - margins.VFar
 	} else {
-		start1 = cb.Y + l.margins.VNear
-		start2 = cb.X + l.margins.HNear
-		space1 = cb.Height - l.margins.VNear - l.margins.VFar
-		space2 = cb.Width - l.margins.HNear - l.margins.HFar
+		start1 = bounds.Y + margins.VNear
+		start2 = bounds.X + margins.HNear
+		space1 = bounds.Height - margins.VNear - margins.VFar
+		space2 = bounds.Width - margins.HNear - margins.HFar
 	}
 
-	// Now calculate widget primary axis sizes.
-	spacingRemaining := l.spacing * (len(widgets) - 1)
+	spacingRemaining := spacing * (len(widgets) - 1)
 
 	offsets := [3]int{0, greedyNonSpacerCount, greedyNonSpacerCount + greedySpacerCount}
 	counts := [3]int{greedyNonSpacerCount, greedySpacerCount, len(widgets) - greedyNonSpacerCount - greedySpacerCount}
@@ -458,22 +455,18 @@ func (l *BoxLayout) Update(reset bool) error {
 
 			minSizesRemaining -= min
 			stretchFactorsRemaining -= stretch
-			space1 -= (size + l.spacing)
-			spacingRemaining -= l.spacing
+			space1 -= (size + spacing)
+			spacingRemaining -= spacing
 		}
 	}
 
-	// Finally position widgets.
-	hdwp := win.BeginDeferWindowPos(int32(len(widgets)))
-	if hdwp == 0 {
-		return lastError("BeginDeferWindowPos")
-	}
+	results := make([]layoutResultItem, 0, len(widgets))
 
 	excessTotal := space1 - minSizesRemaining - spacingRemaining
-	excessShare := excessTotal / (len(widgets) + 1)
+	excessShare := excessTotal / len(widgets)
+	halfExcessShare := excessTotal / (len(widgets) * 2)
 	p1 := start1
 	for i, widget := range widgets {
-		p1 += excessShare
 		s1 := sizes[i]
 
 		var s2 int
@@ -483,34 +476,91 @@ func (l *BoxLayout) Update(reset bool) error {
 			s2 = prefSizes2[i]
 		}
 
-		p2 := start2 + (space2-s2)/2
+		align := widget.Alignment()
+		if align == AlignHVDefault {
+			align = alignment
+		}
 
-		var x, y, w, h int
-		if l.orientation == Horizontal {
+		var x, y, w, h, p2 int
+		if orientation == Horizontal {
+			switch align {
+			case AlignHNearVNear, AlignHNearVCenter, AlignHNearVFar:
+				// nop
+
+			case AlignHFarVNear, AlignHFarVCenter, AlignHFarVFar:
+				p1 += excessShare
+
+			default:
+				p1 += halfExcessShare
+			}
+
+			switch align {
+			case AlignHNearVNear, AlignHCenterVNear, AlignHFarVNear:
+				p2 = start2
+
+			case AlignHNearVFar, AlignHCenterVFar, AlignHFarVFar:
+				p2 = start2 + space2 - s2
+
+			default:
+				p2 = start2 + (space2-s2)/2
+			}
+
 			x, y, w, h = p1, p2, s1, s2
 		} else {
+			switch align {
+			case AlignHNearVNear, AlignHCenterVNear, AlignHFarVNear:
+				// nop
+
+			case AlignHNearVFar, AlignHCenterVFar, AlignHFarVFar:
+				p1 += excessShare
+
+			default:
+				p1 += halfExcessShare
+			}
+
+			switch align {
+			case AlignHNearVNear, AlignHNearVCenter, AlignHNearVFar:
+				p2 = start2
+
+			case AlignHFarVNear, AlignHFarVCenter, AlignHFarVFar:
+				p2 = start2 + space2 - s2
+
+			default:
+				p2 = start2 + (space2-s2)/2
+			}
+
 			x, y, w, h = p2, p1, s2, s1
 		}
 
-		if hdwp = win.DeferWindowPos(
-			hdwp,
-			widget.Handle(),
-			0,
-			int32(x),
-			int32(y),
-			int32(w),
-			int32(h),
-			win.SWP_NOACTIVATE|win.SWP_NOOWNERZORDER|win.SWP_NOZORDER); hdwp == 0 {
+		if orientation == Horizontal {
+			switch align {
+			case AlignHNearVNear, AlignHNearVCenter, AlignHNearVFar:
+				p1 += excessShare
 
-			return lastError("DeferWindowPos")
+			case AlignHFarVNear, AlignHFarVCenter, AlignHFarVFar:
+				// nop
+
+			default:
+				p1 += halfExcessShare
+			}
+
+		} else {
+			switch align {
+			case AlignHNearVNear, AlignHCenterVNear, AlignHFarVNear:
+				p1 += excessShare
+
+			case AlignHNearVFar, AlignHCenterVFar, AlignHFarVFar:
+				// nop
+
+			default:
+				p1 += halfExcessShare
+			}
 		}
 
-		p1 += s1 + l.spacing
+		p1 += s1 + spacing
+
+		results = append(results, layoutResultItem{widget: widget, bounds: Rectangle{X: x, Y: y, Width: w, Height: h}})
 	}
 
-	if !win.EndDeferWindowPos(hdwp) {
-		return lastError("EndDeferWindowPos")
-	}
-
-	return nil
+	return results, nil
 }

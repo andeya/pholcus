@@ -10,13 +10,13 @@ import (
 )
 
 // TarGz compresses and archives tar.gz file.
-func TarGz(src, dst string, includePrefix bool, logOutput func(string, ...interface{}), ignoreBaseName ...string) (err error) {
+func TarGz(src, dst string, includePrefix bool, logOutput func(string, ...interface{}), ignoreElem ...string) (err error) {
 	// Create dst file
 	fw, err := os.Create(dst)
 	if err != nil {
 		return
 	}
-	err = TarGzTo(src, fw, includePrefix, logOutput, ignoreBaseName...)
+	err = TarGzTo(src, fw, includePrefix, logOutput, ignoreElem...)
 	fw.Close()
 	if err != nil {
 		os.Remove(dst)
@@ -25,7 +25,7 @@ func TarGz(src, dst string, includePrefix bool, logOutput func(string, ...interf
 }
 
 // TarGzTo compresses and archives tar.gz to dst writer.
-func TarGzTo(src string, dstWriter io.Writer, includePrefix bool, logOutput func(string, ...interface{}), ignoreBaseName ...string) (err error) {
+func TarGzTo(src string, dstWriter io.Writer, includePrefix bool, logOutput func(string, ...interface{}), ignoreElem ...string) (err error) {
 	src, err = filepath.Abs(src)
 	if err != nil {
 		return
@@ -42,15 +42,15 @@ func TarGzTo(src string, dstWriter io.Writer, includePrefix bool, logOutput func
 
 	var separator = string(filepath.Separator)
 
-	var a = make([]string, 0, len(ignoreBaseName)+1)
-	for _, v := range ignoreBaseName {
+	var a = make([]string, 0, len(ignoreElem)+1)
+	for _, v := range ignoreElem {
 		v = strings.Trim(v, separator)
 		if v == "" {
 			continue
 		}
 		a = append(a, v)
 	}
-	ignoreBaseName = append(a, ".DS_Store")
+	ignoreElem = append(a, ".DS_Store")
 
 	var prefix string
 	if !srcFi.IsDir() || includePrefix {
@@ -74,7 +74,7 @@ func TarGzTo(src string, dstWriter io.Writer, includePrefix bool, logOutput func
 		hdr.Name = strings.TrimPrefix(fileName, prefix)
 
 		// ignore files
-		for _, v := range ignoreBaseName {
+		for _, v := range ignoreElem {
 			if hdr.Name == v ||
 				strings.HasPrefix(hdr.Name, v+separator) ||
 				strings.HasSuffix(hdr.Name, separator+v) ||

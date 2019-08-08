@@ -12,14 +12,17 @@ import (
 
 import (
 	"github.com/lxn/win"
+	"syscall"
 )
 
 type ProgressIndicator struct {
-	hwnd         win.HWND
-	taskbarList3 *win.ITaskbarList3
-	completed    uint32
-	total        uint32
-	state        PIState
+	hwnd                   win.HWND
+	taskbarList3           *win.ITaskbarList3
+	completed              uint32
+	total                  uint32
+	state                  PIState
+	overlayIcon            *Icon
+	overlayIconDescription string
 }
 
 type PIState int
@@ -80,4 +83,21 @@ func (pi *ProgressIndicator) SetCompleted(completed uint32) error {
 
 func (pi *ProgressIndicator) Completed() uint32 {
 	return pi.completed
+}
+
+func (pi *ProgressIndicator) SetOverlayIcon(icon *Icon, description string) error {
+	handle := win.HICON(0)
+	if icon != nil {
+		handle = icon.handleForDPI(int(win.GetDpiForWindow(pi.hwnd)))
+	}
+	description16, err := syscall.UTF16PtrFromString(description)
+	if err != nil {
+		description16 = &[]uint16{0}[0]
+	}
+	if hr := pi.taskbarList3.SetOverlayIcon(pi.hwnd, handle, description16); win.FAILED(hr) {
+		return errorFromHRESULT("ITaskbarList3.SetOverlayIcon", hr)
+	}
+	pi.overlayIcon = icon
+	pi.overlayIconDescription = description
+	return nil
 }

@@ -11,21 +11,17 @@ import (
 )
 
 type ToolButton struct {
-	AssignTo           **walk.ToolButton
-	Name               string
-	Enabled            Property
-	Visible            Property
-	Font               Font
-	ToolTipText        Property
-	MinSize            Size
-	MaxSize            Size
-	StretchFactor      int
-	Row                int
-	RowSpan            int
-	Column             int
-	ColumnSpan         int
-	AlwaysConsumeSpace bool
+	// Window
+
+	Background         Brush
 	ContextMenuItems   []MenuItem
+	DoubleBuffering    bool
+	Enabled            Property
+	Font               Font
+	MaxSize            Size
+	MinSize            Size
+	Name               string
+	OnBoundsChanged    walk.EventHandler
 	OnKeyDown          walk.KeyEventHandler
 	OnKeyPress         walk.KeyEventHandler
 	OnKeyUp            walk.KeyEventHandler
@@ -33,9 +29,31 @@ type ToolButton struct {
 	OnMouseMove        walk.MouseEventHandler
 	OnMouseUp          walk.MouseEventHandler
 	OnSizeChanged      walk.EventHandler
-	Image              interface{}
-	Text               Property
-	OnClicked          walk.EventHandler
+	Persistent         bool
+	RightToLeftReading bool
+	ToolTipText        Property
+	Visible            Property
+
+	// Widget
+
+	Alignment          Alignment2D
+	AlwaysConsumeSpace bool
+	Column             int
+	ColumnSpan         int
+	GraphicsEffects    []walk.WidgetGraphicsEffect
+	Row                int
+	RowSpan            int
+	StretchFactor      int
+
+	// Button
+
+	Image     Property
+	OnClicked walk.EventHandler
+	Text      Property
+
+	// ToolButton
+
+	AssignTo **walk.ToolButton
 }
 
 func (tb ToolButton) Create(builder *Builder) error {
@@ -44,32 +62,15 @@ func (tb ToolButton) Create(builder *Builder) error {
 		return err
 	}
 
-	return builder.InitWidget(tb, w, func() error {
-		img := tb.Image
-		if s, ok := img.(string); ok {
-			var err error
-			if img, err = imageFromFile(s); err != nil {
-				return err
-			}
-		}
-		if img != nil {
-			if err := w.SetImage(img.(walk.Image)); err != nil {
-				return err
-			}
-		}
+	if tb.AssignTo != nil {
+		*tb.AssignTo = w
+	}
 
+	return builder.InitWidget(tb, w, func() error {
 		if tb.OnClicked != nil {
 			w.Clicked().Attach(tb.OnClicked)
 		}
 
-		if tb.AssignTo != nil {
-			*tb.AssignTo = w
-		}
-
 		return nil
 	})
-}
-
-func (w ToolButton) WidgetInfo() (name string, disabled, hidden bool, font *Font, toolTipText string, minSize, maxSize Size, stretchFactor, row, rowSpan, column, columnSpan int, alwaysConsumeSpace bool, contextMenuItems []MenuItem, OnKeyDown walk.KeyEventHandler, OnKeyPress walk.KeyEventHandler, OnKeyUp walk.KeyEventHandler, OnMouseDown walk.MouseEventHandler, OnMouseMove walk.MouseEventHandler, OnMouseUp walk.MouseEventHandler, OnSizeChanged walk.EventHandler) {
-	return w.Name, false, false, &w.Font, "", w.MinSize, w.MaxSize, w.StretchFactor, w.Row, w.RowSpan, w.Column, w.ColumnSpan, w.AlwaysConsumeSpace, w.ContextMenuItems, w.OnKeyDown, w.OnKeyPress, w.OnKeyUp, w.OnMouseDown, w.OnMouseMove, w.OnMouseUp, w.OnSizeChanged
 }

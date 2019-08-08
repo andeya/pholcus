@@ -7,6 +7,8 @@
 package walk
 
 import (
+	"strconv"
+
 	"github.com/lxn/win"
 )
 
@@ -22,10 +24,11 @@ func init() {
 
 type TabPage struct {
 	ContainerBase
-	image                 *Bitmap
+	image                 Image
 	title                 string
 	tabWidget             *TabWidget
 	titleChangedPublisher EventPublisher
+	imageChangedPublisher EventPublisher
 }
 
 func NewTabPage() (*TabPage, error) {
@@ -42,16 +45,45 @@ func NewTabPage() (*TabPage, error) {
 
 	tp.children = newWidgetList(tp)
 
-	tp.SetBackground(tabPageBackgroundBrush)
-
 	tp.MustRegisterProperty("Title", NewProperty(
 		func() interface{} {
 			return tp.Title()
 		},
 		func(v interface{}) error {
-			return tp.SetTitle(v.(string))
+			return tp.SetTitle(assertStringOr(v, ""))
 		},
 		tp.titleChangedPublisher.Event()))
+
+	tp.MustRegisterProperty("Image", NewProperty(
+		func() interface{} {
+			return tp.Image()
+		},
+		func(v interface{}) error {
+			var img *Bitmap
+
+			switch val := v.(type) {
+			case *Bitmap:
+				img = val
+
+			case int:
+				var err error
+				if img, err = Resources.Bitmap(strconv.Itoa(val)); err != nil {
+					return err
+				}
+
+			case string:
+				var err error
+				if img, err = Resources.Bitmap(val); err != nil {
+					return err
+				}
+
+			default:
+				return ErrInvalidType
+			}
+
+			return tp.SetImage(img)
+		},
+		tp.imageChangedPublisher.Event()))
 
 	return tp, nil
 }
@@ -64,6 +96,20 @@ func (tp *TabPage) Enabled() bool {
 	return tp.enabled
 }
 
+func (tp *TabPage) Background() Brush {
+	if tp.background != nil {
+		return tp.background
+	} else if tp.tabWidget != nil && tp.tabWidget.background == nullBrushSingleton {
+		return nullBrushSingleton
+	}
+
+	if win.IsAppThemed() {
+		return tabPageBackgroundBrush
+	}
+
+	return nil
+}
+
 func (tp *TabPage) Font() *Font {
 	if tp.font != nil {
 		return tp.font
@@ -74,11 +120,11 @@ func (tp *TabPage) Font() *Font {
 	return defaultFont
 }
 
-func (tp *TabPage) Image() *Bitmap {
+func (tp *TabPage) Image() Image {
 	return tp.image
 }
 
-func (tp *TabPage) SetImage(value *Bitmap) error {
+func (tp *TabPage) SetImage(value Image) error {
 	tp.image = value
 
 	if tp.tabWidget == nil {

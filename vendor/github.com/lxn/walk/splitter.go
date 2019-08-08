@@ -11,9 +11,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
-)
 
-import (
 	"github.com/lxn/win"
 )
 
@@ -25,6 +23,7 @@ func init() {
 	MustRegisterWindowClass(splitterWindowClass)
 
 	splitterHandleDraggingBrush, _ = NewSolidColorBrush(Color(win.GetSysColor(win.COLOR_BTNSHADOW)))
+	splitterHandleDraggingBrush.wb2info = map[*WindowBase]*windowBrushInfo{nil: nil}
 }
 
 type Splitter struct {
@@ -33,6 +32,7 @@ type Splitter struct {
 	mouseDownPos  Point
 	draggedHandle *splitterHandle
 	persistent    bool
+	removing      bool
 }
 
 func newSplitter(parent Container, orientation Orientation) (*Splitter, error) {
@@ -41,7 +41,7 @@ func newSplitter(parent Container, orientation Orientation) (*Splitter, error) {
 		ContainerBase: ContainerBase{
 			layout: layout,
 		},
-		handleWidth: 4,
+		handleWidth: 5,
 	}
 	s.children = newWidgetList(s)
 	layout.container = s
@@ -61,6 +61,8 @@ func newSplitter(parent Container, orientation Orientation) (*Splitter, error) {
 			s.Dispose()
 		}
 	}()
+
+	s.SetBackground(NullBrush())
 
 	if err := s.setOrientation(orientation); err != nil {
 		return nil, err
@@ -82,7 +84,7 @@ func NewVSplitter(parent Container) (*Splitter, error) {
 }
 
 func (s *Splitter) LayoutFlags() LayoutFlags {
-	return ShrinkableHorz | ShrinkableVert | GrowableHorz | GrowableVert | GreedyHorz | GreedyVert
+	return s.layout.LayoutFlags()
 }
 
 func (s *Splitter) SizeHint() Size {
@@ -124,14 +126,60 @@ func (s *Splitter) setOrientation(value Orientation) error {
 		cursor = CursorSizeNS()
 	}
 
-	for i, w := range s.Children().items {
+	for i, wb := range s.Children().items {
 		if i%2 == 1 {
-			w.SetCursor(cursor)
+			wb.window.SetCursor(cursor)
 		}
 	}
 
 	layout := s.layout.(*splitterLayout)
 	return layout.SetOrientation(value)
+}
+
+func (s *Splitter) updateMarginsForFocusEffect() {
+	var margins Margins
+	var parentLayout Layout
+
+	if s.parent != nil {
+		if parentLayout = s.parent.Layout(); parentLayout != nil {
+			if m := parentLayout.Margins(); m.HNear < 9 || m.HFar < 9 || m.VNear < 9 || m.VFar < 9 {
+				parentLayout = nil
+			}
+		}
+	}
+
+	var affected bool
+	if FocusEffect != nil {
+		for _, wb := range s.children.items {
+			if wb.window.(Widget).GraphicsEffects().Contains(FocusEffect) {
+				affected = true
+				break
+			}
+		}
+	}
+
+	if affected {
+		var marginsNeeded bool
+		for _, wb := range s.children.items {
+			switch wb.window.(type) {
+			case *splitterHandle, *TabWidget, Container:
+
+			default:
+				marginsNeeded = true
+				break
+			}
+		}
+
+		if marginsNeeded {
+			margins = Margins{5, 5, 5, 5}
+		}
+	}
+
+	if parentLayout != nil {
+		parentLayout.SetMargins(Margins{9 - margins.HNear, 9 - margins.VNear, 9 - margins.HFar, 9 - margins.VFar})
+	}
+
+	s.layout.SetMargins(margins)
 }
 
 func (s *Splitter) Persistent() bool {
@@ -153,13 +201,18 @@ func (s *Splitter) SaveState() error {
 			buf.WriteString(" ")
 		}
 
-		buf.WriteString(strconv.FormatFloat(layout.fractions[i/2], 'f', -1, 64))
+		item := layout.hwnd2Item[s.children.At(i).Handle()]
+		size := item.oldExplicitSize
+		if size == 0 {
+			size = item.size
+		}
+		buf.WriteString(strconv.FormatInt(int64(size), 10))
 	}
 
-	s.putState(buf.String())
+	s.WriteState(buf.String())
 
-	for _, widget := range s.children.items {
-		if persistable, ok := widget.(Persistable); ok {
+	for _, wb := range s.children.items {
+		if persistable, ok := wb.window.(Persistable); ok {
 			if err := persistable.SaveState(); err != nil {
 				return err
 			}
@@ -175,7 +228,7 @@ func (s *Splitter) RestoreState() error {
 		return nil
 	}
 
-	state, err := s.getState()
+	state, err := s.ReadState()
 	if err != nil {
 		return err
 	}
@@ -183,10 +236,10 @@ func (s *Splitter) RestoreState() error {
 		return nil
 	}
 
-	fractionStrs := strings.Split(state, " ")
+	sizeStrs := strings.Split(state, " ")
 
 	// FIXME: Solve this in a better way.
-	if len(fractionStrs) != childCount {
+	if len(sizeStrs) != childCount {
 		log.Print("*Splitter.RestoreState: failed due to unexpected child count (FIXME!)")
 		return nil
 	}
@@ -194,20 +247,35 @@ func (s *Splitter) RestoreState() error {
 	layout := s.layout.(*splitterLayout)
 
 	s.SetSuspended(true)
-	defer s.SetSuspended(false)
+	layout.suspended = true
+	defer func() {
+		layout.suspended = false
+		s.SetSuspended(false)
+	}()
 
-	var fractionsTotal float64
-	var fractions []float64
+	regularSpace := layout.spaceForRegularWidgets()
 
-	for i, widget := range s.children.items {
+	for i, wb := range s.children.items {
+		widget := wb.window.(Widget)
+
 		if i%2 == 0 {
-			fraction, err := strconv.ParseFloat(fractionStrs[i/2+i%2], 64)
+			j := i/2 + i%2
+			s := sizeStrs[j]
+
+			size, err := strconv.Atoi(s)
 			if err != nil {
-				return err
+				// OK, we probably got old style settings which were stored as fractions.
+				fraction, err := strconv.ParseFloat(s, 64)
+				if err != nil {
+					return err
+				}
+
+				size = int(float64(regularSpace) * fraction)
 			}
 
-			fractionsTotal += fraction
-			fractions = append(fractions, fraction)
+			item := layout.hwnd2Item[widget.Handle()]
+			item.size = size
+			item.oldExplicitSize = size
 		}
 
 		if persistable, ok := widget.(Persistable); ok {
@@ -217,11 +285,40 @@ func (s *Splitter) RestoreState() error {
 		}
 	}
 
-	for i := range fractions {
-		fractions[i] = fractions[i] / fractionsTotal
+	return nil
+}
+
+func (s *Splitter) Fixed(widget Widget) bool {
+	return s.layout.(*splitterLayout).Fixed(widget)
+}
+
+func (s *Splitter) SetFixed(widget Widget, fixed bool) error {
+	item := s.layout.(*splitterLayout).hwnd2Item[widget.Handle()]
+	if item == nil {
+		return newError("unknown widget")
 	}
 
-	return layout.SetFractions(fractions)
+	item.fixed = fixed
+
+	if b := widget.BoundsPixels(); fixed && b.Width == 0 || b.Height == 0 {
+		b.Width, b.Height = 100, 100
+		widget.SetBoundsPixels(b)
+		item.size = 100
+	}
+
+	return nil
+}
+
+func (s *Splitter) WndProc(hwnd win.HWND, msg uint32, wParam, lParam uintptr) uintptr {
+	switch msg {
+	case win.WM_SIZE:
+		layout := s.layout.(*splitterLayout)
+		for _, item := range layout.hwnd2Item {
+			item.oldExplicitSize = 0
+		}
+	}
+
+	return s.ContainerBase.WndProc(hwnd, msg, wParam, lParam)
 }
 
 func (s *Splitter) onInsertingWidget(index int, widget Widget) (err error) {
@@ -229,6 +326,14 @@ func (s *Splitter) onInsertingWidget(index int, widget Widget) (err error) {
 }
 
 func (s *Splitter) onInsertedWidget(index int, widget Widget) (err error) {
+	defer func() {
+		if err != nil {
+			return
+		}
+
+		s.updateMarginsForFocusEffect()
+	}()
+
 	_, isHandle := widget.(*splitterHandle)
 	if isHandle {
 		if s.Orientation() == Horizontal {
@@ -236,141 +341,188 @@ func (s *Splitter) onInsertedWidget(index int, widget Widget) (err error) {
 		} else {
 			widget.SetCursor(CursorSizeNS())
 		}
-	} else if s.children.Len()%2 == 0 {
-		defer func() {
-			if err != nil {
-				return
+	} else {
+		layout := s.Layout().(*splitterLayout)
+		item := &splitterLayoutItem{stretchFactor: 1, wasVisible: true}
+		layout.hwnd2Item[widget.Handle()] = item
+		item.visibleChangedHandle = widget.VisibleChanged().Attach(func() {
+			if !layout.suspended && widget.AsWidgetBase().visible != item.wasVisible {
+				layout.Update(true)
 			}
+		})
 
-			var handle *splitterHandle
-			handle, err = newSplitterHandle(s)
-			if err != nil {
-				return
-			}
+		if s.children.Len()%2 == 0 {
+			defer func() {
+				if err != nil {
+					return
+				}
 
-			var handleIndex int
-			if index == 0 {
-				handleIndex = 1
-			} else {
-				handleIndex = index
-			}
-			err = s.children.Insert(handleIndex, handle)
-			if err == nil {
-				// FIXME: These handlers will be leaked, if widgets get removed.
-				handle.MouseDown().Attach(func(x, y int, button MouseButton) {
-					if button != LeftButton {
-						return
-					}
+				var handle *splitterHandle
+				handle, err = newSplitterHandle(s)
+				if err != nil {
+					return
+				}
 
-					s.draggedHandle = handle
-					s.mouseDownPos = Point{x, y}
-					handle.SetBackground(splitterHandleDraggingBrush)
-				})
+				closestVisibleWidget := func(offset, direction int) Widget {
+					index := offset + direction
 
-				handle.MouseMove().Attach(func(x, y int, button MouseButton) {
-					if s.draggedHandle == nil {
-						return
-					}
-
-					handleIndex := s.children.Index(s.draggedHandle)
-
-					prev := s.children.At(handleIndex - 1)
-					bp := prev.Bounds()
-					msep := minSizeEffective(prev)
-
-					next := s.children.At(handleIndex + 1)
-					bn := next.Bounds()
-					msen := minSizeEffective(next)
-
-					if s.Orientation() == Horizontal {
-						xh := s.draggedHandle.X()
-
-						xnew := xh + x - s.mouseDownPos.X
-						if xnew < bp.X+msep.Width {
-							xnew = bp.X + msep.Width
-						} else if xnew >= bn.X+bn.Width-msen.Width-s.handleWidth {
-							xnew = bn.X + bn.Width - msen.Width - s.handleWidth
+					for index >= 0 && index < len(s.children.items) {
+						if wb := s.children.items[index]; wb.visible {
+							return wb.window.(Widget)
 						}
 
-						if e := s.draggedHandle.SetX(xnew); e != nil {
+						index += direction
+					}
+
+					return nil
+				}
+
+				handleIndex := index + 1 - index%2
+				err = s.children.Insert(handleIndex, handle)
+				if err == nil {
+					// FIXME: These handlers will be leaked, if widgets get removed.
+					handle.MouseDown().Attach(func(x, y int, button MouseButton) {
+						if button != LeftButton {
 							return
 						}
-					} else {
-						yh := s.draggedHandle.Y()
 
-						ynew := yh + y - s.mouseDownPos.Y
-						if ynew < bp.Y+msep.Height {
-							ynew = bp.Y + msep.Height
-						} else if ynew >= bn.Y+bn.Height-msen.Height-s.handleWidth {
-							ynew = bn.Y + bn.Height - msen.Height - s.handleWidth
-						}
+						s.draggedHandle = handle
+						s.mouseDownPos = Point{x, y}
+						handle.SetBackground(splitterHandleDraggingBrush)
+					})
 
-						if e := s.draggedHandle.SetY(ynew); e != nil {
+					handle.MouseMove().Attach(func(x, y int, button MouseButton) {
+						if s.draggedHandle == nil {
 							return
 						}
-					}
-				})
 
-				handle.MouseUp().Attach(func(x, y int, button MouseButton) {
-					if s.draggedHandle == nil {
-						return
-					}
+						handleIndex := s.children.Index(s.draggedHandle)
+						bh := s.draggedHandle.BoundsPixels()
 
-					dragHandle := s.draggedHandle
-					s.draggedHandle = nil
-					dragHandle.SetBackground(nil)
+						prev := closestVisibleWidget(handleIndex, -1)
+						bp := prev.BoundsPixels()
+						msep := minSizeEffective(prev)
 
-					handleIndex := s.children.Index(dragHandle)
-					prev := s.children.At(handleIndex - 1)
-					next := s.children.At(handleIndex + 1)
+						next := closestVisibleWidget(handleIndex, 1)
+						bn := next.BoundsPixels()
+						msen := minSizeEffective(next)
 
-					prev.SetSuspended(true)
-					defer prev.Invalidate()
-					defer prev.SetSuspended(false)
-					next.SetSuspended(true)
-					defer next.Invalidate()
-					defer next.SetSuspended(false)
+						if s.Orientation() == Horizontal {
+							xh := s.draggedHandle.XPixels()
 
-					bh := dragHandle.Bounds()
-					bp := prev.Bounds()
-					bn := next.Bounds()
+							xnew := xh + x - s.mouseDownPos.X
+							if xnew < bp.X+msep.Width {
+								xnew = bp.X + msep.Width
+							} else if xnew >= bn.X+bn.Width-msen.Width-s.handleWidth {
+								xnew = bn.X + bn.Width - msen.Width - s.handleWidth
+							}
 
-					var sizePrev int
-					var sizeNext int
+							if e := s.draggedHandle.SetXPixels(xnew); e != nil {
+								return
+							}
+						} else {
+							yh := s.draggedHandle.YPixels()
 
-					if s.Orientation() == Horizontal {
-						bp.Width = bh.X - bp.X
-						bn.Width -= (bh.X + bh.Width) - bn.X
-						bn.X = bh.X + bh.Width
-						sizePrev = bp.Width
-						sizeNext = bn.Width
-					} else {
-						bp.Height = bh.Y - bp.Y
-						bn.Height -= (bh.Y + bh.Height) - bn.Y
-						bn.Y = bh.Y + bh.Height
-						sizePrev = bp.Height
-						sizeNext = bn.Height
-					}
+							ynew := yh + y - s.mouseDownPos.Y
+							if ynew < bp.Y+msep.Height {
+								ynew = bp.Y + msep.Height
+							} else if ynew >= bn.Y+bn.Height-msen.Height-s.handleWidth {
+								ynew = bn.Y + bn.Height - msen.Height - s.handleWidth
+							}
 
-					if e := prev.SetBounds(bp); e != nil {
-						return
-					}
+							if e := s.draggedHandle.SetYPixels(ynew); e != nil {
+								return
+							}
+						}
 
-					if e := next.SetBounds(bn); e != nil {
-						return
-					}
+						rc := bh.toRECT()
+						if s.Orientation() == Horizontal {
+							rc.Left -= int32(bp.X)
+							rc.Right -= int32(bp.X)
+						} else {
+							rc.Top -= int32(bp.Y)
+							rc.Bottom -= int32(bp.Y)
+						}
+						win.InvalidateRect(prev.Handle(), &rc, true)
 
-					layout := s.Layout().(*splitterLayout)
-					space := float64(layout.spaceForRegularWidgets())
-					fractions := layout.fractions
-					i := handleIndex - 1
-					jp := i/2 + i%2
-					jn := jp + 1
-					fractions[jp] = float64(sizePrev) / space
-					fractions[jn] = float64(sizeNext) / space
-				})
-			}
-		}()
+						rc = bh.toRECT()
+						if s.Orientation() == Horizontal {
+							rc.Left -= int32(bn.X)
+							rc.Right -= int32(bn.X)
+						} else {
+							rc.Top -= int32(bn.Y)
+							rc.Bottom -= int32(bn.Y)
+						}
+						win.InvalidateRect(next.Handle(), &rc, true)
+
+						s.draggedHandle.Invalidate()
+					})
+
+					handle.MouseUp().Attach(func(x, y int, button MouseButton) {
+						if s.draggedHandle == nil {
+							return
+						}
+
+						dragHandle := s.draggedHandle
+
+						handleIndex := s.children.Index(dragHandle)
+						prev := closestVisibleWidget(handleIndex, -1)
+						next := closestVisibleWidget(handleIndex, 1)
+
+						s.draggedHandle = nil
+						dragHandle.SetBackground(NullBrush())
+						prev.AsWidgetBase().invalidateBorderInParent()
+						next.AsWidgetBase().invalidateBorderInParent()
+
+						prev.SetSuspended(true)
+						defer prev.Invalidate()
+						defer prev.SetSuspended(false)
+						next.SetSuspended(true)
+						defer next.Invalidate()
+						defer next.SetSuspended(false)
+
+						bh := dragHandle.BoundsPixels()
+						bp := prev.BoundsPixels()
+						bn := next.BoundsPixels()
+
+						var sizePrev int
+						var sizeNext int
+
+						if s.Orientation() == Horizontal {
+							bp.Width = bh.X - bp.X
+							bn.Width -= (bh.X + bh.Width) - bn.X
+							bn.X = bh.X + bh.Width
+							sizePrev = bp.Width
+							sizeNext = bn.Width
+						} else {
+							bp.Height = bh.Y - bp.Y
+							bn.Height -= (bh.Y + bh.Height) - bn.Y
+							bn.Y = bh.Y + bh.Height
+							sizePrev = bp.Height
+							sizeNext = bn.Height
+						}
+
+						if e := prev.SetBoundsPixels(bp); e != nil {
+							return
+						}
+
+						if e := next.SetBoundsPixels(bn); e != nil {
+							return
+						}
+
+						layout := s.Layout().(*splitterLayout)
+
+						prevItem := layout.hwnd2Item[prev.Handle()]
+						prevItem.size = sizePrev
+						prevItem.oldExplicitSize = sizePrev
+
+						nextItem := layout.hwnd2Item[next.Handle()]
+						nextItem.size = sizeNext
+						nextItem.oldExplicitSize = sizeNext
+					})
+				}
+			}()
+		}
 	}
 
 	return s.ContainerBase.onInsertedWidget(index, widget)
@@ -381,9 +533,22 @@ func (s *Splitter) onRemovingWidget(index int, widget Widget) (err error) {
 }
 
 func (s *Splitter) onRemovedWidget(index int, widget Widget) (err error) {
+	defer func() {
+		if err != nil {
+			return
+		}
+
+		s.updateMarginsForFocusEffect()
+	}()
+
 	_, isHandle := widget.(*splitterHandle)
-	if isHandle && s.children.Len()%2 == 1 {
+	if !s.removing && isHandle && s.children.Len()%2 == 1 {
 		return newError("cannot remove splitter handle")
+	}
+
+	if !isHandle {
+		sl := s.layout.(*splitterLayout)
+		widget.AsWidgetBase().Property("Visible").Changed().Detach(sl.hwnd2Item[widget.Handle()].visibleChangedHandle)
 	}
 
 	if !isHandle && s.children.Len() > 1 {
@@ -398,14 +563,28 @@ func (s *Splitter) onRemovedWidget(index int, widget Widget) (err error) {
 			} else {
 				handleIndex = index - 1
 			}
-			err = s.children.RemoveAt(handleIndex)
+
+			s.removing = true
+			handle := s.children.items[handleIndex].window.(*splitterHandle)
+
+			if err = handle.SetParent(nil); err == nil {
+				sl := s.layout.(*splitterLayout)
+
+				for _, item := range sl.hwnd2Item {
+					item.oldExplicitSize = 0
+					item.keepSize = false
+				}
+
+				s.layout.Update(true)
+
+				handle.Dispose()
+			}
+
+			s.removing = false
 		}()
 	}
 
 	err = s.ContainerBase.onRemovedWidget(index, widget)
-	if isHandle && err == nil {
-		widget.Dispose()
-	}
 
 	return
 }

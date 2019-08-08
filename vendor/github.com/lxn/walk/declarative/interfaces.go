@@ -41,17 +41,16 @@ func Bind(expression string, validators ...Validator) Property {
 	return bd
 }
 
+type Brush interface {
+	Create() (walk.Brush, error)
+}
+
 type Layout interface {
 	Create() (walk.Layout, error)
 }
 
 type Widget interface {
 	Create(builder *Builder) error
-	WidgetInfo() (name string, disabled, hidden bool, font *Font, toolTipText string, minSize, maxSize Size, stretchFactor, row, rowSpan, column, columnSpan int, alwaysConsumeSpace bool, contextMenuItems []MenuItem, OnKeyDown walk.KeyEventHandler, OnKeyPress walk.KeyEventHandler, OnKeyUp walk.KeyEventHandler, OnMouseDown walk.MouseEventHandler, OnMouseMove walk.MouseEventHandler, OnMouseUp walk.MouseEventHandler, OnSizeChanged walk.EventHandler)
-}
-
-type Container interface {
-	ContainerInfo() (DataBinder, Layout, []Widget)
 }
 
 type MenuItem interface {
@@ -78,35 +77,48 @@ func (epr ErrorPresenterRef) Create() (walk.ErrorPresenter, error) {
 	return nil, nil
 }
 
-type topLevelWindowInfo struct {
-	Name             string
-	Disabled         bool
-	Hidden           bool
-	Font             Font
-	ToolTipText      string
-	MinSize          Size
-	MaxSize          Size
-	ContextMenuItems []MenuItem
-	OnKeyDown        walk.KeyEventHandler
-	OnKeyPress       walk.KeyEventHandler
-	OnKeyUp          walk.KeyEventHandler
-	OnMouseDown      walk.MouseEventHandler
-	OnMouseMove      walk.MouseEventHandler
-	OnMouseUp        walk.MouseEventHandler
-	OnSizeChanged    walk.EventHandler
-	DataBinder       DataBinder
-	Layout           Layout
-	Children         []Widget
+type ToolTipErrorPresenter struct {
 }
 
-func (topLevelWindowInfo) Create(builder *Builder) error {
+func (ToolTipErrorPresenter) Create() (walk.ErrorPresenter, error) {
+	return walk.NewToolTipErrorPresenter()
+}
+
+type formInfo struct {
+	// Window
+
+	Background         Brush
+	ContextMenuItems   []MenuItem
+	DoubleBuffering    bool
+	Enabled            Property
+	Font               Font
+	MaxSize            Size
+	MinSize            Size
+	Name               string
+	OnBoundsChanged    walk.EventHandler
+	OnKeyDown          walk.KeyEventHandler
+	OnKeyPress         walk.KeyEventHandler
+	OnKeyUp            walk.KeyEventHandler
+	OnMouseDown        walk.MouseEventHandler
+	OnMouseMove        walk.MouseEventHandler
+	OnMouseUp          walk.MouseEventHandler
+	OnSizeChanged      walk.EventHandler
+	RightToLeftReading bool
+	ToolTipText        string
+	Visible            Property
+
+	// Container
+
+	Children   []Widget
+	DataBinder DataBinder
+	Layout     Layout
+
+	// Form
+
+	Icon  Property
+	Title Property
+}
+
+func (formInfo) Create(builder *Builder) error {
 	return nil
-}
-
-func (i topLevelWindowInfo) WidgetInfo() (name string, disabled, hidden bool, font *Font, ToolTipText string, minSize, maxSize Size, stretchFactor, row, rowSpan, column, columnSpan int, alwaysConsumeSpace bool, contextMenuItems []MenuItem, OnKeyDown walk.KeyEventHandler, OnKeyPress walk.KeyEventHandler, OnKeyUp walk.KeyEventHandler, OnMouseDown walk.MouseEventHandler, OnMouseMove walk.MouseEventHandler, OnMouseUp walk.MouseEventHandler, OnSizeChanged walk.EventHandler) {
-	return i.Name, i.Disabled, i.Hidden, &i.Font, i.ToolTipText, i.MinSize, i.MaxSize, 0, 0, 0, 0, 0, false, i.ContextMenuItems, i.OnKeyDown, i.OnKeyPress, i.OnKeyUp, i.OnMouseDown, i.OnMouseMove, i.OnMouseUp, i.OnSizeChanged
-}
-
-func (i topLevelWindowInfo) ContainerInfo() (DataBinder, Layout, []Widget) {
-	return i.DataBinder, i.Layout, i.Children
 }

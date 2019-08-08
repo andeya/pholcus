@@ -3,7 +3,9 @@ package goutil
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -39,18 +41,27 @@ func SelfChdir() {
 }
 
 // FileExists reports whether the named file or directory exists.
-func FileExists(name string) bool {
-	if _, err := os.Stat(name); err != nil {
-		return !os.IsNotExist(err)
+func FileExists(name string) (existed bool) {
+	existed, _ = FileExist(name)
+	return
+}
+
+// FileExist reports whether the named file or directory exists.
+func FileExist(name string) (existed bool, isDir bool) {
+	info, err := os.Stat(name)
+	if err != nil {
+		return !os.IsNotExist(err), false
 	}
-	return true
+	return true, info.IsDir()
 }
 
 // SearchFile Search a file in paths.
 // this is often used in search config file in /etc ~/
 func SearchFile(filename string, paths ...string) (fullpath string, err error) {
 	for _, path := range paths {
-		if fullpath = filepath.Join(path, filename); FileExists(fullpath) {
+		fullpath = filepath.Join(path, filename)
+		existed, _ := FileExist(fullpath)
+		if existed {
 			return
 		}
 	}
@@ -134,4 +145,273 @@ func WalkDirs(targpath string, suffixes ...string) (dirlist []string) {
 	}
 
 	return
+}
+
+// FilepathSplitExt splits the filename into a pair (root, ext) such that root + ext == filename,
+// and ext is empty or begins with a period and contains at most one period.
+// Leading periods on the basename are ignored; splitext('.cshrc') returns ('', '.cshrc').
+func FilepathSplitExt(filename string, slashInsensitive ...bool) (root, ext string) {
+	insensitive := false
+	if len(slashInsensitive) > 0 {
+		insensitive = slashInsensitive[0]
+	}
+	if insensitive {
+		filename = FilepathSlashInsensitive(filename)
+	}
+	for i := len(filename) - 1; i >= 0 && !os.IsPathSeparator(filename[i]); i-- {
+		if filename[i] == '.' {
+			return filename[:i], filename[i:]
+		}
+	}
+	return filename, ""
+}
+
+// FilepathStem returns the stem of filename.
+// Example:
+//  FilepathStem("/root/dir/sub/file.ext") // output "file"
+// NOTE:
+//  If slashInsensitive is empty, default is false.
+func FilepathStem(filename string, slashInsensitive ...bool) string {
+	insensitive := false
+	if len(slashInsensitive) > 0 {
+		insensitive = slashInsensitive[0]
+	}
+	if insensitive {
+		filename = FilepathSlashInsensitive(filename)
+	}
+	base := filepath.Base(filename)
+	for i := len(base) - 1; i >= 0; i-- {
+		if base[i] == '.' {
+			return base[:i]
+		}
+	}
+	return base
+}
+
+// FilepathSlashInsensitive ignore the difference between the slash and the backslash,
+// and convert to the same as the current system.
+func FilepathSlashInsensitive(path string) string {
+	if filepath.Separator == '/' {
+		return strings.Replace(path, "\\", "/", -1)
+	}
+	return strings.Replace(path, "/", "\\", -1)
+}
+
+// FilepathContains checks if the basepath path contains the subpaths.
+func FilepathContains(basepath string, subpaths []string) error {
+	basepath, err := filepath.Abs(basepath)
+	if err != nil {
+		return err
+	}
+	for _, p := range subpaths {
+		p, err = filepath.Abs(p)
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(basepath, p)
+		if err != nil {
+			return err
+		}
+		if strings.HasPrefix(rel, "..") {
+			return fmt.Errorf("%s is not include %s", basepath, p)
+		}
+	}
+	return nil
+}
+
+// FilepathAbsolute returns the absolute paths.
+func FilepathAbsolute(paths []string) ([]string, error) {
+	return StringsConvert(paths, func(p string) (string, error) {
+		return filepath.Abs(p)
+	})
+}
+
+// FilepathAbsoluteMap returns the absolute paths map.
+func FilepathAbsoluteMap(paths []string) (map[string]string, error) {
+	return StringsConvertMap(paths, func(p string) (string, error) {
+		return filepath.Abs(p)
+	})
+}
+
+// FilepathRelative returns the relative paths.
+func FilepathRelative(basepath string, targpaths []string) ([]string, error) {
+	basepath, err := filepath.Abs(basepath)
+	if err != nil {
+		return nil, err
+	}
+	return StringsConvert(targpaths, func(p string) (string, error) {
+		return filepathRelative(basepath, p)
+	})
+}
+
+// FilepathRelativeMap returns the relative paths map.
+func FilepathRelativeMap(basepath string, targpaths []string) (map[string]string, error) {
+	basepath, err := filepath.Abs(basepath)
+	if err != nil {
+		return nil, err
+	}
+	return StringsConvertMap(targpaths, func(p string) (string, error) {
+		return filepathRelative(basepath, p)
+	})
+}
+
+func filepathRelative(basepath, targpath string) (string, error) {
+	abs, err := filepath.Abs(targpath)
+	if err != nil {
+		return "", err
+	}
+	rel, err := filepath.Rel(basepath, abs)
+	if err != nil {
+		return "", err
+	}
+	if strings.HasPrefix(rel, "..") {
+		return "", fmt.Errorf("%s is not include %s", basepath, abs)
+	}
+	return rel, nil
+}
+
+// FilepathDistinct removes the same path and return in the original order.
+// If toAbs is true, return the result to absolute paths.
+func FilepathDistinct(paths []string, toAbs bool) ([]string, error) {
+	m := make(map[string]bool, len(paths))
+	ret := make([]string, 0, len(paths))
+	for _, p := range paths {
+		abs, err := filepath.Abs(p)
+		if err != nil {
+			return nil, err
+		}
+		if m[abs] {
+			continue
+		}
+		m[abs] = true
+		if toAbs {
+			ret = append(ret, abs)
+		} else {
+			ret = append(ret, p)
+		}
+	}
+	return ret, nil
+}
+
+// FilepathToSlash returns the result of replacing each separator character
+// in path with a slash ('/') character. Multiple separators are
+// replaced by multiple slashes.
+func FilepathToSlash(paths []string) []string {
+	ret, _ := StringsConvert(paths, func(p string) (string, error) {
+		return filepath.ToSlash(p), nil
+	})
+	return ret
+}
+
+// FilepathFromSlash returns the result of replacing each slash ('/') character
+// in path with a separator character. Multiple slashes are replaced
+// by multiple separators.
+func FilepathFromSlash(paths []string) []string {
+	ret, _ := StringsConvert(paths, func(p string) (string, error) {
+		return filepath.FromSlash(p), nil
+	})
+	return ret
+}
+
+// FilepathSame checks if the two paths are the same.
+func FilepathSame(path1, path2 string) (bool, error) {
+	if path1 == path2 {
+		return true, nil
+	}
+	p1, err := filepath.Abs(path1)
+	if err != nil {
+		return false, err
+	}
+	p2, err := filepath.Abs(path2)
+	if err != nil {
+		return false, err
+	}
+	return p1 == p2, nil
+}
+
+// MkdirAll creates a directory named path,
+// along with any necessary parents, and returns nil,
+// or else returns an error.
+// The permission bits perm (before umask) are used for all
+// directories that MkdirAll creates.
+// If path is already a directory, MkdirAll does nothing
+// and returns nil.
+// If perm is empty, default use 0755.
+func MkdirAll(path string, perm ...os.FileMode) error {
+	var fm os.FileMode = 0755
+	if len(perm) > 0 {
+		fm = perm[0]
+	}
+	return os.MkdirAll(path, fm)
+}
+
+// WriteFile writes file, and automatically creates the directory if necessary.
+// NOTE:
+//  If perm is empty, automatically determine the file permissions based on extension.
+func WriteFile(filename string, data []byte, perm ...os.FileMode) error {
+	filename = filepath.FromSlash(filename)
+	err := MkdirAll(filepath.Dir(filename))
+	if err != nil {
+		return err
+	}
+	if len(perm) > 0 {
+		return ioutil.WriteFile(filename, data, perm[0])
+	}
+	var ext string
+	if idx := strings.LastIndex(filename, "."); idx != -1 {
+		ext = filename[idx:]
+	}
+	switch ext {
+	case ".sh", ".py", ".rb", ".bat", ".com", ".vbs", ".htm", ".run", ".App", ".exe", ".reg":
+		return ioutil.WriteFile(filename, data, 0755)
+	default:
+		return ioutil.WriteFile(filename, data, 0644)
+	}
+}
+
+// RewriteFile rewrites the file.
+func RewriteFile(filename string, fn func(content []byte) (newContent []byte, err error)) error {
+	f, err := os.OpenFile(filename, os.O_RDWR, 0777)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	cnt, err := ioutil.ReadAll(f)
+	if err != nil {
+		return err
+	}
+	newContent, err := fn(cnt)
+	if err != nil {
+		return err
+	}
+	f.Seek(0, 0)
+	f.Truncate(0)
+	_, err = f.Write(newContent)
+	return err
+}
+
+// RewriteToFile rewrites the file to newfilename.
+// If newfilename already exists and is not a directory, replaces it.
+func RewriteToFile(filename, newfilename string, fn func(content []byte) (newContent []byte, err error)) error {
+	f, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if err != nil {
+		return err
+	}
+	info, err := f.Stat()
+	if err != nil {
+		return err
+	}
+	cnt, err := ioutil.ReadAll(f)
+	if err != nil {
+		return err
+	}
+	newContent, err := fn(cnt)
+	if err != nil {
+		return err
+	}
+	return WriteFile(newfilename, newContent, info.Mode())
 }

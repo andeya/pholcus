@@ -67,6 +67,20 @@ func webView_IDocHostUIHandler_Release(docHostUIHandler *webViewIDocHostUIHandle
 }
 
 func webView_IDocHostUIHandler_ShowContextMenu(docHostUIHandler *webViewIDocHostUIHandler, dwID uint32, ppt *win.POINT, pcmdtReserved *win.IUnknown, pdispReserved uintptr) uintptr {
+	var webViewInPlaceSite webViewIOleInPlaceSite
+	var iOleClientSite win.IOleClientSite
+	var wb WidgetBase
+	ptr := uintptr(unsafe.Pointer(docHostUIHandler)) -
+		uintptr(unsafe.Sizeof(webViewInPlaceSite)) -
+		uintptr(unsafe.Sizeof(iOleClientSite)) -
+		uintptr(unsafe.Sizeof(wb))
+	webView := (*WebView)(unsafe.Pointer(ptr))
+
+	// show context menu
+	if webView.NativeContextMenuEnabled() {
+		return win.S_FALSE
+	}
+
 	return win.S_OK
 }
 

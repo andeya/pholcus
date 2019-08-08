@@ -7,6 +7,7 @@
 package win
 
 import (
+	"golang.org/x/sys/windows"
 	"syscall"
 	"unsafe"
 )
@@ -29,7 +30,7 @@ const (
 	GMEM_FIXED    = 0x0000
 	GMEM_MOVEABLE = 0x0002
 	GMEM_ZEROINIT = 0x0040
-	GPTR          = 0x004
+	GPTR          = GMEM_FIXED | GMEM_ZEROINIT
 )
 
 // Predefined locale ids
@@ -54,40 +55,51 @@ const (
 
 var (
 	// Library
-	libkernel32 uintptr
+	libkernel32 *windows.LazyDLL
 
 	// Functions
-	closeHandle            uintptr
-	fileTimeToSystemTime   uintptr
-	getConsoleTitle        uintptr
-	getConsoleWindow       uintptr
-	getLastError           uintptr
-	getLocaleInfo          uintptr
-	getLogicalDriveStrings uintptr
-	getModuleHandle        uintptr
-	getNumberFormat        uintptr
-	getThreadLocale        uintptr
-	getThreadUILanguage    uintptr
-	getVersion             uintptr
-	globalAlloc            uintptr
-	globalFree             uintptr
-	globalLock             uintptr
-	globalUnlock           uintptr
-	moveMemory             uintptr
-	mulDiv                 uintptr
-	setLastError           uintptr
-	systemTimeToFileTime   uintptr
-	getProfileString       uintptr
+	activateActCtx                     *windows.LazyProc
+	closeHandle                        *windows.LazyProc
+	createActCtx                       *windows.LazyProc
+	fileTimeToSystemTime               *windows.LazyProc
+	findResource                       *windows.LazyProc
+	getConsoleTitle                    *windows.LazyProc
+	getConsoleWindow                   *windows.LazyProc
+	getCurrentThreadId                 *windows.LazyProc
+	getLastError                       *windows.LazyProc
+	getLocaleInfo                      *windows.LazyProc
+	getLogicalDriveStrings             *windows.LazyProc
+	getModuleHandle                    *windows.LazyProc
+	getNumberFormat                    *windows.LazyProc
+	getPhysicallyInstalledSystemMemory *windows.LazyProc
+	getProfileString                   *windows.LazyProc
+	getThreadLocale                    *windows.LazyProc
+	getThreadUILanguage                *windows.LazyProc
+	getVersion                         *windows.LazyProc
+	globalAlloc                        *windows.LazyProc
+	globalFree                         *windows.LazyProc
+	globalLock                         *windows.LazyProc
+	globalUnlock                       *windows.LazyProc
+	moveMemory                         *windows.LazyProc
+	mulDiv                             *windows.LazyProc
+	loadResource                       *windows.LazyProc
+	lockResource                       *windows.LazyProc
+	setLastError                       *windows.LazyProc
+	sizeofResource                     *windows.LazyProc
+	systemTimeToFileTime               *windows.LazyProc
 )
 
 type (
-	ATOM      uint16
-	HANDLE    uintptr
-	HGLOBAL   HANDLE
-	HINSTANCE HANDLE
-	LCID      uint32
-	LCTYPE    uint32
-	LANGID    uint16
+	ATOM          uint16
+	HANDLE        uintptr
+	HGLOBAL       HANDLE
+	HINSTANCE     HANDLE
+	LCID          uint32
+	LCTYPE        uint32
+	LANGID        uint16
+	HMODULE       uintptr
+	HWINEVENTHOOK HANDLE
+	HRSRC         uintptr
 )
 
 type FILETIME struct {
@@ -115,37 +127,65 @@ type SYSTEMTIME struct {
 	WMilliseconds uint16
 }
 
+type ACTCTX struct {
+	size                  uint32
+	Flags                 uint32
+	Source                *uint16 // UTF-16 string
+	ProcessorArchitecture uint16
+	LangID                uint16
+	AssemblyDirectory     *uint16 // UTF-16 string
+	ResourceName          *uint16 // UTF-16 string
+	ApplicationName       *uint16 // UTF-16 string
+	Module                HMODULE
+}
+
 func init() {
 	// Library
-	libkernel32 = MustLoadLibrary("kernel32.dll")
+	libkernel32 = windows.NewLazySystemDLL("kernel32.dll")
 
 	// Functions
-	closeHandle = MustGetProcAddress(libkernel32, "CloseHandle")
-	fileTimeToSystemTime = MustGetProcAddress(libkernel32, "FileTimeToSystemTime")
-	getConsoleTitle = MustGetProcAddress(libkernel32, "GetConsoleTitleW")
-	getConsoleWindow = MustGetProcAddress(libkernel32, "GetConsoleWindow")
-	getLastError = MustGetProcAddress(libkernel32, "GetLastError")
-	getLocaleInfo = MustGetProcAddress(libkernel32, "GetLocaleInfoW")
-	getLogicalDriveStrings = MustGetProcAddress(libkernel32, "GetLogicalDriveStringsW")
-	getModuleHandle = MustGetProcAddress(libkernel32, "GetModuleHandleW")
-	getNumberFormat = MustGetProcAddress(libkernel32, "GetNumberFormatW")
-	getProfileString = MustGetProcAddress(libkernel32, "GetProfileStringW")
-	getThreadLocale = MustGetProcAddress(libkernel32, "GetThreadLocale")
-	getThreadUILanguage, _ = syscall.GetProcAddress(syscall.Handle(libkernel32), "GetThreadUILanguage")
-	getVersion = MustGetProcAddress(libkernel32, "GetVersion")
-	globalAlloc = MustGetProcAddress(libkernel32, "GlobalAlloc")
-	globalFree = MustGetProcAddress(libkernel32, "GlobalFree")
-	globalLock = MustGetProcAddress(libkernel32, "GlobalLock")
-	globalUnlock = MustGetProcAddress(libkernel32, "GlobalUnlock")
-	moveMemory = MustGetProcAddress(libkernel32, "RtlMoveMemory")
-	mulDiv = MustGetProcAddress(libkernel32, "MulDiv")
-	setLastError = MustGetProcAddress(libkernel32, "SetLastError")
-	systemTimeToFileTime = MustGetProcAddress(libkernel32, "SystemTimeToFileTime")
+	activateActCtx = libkernel32.NewProc("ActivateActCtx")
+	closeHandle = libkernel32.NewProc("CloseHandle")
+	createActCtx = libkernel32.NewProc("CreateActCtxW")
+	fileTimeToSystemTime = libkernel32.NewProc("FileTimeToSystemTime")
+	findResource = libkernel32.NewProc("FindResourceW")
+	getConsoleTitle = libkernel32.NewProc("GetConsoleTitleW")
+	getConsoleWindow = libkernel32.NewProc("GetConsoleWindow")
+	getCurrentThreadId = libkernel32.NewProc("GetCurrentThreadId")
+	getLastError = libkernel32.NewProc("GetLastError")
+	getLocaleInfo = libkernel32.NewProc("GetLocaleInfoW")
+	getLogicalDriveStrings = libkernel32.NewProc("GetLogicalDriveStringsW")
+	getModuleHandle = libkernel32.NewProc("GetModuleHandleW")
+	getNumberFormat = libkernel32.NewProc("GetNumberFormatW")
+	getPhysicallyInstalledSystemMemory = libkernel32.NewProc("GetPhysicallyInstalledSystemMemory")
+	getProfileString = libkernel32.NewProc("GetProfileStringW")
+	getThreadLocale = libkernel32.NewProc("GetThreadLocale")
+	getThreadUILanguage = libkernel32.NewProc("GetThreadUILanguage")
+	getVersion = libkernel32.NewProc("GetVersion")
+	globalAlloc = libkernel32.NewProc("GlobalAlloc")
+	globalFree = libkernel32.NewProc("GlobalFree")
+	globalLock = libkernel32.NewProc("GlobalLock")
+	globalUnlock = libkernel32.NewProc("GlobalUnlock")
+	moveMemory = libkernel32.NewProc("RtlMoveMemory")
+	mulDiv = libkernel32.NewProc("MulDiv")
+	loadResource = libkernel32.NewProc("LoadResource")
+	lockResource = libkernel32.NewProc("LockResource")
+	setLastError = libkernel32.NewProc("SetLastError")
+	sizeofResource = libkernel32.NewProc("SizeofResource")
+	systemTimeToFileTime = libkernel32.NewProc("SystemTimeToFileTime")
+}
 
+func ActivateActCtx(ctx HANDLE) (uintptr, bool) {
+	var cookie uintptr
+	ret, _, _ := syscall.Syscall(activateActCtx.Addr(), 2,
+		uintptr(ctx),
+		uintptr(unsafe.Pointer(&cookie)),
+		0)
+	return cookie, ret != 0
 }
 
 func CloseHandle(hObject HANDLE) bool {
-	ret, _, _ := syscall.Syscall(closeHandle, 1,
+	ret, _, _ := syscall.Syscall(closeHandle.Addr(), 1,
 		uintptr(hObject),
 		0,
 		0)
@@ -153,8 +193,21 @@ func CloseHandle(hObject HANDLE) bool {
 	return ret != 0
 }
 
+func CreateActCtx(ctx *ACTCTX) HANDLE {
+	if ctx != nil {
+		ctx.size = uint32(unsafe.Sizeof(*ctx))
+	}
+	ret, _, _ := syscall.Syscall(
+		createActCtx.Addr(),
+		1,
+		uintptr(unsafe.Pointer(ctx)),
+		0,
+		0)
+	return HANDLE(ret)
+}
+
 func FileTimeToSystemTime(lpFileTime *FILETIME, lpSystemTime *SYSTEMTIME) bool {
-	ret, _, _ := syscall.Syscall(fileTimeToSystemTime, 2,
+	ret, _, _ := syscall.Syscall(fileTimeToSystemTime.Addr(), 2,
 		uintptr(unsafe.Pointer(lpFileTime)),
 		uintptr(unsafe.Pointer(lpSystemTime)),
 		0)
@@ -162,8 +215,17 @@ func FileTimeToSystemTime(lpFileTime *FILETIME, lpSystemTime *SYSTEMTIME) bool {
 	return ret != 0
 }
 
+func FindResource(hModule HMODULE, lpName, lpType *uint16) HRSRC {
+	ret, _, _ := syscall.Syscall(findResource.Addr(), 3,
+		uintptr(hModule),
+		uintptr(unsafe.Pointer(lpName)),
+		uintptr(unsafe.Pointer(lpType)))
+
+	return HRSRC(ret)
+}
+
 func GetConsoleTitle(lpConsoleTitle *uint16, nSize uint32) uint32 {
-	ret, _, _ := syscall.Syscall(getConsoleTitle, 2,
+	ret, _, _ := syscall.Syscall(getConsoleTitle.Addr(), 2,
 		uintptr(unsafe.Pointer(lpConsoleTitle)),
 		uintptr(nSize),
 		0)
@@ -172,7 +234,7 @@ func GetConsoleTitle(lpConsoleTitle *uint16, nSize uint32) uint32 {
 }
 
 func GetConsoleWindow() HWND {
-	ret, _, _ := syscall.Syscall(getConsoleWindow, 0,
+	ret, _, _ := syscall.Syscall(getConsoleWindow.Addr(), 0,
 		0,
 		0,
 		0)
@@ -180,8 +242,17 @@ func GetConsoleWindow() HWND {
 	return HWND(ret)
 }
 
+func GetCurrentThreadId() uint32 {
+	ret, _, _ := syscall.Syscall(getCurrentThreadId.Addr(), 0,
+		0,
+		0,
+		0)
+
+	return uint32(ret)
+}
+
 func GetLastError() uint32 {
-	ret, _, _ := syscall.Syscall(getLastError, 0,
+	ret, _, _ := syscall.Syscall(getLastError.Addr(), 0,
 		0,
 		0,
 		0)
@@ -190,7 +261,7 @@ func GetLastError() uint32 {
 }
 
 func GetLocaleInfo(Locale LCID, LCType LCTYPE, lpLCData *uint16, cchData int32) int32 {
-	ret, _, _ := syscall.Syscall6(getLocaleInfo, 4,
+	ret, _, _ := syscall.Syscall6(getLocaleInfo.Addr(), 4,
 		uintptr(Locale),
 		uintptr(LCType),
 		uintptr(unsafe.Pointer(lpLCData)),
@@ -202,7 +273,7 @@ func GetLocaleInfo(Locale LCID, LCType LCTYPE, lpLCData *uint16, cchData int32) 
 }
 
 func GetLogicalDriveStrings(nBufferLength uint32, lpBuffer *uint16) uint32 {
-	ret, _, _ := syscall.Syscall(getLogicalDriveStrings, 2,
+	ret, _, _ := syscall.Syscall(getLogicalDriveStrings.Addr(), 2,
 		uintptr(nBufferLength),
 		uintptr(unsafe.Pointer(lpBuffer)),
 		0)
@@ -211,7 +282,7 @@ func GetLogicalDriveStrings(nBufferLength uint32, lpBuffer *uint16) uint32 {
 }
 
 func GetModuleHandle(lpModuleName *uint16) HINSTANCE {
-	ret, _, _ := syscall.Syscall(getModuleHandle, 1,
+	ret, _, _ := syscall.Syscall(getModuleHandle.Addr(), 1,
 		uintptr(unsafe.Pointer(lpModuleName)),
 		0,
 		0)
@@ -220,7 +291,7 @@ func GetModuleHandle(lpModuleName *uint16) HINSTANCE {
 }
 
 func GetNumberFormat(Locale LCID, dwFlags uint32, lpValue *uint16, lpFormat *NUMBERFMT, lpNumberStr *uint16, cchNumber int32) int32 {
-	ret, _, _ := syscall.Syscall6(getNumberFormat, 6,
+	ret, _, _ := syscall.Syscall6(getNumberFormat.Addr(), 6,
 		uintptr(Locale),
 		uintptr(dwFlags),
 		uintptr(unsafe.Pointer(lpValue)),
@@ -231,8 +302,20 @@ func GetNumberFormat(Locale LCID, dwFlags uint32, lpValue *uint16, lpFormat *NUM
 	return int32(ret)
 }
 
+func GetPhysicallyInstalledSystemMemory(totalMemoryInKilobytes *uint64) bool {
+	if getPhysicallyInstalledSystemMemory.Find() != nil {
+		return false
+	}
+	ret, _, _ := syscall.Syscall(getPhysicallyInstalledSystemMemory.Addr(), 1,
+		uintptr(unsafe.Pointer(totalMemoryInKilobytes)),
+		0,
+		0)
+
+	return ret != 0
+}
+
 func GetProfileString(lpAppName, lpKeyName, lpDefault *uint16, lpReturnedString uintptr, nSize uint32) bool {
-	ret, _, _ := syscall.Syscall6(getProfileString, 5,
+	ret, _, _ := syscall.Syscall6(getProfileString.Addr(), 5,
 		uintptr(unsafe.Pointer(lpAppName)),
 		uintptr(unsafe.Pointer(lpKeyName)),
 		uintptr(unsafe.Pointer(lpDefault)),
@@ -243,7 +326,7 @@ func GetProfileString(lpAppName, lpKeyName, lpDefault *uint16, lpReturnedString 
 }
 
 func GetThreadLocale() LCID {
-	ret, _, _ := syscall.Syscall(getThreadLocale, 0,
+	ret, _, _ := syscall.Syscall(getThreadLocale.Addr(), 0,
 		0,
 		0,
 		0)
@@ -252,11 +335,11 @@ func GetThreadLocale() LCID {
 }
 
 func GetThreadUILanguage() LANGID {
-	if getThreadUILanguage == 0 {
+	if getThreadUILanguage.Find() != nil {
 		return 0
 	}
 
-	ret, _, _ := syscall.Syscall(getThreadUILanguage, 0,
+	ret, _, _ := syscall.Syscall(getThreadUILanguage.Addr(), 0,
 		0,
 		0,
 		0)
@@ -264,16 +347,16 @@ func GetThreadUILanguage() LANGID {
 	return LANGID(ret)
 }
 
-func GetVersion() int64 {
-	ret, _, _ := syscall.Syscall(getVersion, 0,
+func GetVersion() uint32 {
+	ret, _, _ := syscall.Syscall(getVersion.Addr(), 0,
 		0,
 		0,
 		0)
-	return int64(ret)
+	return uint32(ret)
 }
 
 func GlobalAlloc(uFlags uint32, dwBytes uintptr) HGLOBAL {
-	ret, _, _ := syscall.Syscall(globalAlloc, 2,
+	ret, _, _ := syscall.Syscall(globalAlloc.Addr(), 2,
 		uintptr(uFlags),
 		dwBytes,
 		0)
@@ -282,7 +365,7 @@ func GlobalAlloc(uFlags uint32, dwBytes uintptr) HGLOBAL {
 }
 
 func GlobalFree(hMem HGLOBAL) HGLOBAL {
-	ret, _, _ := syscall.Syscall(globalFree, 1,
+	ret, _, _ := syscall.Syscall(globalFree.Addr(), 1,
 		uintptr(hMem),
 		0,
 		0)
@@ -291,7 +374,7 @@ func GlobalFree(hMem HGLOBAL) HGLOBAL {
 }
 
 func GlobalLock(hMem HGLOBAL) unsafe.Pointer {
-	ret, _, _ := syscall.Syscall(globalLock, 1,
+	ret, _, _ := syscall.Syscall(globalLock.Addr(), 1,
 		uintptr(hMem),
 		0,
 		0)
@@ -300,7 +383,7 @@ func GlobalLock(hMem HGLOBAL) unsafe.Pointer {
 }
 
 func GlobalUnlock(hMem HGLOBAL) bool {
-	ret, _, _ := syscall.Syscall(globalUnlock, 1,
+	ret, _, _ := syscall.Syscall(globalUnlock.Addr(), 1,
 		uintptr(hMem),
 		0,
 		0)
@@ -309,14 +392,14 @@ func GlobalUnlock(hMem HGLOBAL) bool {
 }
 
 func MoveMemory(destination, source unsafe.Pointer, length uintptr) {
-	syscall.Syscall(moveMemory, 3,
+	syscall.Syscall(moveMemory.Addr(), 3,
 		uintptr(unsafe.Pointer(destination)),
 		uintptr(source),
 		uintptr(length))
 }
 
 func MulDiv(nNumber, nNumerator, nDenominator int32) int32 {
-	ret, _, _ := syscall.Syscall(mulDiv, 3,
+	ret, _, _ := syscall.Syscall(mulDiv.Addr(), 3,
 		uintptr(nNumber),
 		uintptr(nNumerator),
 		uintptr(nDenominator))
@@ -324,15 +407,42 @@ func MulDiv(nNumber, nNumerator, nDenominator int32) int32 {
 	return int32(ret)
 }
 
+func LoadResource(hModule HMODULE, hResInfo HRSRC) HGLOBAL {
+	ret, _, _ := syscall.Syscall(loadResource.Addr(), 2,
+		uintptr(hModule),
+		uintptr(hResInfo),
+		0)
+
+	return HGLOBAL(ret)
+}
+
+func LockResource(hResData HGLOBAL) uintptr {
+	ret, _, _ := syscall.Syscall(lockResource.Addr(), 1,
+		uintptr(hResData),
+		0,
+		0)
+
+	return ret
+}
+
 func SetLastError(dwErrorCode uint32) {
-	syscall.Syscall(setLastError, 1,
+	syscall.Syscall(setLastError.Addr(), 1,
 		uintptr(dwErrorCode),
 		0,
 		0)
 }
 
+func SizeofResource(hModule HMODULE, hResInfo HRSRC) uint32 {
+	ret, _, _ := syscall.Syscall(sizeofResource.Addr(), 2,
+		uintptr(hModule),
+		uintptr(hResInfo),
+		0)
+
+	return uint32(ret)
+}
+
 func SystemTimeToFileTime(lpSystemTime *SYSTEMTIME, lpFileTime *FILETIME) bool {
-	ret, _, _ := syscall.Syscall(systemTimeToFileTime, 2,
+	ret, _, _ := syscall.Syscall(systemTimeToFileTime.Addr(), 2,
 		uintptr(unsafe.Pointer(lpSystemTime)),
 		uintptr(unsafe.Pointer(lpFileTime)),
 		0)

@@ -6,6 +6,14 @@
 
 package walk
 
+import (
+	"errors"
+)
+
+var (
+	ErrInvalidType = errors.New("invalid type")
+)
+
 func LogErrors() bool {
 	return logErrors
 }

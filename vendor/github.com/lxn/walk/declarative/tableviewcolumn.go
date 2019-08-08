@@ -13,9 +13,10 @@ import (
 type Alignment1D uint
 
 const (
-	AlignNear Alignment1D = iota
-	AlignCenter
-	AlignFar
+	AlignDefault = Alignment1D(walk.AlignDefault)
+	AlignNear    = Alignment1D(walk.AlignNear)
+	AlignCenter  = Alignment1D(walk.AlignCenter)
+	AlignFar     = Alignment1D(walk.AlignFar)
 )
 
 type TableViewColumn struct {
@@ -27,6 +28,10 @@ type TableViewColumn struct {
 	Precision  int
 	Width      int
 	Hidden     bool
+	Frozen     bool
+	StyleCell  func(style *walk.CellStyle)
+	LessFunc   func(i, j int) bool
+	FormatFunc func(value interface{}) string
 }
 
 func (tvc TableViewColumn) Create(tv *walk.TableView) error {
@@ -51,9 +56,14 @@ func (tvc TableViewColumn) Create(tv *walk.TableView) error {
 	if err := w.SetVisible(!tvc.Hidden); err != nil {
 		return err
 	}
+	if err := w.SetFrozen(tvc.Frozen); err != nil {
+		return err
+	}
 	if err := w.SetWidth(tvc.Width); err != nil {
 		return err
 	}
+	w.SetLessFunc(tvc.LessFunc)
+	w.SetFormatFunc(tvc.FormatFunc)
 
 	return tv.Columns().Add(w)
 }

@@ -24,9 +24,43 @@ func init() {
 
 type WebView struct {
 	WidgetBase
-	clientSite          webViewIOleClientSite // IMPORTANT: Must remain first member after WidgetBase
-	browserObject       *win.IOleObject
-	urlChangedPublisher EventPublisher
+	clientSite                               webViewIOleClientSite // IMPORTANT: Must remain first member after WidgetBase
+	browserObject                            *win.IOleObject
+	urlChangedPublisher                      EventPublisher
+	shortcutsEnabled                         bool
+	shortcutsEnabledChangedPublisher         EventPublisher
+	nativeContextMenuEnabled                 bool
+	nativeContextMenuEnabledChangedPublisher EventPublisher
+	navigatingPublisher                      WebViewNavigatingEventPublisher
+	navigatedPublisher                       StringEventPublisher
+	downloadingPublisher                     EventPublisher
+	downloadedPublisher                      EventPublisher
+	documentCompletedPublisher               StringEventPublisher
+	navigatedErrorPublisher                  WebViewNavigatedErrorEventPublisher
+	newWindowPublisher                       WebViewNewWindowEventPublisher
+	quittingPublisher                        EventPublisher
+	windowClosingPublisher                   WebViewWindowClosingEventPublisher
+	statusBarVisible                         bool
+	statusBarVisibleChangedPublisher         EventPublisher
+	isTheaterMode                            bool
+	theaterModeChangedPublisher              EventPublisher
+	toolBarVisible                           bool
+	toolBarVisibleChangedPublisher           EventPublisher
+	browserVisible                           bool
+	browserVisibleChangedPublisher           EventPublisher
+	toolBarEnabled                           bool
+	toolBarEnabledChangedPublisher           EventPublisher
+	canGoBack                                bool
+	canGoBackChangedPublisher                EventPublisher
+	canGoForward                             bool
+	canGoForwardChangedPublisher             EventPublisher
+	progressValue                            int32
+	progressMax                              int32
+	progressChangedPublisher                 EventPublisher
+	statusText                               string
+	statusTextChangedPublisher               EventPublisher
+	documentTitle                            string
+	documentTitleChangedPublisher            EventPublisher
 }
 
 func NewWebView(parent Container) (*WebView, error) {
@@ -60,6 +94,8 @@ func NewWebView(parent Container) (*WebView, error) {
 				},
 			},
 		},
+		shortcutsEnabled:         false,
+		nativeContextMenuEnabled: false,
 	}
 
 	if err := InitWidget(
@@ -111,7 +147,7 @@ func NewWebView(parent Container) (*WebView, error) {
 	var rect win.RECT
 	win.GetClientRect(wv.hWnd, &rect)
 
-	if hr := browserObject.DoVerb(win.OLEIVERB_SHOW, nil, (*win.IOleClientSite)(unsafe.Pointer(&wv.clientSite)), -1, wv.hWnd, &rect); win.FAILED(hr) {
+	if hr := browserObject.DoVerb(win.OLEIVERB_SHOW, nil, (*win.IOleClientSite)(unsafe.Pointer(&wv.clientSite)), 0, wv.hWnd, &rect); win.FAILED(hr) {
 		return nil, errorFromHRESULT("IOleObject.DoVerb", hr)
 	}
 
@@ -141,9 +177,29 @@ func NewWebView(parent Container) (*WebView, error) {
 			return url
 		},
 		func(v interface{}) error {
-			return wv.SetURL(v.(string))
+			return wv.SetURL(assertStringOr(v, ""))
 		},
 		wv.urlChangedPublisher.Event()))
+
+	wv.MustRegisterProperty("ShortcutsEnabled", NewProperty(
+		func() interface{} {
+			return wv.ShortcutsEnabled()
+		},
+		func(v interface{}) error {
+			wv.SetShortcutsEnabled(v.(bool))
+			return nil
+		},
+		wv.shortcutsEnabledChangedPublisher.Event()))
+
+	wv.MustRegisterProperty("NativeContextMenuEnabled", NewProperty(
+		func() interface{} {
+			return wv.NativeContextMenuEnabled()
+		},
+		func(v interface{}) error {
+			wv.SetNativeContextMenuEnabled(v.(bool))
+			return nil
+		},
+		wv.nativeContextMenuEnabledChangedPublisher.Event()))
 
 	succeeded = true
 
@@ -205,6 +261,152 @@ func (wv *WebView) URLChanged() *Event {
 	return wv.urlChangedPublisher.Event()
 }
 
+func (wv *WebView) ShortcutsEnabled() bool {
+	return wv.shortcutsEnabled
+}
+
+func (wv *WebView) SetShortcutsEnabled(value bool) {
+	wv.shortcutsEnabled = value
+	wv.shortcutsEnabledChangedPublisher.Publish()
+}
+
+func (wv *WebView) ShortcutsEnabledChanged() *Event {
+	return wv.shortcutsEnabledChangedPublisher.Event()
+}
+
+func (wv *WebView) NativeContextMenuEnabled() bool {
+	return wv.nativeContextMenuEnabled
+}
+
+func (wv *WebView) SetNativeContextMenuEnabled(value bool) {
+	wv.nativeContextMenuEnabled = value
+	wv.nativeContextMenuEnabledChangedPublisher.Publish()
+}
+
+func (wv *WebView) NativeContextMenuEnabledChanged() *Event {
+	return wv.nativeContextMenuEnabledChangedPublisher.Event()
+}
+
+func (wv *WebView) Navigating() *WebViewNavigatingEvent {
+	return wv.navigatingPublisher.Event()
+}
+
+func (wv *WebView) Navigated() *StringEvent {
+	return wv.navigatedPublisher.Event()
+}
+
+func (wv *WebView) Downloading() *Event {
+	return wv.downloadingPublisher.Event()
+}
+
+func (wv *WebView) Downloaded() *Event {
+	return wv.downloadedPublisher.Event()
+}
+
+func (wv *WebView) DocumentCompleted() *StringEvent {
+	return wv.documentCompletedPublisher.Event()
+}
+
+func (wv *WebView) NavigatedError() *WebViewNavigatedErrorEvent {
+	return wv.navigatedErrorPublisher.Event()
+}
+
+func (wv *WebView) NewWindow() *WebViewNewWindowEvent {
+	return wv.newWindowPublisher.Event()
+}
+
+func (wv *WebView) Quitting() *Event {
+	return wv.quittingPublisher.Event()
+}
+
+func (wv *WebView) WindowClosing() *WebViewWindowClosingEvent {
+	return wv.windowClosingPublisher.Event()
+}
+
+func (wv *WebView) StatusBarVisible() bool {
+	return wv.statusBarVisible
+}
+
+func (wv *WebView) StatusBarVisibleChanged() *Event {
+	return wv.statusBarVisibleChangedPublisher.Event()
+}
+
+func (wv *WebView) IsTheaterMode() bool {
+	return wv.isTheaterMode
+}
+
+func (wv *WebView) TheaterModeChanged() *Event {
+	return wv.theaterModeChangedPublisher.Event()
+}
+
+func (wv *WebView) ToolBarVisible() bool {
+	return wv.toolBarVisible
+}
+
+func (wv *WebView) ToolBarVisibleChanged() *Event {
+	return wv.toolBarVisibleChangedPublisher.Event()
+}
+
+func (wv *WebView) BrowserVisible() bool {
+	return wv.browserVisible
+}
+
+func (wv *WebView) BrowserVisibleChanged() *Event {
+	return wv.browserVisibleChangedPublisher.Event()
+}
+
+func (wv *WebView) ToolBarEnabled() bool {
+	return wv.toolBarEnabled
+}
+
+func (wv *WebView) ToolBarEnabledChanged() *Event {
+	return wv.toolBarEnabledChangedPublisher.Event()
+}
+
+func (wv *WebView) CanGoBack() bool {
+	return wv.canGoBack
+}
+
+func (wv *WebView) CanGoBackChanged() *Event {
+	return wv.canGoBackChangedPublisher.Event()
+}
+
+func (wv *WebView) CanGoForward() bool {
+	return wv.canGoForward
+}
+
+func (wv *WebView) CanGoForwardChanged() *Event {
+	return wv.canGoForwardChangedPublisher.Event()
+}
+
+func (wv *WebView) ProgressValue() int32 {
+	return wv.progressValue
+}
+
+func (wv *WebView) ProgressMax() int32 {
+	return wv.progressMax
+}
+
+func (wv *WebView) ProgressChanged() *Event {
+	return wv.progressChangedPublisher.Event()
+}
+
+func (wv *WebView) StatusText() string {
+	return wv.statusText
+}
+
+func (wv *WebView) StatusTextChanged() *Event {
+	return wv.statusTextChangedPublisher.Event()
+}
+
+func (wv *WebView) DocumentTitle() string {
+	return wv.documentTitle
+}
+
+func (wv *WebView) DocumentTitleChanged() *Event {
+	return wv.documentTitleChangedPublisher.Event()
+}
+
 func (wv *WebView) Refresh() error {
 	return wv.withWebBrowser2(func(webBrowser2 *win.IWebBrowser2) error {
 		if hr := webBrowser2.Refresh(); win.FAILED(hr) {
@@ -229,7 +431,7 @@ func (wv *WebView) withWebBrowser2(f func(webBrowser2 *win.IWebBrowser2) error) 
 func (wv *WebView) onResize() {
 	// FIXME: handle error?
 	wv.withWebBrowser2(func(webBrowser2 *win.IWebBrowser2) error {
-		bounds := wv.ClientBounds()
+		bounds := wv.ClientBoundsPixels()
 
 		webBrowser2.Put_Left(0)
 		webBrowser2.Put_Top(0)
@@ -240,6 +442,60 @@ func (wv *WebView) onResize() {
 	})
 }
 
+func (wv *WebView) withInPlaceActiveObject(f func(activeObject *win.IOleInPlaceActiveObject) error) error {
+	if wv.browserObject == nil {
+		return nil
+	}
+	wv.withWebBrowser2(func(webBrowser2 *win.IWebBrowser2) error {
+		var activeObjectPtr unsafe.Pointer
+		if hr := webBrowser2.QueryInterface(&win.IID_IOleInPlaceActiveObject, &activeObjectPtr); win.FAILED(hr) {
+			return errorFromHRESULT("WebBowser2.QueryInterface", hr)
+		}
+		activeObject := (*win.IOleInPlaceActiveObject)(activeObjectPtr)
+		defer activeObject.Release()
+		return f(activeObject)
+	})
+	return nil
+}
+
+func (wv *WebView) translateAccelerator(msg *win.MSG) bool {
+	if wv.shortcutsEnabled {
+		hr := wv.inPlaceActiveObjectTranslateAccelerator(msg)
+		return hr == win.S_OK
+	}
+	return false
+}
+
+func (wv *WebView) inPlaceActiveObjectTranslateAccelerator(msg *win.MSG) win.HRESULT {
+	var ret win.HRESULT
+	ret = win.S_FALSE
+	wv.withInPlaceActiveObject(func(activeObject *win.IOleInPlaceActiveObject) error {
+		hr := activeObject.TranslateAccelerator(msg)
+		if hr == win.S_OK {
+			ret = win.S_OK
+		}
+		return nil
+	})
+	return ret
+}
+
+func (wv *WebView) inPlaceActiveObjectSetFocus() win.HRESULT {
+	var ret win.HRESULT
+	ret = win.S_FALSE
+	wv.withInPlaceActiveObject(func(activeObject *win.IOleInPlaceActiveObject) error {
+		var hWndActive win.HWND
+		hr := activeObject.GetWindow(&hWndActive)
+		if hr != win.S_OK {
+			return nil
+		}
+		win.SetFocus(hWndActive)
+		ret = win.S_OK
+
+		return nil
+	})
+	return ret
+}
+
 func (wv *WebView) WndProc(hwnd win.HWND, msg uint32, wParam, lParam uintptr) uintptr {
 	switch msg {
 	case win.WM_SIZE, win.WM_SIZING:
@@ -248,6 +504,9 @@ func (wv *WebView) WndProc(hwnd win.HWND, msg uint32, wParam, lParam uintptr) ui
 		}
 
 		wv.onResize()
+
+	case win.WM_MOUSEACTIVATE:
+		wv.invalidateBorderInParent()
 	}
 
 	return wv.WidgetBase.WndProc(hwnd, msg, wParam, lParam)

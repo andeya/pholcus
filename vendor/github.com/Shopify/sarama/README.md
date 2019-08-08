@@ -1,8 +1,9 @@
 sarama
 ======
 
-[![GoDoc](https://godoc.org/github.com/Shopify/sarama?status.png)](https://godoc.org/github.com/Shopify/sarama)
+[![GoDoc](https://godoc.org/github.com/Shopify/sarama?status.svg)](https://godoc.org/github.com/Shopify/sarama)
 [![Build Status](https://travis-ci.org/Shopify/sarama.svg?branch=master)](https://travis-ci.org/Shopify/sarama)
+[![Coverage](https://codecov.io/gh/Shopify/sarama/branch/master/graph/badge.svg)](https://codecov.io/gh/Shopify/sarama)
 
 Sarama is an MIT-licensed Go client library for [Apache Kafka](https://kafka.apache.org/) version 0.8 (and later).
 
@@ -13,12 +14,14 @@ Sarama is an MIT-licensed Go client library for [Apache Kafka](https://kafka.apa
 - The [examples](./examples) directory contains more elaborate example applications.
 - The [tools](./tools) directory contains command line tools that can be useful for testing, diagnostics, and instrumentation.
 
+You might also want to look at the [Frequently Asked Questions](https://github.com/Shopify/sarama/wiki/Frequently-Asked-Questions).
+
 ### Compatibility and API stability
 
 Sarama provides a "2 releases + 2 months" compatibility guarantee: we support
 the two latest stable releases of Kafka and Go, and we provide a two month
 grace period for older releases. This means we currently officially support
-Go 1.6 and 1.5, and Kafka 0.10.0, 0.9.0 and 0.8.2, although older releases are
+Go 1.11 through 1.12, and Kafka 2.0 through 2.3, although older releases are
 still likely to work.
 
 Sarama follows semantic versioning and provides API stability via the gopkg.in service.
@@ -27,7 +30,7 @@ A changelog is available [here](CHANGELOG.md).
 
 ### Contributing
 
-* Get started by checking our [contribution guidelines](https://github.com/Shopify/sarama/blob/master/CONTRIBUTING.md).
+* Get started by checking our [contribution guidelines](https://github.com/Shopify/sarama/blob/master/.github/CONTRIBUTING.md).
 * Read the [Sarama wiki](https://github.com/Shopify/sarama/wiki) for more
   technical and design details.
 * The [Kafka Protocol Specification](https://cwiki.apache.org/confluence/display/KAFKA/A+Guide+To+The+Kafka+Protocol)

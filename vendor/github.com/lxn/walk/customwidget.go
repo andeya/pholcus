@@ -65,9 +65,9 @@ func (cw *CustomWidget) ClearsBackground() bool {
 func (cw *CustomWidget) SetClearsBackground(value bool) {
 	if value != cw.ClearsBackground() {
 		if value {
-			cw.paintMode = PaintNoErase
-		} else {
 			cw.paintMode = PaintNormal
+		} else {
+			cw.paintMode = PaintNoErase
 		}
 	}
 }

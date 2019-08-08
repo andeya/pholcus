@@ -15,8 +15,10 @@ import (
 	"github.com/lxn/win"
 )
 
-// see https://msdn.microsoft.com/en-us/library/windows/desktop/bb760416(v=vs.85).aspx
-const maxToolTipTextLen = 80 // including NUL terminator
+// https://msdn.microsoft.com/en-us/library/windows/desktop/bb760416(v=vs.85).aspx says 80,
+// but in reality, that hasn't been enforced for many many Windows versions. So we give it
+// 1024 instead.
+const maxToolTipTextLen = 1024 // including NUL terminator
 
 func init() {
 	var err error
@@ -32,14 +34,25 @@ type ToolTip struct {
 var globalToolTip *ToolTip
 
 func NewToolTip() (*ToolTip, error) {
+	tt, err := newToolTip(0)
+	if err != nil {
+		return nil, err
+	}
+
+	win.SetWindowPos(tt.hWnd, win.HWND_TOPMOST, 0, 0, 0, 0, win.SWP_NOMOVE|win.SWP_NOSIZE|win.SWP_NOACTIVATE)
+
+	return tt, nil
+}
+
+func newToolTip(style uint32) (*ToolTip, error) {
 	tt := new(ToolTip)
 
 	if err := InitWindow(
 		tt,
 		nil,
 		"tooltips_class32",
-		win.WS_POPUP|win.TTS_ALWAYSTIP,
-		win.WS_EX_TOPMOST); err != nil {
+		win.WS_DISABLED|win.WS_POPUP|win.TTS_ALWAYSTIP|style,
+		0); err != nil {
 		return nil, err
 	}
 
@@ -50,7 +63,7 @@ func NewToolTip() (*ToolTip, error) {
 		}
 	}()
 
-	win.SetWindowPos(tt.hWnd, win.HWND_TOPMOST, 0, 0, 0, 0, win.SWP_NOMOVE|win.SWP_NOSIZE|win.SWP_NOACTIVATE)
+	tt.SendMessage(win.TTM_SETMAXTIPWIDTH, 0, 300)
 
 	succeeded = true
 
@@ -107,13 +120,83 @@ func (tt *ToolTip) setTitle(title string, icon uintptr) error {
 	return nil
 }
 
+func (tt *ToolTip) track(tool Widget) error {
+	form := tool.Form()
+	if form == nil {
+		return nil
+	}
+	// HACK: We may have to delay this until the form is fully up to avoid glitches.
+	if !form.AsFormBase().started {
+		var handle int
+		handle = form.Starting().Attach(func() {
+			form.Starting().Detach(handle)
+			tt.track(tool)
+		})
+		return nil
+	}
+
+	ti := tt.toolInfo(tool)
+	if ti == nil {
+		return newError("unknown tool")
+	}
+
+	tt.SendMessage(win.TTM_TRACKACTIVATE, 1, uintptr(unsafe.Pointer(ti)))
+
+	b := tool.BoundsPixels()
+
+	p := win.POINT{X: 0, Y: int32(b.Y + b.Height)}
+	if form.RightToLeftLayout() {
+		p.X = int32(b.X - b.Width/2)
+	} else {
+		p.X = int32(b.X + b.Width/2)
+	}
+
+	win.ClientToScreen(tool.Parent().Handle(), &p)
+
+	tt.SendMessage(win.TTM_TRACKPOSITION, 0, uintptr(win.MAKELONG(uint16(p.X), uint16(p.Y))))
+
+	var insertAfterHWND win.HWND
+	if form := tool.Form(); form != nil && win.GetForegroundWindow() == form.Handle() {
+		insertAfterHWND = win.HWND_TOP
+	} else {
+		insertAfterHWND = tool.Handle()
+	}
+	win.SetWindowPos(tt.hWnd, insertAfterHWND, 0, 0, 0, 0, win.SWP_NOMOVE|win.SWP_NOSIZE|win.SWP_NOACTIVATE)
+
+	return nil
+}
+
+func (tt *ToolTip) untrack(tool Widget) error {
+	ti := tt.toolInfo(tool)
+	if ti == nil {
+		return newError("unknown tool")
+	}
+
+	tt.SendMessage(win.TTM_TRACKACTIVATE, 0, uintptr(unsafe.Pointer(ti)))
+
+	return nil
+}
+
 func (tt *ToolTip) AddTool(tool Widget) error {
+	return tt.addTool(tool, false)
+}
+
+func (tt *ToolTip) addTrackedTool(tool Widget) error {
+	return tt.addTool(tool, true)
+}
+
+func (tt *ToolTip) addTool(tool Widget, track bool) error {
 	hwnd := tool.Handle()
 
 	var ti win.TOOLINFO
 	ti.CbSize = uint32(unsafe.Sizeof(ti))
 	ti.Hwnd = hwnd
-	ti.UFlags = win.TTF_IDISHWND | win.TTF_SUBCLASS
+	ti.UFlags = win.TTF_IDISHWND
+	if track {
+		ti.UFlags |= win.TTF_TRACK
+	} else {
+		ti.UFlags |= win.TTF_SUBCLASS
+	}
 	ti.UId = uintptr(hwnd)
 
 	if win.FALSE == tt.SendMessage(win.TTM_ADDTOOL, 0, uintptr(unsafe.Pointer(&ti))) {

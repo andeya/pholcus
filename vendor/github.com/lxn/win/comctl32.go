@@ -9,6 +9,8 @@ package win
 import (
 	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
 
 // Button control messages
@@ -25,6 +27,7 @@ const (
 	BCM_SETNOTE          = BCM_FIRST + 0x0009
 	BCM_GETNOTE          = BCM_FIRST + 0x000A
 	BCM_GETNOTELENGTH    = BCM_FIRST + 0x000B
+	BCM_SETSHIELD        = BCM_FIRST + 0x000C
 )
 
 const (
@@ -132,6 +135,10 @@ const (
 	TBM_SETPOS      = WM_USER + 5
 	TBM_SETRANGEMIN = WM_USER + 7
 	TBM_SETRANGEMAX = WM_USER + 8
+	TBM_SETPAGESIZE = WM_USER + 21
+	TBM_GETPAGESIZE = WM_USER + 22
+	TBM_SETLINESIZE = WM_USER + 23
+	TBM_GETLINESIZE = WM_USER + 24
 )
 
 // TrackBar (Slider) styles
@@ -153,6 +160,12 @@ const (
 	ILC_PALETTE       = 0x00000800
 	ILC_MIRROR        = 0x00002000
 	ILC_PERITEMMIRROR = 0x00008000
+)
+
+// LoadIconMetric flags
+const (
+	LIM_SMALL = 0
+	LIM_LARGE = 1
 )
 
 const (
@@ -199,6 +212,8 @@ const (
 const (
 	LPSTR_TEXTCALLBACK = ^uintptr(0)
 	I_CHILDRENCALLBACK = -1
+	I_IMAGECALLBACK    = -1
+	I_IMAGENONE        = -2
 )
 
 type HIMAGELIST HANDLE
@@ -219,39 +234,43 @@ type NMCUSTOMDRAW struct {
 
 var (
 	// Library
-	libcomctl32 uintptr
+	libcomctl32 *windows.LazyDLL
 
 	// Functions
-	imageList_Add         uintptr
-	imageList_AddMasked   uintptr
-	imageList_Create      uintptr
-	imageList_Destroy     uintptr
-	imageList_ReplaceIcon uintptr
-	initCommonControlsEx  uintptr
+	imageList_Add         *windows.LazyProc
+	imageList_AddMasked   *windows.LazyProc
+	imageList_Create      *windows.LazyProc
+	imageList_Destroy     *windows.LazyProc
+	imageList_ReplaceIcon *windows.LazyProc
+	initCommonControlsEx  *windows.LazyProc
+	loadIconMetric        *windows.LazyProc
+	loadIconWithScaleDown *windows.LazyProc
 )
 
 func init() {
 	// Library
-	libcomctl32 = MustLoadLibrary("comctl32.dll")
+	libcomctl32 = windows.NewLazySystemDLL("comctl32.dll")
 
 	// Functions
-	imageList_Add = MustGetProcAddress(libcomctl32, "ImageList_Add")
-	imageList_AddMasked = MustGetProcAddress(libcomctl32, "ImageList_AddMasked")
-	imageList_Create = MustGetProcAddress(libcomctl32, "ImageList_Create")
-	imageList_Destroy = MustGetProcAddress(libcomctl32, "ImageList_Destroy")
-	imageList_ReplaceIcon = MustGetProcAddress(libcomctl32, "ImageList_ReplaceIcon")
-	initCommonControlsEx = MustGetProcAddress(libcomctl32, "InitCommonControlsEx")
+	imageList_Add = libcomctl32.NewProc("ImageList_Add")
+	imageList_AddMasked = libcomctl32.NewProc("ImageList_AddMasked")
+	imageList_Create = libcomctl32.NewProc("ImageList_Create")
+	imageList_Destroy = libcomctl32.NewProc("ImageList_Destroy")
+	imageList_ReplaceIcon = libcomctl32.NewProc("ImageList_ReplaceIcon")
+	initCommonControlsEx = libcomctl32.NewProc("InitCommonControlsEx")
+	loadIconMetric = libcomctl32.NewProc("LoadIconMetric")
+	loadIconWithScaleDown = libcomctl32.NewProc("LoadIconWithScaleDown")
 
 	// Initialize the common controls we support
 	var initCtrls INITCOMMONCONTROLSEX
 	initCtrls.DwSize = uint32(unsafe.Sizeof(initCtrls))
-	initCtrls.DwICC = ICC_LISTVIEW_CLASSES | ICC_PROGRESS_CLASS | ICC_TAB_CLASSES | ICC_TREEVIEW_CLASSES
+	initCtrls.DwICC = ICC_LINK_CLASS | ICC_LISTVIEW_CLASSES | ICC_PROGRESS_CLASS | ICC_TAB_CLASSES | ICC_TREEVIEW_CLASSES
 
 	InitCommonControlsEx(&initCtrls)
 }
 
 func ImageList_Add(himl HIMAGELIST, hbmImage, hbmMask HBITMAP) int32 {
-	ret, _, _ := syscall.Syscall(imageList_Add, 3,
+	ret, _, _ := syscall.Syscall(imageList_Add.Addr(), 3,
 		uintptr(himl),
 		uintptr(hbmImage),
 		uintptr(hbmMask))
@@ -260,7 +279,7 @@ func ImageList_Add(himl HIMAGELIST, hbmImage, hbmMask HBITMAP) int32 {
 }
 
 func ImageList_AddMasked(himl HIMAGELIST, hbmImage HBITMAP, crMask COLORREF) int32 {
-	ret, _, _ := syscall.Syscall(imageList_AddMasked, 3,
+	ret, _, _ := syscall.Syscall(imageList_AddMasked.Addr(), 3,
 		uintptr(himl),
 		uintptr(hbmImage),
 		uintptr(crMask))
@@ -269,7 +288,7 @@ func ImageList_AddMasked(himl HIMAGELIST, hbmImage HBITMAP, crMask COLORREF) int
 }
 
 func ImageList_Create(cx, cy int32, flags uint32, cInitial, cGrow int32) HIMAGELIST {
-	ret, _, _ := syscall.Syscall6(imageList_Create, 5,
+	ret, _, _ := syscall.Syscall6(imageList_Create.Addr(), 5,
 		uintptr(cx),
 		uintptr(cy),
 		uintptr(flags),
@@ -281,7 +300,7 @@ func ImageList_Create(cx, cy int32, flags uint32, cInitial, cGrow int32) HIMAGEL
 }
 
 func ImageList_Destroy(hIml HIMAGELIST) bool {
-	ret, _, _ := syscall.Syscall(imageList_Destroy, 1,
+	ret, _, _ := syscall.Syscall(imageList_Destroy.Addr(), 1,
 		uintptr(hIml),
 		0,
 		0)
@@ -290,7 +309,7 @@ func ImageList_Destroy(hIml HIMAGELIST) bool {
 }
 
 func ImageList_ReplaceIcon(himl HIMAGELIST, i int32, hicon HICON) int32 {
-	ret, _, _ := syscall.Syscall(imageList_ReplaceIcon, 3,
+	ret, _, _ := syscall.Syscall(imageList_ReplaceIcon.Addr(), 3,
 		uintptr(himl),
 		uintptr(i),
 		uintptr(hicon))
@@ -299,10 +318,40 @@ func ImageList_ReplaceIcon(himl HIMAGELIST, i int32, hicon HICON) int32 {
 }
 
 func InitCommonControlsEx(lpInitCtrls *INITCOMMONCONTROLSEX) bool {
-	ret, _, _ := syscall.Syscall(initCommonControlsEx, 1,
+	ret, _, _ := syscall.Syscall(initCommonControlsEx.Addr(), 1,
 		uintptr(unsafe.Pointer(lpInitCtrls)),
 		0,
 		0)
 
 	return ret != 0
+}
+
+func LoadIconMetric(hInstance HINSTANCE, lpIconName *uint16, lims int32, hicon *HICON) HRESULT {
+	if loadIconMetric.Find() != nil {
+		return HRESULT(0)
+	}
+	ret, _, _ := syscall.Syscall6(loadIconMetric.Addr(), 4,
+		uintptr(hInstance),
+		uintptr(unsafe.Pointer(lpIconName)),
+		uintptr(lims),
+		uintptr(unsafe.Pointer(hicon)),
+		0,
+		0)
+
+	return HRESULT(ret)
+}
+
+func LoadIconWithScaleDown(hInstance HINSTANCE, lpIconName *uint16, w int32, h int32, hicon *HICON) HRESULT {
+	if loadIconWithScaleDown.Find() != nil {
+		return HRESULT(0)
+	}
+	ret, _, _ := syscall.Syscall6(loadIconWithScaleDown.Addr(), 5,
+		uintptr(hInstance),
+		uintptr(unsafe.Pointer(lpIconName)),
+		uintptr(w),
+		uintptr(h),
+		uintptr(unsafe.Pointer(hicon)),
+		0)
+
+	return HRESULT(ret)
 }

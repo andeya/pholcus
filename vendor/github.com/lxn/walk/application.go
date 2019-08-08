@@ -39,6 +39,7 @@ type Application struct {
 	settings           Settings
 	exiting            bool
 	exitCode           int
+	activeForm         Form
 	panickingPublisher ErrorEventPublisher
 }
 
@@ -84,4 +85,8 @@ func (app *Application) ExitCode() int {
 
 func (app *Application) Panicking() *ErrorEvent {
 	return app.panickingPublisher.Event()
+}
+
+func (app *Application) ActiveForm() Form {
+	return app.activeForm
 }

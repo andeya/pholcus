@@ -7,8 +7,8 @@
 package walk
 
 type Condition interface {
+	Expression
 	Satisfied() bool
-	Changed() *Event
 }
 
 type MutableCondition struct {
@@ -18,6 +18,10 @@ type MutableCondition struct {
 
 func NewMutableCondition() *MutableCondition {
 	return new(MutableCondition)
+}
+
+func (mc *MutableCondition) Value() interface{} {
+	return mc.satisfied
 }
 
 func (mc *MutableCondition) Satisfied() bool {
@@ -47,6 +51,10 @@ type DelegateCondition struct {
 
 func NewDelegateCondition(satisfied func() bool, changed *Event) *DelegateCondition {
 	return &DelegateCondition{satisfied, changed}
+}
+
+func (dc *DelegateCondition) Value() interface{} {
+	return dc.satisfied()
 }
 
 func (dc *DelegateCondition) Satisfied() bool {
@@ -106,6 +114,10 @@ func NewAllCondition(items ...Condition) Condition {
 	return ac
 }
 
+func (ac *allCondition) Value() interface{} {
+	return ac.Satisfied()
+}
+
 func (ac *allCondition) Satisfied() bool {
 	return ac.satisfied(true)
 }
@@ -122,6 +134,10 @@ func NewAnyCondition(items ...Condition) Condition {
 	return ac
 }
 
+func (ac *anyCondition) Value() interface{} {
+	return ac.Satisfied()
+}
+
 func (ac *anyCondition) Satisfied() bool {
 	return ac.satisfied(false)
 }
@@ -132,6 +148,10 @@ type negatedCondition struct {
 
 func NewNegatedCondition(other Condition) Condition {
 	return &negatedCondition{other}
+}
+
+func (nc *negatedCondition) Value() interface{} {
+	return nc.Satisfied()
 }
 
 func (nc *negatedCondition) Satisfied() bool {

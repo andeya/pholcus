@@ -25,9 +25,6 @@ import (
 // the introduction of some kind of error type for conveying the erroneous code
 // point.
 
-// TODO:
-// - Define UTF-32?
-
 // UTF8 is the UTF-8 encoding.
 var UTF8 encoding.Encoding = utf8enc
 
@@ -148,7 +145,7 @@ func (utf8Decoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, err e
 // and consumed in a greater context that implies a certain endianness, use
 // IgnoreBOM. Otherwise, use ExpectBOM and always produce and consume a BOM.
 //
-// In the language of http://www.unicode.org/faq/utf_bom.html#bom10, IgnoreBOM
+// In the language of https://www.unicode.org/faq/utf_bom.html#bom10, IgnoreBOM
 // corresponds to "Where the precise type of the data stream is known... the
 // BOM should not be used" and ExpectBOM corresponds to "A particular
 // protocol... may require use of the BOM".
@@ -290,6 +287,12 @@ func (u *utf16Decoder) Reset() {
 }
 
 func (u *utf16Decoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, err error) {
+	if len(src) == 0 {
+		if atEOF && u.current.bomPolicy&requireBOM != 0 {
+			return 0, 0, ErrMissingBOM
+		}
+		return 0, 0, nil
+	}
 	if u.current.bomPolicy&acceptBOM != 0 {
 		if len(src) < 2 {
 			return 0, 0, transform.ErrShortSrc

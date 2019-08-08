@@ -7,11 +7,12 @@
 package declarative
 
 import (
-	"errors"
 	"fmt"
 )
 
 import (
+	"strconv"
+
 	"github.com/lxn/walk"
 )
 
@@ -24,6 +25,7 @@ type Action struct {
 	AssignTo    **walk.Action
 	Text        string
 	Image       interface{}
+	Checked     Property
 	Enabled     Property
 	Visible     Property
 	Shortcut    Shortcut
@@ -34,41 +36,29 @@ type Action struct {
 func (a Action) createAction(builder *Builder, menu *walk.Menu) (*walk.Action, error) {
 	action := walk.NewAction()
 
+	if a.AssignTo != nil {
+		*a.AssignTo = action
+	}
+
 	if err := action.SetText(a.Text); err != nil {
 		return nil, err
 	}
 	if err := setActionImage(action, a.Image); err != nil {
 		return nil, err
 	}
-	if err := action.SetCheckable(a.Checkable); err != nil {
+
+	if err := setActionBoolOrCondition(action.SetChecked, action.SetCheckedCondition, a.Checked, "Action.Checked", builder); err != nil {
+		return nil, err
+	}
+	if err := setActionBoolOrCondition(action.SetEnabled, action.SetEnabledCondition, a.Enabled, "Action.Enabled", builder); err != nil {
+		return nil, err
+	}
+	if err := setActionBoolOrCondition(action.SetVisible, action.SetVisibleCondition, a.Visible, "Action.Visible", builder); err != nil {
 		return nil, err
 	}
 
-	if a.Enabled != nil {
-		if b, ok := a.Enabled.(bool); ok {
-			if err := action.SetEnabled(b); err != nil {
-				return nil, err
-			}
-		} else if s := builder.conditionOrProperty(a.Enabled); s != nil {
-			if c, ok := s.(walk.Condition); ok {
-				action.SetEnabledCondition(c)
-			} else {
-				return nil, fmt.Errorf("value of invalid type bound to Action.Enabled: %T", s)
-			}
-		}
-	}
-	if a.Visible != nil {
-		if b, ok := a.Visible.(bool); ok {
-			if err := action.SetVisible(b); err != nil {
-				return nil, err
-			}
-		} else if s := builder.conditionOrProperty(a.Visible); s != nil {
-			if c, ok := s.(walk.Condition); ok {
-				action.SetVisibleCondition(c)
-			} else {
-				return nil, fmt.Errorf("value of invalid type bound to Action.Visible: %T", s)
-			}
-		}
+	if err := action.SetCheckable(a.Checkable || action.CheckedCondition() != nil); err != nil {
+		return nil, err
 	}
 
 	s := a.Shortcut
@@ -84,10 +74,6 @@ func (a Action) createAction(builder *Builder, menu *walk.Menu) (*walk.Action, e
 		if err := menu.Actions().Add(action); err != nil {
 			return nil, err
 		}
-	}
-
-	if a.AssignTo != nil {
-		*a.AssignTo = action
 	}
 
 	return action, nil
@@ -112,6 +98,8 @@ type Menu struct {
 	AssignActionTo **walk.Action
 	Text           string
 	Image          interface{}
+	Enabled        Property
+	Visible        Property
 	Items          []MenuItem
 	OnTriggered    walk.EventHandler
 }
@@ -133,6 +121,13 @@ func (m Menu) createAction(builder *Builder, menu *walk.Menu) (*walk.Action, err
 		return nil, err
 	}
 	if err := setActionImage(action, m.Image); err != nil {
+		return nil, err
+	}
+
+	if err := setActionBoolOrCondition(action.SetEnabled, action.SetEnabledCondition, m.Enabled, "Menu.Enabled", builder); err != nil {
+		return nil, err
+	}
+	if err := setActionBoolOrCondition(action.SetVisible, action.SetVisibleCondition, m.Visible, "Menu.Visible", builder); err != nil {
 		return nil, err
 	}
 
@@ -182,24 +177,47 @@ func addToActionList(list *walk.ActionList, actions []*walk.Action) error {
 }
 
 func setActionImage(action *walk.Action, image interface{}) (err error) {
-	var img walk.Image
+	var bm *walk.Bitmap
 
 	switch image := image.(type) {
 	case nil:
 		return nil
 
 	case *walk.Bitmap:
-		img = image
+		bm = image
+
+	case int:
+		var err error
+		if bm, err = walk.Resources.Bitmap(strconv.Itoa(image)); err != nil {
+			return err
+		}
 
 	case string:
-		if img, err = imageFromFile(image); err != nil {
+		if bm, err = walk.Resources.Bitmap(image); err != nil {
 			return
+		}
+
+	default:
+		return walk.ErrInvalidType
+	}
+
+	return action.SetImage(bm)
+}
+
+func setActionBoolOrCondition(setBool func(bool) error, setCond func(walk.Condition), value Property, path string, builder *Builder) error {
+	if value != nil {
+		if b, ok := value.(bool); ok {
+			if err := setBool(b); err != nil {
+				return err
+			}
+		} else if s := builder.conditionOrProperty(value); s != nil {
+			if c, ok := s.(walk.Condition); ok {
+				setCond(c)
+			} else {
+				return fmt.Errorf("value of invalid type bound to %s: %T", path, s)
+			}
 		}
 	}
 
-	if bmp, ok := img.(*walk.Bitmap); ok {
-		return action.SetImage(bmp)
-	}
-
-	return errors.New("invalid type for Image")
+	return nil
 }

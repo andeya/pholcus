@@ -12,41 +12,83 @@ import (
 )
 
 type TableView struct {
-	AssignTo                   **walk.TableView
-	Name                       string
-	Enabled                    Property
-	Visible                    Property
-	Font                       Font
-	ToolTipText                Property
-	MinSize                    Size
-	MaxSize                    Size
-	StretchFactor              int
-	Row                        int
-	RowSpan                    int
-	Column                     int
-	ColumnSpan                 int
-	AlwaysConsumeSpace         bool
-	ContextMenuItems           []MenuItem
-	OnKeyDown                  walk.KeyEventHandler
-	OnKeyPress                 walk.KeyEventHandler
-	OnKeyUp                    walk.KeyEventHandler
-	OnMouseDown                walk.MouseEventHandler
-	OnMouseMove                walk.MouseEventHandler
-	OnMouseUp                  walk.MouseEventHandler
-	OnSizeChanged              walk.EventHandler
-	Columns                    []TableViewColumn
-	Model                      interface{}
-	AlternatingRowBGColor      walk.Color
-	CheckBoxes                 bool
-	ItemStateChangedEventDelay int
-	LastColumnStretched        bool
-	ColumnsOrderable           Property
-	ColumnsSizable             Property
-	MultiSelection             bool
-	NotSortableByHeaderClick   bool
-	OnCurrentIndexChanged      walk.EventHandler
-	OnSelectedIndexesChanged   walk.EventHandler
-	OnItemActivated            walk.EventHandler
+	// Window
+
+	Background         Brush
+	ContextMenuItems   []MenuItem
+	DoubleBuffering    bool
+	Enabled            Property
+	Font               Font
+	MaxSize            Size
+	MinSize            Size
+	Name               string
+	OnBoundsChanged    walk.EventHandler
+	OnKeyDown          walk.KeyEventHandler
+	OnKeyPress         walk.KeyEventHandler
+	OnKeyUp            walk.KeyEventHandler
+	OnMouseDown        walk.MouseEventHandler
+	OnMouseMove        walk.MouseEventHandler
+	OnMouseUp          walk.MouseEventHandler
+	OnSizeChanged      walk.EventHandler
+	Persistent         bool
+	RightToLeftReading bool
+	ToolTipText        Property
+	Visible            Property
+
+	// Widget
+
+	Alignment          Alignment2D
+	AlwaysConsumeSpace bool
+	Column             int
+	ColumnSpan         int
+	GraphicsEffects    []walk.WidgetGraphicsEffect
+	Row                int
+	RowSpan            int
+	StretchFactor      int
+
+	// TableView
+
+	AlternatingRowBGColor       walk.Color
+	AssignTo                    **walk.TableView
+	CellStyler                  walk.CellStyler
+	CheckBoxes                  bool
+	Columns                     []TableViewColumn
+	ColumnsOrderable            Property
+	ColumnsSizable              Property
+	CustomHeaderHeight          int
+	CustomRowHeight             int
+	ItemStateChangedEventDelay  int
+	HeaderHidden                bool
+	LastColumnStretched         bool
+	Model                       interface{}
+	MultiSelection              bool
+	NotSortableByHeaderClick    bool
+	OnCurrentIndexChanged       walk.EventHandler
+	OnItemActivated             walk.EventHandler
+	OnSelectedIndexesChanged    walk.EventHandler
+	SelectionHiddenWithoutFocus bool
+	StyleCell                   func(style *walk.CellStyle)
+}
+
+type tvStyler struct {
+	dflt              walk.CellStyler
+	colStyleCellFuncs []func(style *walk.CellStyle)
+}
+
+func (tvs *tvStyler) StyleCell(style *walk.CellStyle) {
+	if tvs.dflt != nil {
+		tvs.dflt.StyleCell(style)
+	}
+
+	if styleCell := tvs.colStyleCellFuncs[style.Col()]; styleCell != nil {
+		styleCell(style)
+	}
+}
+
+type styleCellFunc func(style *walk.CellStyle)
+
+func (scf styleCellFunc) StyleCell(style *walk.CellStyle) {
+	scf(style)
 }
 
 func (tv TableView) Create(builder *Builder) error {
@@ -55,10 +97,14 @@ func (tv TableView) Create(builder *Builder) error {
 	if tv.NotSortableByHeaderClick {
 		w, err = walk.NewTableViewWithStyle(builder.Parent(), win.LVS_NOSORTHEADER)
 	} else {
-		w, err = walk.NewTableView(builder.Parent())
+		w, err = walk.NewTableViewWithCfg(builder.Parent(), &walk.TableViewCfg{CustomHeaderHeight: tv.CustomHeaderHeight, CustomRowHeight: tv.CustomRowHeight})
 	}
 	if err != nil {
 		return err
+	}
+
+	if tv.AssignTo != nil {
+		*tv.AssignTo = w
 	}
 
 	return builder.InitWidget(tv, w, func() error {
@@ -72,6 +118,45 @@ func (tv TableView) Create(builder *Builder) error {
 			return err
 		}
 
+		defaultStyler, _ := tv.Model.(walk.CellStyler)
+
+		if tv.CellStyler != nil {
+			defaultStyler = tv.CellStyler
+		}
+
+		if tv.StyleCell != nil {
+			defaultStyler = styleCellFunc(tv.StyleCell)
+		}
+
+		var hasColStyleFunc bool
+		for _, c := range tv.Columns {
+			if c.StyleCell != nil {
+				hasColStyleFunc = true
+				break
+			}
+		}
+
+		if defaultStyler != nil || hasColStyleFunc {
+			var styler walk.CellStyler
+
+			if hasColStyleFunc {
+				tvs := &tvStyler{
+					dflt:              defaultStyler,
+					colStyleCellFuncs: make([]func(style *walk.CellStyle), len(tv.Columns)),
+				}
+
+				styler = tvs
+
+				for i, c := range tv.Columns {
+					tvs.colStyleCellFuncs[i] = c.StyleCell
+				}
+			} else {
+				styler = defaultStyler
+			}
+
+			w.SetCellStyler(styler)
+		}
+
 		if tv.AlternatingRowBGColor != 0 {
 			w.SetAlternatingRowBGColor(tv.AlternatingRowBGColor)
 		}
@@ -81,6 +166,12 @@ func (tv TableView) Create(builder *Builder) error {
 			return err
 		}
 		if err := w.SetMultiSelection(tv.MultiSelection); err != nil {
+			return err
+		}
+		if err := w.SetSelectionHiddenWithoutFocus(tv.SelectionHiddenWithoutFocus); err != nil {
+			return err
+		}
+		if err := w.SetHeaderHidden(tv.HeaderHidden); err != nil {
 			return err
 		}
 
@@ -94,14 +185,6 @@ func (tv TableView) Create(builder *Builder) error {
 			w.ItemActivated().Attach(tv.OnItemActivated)
 		}
 
-		if tv.AssignTo != nil {
-			*tv.AssignTo = w
-		}
-
 		return nil
 	})
-}
-
-func (w TableView) WidgetInfo() (name string, disabled, hidden bool, font *Font, toolTipText string, minSize, maxSize Size, stretchFactor, row, rowSpan, column, columnSpan int, alwaysConsumeSpace bool, contextMenuItems []MenuItem, OnKeyDown walk.KeyEventHandler, OnKeyPress walk.KeyEventHandler, OnKeyUp walk.KeyEventHandler, OnMouseDown walk.MouseEventHandler, OnMouseMove walk.MouseEventHandler, OnMouseUp walk.MouseEventHandler, OnSizeChanged walk.EventHandler) {
-	return w.Name, false, false, &w.Font, "", w.MinSize, w.MaxSize, w.StretchFactor, w.Row, w.RowSpan, w.Column, w.ColumnSpan, w.AlwaysConsumeSpace, w.ContextMenuItems, w.OnKeyDown, w.OnKeyPress, w.OnKeyUp, w.OnMouseDown, w.OnMouseMove, w.OnMouseUp, w.OnSizeChanged
 }

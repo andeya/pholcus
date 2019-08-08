@@ -9,9 +9,7 @@ package walk
 import (
 	"syscall"
 	"unsafe"
-)
 
-import (
 	"github.com/lxn/win"
 )
 
@@ -49,12 +47,13 @@ var gM = syscall.StringToUTF16Ptr("gM")
 
 type Canvas struct {
 	hdc                 win.HDC
-	hwnd                win.HWND
+	window              Window
 	dpix                int
 	dpiy                int
-	doNotDispose        bool
+	bitmap              *Bitmap
 	recordingMetafile   *Metafile
 	measureTextMetafile *Metafile
+	doNotDispose        bool
 }
 
 func NewCanvasFromImage(image Image) (*Canvas, error) {
@@ -78,7 +77,7 @@ func NewCanvasFromImage(image Image) (*Canvas, error) {
 
 		succeeded = true
 
-		return (&Canvas{hdc: hdc}).init()
+		return (&Canvas{hdc: hdc, bitmap: img, dpix: img.dpi, dpiy: img.dpi}).init()
 
 	case *Metafile:
 		c, err := newCanvasFromHDC(img.hdc)
@@ -94,13 +93,13 @@ func NewCanvasFromImage(image Image) (*Canvas, error) {
 	return nil, newError("unsupported image type")
 }
 
-func newCanvasFromHWND(hwnd win.HWND) (*Canvas, error) {
-	hdc := win.GetDC(hwnd)
+func newCanvasFromWindow(window Window) (*Canvas, error) {
+	hdc := win.GetDC(window.Handle())
 	if hdc == 0 {
 		return nil, newError("GetDC failed")
 	}
 
-	return (&Canvas{hdc: hdc, hwnd: hwnd}).init()
+	return (&Canvas{hdc: hdc, window: window}).init()
 }
 
 func newCanvasFromHDC(hdc win.HDC) (*Canvas, error) {
@@ -112,8 +111,10 @@ func newCanvasFromHDC(hdc win.HDC) (*Canvas, error) {
 }
 
 func (c *Canvas) init() (*Canvas, error) {
-	c.dpix = int(win.GetDeviceCaps(c.hdc, win.LOGPIXELSX))
-	c.dpiy = int(win.GetDeviceCaps(c.hdc, win.LOGPIXELSY))
+	if c.dpix == 0 || c.dpiy == 0 {
+		c.dpix = dpiForHDC(c.hdc)
+		c.dpiy = c.dpix
+	}
 
 	if win.SetBkMode(c.hdc, win.TRANSPARENT) == 0 {
 		return nil, newError("SetBkMode failed")
@@ -133,10 +134,11 @@ func (c *Canvas) init() (*Canvas, error) {
 
 func (c *Canvas) Dispose() {
 	if !c.doNotDispose && c.hdc != 0 {
-		if c.hwnd == 0 {
+		if c.bitmap != nil {
 			win.DeleteDC(c.hdc)
+			c.bitmap.postProcess()
 		} else {
-			win.ReleaseDC(c.hwnd, c.hdc)
+			win.ReleaseDC(c.window.Handle(), c.hdc)
 		}
 
 		c.hdc = 0
@@ -151,6 +153,14 @@ func (c *Canvas) Dispose() {
 		c.measureTextMetafile.Dispose()
 		c.measureTextMetafile = nil
 	}
+}
+
+func (c *Canvas) DPI() int {
+	if c.window != nil {
+		return c.window.DPI()
+	}
+
+	return c.dpix
 }
 
 func (c *Canvas) withGdiObj(handle win.HGDIOBJ, f func() error) error {
@@ -168,7 +178,7 @@ func (c *Canvas) withBrush(brush Brush, f func() error) error {
 }
 
 func (c *Canvas) withFontAndTextColor(font *Font, color Color, f func() error) error {
-	return c.withGdiObj(win.HGDIOBJ(font.handleForDPI(c.dpiy)), func() error {
+	return c.withGdiObj(win.HGDIOBJ(font.handleForDPI(c.DPI())), func() error {
 		oldColor := win.SetTextColor(c.hdc, win.COLORREF(color))
 		if oldColor == win.CLR_INVALID {
 			return newError("SetTextColor failed")
@@ -181,11 +191,15 @@ func (c *Canvas) withFontAndTextColor(font *Font, color Color, f func() error) e
 	})
 }
 
+func (c *Canvas) HDC() win.HDC {
+	return c.hdc
+}
+
 func (c *Canvas) Bounds() Rectangle {
-	return Rectangle{
+	return RectangleTo96DPI(Rectangle{
 		Width:  int(win.GetDeviceCaps(c.hdc, win.HORZRES)),
 		Height: int(win.GetDeviceCaps(c.hdc, win.VERTRES)),
-	}
+	}, c.DPI())
 }
 
 func (c *Canvas) withPen(pen Pen, f func() error) error {
@@ -200,6 +214,8 @@ func (c *Canvas) withBrushAndPen(brush Brush, pen Pen, f func() error) error {
 
 func (c *Canvas) ellipse(brush Brush, pen Pen, bounds Rectangle, sizeCorrection int) error {
 	return c.withBrushAndPen(brush, pen, func() error {
+		bounds = RectangleFrom96DPI(bounds, c.DPI())
+
 		if !win.Ellipse(
 			c.hdc,
 			int32(bounds.X),
@@ -227,6 +243,8 @@ func (c *Canvas) DrawImage(image Image, location Point) error {
 		return newError("image cannot be nil")
 	}
 
+	location = PointFrom96DPI(location, c.DPI())
+
 	return image.draw(c.hdc, location)
 }
 
@@ -235,15 +253,52 @@ func (c *Canvas) DrawImageStretched(image Image, bounds Rectangle) error {
 		return newError("image cannot be nil")
 	}
 
+	bounds = RectangleFrom96DPI(bounds, c.DPI())
+
+	if dsoc, ok := image.(interface {
+		drawStretchedOnCanvas(canvas *Canvas, bounds Rectangle) error
+	}); ok {
+		return dsoc.drawStretchedOnCanvas(c, bounds)
+	}
+
 	return image.drawStretched(c.hdc, bounds)
 }
 
+func (c *Canvas) DrawBitmapWithOpacity(bmp *Bitmap, bounds Rectangle, opacity byte) error {
+	if bmp == nil {
+		return newError("bmp cannot be nil")
+	}
+
+	bounds = RectangleFrom96DPI(bounds, c.DPI())
+
+	return bmp.alphaBlend(c.hdc, bounds, opacity)
+}
+
+func (c *Canvas) DrawBitmapPart(bmp *Bitmap, dst, src Rectangle) error {
+	return c.DrawBitmapPartWithOpacity(bmp, dst, src, 0xff)
+}
+
+func (c *Canvas) DrawBitmapPartWithOpacity(bmp *Bitmap, dst, src Rectangle, opacity byte) error {
+	if bmp == nil {
+		return newError("bmp cannot be nil")
+	}
+
+	dst = RectangleFrom96DPI(dst, c.DPI())
+	src = RectangleFrom96DPI(src, c.DPI())
+
+	return bmp.alphaBlendPart(c.hdc, dst, src, opacity)
+}
+
 func (c *Canvas) DrawLine(pen Pen, from, to Point) error {
+	dpi := c.DPI()
+
+	from = PointFrom96DPI(from, dpi)
 	if !win.MoveToEx(c.hdc, from.X, from.Y, nil) {
 		return newError("MoveToEx failed")
 	}
 
 	return c.withPen(pen, func() error {
+		to = PointFrom96DPI(to, dpi)
 		if !win.LineTo(c.hdc, int32(to.X), int32(to.Y)) {
 			return newError("LineTo failed")
 		}
@@ -257,9 +312,13 @@ func (c *Canvas) DrawPolyline(pen Pen, points []Point) error {
 		return nil
 	}
 
+	dpi := c.DPI()
+
 	pts := make([]win.POINT, len(points))
-	for i := range points {
-		pts[i] = win.POINT{X: int32(points[i].X), Y: int32(points[i].Y)}
+	for i, p := range points {
+		p = PointFrom96DPI(p, dpi)
+
+		pts[i] = win.POINT{X: int32(p.X), Y: int32(p.Y)}
 	}
 
 	return c.withPen(pen, func() error {
@@ -272,6 +331,10 @@ func (c *Canvas) DrawPolyline(pen Pen, points []Point) error {
 }
 
 func (c *Canvas) rectangle(brush Brush, pen Pen, bounds Rectangle, sizeCorrection int) error {
+	return c.rectanglePixels(brush, pen, RectangleFrom96DPI(bounds, c.DPI()), sizeCorrection)
+}
+
+func (c *Canvas) rectanglePixels(brush Brush, pen Pen, bounds Rectangle, sizeCorrection int) error {
 	return c.withBrushAndPen(brush, pen, func() error {
 		if !win.Rectangle_(
 			c.hdc,
@@ -295,8 +358,78 @@ func (c *Canvas) FillRectangle(brush Brush, bounds Rectangle) error {
 	return c.rectangle(brush, nullPenSingleton, bounds, 1)
 }
 
+func (c *Canvas) fillRectanglePixels(brush Brush, bounds Rectangle) error {
+	return c.rectanglePixels(brush, nullPenSingleton, bounds, 1)
+}
+
+func (c *Canvas) roundedRectangle(brush Brush, pen Pen, bounds Rectangle, ellipseSize Size, sizeCorrection int) error {
+	return c.withBrushAndPen(brush, pen, func() error {
+		dpi := c.DPI()
+
+		bounds = RectangleFrom96DPI(bounds, dpi)
+		ellipseSize = SizeFrom96DPI(ellipseSize, dpi)
+
+		if !win.RoundRect(
+			c.hdc,
+			int32(bounds.X),
+			int32(bounds.Y),
+			int32(bounds.X+bounds.Width+sizeCorrection),
+			int32(bounds.Y+bounds.Height+sizeCorrection),
+			int32(ellipseSize.Width),
+			int32(ellipseSize.Height)) {
+
+			return newError("RoundRect failed")
+		}
+
+		return nil
+	})
+}
+
+func (c *Canvas) DrawRoundedRectangle(pen Pen, bounds Rectangle, ellipseSize Size) error {
+	return c.roundedRectangle(nullBrushSingleton, pen, bounds, ellipseSize, 0)
+}
+
+func (c *Canvas) FillRoundedRectangle(brush Brush, bounds Rectangle, ellipseSize Size) error {
+	return c.roundedRectangle(brush, nullPenSingleton, bounds, ellipseSize, 1)
+}
+
+func (c *Canvas) GradientFillRectangle(color1, color2 Color, orientation Orientation, bounds Rectangle) error {
+	bounds = RectangleFrom96DPI(bounds, c.DPI())
+
+	vertices := [2]win.TRIVERTEX{
+		{
+			X:     int32(bounds.X),
+			Y:     int32(bounds.Y),
+			Red:   uint16(color1.R()) * 256,
+			Green: uint16(color1.G()) * 256,
+			Blue:  uint16(color1.B()) * 256,
+			Alpha: 0,
+		}, {
+			X:     int32(bounds.X + bounds.Width),
+			Y:     int32(bounds.Y + bounds.Height),
+			Red:   uint16(color2.R()) * 256,
+			Green: uint16(color2.G()) * 256,
+			Blue:  uint16(color2.B()) * 256,
+			Alpha: 0,
+		},
+	}
+
+	indices := win.GRADIENT_RECT{
+		UpperLeft:  0,
+		LowerRight: 1,
+	}
+
+	if !win.GradientFill(c.hdc, &vertices[0], 2, unsafe.Pointer(&indices), 1, uint32(orientation)) {
+		return newError("GradientFill failed")
+	}
+
+	return nil
+}
+
 func (c *Canvas) DrawText(text string, font *Font, color Color, bounds Rectangle, format DrawTextFormat) error {
 	return c.withFontAndTextColor(font, color, func() error {
+		bounds = RectangleFrom96DPI(bounds, c.DPI())
+
 		rect := bounds.toRECT()
 		ret := win.DrawTextEx(
 			c.hdc,
@@ -331,6 +464,56 @@ func (c *Canvas) fontHeight(font *Font) (height int, err error) {
 	return
 }
 
+func (c *Canvas) measureTextForDPI(text string, font *Font, bounds Rectangle, format DrawTextFormat, dpi int) (boundsMeasured Rectangle, runesFitted int, err error) {
+	// HACK: We don't want to actually draw on the Canvas here, but if we use
+	// the DT_CALCRECT flag to avoid drawing, DRAWTEXTPARAMc.UiLengthDrawn will
+	// not contain a useful value. To work around this, we create an in-memory
+	// metafile and draw into that instead.
+	if c.measureTextMetafile == nil {
+		c.measureTextMetafile, err = NewMetafile(c)
+		if err != nil {
+			return
+		}
+	}
+
+	hFont := win.HGDIOBJ(font.handleForDPI(dpi))
+	oldHandle := win.SelectObject(c.measureTextMetafile.hdc, hFont)
+	if oldHandle == 0 {
+		err = newError("SelectObject failed")
+		return
+	}
+	defer win.SelectObject(c.measureTextMetafile.hdc, oldHandle)
+
+	rect := &win.RECT{
+		int32(bounds.X),
+		int32(bounds.Y),
+		int32(bounds.X + bounds.Width),
+		int32(bounds.Y + bounds.Height),
+	}
+	var params win.DRAWTEXTPARAMS
+	params.CbSize = uint32(unsafe.Sizeof(params))
+
+	strPtr := syscall.StringToUTF16Ptr(text)
+	dtfmt := uint32(format) | win.DT_EDITCONTROL | win.DT_WORDBREAK | win.DT_CALCRECT
+
+	height := win.DrawTextEx(
+		c.measureTextMetafile.hdc, strPtr, -1, rect, dtfmt, &params)
+	if height == 0 {
+		err = newError("DrawTextEx failed")
+		return
+	}
+
+	boundsMeasured = Rectangle{
+		int(rect.Left),
+		int(rect.Top),
+		int(rect.Right - rect.Left),
+		int(height),
+	}
+	runesFitted = int(params.UiLengthDrawn)
+
+	return
+}
+
 func (c *Canvas) MeasureText(text string, font *Font, bounds Rectangle, format DrawTextFormat) (boundsMeasured Rectangle, runesFitted int, err error) {
 	// HACK: We don't want to actually draw on the Canvas here, but if we use
 	// the DT_CALCRECT flag to avoid drawing, DRAWTEXTPARAMc.UiLengthDrawn will
@@ -343,13 +526,15 @@ func (c *Canvas) MeasureText(text string, font *Font, bounds Rectangle, format D
 		}
 	}
 
-	hFont := win.HGDIOBJ(font.handleForDPI(c.dpiy))
+	hFont := win.HGDIOBJ(font.handleForDPI(c.DPI()))
 	oldHandle := win.SelectObject(c.measureTextMetafile.hdc, hFont)
 	if oldHandle == 0 {
 		err = newError("SelectObject failed")
 		return
 	}
 	defer win.SelectObject(c.measureTextMetafile.hdc, oldHandle)
+
+	bounds = RectangleFrom96DPI(bounds, c.DPI())
 
 	rect := &win.RECT{
 		int32(bounds.X),
@@ -370,12 +555,12 @@ func (c *Canvas) MeasureText(text string, font *Font, bounds Rectangle, format D
 		return
 	}
 
-	boundsMeasured = Rectangle{
+	boundsMeasured = RectangleTo96DPI(Rectangle{
 		int(rect.Left),
 		int(rect.Top),
 		int(rect.Right - rect.Left),
 		int(height),
-	}
+	}, c.DPI())
 	runesFitted = int(params.UiLengthDrawn)
 
 	return

@@ -6,6 +6,12 @@
 
 package walk
 
+import (
+	"syscall"
+
+	"github.com/lxn/win"
+)
+
 // BindingValueProvider is the interface that a model must implement to support
 // data binding with widgets like ComboBox.
 type BindingValueProvider interface {
@@ -28,13 +34,23 @@ type ListModel interface {
 	// ItemChanged returns the event that the model should publish when an item
 	// was changed.
 	ItemChanged() *IntEvent
+
+	// ItemsInserted returns the event that the model should publish when a
+	// contiguous range of items was inserted.
+	ItemsInserted() *IntRangeEvent
+
+	// ItemsRemoved returns the event that the model should publish when a
+	// contiguous range of items was removed.
+	ItemsRemoved() *IntRangeEvent
 }
 
 // ListModelBase implements the ItemsReset and ItemChanged methods of the
 // ListModel interface.
 type ListModelBase struct {
-	itemsResetPublisher  EventPublisher
-	itemChangedPublisher IntEventPublisher
+	itemsResetPublisher    EventPublisher
+	itemChangedPublisher   IntEventPublisher
+	itemsInsertedPublisher IntRangeEventPublisher
+	itemsRemovedPublisher  IntRangeEventPublisher
 }
 
 func (lmb *ListModelBase) ItemsReset() *Event {
@@ -45,12 +61,28 @@ func (lmb *ListModelBase) ItemChanged() *IntEvent {
 	return lmb.itemChangedPublisher.Event()
 }
 
+func (lmb *ListModelBase) ItemsInserted() *IntRangeEvent {
+	return lmb.itemsInsertedPublisher.Event()
+}
+
+func (lmb *ListModelBase) ItemsRemoved() *IntRangeEvent {
+	return lmb.itemsRemovedPublisher.Event()
+}
+
 func (lmb *ListModelBase) PublishItemsReset() {
 	lmb.itemsResetPublisher.Publish()
 }
 
 func (lmb *ListModelBase) PublishItemChanged(index int) {
 	lmb.itemChangedPublisher.Publish(index)
+}
+
+func (lmb *ListModelBase) PublishItemsInserted(from, to int) {
+	lmb.itemsInsertedPublisher.Publish(from, to)
+}
+
+func (lmb *ListModelBase) PublishItemsRemoved(from, to int) {
+	lmb.itemsRemovedPublisher.Publish(from, to)
 }
 
 // ReflectListModel provides an alternative to the ListModel interface. It
@@ -66,6 +98,14 @@ type ReflectListModel interface {
 	// ItemChanged returns the event that the model should publish when an item
 	// was changed.
 	ItemChanged() *IntEvent
+
+	// ItemsInserted returns the event that the model should publish when a
+	// contiguous range of items was inserted.
+	ItemsInserted() *IntRangeEvent
+
+	// ItemsRemoved returns the event that the model should publish when a
+	// contiguous range of items was removed.
+	ItemsRemoved() *IntRangeEvent
 
 	setValueFunc(value func(index int) interface{})
 }
@@ -101,13 +141,24 @@ type TableModel interface {
 	// RowChanged returns the event that the model should publish when a row was
 	// changed.
 	RowChanged() *IntEvent
+
+	// RowsInserted returns the event that the model should publish when a
+	// contiguous range of items was inserted. If the model supports sorting, it
+	// is assumed to be sorted before the model publishes the event.
+	RowsInserted() *IntRangeEvent
+
+	// RowsRemoved returns the event that the model should publish when a
+	// contiguous range of items was removed.
+	RowsRemoved() *IntRangeEvent
 }
 
 // TableModelBase implements the RowsReset and RowChanged methods of the
 // TableModel interface.
 type TableModelBase struct {
-	rowsResetPublisher  EventPublisher
-	rowChangedPublisher IntEventPublisher
+	rowsResetPublisher    EventPublisher
+	rowChangedPublisher   IntEventPublisher
+	rowsInsertedPublisher IntRangeEventPublisher
+	rowsRemovedPublisher  IntRangeEventPublisher
 }
 
 func (tmb *TableModelBase) RowsReset() *Event {
@@ -118,12 +169,28 @@ func (tmb *TableModelBase) RowChanged() *IntEvent {
 	return tmb.rowChangedPublisher.Event()
 }
 
+func (tmb *TableModelBase) RowsInserted() *IntRangeEvent {
+	return tmb.rowsInsertedPublisher.Event()
+}
+
+func (tmb *TableModelBase) RowsRemoved() *IntRangeEvent {
+	return tmb.rowsRemovedPublisher.Event()
+}
+
 func (tmb *TableModelBase) PublishRowsReset() {
 	tmb.rowsResetPublisher.Publish()
 }
 
 func (tmb *TableModelBase) PublishRowChanged(row int) {
 	tmb.rowChangedPublisher.Publish(row)
+}
+
+func (tmb *TableModelBase) PublishRowsInserted(from, to int) {
+	tmb.rowsInsertedPublisher.Publish(from, to)
+}
+
+func (tmb *TableModelBase) PublishRowsRemoved(from, to int) {
+	tmb.rowsRemovedPublisher.Publish(from, to)
 }
 
 // ReflectTableModel provides an alternative to the TableModel interface. It
@@ -139,6 +206,15 @@ type ReflectTableModel interface {
 	// RowChanged returns the event that the model should publish when an item
 	// was changed.
 	RowChanged() *IntEvent
+
+	// RowsInserted returns the event that the model should publish when a
+	// contiguous range of items was inserted. If the model supports sorting, it
+	// is assumed to be sorted before the model publishes the event.
+	RowsInserted() *IntRangeEvent
+
+	// RowsRemoved returns the event that the model should publish when a
+	// contiguous range of items was removed.
+	RowsRemoved() *IntRangeEvent
 
 	setValueFunc(value func(row, col int) interface{})
 }
@@ -211,6 +287,190 @@ type ImageProvider interface {
 	// used. It is not supported to use strings together with the other options
 	// in the same model instance.
 	Image(index int) interface{}
+}
+
+// CellStyler is the interface that must be implemented to provide a tabular
+// widget like TableView with cell display style information.
+type CellStyler interface {
+	// StyleCell is called for each cell to pick up cell style information.
+	StyleCell(style *CellStyle)
+}
+
+// CellStyle carries information about the display style of a cell in a tabular widget
+// like TableView.
+type CellStyle struct {
+	row             int
+	col             int
+	bounds          Rectangle
+	hdc             win.HDC
+	dpi             int
+	canvas          *Canvas
+	BackgroundColor Color
+	TextColor       Color
+	Font            *Font
+
+	// Image is the image to display in the cell.
+	//
+	// Supported types are *walk.Bitmap, *walk.Icon and string. A string will be
+	// interpreted as a file path and the icon associated with the file will be
+	// used. It is not supported to use strings together with the other options
+	// in the same model instance.
+	Image interface{}
+}
+
+func (cs *CellStyle) Row() int {
+	return cs.row
+}
+
+func (cs *CellStyle) Col() int {
+	return cs.col
+}
+
+func (cs *CellStyle) Bounds() Rectangle {
+	return cs.bounds
+}
+
+func (cs *CellStyle) Canvas() *Canvas {
+	if cs.canvas == nil && cs.hdc != 0 {
+		cs.canvas, _ = newCanvasFromHDC(cs.hdc)
+		cs.canvas.dpix = cs.dpi
+		cs.canvas.dpiy = cs.dpi
+	}
+
+	return cs.canvas
+}
+
+// ListItemStyler is the interface that must be implemented to provide a list
+// widget like ListBox with item display style information.
+type ListItemStyler interface {
+	// ItemHeightDependsOnWidth returns whether item height depends on width.
+	ItemHeightDependsOnWidth() bool
+
+	// DefaultItemHeight returns the initial height for any item.
+	DefaultItemHeight() int
+
+	// ItemHeight is called for each item to retrieve the height of the item.
+	ItemHeight(index, width int) int
+
+	// StyleItem is called for each item to pick up item style information.
+	StyleItem(style *ListItemStyle)
+}
+
+// ListItemStyle carries information about the display style of an item in a list widget
+// like ListBox.
+type ListItemStyle struct {
+	BackgroundColor    Color
+	TextColor          Color
+	LineColor          Color
+	Font               *Font
+	index              int
+	hoverIndex         int
+	rc                 win.RECT
+	bounds             Rectangle
+	state              uint32
+	hTheme             win.HTHEME
+	hwnd               win.HWND
+	hdc                win.HDC
+	dpi                int
+	canvas             *Canvas
+	highContrastActive bool
+}
+
+func (lis *ListItemStyle) Index() int {
+	return lis.index
+}
+
+func (lis *ListItemStyle) Bounds() Rectangle {
+	return lis.bounds
+}
+
+func (lis *ListItemStyle) Canvas() *Canvas {
+	if lis.canvas == nil && lis.hdc != 0 {
+		lis.canvas, _ = newCanvasFromHDC(lis.hdc)
+		lis.canvas.dpix = lis.dpi
+		lis.canvas.dpiy = lis.dpi
+	}
+
+	return lis.canvas
+}
+
+func (lis *ListItemStyle) DrawBackground() error {
+	canvas := lis.Canvas()
+	if canvas == nil {
+		return nil
+	}
+
+	stateID := lis.stateID()
+
+	if lis.hTheme != 0 && stateID != win.LISS_NORMAL {
+		if win.FAILED(win.DrawThemeBackground(lis.hTheme, lis.hdc, win.LVP_LISTITEM, stateID, &lis.rc, nil)) {
+			return newError("DrawThemeBackground failed")
+		}
+	} else {
+		brush, err := NewSolidColorBrush(lis.BackgroundColor)
+		if err != nil {
+			return err
+		}
+		defer brush.Dispose()
+
+		if err := canvas.FillRectangle(brush, lis.bounds); err != nil {
+			return err
+		}
+
+		if lis.highContrastActive && (lis.index == lis.hoverIndex || stateID != win.LISS_NORMAL) {
+			pen, err := NewCosmeticPen(PenSolid, lis.LineColor)
+			if err != nil {
+				return err
+			}
+			defer pen.Dispose()
+
+			if err := canvas.DrawRectangle(pen, lis.bounds); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (lis *ListItemStyle) DrawText(text string, bounds Rectangle, format DrawTextFormat) error {
+	if lis.hTheme != 0 {
+		if lis.Font != nil {
+			hFontOld := win.SelectObject(lis.hdc, win.HGDIOBJ(lis.Font.handleForDPI(lis.dpi)))
+			defer win.SelectObject(lis.hdc, hFontOld)
+		}
+		rc := RectangleFrom96DPI(bounds, lis.dpi).toRECT()
+
+		if win.FAILED(win.DrawThemeTextEx(lis.hTheme, lis.hdc, win.LVP_LISTITEM, lis.stateID(), syscall.StringToUTF16Ptr(text), int32(len(([]rune)(text))), uint32(format), &rc, nil)) {
+			return newError("DrawThemeTextEx failed")
+		}
+	} else {
+		if canvas := lis.Canvas(); canvas != nil {
+			if err := canvas.DrawText(text, lis.Font, lis.TextColor, bounds, format); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (lis *ListItemStyle) stateID() int32 {
+	if lis.state&win.ODS_CHECKED != 0 {
+		if win.GetFocus() == lis.hwnd {
+			if lis.index == lis.hoverIndex {
+				return win.LISS_HOTSELECTED
+			} else {
+				return win.LISS_SELECTED
+			}
+		} else {
+			return win.LISS_SELECTEDNOTFOCUS
+		}
+	} else if lis.index == lis.hoverIndex {
+		return win.LISS_HOT
+	}
+
+	return win.LISS_NORMAL
 }
 
 // ItemChecker is the interface that a model must implement to support check

@@ -11,21 +11,17 @@ import (
 )
 
 type Slider struct {
-	AssignTo           **walk.Slider
-	Name               string
-	Enabled            Property
-	Visible            Property
-	Font               Font
-	ToolTipText        Property
-	MinSize            Size
-	MaxSize            Size
-	StretchFactor      int
-	Row                int
-	RowSpan            int
-	Column             int
-	ColumnSpan         int
-	AlwaysConsumeSpace bool
+	// Window
+
+	Background         Brush
 	ContextMenuItems   []MenuItem
+	DoubleBuffering    bool
+	Enabled            Property
+	Font               Font
+	MaxSize            Size
+	MinSize            Size
+	Name               string
+	OnBoundsChanged    walk.EventHandler
 	OnKeyDown          walk.KeyEventHandler
 	OnKeyPress         walk.KeyEventHandler
 	OnKeyUp            walk.KeyEventHandler
@@ -33,26 +29,61 @@ type Slider struct {
 	OnMouseMove        walk.MouseEventHandler
 	OnMouseUp          walk.MouseEventHandler
 	OnSizeChanged      walk.EventHandler
-	MinValue           int
-	MaxValue           int
-	Value              Property
-	OnValueChanged     walk.EventHandler
-	Orientation        Orientation
+	Persistent         bool
+	RightToLeftReading bool
+	ToolTipText        Property
+	Visible            Property
+
+	// Widget
+
+	Alignment          Alignment2D
+	AlwaysConsumeSpace bool
+	Column             int
+	ColumnSpan         int
+	GraphicsEffects    []walk.WidgetGraphicsEffect
+	Row                int
+	RowSpan            int
+	StretchFactor      int
+
+	// Slider
+
+	AssignTo       **walk.Slider
+	LineSize       int
+	MaxValue       int
+	MinValue       int
+	Orientation    Orientation
+	OnValueChanged walk.EventHandler
+	PageSize       int
+	ToolTipsHidden bool
+	Tracking       bool
+	Value          Property
 }
 
 func (sl Slider) Create(builder *Builder) error {
-	w, err := walk.NewSliderWithOrientation(builder.Parent(), walk.Orientation(sl.Orientation))
+	w, err := walk.NewSliderWithCfg(builder.Parent(), &walk.SliderCfg{
+		Orientation:    walk.Orientation(sl.Orientation),
+		ToolTipsHidden: sl.ToolTipsHidden,
+	})
 	if err != nil {
 		return err
 	}
 
+	if sl.AssignTo != nil {
+		*sl.AssignTo = w
+	}
+
 	return builder.InitWidget(sl, w, func() error {
+		w.SetPersistent(sl.Persistent)
+		if sl.LineSize > 0 {
+			w.SetLineSize(sl.LineSize)
+		}
+		if sl.PageSize > 0 {
+			w.SetPageSize(sl.PageSize)
+		}
+		w.SetTracking(sl.Tracking)
+
 		if sl.MaxValue > sl.MinValue {
 			w.SetRange(sl.MinValue, sl.MaxValue)
-		}
-
-		if sl.AssignTo != nil {
-			*sl.AssignTo = w
 		}
 
 		if sl.OnValueChanged != nil {
@@ -61,8 +92,4 @@ func (sl Slider) Create(builder *Builder) error {
 
 		return nil
 	})
-}
-
-func (w Slider) WidgetInfo() (name string, disabled, hidden bool, font *Font, toolTipText string, minSize, maxSize Size, stretchFactor, row, rowSpan, column, columnSpan int, alwaysConsumeSpace bool, contextMenuItems []MenuItem, OnKeyDown walk.KeyEventHandler, OnKeyPress walk.KeyEventHandler, OnKeyUp walk.KeyEventHandler, OnMouseDown walk.MouseEventHandler, OnMouseMove walk.MouseEventHandler, OnMouseUp walk.MouseEventHandler, OnSizeChanged walk.EventHandler) {
-	return w.Name, false, false, &w.Font, "", w.MinSize, w.MaxSize, w.StretchFactor, w.Row, w.RowSpan, w.Column, w.ColumnSpan, w.AlwaysConsumeSpace, w.ContextMenuItems, w.OnKeyDown, w.OnKeyPress, w.OnKeyUp, w.OnMouseDown, w.OnMouseMove, w.OnMouseUp, w.OnSizeChanged
 }

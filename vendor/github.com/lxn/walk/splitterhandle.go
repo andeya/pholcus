@@ -37,6 +37,8 @@ func newSplitterHandle(splitter *Splitter) (*splitterHandle, error) {
 		return nil, err
 	}
 
+	sh.SetBackground(NullBrush())
+
 	if err := sh.setAndClearStyleBits(0, win.WS_CLIPSIBLINGS); err != nil {
 		return nil, err
 	}
@@ -45,7 +47,11 @@ func newSplitterHandle(splitter *Splitter) (*splitterHandle, error) {
 }
 
 func (sh *splitterHandle) LayoutFlags() LayoutFlags {
-	splitter := sh.Parent().(*Splitter)
+	splitter, ok := sh.Parent().(*Splitter)
+	if !ok {
+		return 0
+	}
+
 	if splitter.Orientation() == Horizontal {
 		return ShrinkableVert | GrowableVert | GreedyVert
 	}
@@ -58,7 +64,11 @@ func (sh *splitterHandle) MinSizeHint() Size {
 }
 
 func (sh *splitterHandle) SizeHint() Size {
-	splitter := sh.Parent().(*Splitter)
+	splitter, ok := sh.Parent().(*Splitter)
+	if !ok {
+		return Size{}
+	}
+
 	handleWidth := splitter.HandleWidth()
 	var size Size
 
@@ -69,4 +79,25 @@ func (sh *splitterHandle) SizeHint() Size {
 	}
 
 	return size
+}
+
+func (sh *splitterHandle) WndProc(hwnd win.HWND, msg uint32, wParam, lParam uintptr) uintptr {
+	switch msg {
+	case win.WM_ERASEBKGND:
+		if sh.Background() == nullBrushSingleton {
+			return 1
+		}
+
+	case win.WM_PAINT:
+		if sh.Background() == nullBrushSingleton {
+			var ps win.PAINTSTRUCT
+
+			win.BeginPaint(hwnd, &ps)
+			defer win.EndPaint(hwnd, &ps)
+
+			return 0
+		}
+	}
+
+	return sh.WidgetBase.WndProc(hwnd, msg, wParam, lParam)
 }

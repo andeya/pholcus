@@ -9,21 +9,40 @@ package walk
 import (
 	"syscall"
 	"unsafe"
-)
 
-import (
 	"github.com/lxn/win"
 )
 
 type ImageList struct {
-	hIml      win.HIMAGELIST
-	maskColor Color
+	hIml                     win.HIMAGELIST
+	maskColor                Color
+	imageSize96dpi           Size
+	colorMaskedBitmap2Index  map[*Bitmap]int
+	bitmapMaskedBitmap2Index map[bitmapMaskedBitmap]int
+}
+
+type bitmapMaskedBitmap struct {
+	bitmap *Bitmap
+	mask   *Bitmap
 }
 
 func NewImageList(imageSize Size, maskColor Color) (*ImageList, error) {
+	hDC := win.GetDC(0)
+	defer win.ReleaseDC(0, hDC)
+
+	dpi := int(win.GetDeviceCaps(hDC, win.LOGPIXELSX))
+
+	return newImageList(imageSize, maskColor, dpi)
+}
+
+func newImageList(imageSize Size, maskColor Color, dpi int) (*ImageList, error) {
+	scale := float64(dpi) / 96.0
+	width := int32(float64(imageSize.Width) * scale)
+	height := int32(float64(imageSize.Height) * scale)
+
 	hIml := win.ImageList_Create(
-		int32(imageSize.Width),
-		int32(imageSize.Height),
+		width,
+		height,
 		win.ILC_MASK|win.ILC_COLOR32,
 		8,
 		8)
@@ -31,7 +50,13 @@ func NewImageList(imageSize Size, maskColor Color) (*ImageList, error) {
 		return nil, newError("ImageList_Create failed")
 	}
 
-	return &ImageList{hIml: hIml, maskColor: maskColor}, nil
+	return &ImageList{
+		hIml:                     hIml,
+		maskColor:                maskColor,
+		imageSize96dpi:           imageSize,
+		colorMaskedBitmap2Index:  make(map[*Bitmap]int),
+		bitmapMaskedBitmap2Index: make(map[bitmapMaskedBitmap]int),
+	}, nil
 }
 
 func (il *ImageList) Handle() win.HIMAGELIST {
@@ -41,6 +66,12 @@ func (il *ImageList) Handle() win.HIMAGELIST {
 func (il *ImageList) Add(bitmap, maskBitmap *Bitmap) (int, error) {
 	if bitmap == nil {
 		return 0, newError("bitmap cannot be nil")
+	}
+
+	key := bitmapMaskedBitmap{bitmap: bitmap, mask: maskBitmap}
+
+	if index, ok := il.bitmapMaskedBitmap2Index[key]; ok {
+		return index, nil
 	}
 
 	var maskHandle win.HBITMAP
@@ -53,12 +84,18 @@ func (il *ImageList) Add(bitmap, maskBitmap *Bitmap) (int, error) {
 		return 0, newError("ImageList_Add failed")
 	}
 
+	il.bitmapMaskedBitmap2Index[key] = index
+
 	return index, nil
 }
 
 func (il *ImageList) AddMasked(bitmap *Bitmap) (int32, error) {
 	if bitmap == nil {
 		return 0, newError("bitmap cannot be nil")
+	}
+
+	if index, ok := il.colorMaskedBitmap2Index[bitmap]; ok {
+		return int32(index), nil
 	}
 
 	index := win.ImageList_AddMasked(
@@ -68,6 +105,8 @@ func (il *ImageList) AddMasked(bitmap *Bitmap) (int32, error) {
 	if index == -1 {
 		return 0, newError("ImageList_AddMasked failed")
 	}
+
+	il.colorMaskedBitmap2Index[bitmap] = int(index)
 
 	return index, nil
 }
@@ -83,12 +122,20 @@ func (il *ImageList) MaskColor() Color {
 	return il.maskColor
 }
 
-func imageListForImage(image interface{}) (hIml win.HIMAGELIST, isSysIml bool, err error) {
+func imageListForImage(image interface{}, dpi int) (hIml win.HIMAGELIST, isSysIml bool, err error) {
+	if name, ok := image.(string); ok {
+		if img, err := Resources.Image(name); err == nil {
+			image = img
+		}
+	}
+
 	if filePath, ok := image.(string); ok {
 		_, hIml = iconIndexAndHImlForFilePath(filePath)
 		isSysIml = hIml != 0
 	} else {
-		w, h := win.GetSystemMetrics(win.SM_CXSMICON), win.GetSystemMetrics(win.SM_CYSMICON)
+		scale := float64(dpi) / 96.0
+		w := int32(float64(win.GetSystemMetrics(win.SM_CXSMICON)) * scale)
+		h := int32(float64(win.GetSystemMetrics(win.SM_CYSMICON)) * scale)
 
 		hIml = win.ImageList_Create(w, h, win.ILC_MASK|win.ILC_COLOR32, 8, 8)
 		if hIml == 0 {
@@ -115,9 +162,9 @@ func iconIndexAndHImlForFilePath(filePath string) (int32, win.HIMAGELIST) {
 	return -1, 0
 }
 
-func imageIndexMaybeAdd(image interface{}, hIml win.HIMAGELIST, isSysIml bool, imageUintptr2Index map[uintptr]int32, filePath2IconIndex map[string]int32) int32 {
+func imageIndexMaybeAdd(image interface{}, hIml win.HIMAGELIST, isSysIml bool, imageUintptr2Index map[uintptr]int32, filePath2IconIndex map[string]int32, dpi int) int32 {
 	if !isSysIml {
-		return imageIndexAddIfNotExists(image, hIml, imageUintptr2Index)
+		return imageIndexAddIfNotExists(image, hIml, imageUintptr2Index, dpi)
 	} else if filePath, ok := image.(string); ok {
 		if iIcon, ok := filePath2IconIndex[filePath]; ok {
 			return iIcon
@@ -132,10 +179,14 @@ func imageIndexMaybeAdd(image interface{}, hIml win.HIMAGELIST, isSysIml bool, i
 	return -1
 }
 
-func imageIndexAddIfNotExists(image interface{}, hIml win.HIMAGELIST, imageUintptr2Index map[uintptr]int32) int32 {
+func imageIndexAddIfNotExists(image interface{}, hIml win.HIMAGELIST, imageUintptr2Index map[uintptr]int32, dpi int) int32 {
 	imageIndex := int32(-1)
 
 	if image != nil {
+		if name, ok := image.(string); ok {
+			image, _ = Resources.Image(name)
+		}
+
 		var ptr uintptr
 		switch img := image.(type) {
 		case *Bitmap:
@@ -158,7 +209,7 @@ func imageIndexAddIfNotExists(image interface{}, hIml win.HIMAGELIST, imageUintp
 			imageIndex = win.ImageList_AddMasked(hIml, img.hBmp, 0)
 
 		case *Icon:
-			imageIndex = win.ImageList_ReplaceIcon(hIml, -1, img.hIcon)
+			imageIndex = win.ImageList_ReplaceIcon(hIml, -1, img.handleForDPI(dpi))
 		}
 
 		if imageIndex > -1 {

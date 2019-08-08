@@ -11,29 +11,50 @@ import (
 )
 
 type Dialog struct {
-	AssignTo         **walk.Dialog
-	Name             string
-	Enabled          Property
-	Visible          Property
-	Font             Font
-	MinSize          Size
-	MaxSize          Size
-	ContextMenuItems []MenuItem
-	OnKeyDown        walk.KeyEventHandler
-	OnKeyPress       walk.KeyEventHandler
-	OnKeyUp          walk.KeyEventHandler
-	OnMouseDown      walk.MouseEventHandler
-	OnMouseMove      walk.MouseEventHandler
-	OnMouseUp        walk.MouseEventHandler
-	OnSizeChanged    walk.EventHandler
-	Title            string
-	Size             Size
-	DataBinder       DataBinder
-	Layout           Layout
-	Children         []Widget
-	DefaultButton    **walk.PushButton
-	CancelButton     **walk.PushButton
-	FixedSize        bool
+	// Window
+
+	Background         Brush
+	ContextMenuItems   []MenuItem
+	DoubleBuffering    bool
+	Enabled            Property
+	Font               Font
+	MaxSize            Size
+	MinSize            Size
+	Name               string
+	OnBoundsChanged    walk.EventHandler
+	OnKeyDown          walk.KeyEventHandler
+	OnKeyPress         walk.KeyEventHandler
+	OnKeyUp            walk.KeyEventHandler
+	OnMouseDown        walk.MouseEventHandler
+	OnMouseMove        walk.MouseEventHandler
+	OnMouseUp          walk.MouseEventHandler
+	OnSizeChanged      walk.EventHandler
+	Persistent         bool
+	RightToLeftLayout  bool
+	RightToLeftReading bool
+	ToolTipText        Property
+	Visible            Property
+
+	// Container
+
+	DataBinder DataBinder
+	Layout     Layout
+	Children   []Widget
+
+	// Form
+
+	Expressions func() map[string]walk.Expression
+	Functions   map[string]func(args ...interface{}) (interface{}, error)
+	Icon        Property
+	Title       Property
+	Size        Size
+
+	// Dialog
+
+	AssignTo      **walk.Dialog
+	CancelButton  **walk.PushButton
+	DefaultButton **walk.PushButton
+	FixedSize     bool
 }
 
 func (d Dialog) Create(owner walk.Form) error {
@@ -45,28 +66,44 @@ func (d Dialog) Create(owner walk.Form) error {
 	} else {
 		w, err = walk.NewDialog(owner)
 	}
-
 	if err != nil {
 		return err
 	}
 
-	tlwi := topLevelWindowInfo{
-		Name:             d.Name,
-		Font:             d.Font,
-		ToolTipText:      "",
-		MinSize:          d.MinSize,
-		MaxSize:          d.MaxSize,
-		ContextMenuItems: d.ContextMenuItems,
-		DataBinder:       d.DataBinder,
-		Layout:           d.Layout,
-		Children:         d.Children,
-		OnKeyDown:        d.OnKeyDown,
-		OnKeyPress:       d.OnKeyPress,
-		OnKeyUp:          d.OnKeyUp,
-		OnMouseDown:      d.OnMouseDown,
-		OnMouseMove:      d.OnMouseMove,
-		OnMouseUp:        d.OnMouseUp,
-		OnSizeChanged:    d.OnSizeChanged,
+	if d.AssignTo != nil {
+		*d.AssignTo = w
+	}
+
+	fi := formInfo{
+		// Window
+		Background:         d.Background,
+		ContextMenuItems:   d.ContextMenuItems,
+		DoubleBuffering:    d.DoubleBuffering,
+		Enabled:            d.Enabled,
+		Font:               d.Font,
+		MaxSize:            d.MaxSize,
+		MinSize:            d.MinSize,
+		Name:               d.Name,
+		OnBoundsChanged:    d.OnBoundsChanged,
+		OnKeyDown:          d.OnKeyDown,
+		OnKeyPress:         d.OnKeyPress,
+		OnKeyUp:            d.OnKeyUp,
+		OnMouseDown:        d.OnMouseDown,
+		OnMouseMove:        d.OnMouseMove,
+		OnMouseUp:          d.OnMouseUp,
+		OnSizeChanged:      d.OnSizeChanged,
+		RightToLeftReading: d.RightToLeftReading,
+		ToolTipText:        "",
+		Visible:            d.Visible,
+
+		// Container
+		Children:   d.Children,
+		DataBinder: d.DataBinder,
+		Layout:     d.Layout,
+
+		// Form
+		Icon:  d.Icon,
+		Title: d.Title,
 	}
 
 	var db *walk.DataBinder
@@ -79,15 +116,16 @@ func (d Dialog) Create(owner walk.Form) error {
 	w.SetSuspended(true)
 	builder.Defer(func() error {
 		w.SetSuspended(false)
+		w.SetBoundsPixels(w.BoundsPixels())
 		return nil
 	})
 
-	return builder.InitWidget(tlwi, w, func() error {
-		if err := w.SetTitle(d.Title); err != nil {
-			return err
-		}
+	if err := w.SetRightToLeftLayout(d.RightToLeftLayout); err != nil {
+		return err
+	}
 
-		if err := w.SetSize(d.Size.toW()); err != nil {
+	return builder.InitWidget(fi, w, func() error {
+		if err := w.SetSizePixels(d.Size.toW()); err != nil {
 			return err
 		}
 
@@ -112,8 +150,15 @@ func (d Dialog) Create(owner walk.Form) error {
 			}
 		}
 
-		if d.AssignTo != nil {
-			*d.AssignTo = w
+		if d.Expressions != nil {
+			for name, expr := range d.Expressions() {
+				builder.expressions[name] = expr
+			}
+		}
+		if d.Functions != nil {
+			for name, fn := range d.Functions {
+				builder.functions[name] = fn
+			}
 		}
 
 		return nil

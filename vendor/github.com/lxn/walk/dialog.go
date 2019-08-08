@@ -7,11 +7,8 @@
 package walk
 
 import (
-	"syscall"
 	"unsafe"
-)
 
-import (
 	"github.com/lxn/win"
 )
 
@@ -82,9 +79,6 @@ func newDialogWithStyle(owner Form, style uint32) (*Dialog, error) {
 	}()
 
 	dlg.centerInOwnerWhenRun = owner != nil
-
-	// This forces display of focus rectangles, as soon as the user starts to type.
-	dlg.SendMessage(win.WM_CHANGEUISTATE, win.UIS_INITIALIZE, 0)
 
 	dlg.result = DlgCmdNone
 
@@ -159,70 +153,22 @@ func (dlg *Dialog) Close(result int) {
 	dlg.FormBase.Close()
 }
 
-func firstFocusableDescendantCallback(hwnd win.HWND, lParam uintptr) uintptr {
-	widget := windowFromHandle(hwnd)
-
-	if widget == nil || !widget.Visible() || !widget.Enabled() {
-		return 1
-	}
-
-	style := uint(win.GetWindowLong(hwnd, win.GWL_STYLE))
-	// FIXME: Ugly workaround for NumberEdit
-	_, isTextSelectable := widget.(textSelectable)
-	if style&win.WS_TABSTOP > 0 || isTextSelectable {
-		hwndPtr := (*win.HWND)(unsafe.Pointer(lParam))
-		*hwndPtr = hwnd
-		return 0
-	}
-
-	return 1
-}
-
-var firstFocusableDescendantCallbackPtr = syscall.NewCallback(firstFocusableDescendantCallback)
-
-func firstFocusableDescendant(container Container) Window {
-	var hwnd win.HWND
-
-	win.EnumChildWindows(container.Handle(), firstFocusableDescendantCallbackPtr, uintptr(unsafe.Pointer(&hwnd)))
-
-	return windowFromHandle(hwnd)
-}
-
-type textSelectable interface {
-	SetTextSelection(start, end int)
-}
-
-func (dlg *Dialog) focusFirstCandidateDescendant() {
-	window := firstFocusableDescendant(dlg)
-	if window == nil {
-		return
-	}
-
-	if err := window.SetFocus(); err != nil {
-		return
-	}
-
-	if textSel, ok := window.(textSelectable); ok {
-		textSel.SetTextSelection(0, -1)
-	}
-}
-
 func (dlg *Dialog) Show() {
 	if dlg.owner != nil {
 		var size Size
 		if layout := dlg.Layout(); layout != nil {
 			size = layout.MinSize()
-			min := dlg.MinSize()
+			min := dlg.MinSizePixels()
 			size.Width = maxi(size.Width, min.Width)
 			size.Height = maxi(size.Height, min.Height)
 		} else {
-			size = dlg.Size()
+			size = dlg.SizePixels()
 		}
 
-		ob := dlg.owner.Bounds()
+		ob := dlg.owner.BoundsPixels()
 
 		if dlg.centerInOwnerWhenRun {
-			dlg.SetBounds(fitRectToScreen(dlg.hWnd, Rectangle{
+			dlg.SetBoundsPixels(fitRectToScreen(dlg.hWnd, Rectangle{
 				ob.X + (ob.Width-size.Width)/2,
 				ob.Y + (ob.Height-size.Height)/2,
 				size.Width,
@@ -230,12 +176,10 @@ func (dlg *Dialog) Show() {
 			}))
 		}
 	} else {
-		dlg.SetBounds(dlg.Bounds())
+		dlg.SetBoundsPixels(dlg.BoundsPixels())
 	}
 
 	dlg.FormBase.Show()
-
-	dlg.focusFirstCandidateDescendant()
 }
 
 func fitRectToScreen(hWnd win.HWND, r Rectangle) Rectangle {
@@ -275,10 +219,6 @@ func fitRectToScreen(hWnd win.HWND, r Rectangle) Rectangle {
 
 func (dlg *Dialog) Run() int {
 	dlg.Show()
-
-	if dlg.owner != nil {
-		dlg.owner.SetEnabled(false)
-	}
 
 	dlg.FormBase.Run()
 

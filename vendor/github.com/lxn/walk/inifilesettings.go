@@ -21,6 +21,7 @@ type IniFileSettings struct {
 	fileName       string
 	key2Record     map[string]iniFileRecord
 	expireDuration time.Duration
+	portable       bool
 }
 
 type iniFileRecord struct {
@@ -88,7 +89,24 @@ func (ifs *IniFileSettings) SetExpireDuration(expireDuration time.Duration) {
 	ifs.expireDuration = expireDuration
 }
 
+func (ifs *IniFileSettings) Portable() bool {
+	return ifs.portable
+}
+
+func (ifs *IniFileSettings) SetPortable(portable bool) {
+	ifs.portable = portable
+}
+
 func (ifs *IniFileSettings) FilePath() string {
+	if ifs.portable {
+		absPath, err := filepath.Abs(ifs.fileName)
+		if err != nil {
+			return ""
+		}
+
+		return absPath
+	}
+
 	appDataPath, err := AppDataPath()
 	if err != nil {
 		return ""

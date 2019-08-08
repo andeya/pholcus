@@ -101,7 +101,7 @@ result, _ = vm.Run(`
     sayHello();             // Hello, undefined
 
     result = twoPlus(2.0); // 4
-`) 
+`)
 ```
 
 ### Parser
@@ -114,7 +114,7 @@ http://godoc.org/github.com/robertkrimen/otto/parser
 Parse and return an AST
 
 ```go
-filenamee := "" // A filename is optional
+filename := "" // A filename is optional
 src := `
     // Sample xyzzy example
     (function(){
