@@ -33,3 +33,4 @@ pholcus_pkg/file_out
 pholcus_pkg/history
 pholcus_pkg/logs
 pholcus_pkg/text_out
+.DS_Store
