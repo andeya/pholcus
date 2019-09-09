@@ -11,6 +11,7 @@ require (
 	github.com/henrylee2cn/goutil v0.0.0-20190807075143-e8afa09140e9
 	github.com/henrylee2cn/pholcus_lib v0.0.0-20180312025545-3ffb61273b75
 	github.com/henrylee2cn/teleport v1.0.0
+	github.com/kr/beanstalk v0.0.0-20180818045031-cae1762e4858
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lxn/walk v0.0.0-20190619151032-86d8802c197a
 	github.com/lxn/win v0.0.0-20190716185335-d1d36f0e4f48
