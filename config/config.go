@@ -46,6 +46,8 @@ var (
 	MYSQL_CONN_STR           string = setting.String("mysql::connstring")                                  // mysql连接字符串
 	MYSQL_CONN_CAP           int    = setting.DefaultInt("mysql::conncap", mysqlconncap)                   // mysql连接池容量
 	MYSQL_MAX_ALLOWED_PACKET int    = setting.DefaultInt("mysql::maxallowedpacket", mysqlmaxallowedpacket) // mysql通信缓冲区的最大长度
+	BeanstalkdHost           string = setting.DefaultString("beanstalkd::host", beanstalkHost)             // Beanstalkd指定主机地址
+	BeanstalkdTube           string = setting.DefaultString("beanstalkd::tube", beanstalkTube)             // Beanstalkd指定主机地址
 
 	KAFKA_BORKERS string = setting.DefaultString("kafka::brokers", kafkabrokers) //kafka brokers
 

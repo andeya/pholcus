@@ -32,6 +32,8 @@ const (
 	mysqlconnstring       string = "root:@tcp(127.0.0.1:3306)" // mysql连接字符串
 	mysqlconncap          int    = 2048                        // mysql连接池容量
 	mysqlmaxallowedpacket int    = 1048576                     //mysql通信缓冲区的最大长度，单位B，默认1MB
+	beanstalkHost         string = "localhost:11300"           //beanstalkd队列默认主机（含端口）
+	beanstalkTube         string = "pholcus"                   //beanstalkd队列默认tube
 	kafkabrokers          string = "127.0.0.1:9092"            //kafka broker字符串,逗号分割
 
 	mode        int    = status.UNSET // 节点角色
