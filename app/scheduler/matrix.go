@@ -120,6 +120,9 @@ func (self *Matrix) Pull() (req *request.Request) {
 		if len(self.reqs[idx]) > 0 {
 			req = self.reqs[idx][0]
 			self.reqs[idx] = self.reqs[idx][1:]
+			if req.GetProxy() != "" {
+				return
+			}
 			if sdl.useProxy {
 				req.SetProxy(sdl.proxy.GetOne(req.GetUrl()))
 			} else {
