@@ -2,7 +2,6 @@ package scheduler
 
 import (
 	"sync"
-	"time"
 
 	"github.com/henrylee2cn/pholcus/app/aid/proxy"
 	"github.com/henrylee2cn/pholcus/logs"
@@ -27,10 +26,8 @@ var sdl = &scheduler{
 	proxy:  proxy.New(),
 }
 
+// Init initialize scheduler.
 func Init() {
-	for sdl.proxy == nil {
-		time.Sleep(100 * time.Millisecond)
-	}
 	sdl.matrices = []*Matrix{}
 	sdl.count = make(chan bool, cache.Task.ThreadNum)
 
@@ -51,7 +48,12 @@ func Init() {
 	sdl.status = status.RUN
 }
 
-// 注册资源队列
+// ReloadProxyLib reload proxy ip list from config file.
+func ReloadProxyLib() {
+	sdl.proxy.Update()
+}
+
+// AddMatrix 注册资源队列
 func AddMatrix(spiderName, spiderSubName string, maxPage int64) *Matrix {
 	matrix := newMatrix(spiderName, spiderSubName, maxPage)
 	sdl.RLock()
