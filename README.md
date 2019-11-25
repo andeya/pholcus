@@ -103,7 +103,7 @@ go install 或者 go build
 Windows下隐藏cmd窗口的编译方法
 ```
 cd {{replace your gopath}}/src/github.com/henrylee2cn/pholcus
-go install -ldflags="-H windowsgui" 或者 go build -ldflags="-H windowsgui"
+go install -ldflags="-H=windowsgui -linkmode=internal" 或者 go build -ldflags="-H=windowsgui -linkmode=internal"
 ```
 查看可选参数: 
 ```
