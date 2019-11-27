@@ -113,7 +113,7 @@ func init() {
 					}
 					return val
 				}
-			}(rule.ParseFunc)
+			}(rule.AidFunc)
 			sp.RuleTree.Trunk[rule.Name] = r
 		}
 		sp.Register()
