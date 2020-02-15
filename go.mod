@@ -15,6 +15,7 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lxn/walk v0.0.0-20190619151032-86d8802c197a
 	github.com/lxn/win v0.0.0-20190716185335-d1d36f0e4f48
+	github.com/pkg/errors v0.9.1
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/tidwall/gjson v1.3.2 // indirect
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80

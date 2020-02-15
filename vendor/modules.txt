@@ -62,6 +62,8 @@ github.com/henrylee2cn/teleport/debug
 # github.com/jcmturner/gofork v0.0.0-20190328161633-dc7c13fece03
 github.com/jcmturner/gofork/encoding/asn1
 github.com/jcmturner/gofork/x/crypto/pbkdf2
+# github.com/kr/beanstalk v0.0.0-20180818045031-cae1762e4858
+github.com/kr/beanstalk
 # github.com/lxn/walk v0.0.0-20190619151032-86d8802c197a
 github.com/lxn/walk
 github.com/lxn/walk/declarative
@@ -70,6 +72,8 @@ github.com/lxn/win
 # github.com/pierrec/lz4 v0.0.0-20190327172049-315a67e90e41
 github.com/pierrec/lz4
 github.com/pierrec/lz4/internal/xxh32
+# github.com/pkg/errors v0.9.1
+github.com/pkg/errors
 # github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
 github.com/rcrowley/go-metrics
 # github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
@@ -90,31 +94,31 @@ github.com/tidwall/pretty
 golang.org/x/crypto/md4
 golang.org/x/crypto/pbkdf2
 # golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
-golang.org/x/net/html/charset
 golang.org/x/net/html
 golang.org/x/net/html/atom
-golang.org/x/net/proxy
+golang.org/x/net/html/charset
 golang.org/x/net/internal/socks
+golang.org/x/net/proxy
 # golang.org/x/sys v0.0.0-20190606165138-5da285871e9c
 golang.org/x/sys/windows
 # golang.org/x/text v0.3.2
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
-golang.org/x/text/transform
-golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/internal
+golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/japanese
 golang.org/x/text/encoding/korean
 golang.org/x/text/encoding/simplifiedchinese
 golang.org/x/text/encoding/traditionalchinese
 golang.org/x/text/encoding/unicode
-golang.org/x/text/language
-golang.org/x/text/internal/utf8internal
-golang.org/x/text/runes
 golang.org/x/text/internal/language
 golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/tag
+golang.org/x/text/internal/utf8internal
+golang.org/x/text/language
+golang.org/x/text/runes
+golang.org/x/text/transform
 # google.golang.org/appengine v1.6.1
 google.golang.org/appengine/cloudsql
 # gopkg.in/Knetic/govaluate.v3 v3.0.0
@@ -128,38 +132,38 @@ gopkg.in/jcmturner/gokrb5.v7/asn1tools
 gopkg.in/jcmturner/gokrb5.v7/client
 gopkg.in/jcmturner/gokrb5.v7/config
 gopkg.in/jcmturner/gokrb5.v7/credentials
-gopkg.in/jcmturner/gokrb5.v7/gssapi
-gopkg.in/jcmturner/gokrb5.v7/iana/chksumtype
-gopkg.in/jcmturner/gokrb5.v7/iana/keyusage
-gopkg.in/jcmturner/gokrb5.v7/keytab
-gopkg.in/jcmturner/gokrb5.v7/messages
-gopkg.in/jcmturner/gokrb5.v7/types
 gopkg.in/jcmturner/gokrb5.v7/crypto
-gopkg.in/jcmturner/gokrb5.v7/crypto/etype
-gopkg.in/jcmturner/gokrb5.v7/iana/errorcode
-gopkg.in/jcmturner/gokrb5.v7/iana/flags
-gopkg.in/jcmturner/gokrb5.v7/iana/nametype
-gopkg.in/jcmturner/gokrb5.v7/iana/patype
-gopkg.in/jcmturner/gokrb5.v7/kadmin
-gopkg.in/jcmturner/gokrb5.v7/krberror
-gopkg.in/jcmturner/gokrb5.v7/iana/etypeID
-gopkg.in/jcmturner/gokrb5.v7/iana
-gopkg.in/jcmturner/gokrb5.v7/iana/adtype
-gopkg.in/jcmturner/gokrb5.v7/iana/asnAppTag
-gopkg.in/jcmturner/gokrb5.v7/iana/msgtype
-gopkg.in/jcmturner/gokrb5.v7/pac
-gopkg.in/jcmturner/gokrb5.v7/iana/addrtype
 gopkg.in/jcmturner/gokrb5.v7/crypto/common
+gopkg.in/jcmturner/gokrb5.v7/crypto/etype
 gopkg.in/jcmturner/gokrb5.v7/crypto/rfc3961
 gopkg.in/jcmturner/gokrb5.v7/crypto/rfc3962
 gopkg.in/jcmturner/gokrb5.v7/crypto/rfc4757
 gopkg.in/jcmturner/gokrb5.v7/crypto/rfc8009
+gopkg.in/jcmturner/gokrb5.v7/gssapi
+gopkg.in/jcmturner/gokrb5.v7/iana
+gopkg.in/jcmturner/gokrb5.v7/iana/addrtype
+gopkg.in/jcmturner/gokrb5.v7/iana/adtype
+gopkg.in/jcmturner/gokrb5.v7/iana/asnAppTag
+gopkg.in/jcmturner/gokrb5.v7/iana/chksumtype
+gopkg.in/jcmturner/gokrb5.v7/iana/errorcode
+gopkg.in/jcmturner/gokrb5.v7/iana/etypeID
+gopkg.in/jcmturner/gokrb5.v7/iana/flags
+gopkg.in/jcmturner/gokrb5.v7/iana/keyusage
+gopkg.in/jcmturner/gokrb5.v7/iana/msgtype
+gopkg.in/jcmturner/gokrb5.v7/iana/nametype
+gopkg.in/jcmturner/gokrb5.v7/iana/patype
+gopkg.in/jcmturner/gokrb5.v7/kadmin
+gopkg.in/jcmturner/gokrb5.v7/keytab
+gopkg.in/jcmturner/gokrb5.v7/krberror
+gopkg.in/jcmturner/gokrb5.v7/messages
+gopkg.in/jcmturner/gokrb5.v7/pac
+gopkg.in/jcmturner/gokrb5.v7/types
 # gopkg.in/jcmturner/rpc.v1 v1.1.0
 gopkg.in/jcmturner/rpc.v1/mstypes
 gopkg.in/jcmturner/rpc.v1/ndr
 # gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
-gopkg.in/mgo.v2/bson
 gopkg.in/mgo.v2
+gopkg.in/mgo.v2/bson
 gopkg.in/mgo.v2/internal/json
 gopkg.in/mgo.v2/internal/sasl
 gopkg.in/mgo.v2/internal/scram
