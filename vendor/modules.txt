@@ -1,0 +1,168 @@
+# github.com/DataDog/zstd v1.3.6-0.20190409195224-796139022798
+github.com/DataDog/zstd
+# github.com/PuerkitoBio/goquery v1.5.0
+github.com/PuerkitoBio/goquery
+# github.com/Shopify/sarama v1.23.1
+github.com/Shopify/sarama
+# github.com/andybalholm/cascadia v1.0.0
+github.com/andybalholm/cascadia
+# github.com/davecgh/go-spew v1.1.1
+github.com/davecgh/go-spew/spew
+# github.com/eapache/go-resiliency v1.1.0
+github.com/eapache/go-resiliency/breaker
+# github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21
+github.com/eapache/go-xerial-snappy
+# github.com/eapache/queue v1.1.0
+github.com/eapache/queue
+# github.com/elazarl/go-bindata-assetfs v1.0.0
+github.com/elazarl/go-bindata-assetfs
+# github.com/go-sql-driver/mysql v1.4.1
+github.com/go-sql-driver/mysql
+# github.com/golang/snappy v0.0.1
+github.com/golang/snappy
+# github.com/hashicorp/go-uuid v1.0.1
+github.com/hashicorp/go-uuid
+# github.com/henrylee2cn/goutil v0.0.0-20190807075143-e8afa09140e9
+github.com/henrylee2cn/goutil
+# github.com/henrylee2cn/pholcus_lib v0.0.0-20180312025545-3ffb61273b75
+github.com/henrylee2cn/pholcus_lib
+github.com/henrylee2cn/pholcus_lib/IJGUC
+github.com/henrylee2cn/pholcus_lib/alibaba
+github.com/henrylee2cn/pholcus_lib/baidunews
+github.com/henrylee2cn/pholcus_lib/baidusearch
+github.com/henrylee2cn/pholcus_lib/car_home
+github.com/henrylee2cn/pholcus_lib/chinanews
+github.com/henrylee2cn/pholcus_lib/fang_resell_list
+github.com/henrylee2cn/pholcus_lib/filetest
+github.com/henrylee2cn/pholcus_lib/ganji_gongsi
+github.com/henrylee2cn/pholcus_lib/googlesearch
+github.com/henrylee2cn/pholcus_lib/hollandandbarrett
+github.com/henrylee2cn/pholcus_lib/jdsearch
+github.com/henrylee2cn/pholcus_lib/jiban
+github.com/henrylee2cn/pholcus_lib/jingdong
+github.com/henrylee2cn/pholcus_lib/kaola
+github.com/henrylee2cn/pholcus_lib/lewa
+github.com/henrylee2cn/pholcus_lib/miyabaobei
+github.com/henrylee2cn/pholcus_lib/people
+github.com/henrylee2cn/pholcus_lib/qq_avatar
+github.com/henrylee2cn/pholcus_lib/shunfenghaitao
+github.com/henrylee2cn/pholcus_lib/taobao
+github.com/henrylee2cn/pholcus_lib/taobaosearch
+github.com/henrylee2cn/pholcus_lib/wangyi
+github.com/henrylee2cn/pholcus_lib/weibo_fans
+github.com/henrylee2cn/pholcus_lib/wukongwenda
+github.com/henrylee2cn/pholcus_lib/zhihu_bianji
+github.com/henrylee2cn/pholcus_lib/zhihu_daily
+github.com/henrylee2cn/pholcus_lib/zolpc
+github.com/henrylee2cn/pholcus_lib/zolphone
+github.com/henrylee2cn/pholcus_lib/zolslab
+# github.com/henrylee2cn/teleport v1.0.0
+github.com/henrylee2cn/teleport
+github.com/henrylee2cn/teleport/debug
+# github.com/jcmturner/gofork v0.0.0-20190328161633-dc7c13fece03
+github.com/jcmturner/gofork/encoding/asn1
+github.com/jcmturner/gofork/x/crypto/pbkdf2
+# github.com/lxn/walk v0.0.0-20190619151032-86d8802c197a
+github.com/lxn/walk
+github.com/lxn/walk/declarative
+# github.com/lxn/win v0.0.0-20190716185335-d1d36f0e4f48
+github.com/lxn/win
+# github.com/pierrec/lz4 v0.0.0-20190327172049-315a67e90e41
+github.com/pierrec/lz4
+github.com/pierrec/lz4/internal/xxh32
+# github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
+github.com/rcrowley/go-metrics
+# github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
+github.com/robertkrimen/otto
+github.com/robertkrimen/otto/ast
+github.com/robertkrimen/otto/dbg
+github.com/robertkrimen/otto/file
+github.com/robertkrimen/otto/parser
+github.com/robertkrimen/otto/registry
+github.com/robertkrimen/otto/token
+# github.com/tidwall/gjson v1.3.2
+github.com/tidwall/gjson
+# github.com/tidwall/match v1.0.1
+github.com/tidwall/match
+# github.com/tidwall/pretty v1.0.0
+github.com/tidwall/pretty
+# golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
+golang.org/x/crypto/md4
+golang.org/x/crypto/pbkdf2
+# golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
+golang.org/x/net/html/charset
+golang.org/x/net/html
+golang.org/x/net/html/atom
+golang.org/x/net/proxy
+golang.org/x/net/internal/socks
+# golang.org/x/sys v0.0.0-20190606165138-5da285871e9c
+golang.org/x/sys/windows
+# golang.org/x/text v0.3.2
+golang.org/x/text/encoding
+golang.org/x/text/encoding/charmap
+golang.org/x/text/encoding/htmlindex
+golang.org/x/text/transform
+golang.org/x/text/encoding/internal/identifier
+golang.org/x/text/encoding/internal
+golang.org/x/text/encoding/japanese
+golang.org/x/text/encoding/korean
+golang.org/x/text/encoding/simplifiedchinese
+golang.org/x/text/encoding/traditionalchinese
+golang.org/x/text/encoding/unicode
+golang.org/x/text/language
+golang.org/x/text/internal/utf8internal
+golang.org/x/text/runes
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/tag
+# google.golang.org/appengine v1.6.1
+google.golang.org/appengine/cloudsql
+# gopkg.in/Knetic/govaluate.v3 v3.0.0
+gopkg.in/Knetic/govaluate.v3
+# gopkg.in/jcmturner/aescts.v1 v1.0.1
+gopkg.in/jcmturner/aescts.v1
+# gopkg.in/jcmturner/dnsutils.v1 v1.0.1
+gopkg.in/jcmturner/dnsutils.v1
+# gopkg.in/jcmturner/gokrb5.v7 v7.2.3
+gopkg.in/jcmturner/gokrb5.v7/asn1tools
+gopkg.in/jcmturner/gokrb5.v7/client
+gopkg.in/jcmturner/gokrb5.v7/config
+gopkg.in/jcmturner/gokrb5.v7/credentials
+gopkg.in/jcmturner/gokrb5.v7/gssapi
+gopkg.in/jcmturner/gokrb5.v7/iana/chksumtype
+gopkg.in/jcmturner/gokrb5.v7/iana/keyusage
+gopkg.in/jcmturner/gokrb5.v7/keytab
+gopkg.in/jcmturner/gokrb5.v7/messages
+gopkg.in/jcmturner/gokrb5.v7/types
+gopkg.in/jcmturner/gokrb5.v7/crypto
+gopkg.in/jcmturner/gokrb5.v7/crypto/etype
+gopkg.in/jcmturner/gokrb5.v7/iana/errorcode
+gopkg.in/jcmturner/gokrb5.v7/iana/flags
+gopkg.in/jcmturner/gokrb5.v7/iana/nametype
+gopkg.in/jcmturner/gokrb5.v7/iana/patype
+gopkg.in/jcmturner/gokrb5.v7/kadmin
+gopkg.in/jcmturner/gokrb5.v7/krberror
+gopkg.in/jcmturner/gokrb5.v7/iana/etypeID
+gopkg.in/jcmturner/gokrb5.v7/iana
+gopkg.in/jcmturner/gokrb5.v7/iana/adtype
+gopkg.in/jcmturner/gokrb5.v7/iana/asnAppTag
+gopkg.in/jcmturner/gokrb5.v7/iana/msgtype
+gopkg.in/jcmturner/gokrb5.v7/pac
+gopkg.in/jcmturner/gokrb5.v7/iana/addrtype
+gopkg.in/jcmturner/gokrb5.v7/crypto/common
+gopkg.in/jcmturner/gokrb5.v7/crypto/rfc3961
+gopkg.in/jcmturner/gokrb5.v7/crypto/rfc3962
+gopkg.in/jcmturner/gokrb5.v7/crypto/rfc4757
+gopkg.in/jcmturner/gokrb5.v7/crypto/rfc8009
+# gopkg.in/jcmturner/rpc.v1 v1.1.0
+gopkg.in/jcmturner/rpc.v1/mstypes
+gopkg.in/jcmturner/rpc.v1/ndr
+# gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
+gopkg.in/mgo.v2/bson
+gopkg.in/mgo.v2
+gopkg.in/mgo.v2/internal/json
+gopkg.in/mgo.v2/internal/sasl
+gopkg.in/mgo.v2/internal/scram
+# gopkg.in/sourcemap.v1 v1.0.5
+gopkg.in/sourcemap.v1
+gopkg.in/sourcemap.v1/base64vlq

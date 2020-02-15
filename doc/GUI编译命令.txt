@@ -1,0 +1,9 @@
+﻿#go get github.com/akavel/rsrc
+#rsrc -manifest guimain.manifest -o rsrc.syso -ico ICON.ico
+
+#go build
+
+编译方法：
+go build -ldflags="-H windowsgui"
+或者：
+go install -ldflags="-H windowsgui"

@@ -1,0 +1,146 @@
+About Walk
+==========
+
+Walk is a "Windows Application Library Kit" for the Go Programming Language.
+
+Its primarily useful for Desktop GUI development, but there is some more stuff.
+
+Setup
+=====
+
+Make sure you have a working Go installation.
+See [Getting Started](http://golang.org/doc/install.html)
+
+##### Note
+`Go 1.7.x` doesn't work with walk anymore, Make sure you use `Go 1.8.x` or later.
+
+##### To Install
+Now run `go get github.com/lxn/walk`
+
+Using Walk
+==========
+
+The preferred way to create GUIs with Walk is to use its declarative sub package,
+as illustrated in this small example:
+
+##### `test.go`
+
+```go
+package main
+
+import (
+	"github.com/lxn/walk"
+	. "github.com/lxn/walk/declarative"
+	"strings"
+)
+
+func main() {
+	var inTE, outTE *walk.TextEdit
+
+	MainWindow{
+		Title:   "SCREAMO",
+		MinSize: Size{600, 400},
+		Layout:  VBox{},
+		Children: []Widget{
+			HSplitter{
+				Children: []Widget{
+					TextEdit{AssignTo: &inTE},
+					TextEdit{AssignTo: &outTE, ReadOnly: true},
+				},
+			},
+			PushButton{
+				Text: "SCREAM",
+				OnClicked: func() {
+					outTE.SetText(strings.ToUpper(inTE.Text()))
+				},
+			},
+		},
+	}.Run()
+}
+```
+
+##### Create Manifest `test.manifest`
+
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+    <assemblyIdentity version="1.0.0.0" processorArchitecture="*" name="SomeFunkyNameHere" type="win32"/>
+    <dependency>
+        <dependentAssembly>
+            <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"/>
+        </dependentAssembly>
+    </dependency>
+    <application xmlns="urn:schemas-microsoft-com:asm.v3">
+        <windowsSettings>
+            <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2, PerMonitor</dpiAwareness>
+            <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">True</dpiAware>
+        </windowsSettings>
+    </application>
+</assembly>
+```
+
+Then either compile the manifest using the [rsrc tool](https://github.com/akavel/rsrc), like this:
+
+	go get github.com/akavel/rsrc
+	rsrc -manifest test.manifest -o rsrc.syso
+
+or rename the `test.manifest` file to `test.exe.manifest` and distribute it with the application instead.
+
+##### Build app
+
+In the directory containing `test.go` run
+
+	go build
+	
+To get rid of the cmd window, instead run
+
+	go build -ldflags="-H windowsgui"
+
+##### Run app
+	
+	test.exe
+	
+##### Sample Output (Windows 7)
+
+![alt tag](http://i.imgur.com/lUrgE2Q.png)
+
+##### More Examples
+There are some [examples](examples) that should get you started.
+
+Application Manifest Files
+==========================
+Walk requires Common Controls 6. This means that you must put an appropriate
+application manifest file either next to your executable or embedded as a
+resource.
+
+You can copy one of the application manifest files that come with the examples.
+
+To embed a manifest file as a resource, you can use the [rsrc tool](https://github.com/akavel/rsrc).
+
+IMPORTANT: If you don't embed a manifest as a resource, then you should not launch
+your executable before the manifest file is in place.
+If you do anyway, the program will not run properly. And worse, Windows will not
+recognize a manifest file, you later drop next to the executable. To fix this,
+rebuild your executable and only launch it with a manifest file in place.
+
+Program Crashes
+===============
+By default Go uses os threads with small stack sizes of 128KB. If your walk app crashes, it may be due
+to a stack overflow. Until a [better solution is found](https://github.com/golang/go/issues/20975),
+you can work around this by adding
+
+    import _ "runtime/cgo"
+
+somewhere in your program. If you don't have `gcc` installed and on your `PATH`,
+you can alternatively add `-linkmode internal` to the `-ldflags` of your `go build` command like so:
+
+    go build -ldflags="-H windowsgui -linkmode internal"
+
+CGo Optimizations
+=================
+
+The usual default message loop includes calls to win32 API functions, which incurs a decent amount
+of runtime overhead coming from Go. As an alternative to this, you may compile Walk using an
+optional C implementation of the main message loop, by passing the `walk_use_cgo` build tag:
+
+   go build -tags walk_use_cgo
