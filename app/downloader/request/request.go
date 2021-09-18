@@ -34,6 +34,7 @@ type Request struct {
 	//Surfer下载器内核ID
 	//0为Surf高并发下载器，各种控制功能齐全
 	//1为PhantomJS下载器，特点破防力强，速度慢，低并发
+	//2为Chrome下载器，目前只支持GET HTML
 	DownloaderID int
 
 	proxy  string //当用户界面设置可使用代理IP时，自动设置代理

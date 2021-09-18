@@ -89,6 +89,7 @@ type (
 const (
 	SurfID             = 0               // Surf下载器标识符
 	PhomtomJsID        = 1               // PhomtomJs下载器标识符
+	ChromeID           = 2               // Chrome下载器标识符
 	DefaultMethod      = "GET"           // 默认请求方法
 	DefaultDialTimeout = 2 * time.Minute // 默认请求服务器超时
 	DefaultConnTimeout = 2 * time.Minute // 默认下载超时

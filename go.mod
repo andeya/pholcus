@@ -7,6 +7,7 @@ require (
 	github.com/Shopify/sarama v1.23.1
 	github.com/andybalholm/cascadia v1.0.0
 	github.com/elazarl/go-bindata-assetfs v1.0.0
+	github.com/go-rod/rod v0.101.7 // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/henrylee2cn/goutil v0.0.0-20190807075143-e8afa09140e9
 	github.com/henrylee2cn/pholcus_lib v0.0.0-20180312025545-3ffb61273b75

@@ -24,8 +24,10 @@ import (
 var (
 	surf         Surfer
 	phantom      Surfer
+	chrome       Surfer
 	once_surf    sync.Once
 	once_phantom sync.Once
+	once_chrome  sync.Once
 	tempJsDir    = "./tmp"
 	// phantomjsFile = filepath.Clean(path.Join(os.Getenv("GOPATH"), `/src/github.com/henrylee2cn/surfer/phantomjs/phantomjs`))
 	phantomjsFile = `./phantomjs`
@@ -40,6 +42,9 @@ func Download(req Request) (resp *http.Response, err error) {
 	case PhomtomJsID:
 		once_phantom.Do(func() { phantom = NewPhantom(phantomjsFile, tempJsDir, cookieJar) })
 		resp, err = phantom.Download(req)
+	case ChromeID:
+		once_chrome.Do(func() { chrome = NewChrome(cookieJar) })
+		resp, err = chrome.Download(req)
 	}
 	return
 }
