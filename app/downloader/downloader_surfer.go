@@ -14,6 +14,7 @@ import (
 type Surfer struct {
 	surf    surfer.Surfer
 	phantom surfer.Surfer
+	chrome  surfer.Surfer
 }
 
 var (
@@ -21,6 +22,7 @@ var (
 	SurferDownloader = &Surfer{
 		surf:    surfer.New(cookieJar),
 		phantom: surfer.NewPhantom(config.PHANTOMJS, config.PHANTOMJS_TEMP, cookieJar),
+		chrome:  surfer.NewChrome(cookieJar),
 	}
 )
 
@@ -36,6 +38,9 @@ func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.C
 
 	case request.PHANTOM_ID:
 		resp, err = self.phantom.Download(cReq)
+
+	case request.CHROME_ID:
+		resp, err = self.chrome.Download(cReq)
 	}
 
 	if resp.StatusCode >= 400 {

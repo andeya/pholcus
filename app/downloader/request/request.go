@@ -52,6 +52,7 @@ const (
 const (
 	SURF_ID    = 0 // 默认的surf下载内核（Go原生），此值不可改动
 	PHANTOM_ID = 1 // 备用的phantomjs下载内核，一般不使用（效率差，头信息支持不完善）
+	CHROME_ID  = 2 // 备用的chrome下载内核，一般不使用（效率差，头信息支持不完善）
 )
 
 // 发送请求前的准备工作，设置一系列默认值
@@ -108,7 +109,7 @@ func (self *Request) Prepare() error {
 		self.Priority = 0
 	}
 
-	if self.DownloaderID < SURF_ID || self.DownloaderID > PHANTOM_ID {
+	if self.DownloaderID < SURF_ID || self.DownloaderID > CHROME_ID {
 		self.DownloaderID = SURF_ID
 	}
 
