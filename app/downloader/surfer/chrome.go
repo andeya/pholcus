@@ -27,6 +27,12 @@ func NewChrome(jar ...*cookiejar.Jar) Surfer {
 
 // 实现surfer下载器接口
 func (self *Chrome) Download(req Request) (resp *http.Response, err error) {
+	param, err := NewParam(req)
+	if err != nil {
+		return
+	}
+	resp = param.writeback(resp)
+
 	var html string
 	var res *proto.NetworkResponse
 	err = rod.Try(func() {
@@ -47,11 +53,7 @@ func (self *Chrome) Download(req Request) (resp *http.Response, err error) {
 	if err != nil {
 		return
 	}
-	param, err := NewParam(req)
-	if err != nil {
-		return
-	}
-	resp = param.writeback(resp)
+
 	resp.Request.URL = param.url
 	resp.Body = ioutil.NopCloser(strings.NewReader(html))
 	resp.StatusCode = res.Status
