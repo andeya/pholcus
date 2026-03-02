@@ -20,7 +20,7 @@ import (
 )
 
 type (
-	Historier interface {
+	HistoryStore interface {
 		ReadSuccess(provider string, inherit bool) result.VoidResult // Read success records
 		UpsertSuccess(string) bool                                   // Upsert a success record
 		HasSuccess(string) bool                                      // Check if a success record exists
@@ -45,18 +45,18 @@ type (
 )
 
 const (
-	SUCCESS_SUFFIX = config.HISTORY_TAG + "__y"
-	FAILURE_SUFFIX = config.HISTORY_TAG + "__n"
-	SUCCESS_FILE   = config.HISTORY_DIR + "/" + SUCCESS_SUFFIX
-	FAILURE_FILE   = config.HISTORY_DIR + "/" + FAILURE_SUFFIX
+	SuccessSuffix = config.HistoryTag + "__y"
+	FailureSuffix = config.HistoryTag + "__n"
+	SuccessFile   = config.HistoryDir + "/" + SuccessSuffix
+	FailureFile   = config.HistoryDir + "/" + FailureSuffix
 )
 
-// New creates a Historier for the given spider name and optional subname.
-func New(name string, subName string) Historier {
-	successTabName := SUCCESS_SUFFIX + "__" + name
-	successFileName := SUCCESS_FILE + "__" + name
-	failureTabName := FAILURE_SUFFIX + "__" + name
-	failureFileName := FAILURE_FILE + "__" + name
+// New creates a HistoryStore for the given spider name and optional subname.
+func New(name string, subName string) HistoryStore {
+	successTabName := SuccessSuffix + "__" + name
+	successFileName := SuccessFile + "__" + name
+	failureTabName := FailureSuffix + "__" + name
+	failureFileName := FailureFile + "__" + name
 	if subName != "" {
 		successTabName += "__" + subName
 		successFileName += "__" + subName
@@ -79,54 +79,54 @@ func New(name string, subName string) Historier {
 }
 
 // ReadSuccess reads success records from the given provider.
-func (self *History) ReadSuccess(provider string, inherit bool) result.VoidResult {
-	self.RWMutex.Lock()
-	self.provider = provider
-	self.RWMutex.Unlock()
+func (h *History) ReadSuccess(provider string, inherit bool) result.VoidResult {
+	h.RWMutex.Lock()
+	h.provider = provider
+	h.RWMutex.Unlock()
 
 	if !inherit {
 		// Not inheriting history
-		self.Success.old = make(map[string]bool)
-		self.Success.new = make(map[string]bool)
-		self.Success.inheritable = false
+		h.Success.old = make(map[string]bool)
+		h.Success.new = make(map[string]bool)
+		h.Success.inheritable = false
 		return result.OkVoid()
 
-	} else if self.Success.inheritable {
+	} else if h.Success.inheritable {
 		// Both current and previous runs inherit history
 		return result.OkVoid()
 
 	} else {
 		// Previous run did not inherit, but current run does
-		self.Success.old = make(map[string]bool)
-		self.Success.new = make(map[string]bool)
-		self.Success.inheritable = true
+		h.Success.old = make(map[string]bool)
+		h.Success.new = make(map[string]bool)
+		h.Success.inheritable = true
 	}
 
 	switch provider {
 	case "mgo":
 		var docs = map[string]interface{}{}
 		r := mgo.Mgo(&docs, "find", map[string]interface{}{
-			"Database":   config.DB_NAME,
-			"Collection": self.Success.tabName,
+			"Database":   config.Conf().DBName,
+			"Collection": h.Success.tabName,
 		})
 		if r.IsErr() {
-			logs.Log.Error(" *     Fail  [read success record][mgo]: %v\n", r.UnwrapErr())
+			logs.Log().Error(" *     Fail  [read success record][mgo]: %v\n", r.UnwrapErr())
 			return result.OkVoid()
 		}
 		for _, v := range docs["Docs"].([]interface{}) {
-			self.Success.old[v.(bson.M)["_id"].(string)] = true
+			h.Success.old[v.(bson.M)["_id"].(string)] = true
 		}
 
 	case "mysql":
 		_, err := mysql.DB()
 		if err != nil {
-			logs.Log.Error(" *     Fail  [read success record][mysql]: %v\n", err)
+			logs.Log().Error(" *     Fail  [read success record][mysql]: %v\n", err)
 			return result.OkVoid()
 		}
-		table, ok := getReadMysqlTable(self.Success.tabName)
+		table, ok := getReadMysqlTable(h.Success.tabName)
 		if !ok {
-			table = mysql.New().Unwrap().SetTableName(self.Success.tabName)
-			setReadMysqlTable(self.Success.tabName, table)
+			table = mysql.New().Unwrap().SetTableName(h.Success.tabName)
+			setReadMysqlTable(h.Success.tabName, table)
 		}
 		r := table.SelectAll()
 		if r.IsErr() {
@@ -137,58 +137,58 @@ func (self *History) ReadSuccess(provider string, inherit bool) result.VoidResul
 		for rows.Next() {
 			var id string
 			err = rows.Scan(&id)
-			self.Success.old[id] = true
+			h.Success.old[id] = true
 		}
 
 	default:
-		f, err := os.Open(self.Success.fileName)
+		f, err := os.Open(h.Success.fileName)
 		if err != nil {
 			return result.OkVoid()
 		}
-		defer closer.LogClose(f, logs.Log.Error)
+		defer closer.LogClose(f, logs.Log().Error)
 		b, _ := io.ReadAll(f)
 		if len(b) == 0 {
 			return result.OkVoid()
 		}
 		b[0] = '{'
-		json.Unmarshal(append(b, '}'), &self.Success.old)
+		json.Unmarshal(append(b, '}'), &h.Success.old)
 	}
-	logs.Log.Informational(" *     [read success record]: %v\n", len(self.Success.old))
+	logs.Log().Informational(" *     [read success record]: %v\n", len(h.Success.old))
 	return result.OkVoid()
 }
 
 // ReadFailure reads failure records from the given provider.
-func (self *History) ReadFailure(provider string, inherit bool) result.VoidResult {
-	self.RWMutex.Lock()
-	self.provider = provider
-	self.RWMutex.Unlock()
+func (h *History) ReadFailure(provider string, inherit bool) result.VoidResult {
+	h.RWMutex.Lock()
+	h.provider = provider
+	h.RWMutex.Unlock()
 
 	if !inherit {
 		// Not inheriting history
-		self.Failure.list = make(map[string]*request.Request)
-		self.Failure.inheritable = false
+		h.Failure.list = make(map[string]*request.Request)
+		h.Failure.inheritable = false
 		return result.OkVoid()
 
-	} else if self.Failure.inheritable {
+	} else if h.Failure.inheritable {
 		// Both current and previous runs inherit history
 		return result.OkVoid()
 
 	} else {
 		// Previous run did not inherit, but current run does
-		self.Failure.list = make(map[string]*request.Request)
-		self.Failure.inheritable = true
+		h.Failure.list = make(map[string]*request.Request)
+		h.Failure.inheritable = true
 	}
 	var fLen int
 	switch provider {
 	case "mgo":
 		if mgo.Error() != nil {
-			logs.Log.Error(" *     Fail  [read failure record][mgo]: %v\n", mgo.Error())
+			logs.Log().Error(" *     Fail  [read failure record][mgo]: %v\n", mgo.Error())
 			return result.OkVoid()
 		}
 
 		var docs = []interface{}{}
 		mgo.Call(func(src pool.Src) error {
-			c := src.(*mgo.MgoSrc).DB(config.DB_NAME).C(self.Failure.tabName)
+			c := src.(*mgo.MgoSrc).DB(config.Conf().DBName).C(h.Failure.tabName)
 			return c.Find(nil).All(&docs)
 		}).Unwrap()
 
@@ -201,19 +201,19 @@ func (self *History) ReadFailure(provider string, inherit bool) result.VoidResul
 			if reqResult.IsErr() {
 				continue
 			}
-			self.Failure.list[key] = reqResult.Unwrap()
+			h.Failure.list[key] = reqResult.Unwrap()
 		}
 
 	case "mysql":
 		_, err := mysql.DB()
 		if err != nil {
-			logs.Log.Error(" *     Fail  [read failure record][mysql]: %v\n", err)
+			logs.Log().Error(" *     Fail  [read failure record][mysql]: %v\n", err)
 			return result.OkVoid()
 		}
-		table, ok := getReadMysqlTable(self.Failure.tabName)
+		table, ok := getReadMysqlTable(h.Failure.tabName)
 		if !ok {
-			table = mysql.New().Unwrap().SetTableName(self.Failure.tabName)
-			setReadMysqlTable(self.Failure.tabName, table)
+			table = mysql.New().Unwrap().SetTableName(h.Failure.tabName)
+			setReadMysqlTable(h.Failure.tabName, table)
 		}
 		r := table.SelectAll()
 		if r.IsErr() {
@@ -228,16 +228,16 @@ func (self *History) ReadFailure(provider string, inherit bool) result.VoidResul
 			if reqResult.IsErr() {
 				continue
 			}
-			self.Failure.list[key] = reqResult.Unwrap()
+			h.Failure.list[key] = reqResult.Unwrap()
 			fLen++
 		}
 
 	default:
-		f, err := os.Open(self.Failure.fileName)
+		f, err := os.Open(h.Failure.fileName)
 		if err != nil {
 			return result.OkVoid()
 		}
-		defer closer.LogClose(f, logs.Log.Error)
+		defer closer.LogClose(f, logs.Log().Error)
 		b, _ := io.ReadAll(f)
 
 		if len(b) == 0 {
@@ -254,57 +254,57 @@ func (self *History) ReadFailure(provider string, inherit bool) result.VoidResul
 			if reqResult.IsErr() {
 				continue
 			}
-			self.Failure.list[key] = reqResult.Unwrap()
+			h.Failure.list[key] = reqResult.Unwrap()
 		}
 	}
 
-	logs.Log.Informational(" *     [read failure record]: %v\n", fLen)
+	logs.Log().Informational(" *     [read failure record]: %v\n", fLen)
 	return result.OkVoid()
 }
 
 // Empty clears the cache without output.
-func (self *History) Empty() {
-	self.RWMutex.Lock()
-	self.Success.new = make(map[string]bool)
-	self.Success.old = make(map[string]bool)
-	self.Failure.list = make(map[string]*request.Request)
-	self.RWMutex.Unlock()
+func (h *History) Empty() {
+	h.RWMutex.Lock()
+	h.Success.new = make(map[string]bool)
+	h.Success.old = make(map[string]bool)
+	h.Failure.list = make(map[string]*request.Request)
+	h.RWMutex.Unlock()
 }
 
 // FlushSuccess flushes success records to I/O without clearing cache.
-func (self *History) FlushSuccess(provider string) (r result.VoidResult) {
+func (h *History) FlushSuccess(provider string) (r result.VoidResult) {
 	defer r.Catch()
-	self.RWMutex.Lock()
-	self.provider = provider
-	self.RWMutex.Unlock()
-	sucLen := self.Success.flush(provider).Unwrap()
+	h.RWMutex.Lock()
+	h.provider = provider
+	h.RWMutex.Unlock()
+	sucLen := h.Success.flush(provider).Unwrap()
 	if sucLen <= 0 {
 		return result.OkVoid()
 	}
-	logs.Log.Informational(" *     [add success record]: %v\n", sucLen)
+	logs.Log().Informational(" *     [add success record]: %v\n", sucLen)
 	return result.OkVoid()
 }
 
 // FlushFailure flushes failure records to I/O without clearing cache.
-func (self *History) FlushFailure(provider string) (r result.VoidResult) {
+func (h *History) FlushFailure(provider string) (r result.VoidResult) {
 	defer r.Catch()
-	self.RWMutex.Lock()
-	self.provider = provider
-	self.RWMutex.Unlock()
-	failLen := self.Failure.flush(provider).Unwrap()
+	h.RWMutex.Lock()
+	h.provider = provider
+	h.RWMutex.Unlock()
+	failLen := h.Failure.flush(provider).Unwrap()
 	if failLen <= 0 {
 		return result.OkVoid()
 	}
-	logs.Log.Informational(" *     [add failure record]: %v\n", failLen)
+	logs.Log().Informational(" *     [add failure record]: %v\n", failLen)
 	return result.OkVoid()
 }
 
 var (
-	readMysqlTable     = map[string]*mysql.MyTable{}
+	readMysqlTable     = map[string]*mysql.Table{}
 	readMysqlTableLock sync.RWMutex
 )
 
-func getReadMysqlTable(name string) (*mysql.MyTable, bool) {
+func getReadMysqlTable(name string) (*mysql.Table, bool) {
 	readMysqlTableLock.RLock()
 	tab, ok := readMysqlTable[name]
 	readMysqlTableLock.RUnlock()
@@ -314,18 +314,18 @@ func getReadMysqlTable(name string) (*mysql.MyTable, bool) {
 	return nil, false
 }
 
-func setReadMysqlTable(name string, tab *mysql.MyTable) {
+func setReadMysqlTable(name string, tab *mysql.Table) {
 	readMysqlTableLock.Lock()
 	readMysqlTable[name] = tab
 	readMysqlTableLock.Unlock()
 }
 
 var (
-	writeMysqlTable     = map[string]*mysql.MyTable{}
+	writeMysqlTable     = map[string]*mysql.Table{}
 	writeMysqlTableLock sync.RWMutex
 )
 
-func getWriteMysqlTable(name string) (*mysql.MyTable, bool) {
+func getWriteMysqlTable(name string) (*mysql.Table, bool) {
 	writeMysqlTableLock.RLock()
 	tab, ok := writeMysqlTable[name]
 	writeMysqlTableLock.RUnlock()
@@ -335,7 +335,7 @@ func getWriteMysqlTable(name string) (*mysql.MyTable, bool) {
 	return nil, false
 }
 
-func setWriteMysqlTable(name string, tab *mysql.MyTable) {
+func setWriteMysqlTable(name string, tab *mysql.Table) {
 	writeMysqlTableLock.Lock()
 	writeMysqlTable[name] = tab
 	writeMysqlTableLock.Unlock()

@@ -38,7 +38,7 @@ var fangList = &spider.Spider{
 			var i = 1
 			//for i = 1; i < 101; i++ {
 			ctx.AddQueue(&request.Request{
-				Url:  "http://esf.zz.fang.com/house/i3" + strconv.Itoa(i) + "/",
+				URL:  "http://esf.zz.fang.com/house/i3" + strconv.Itoa(i) + "/",
 				Rule: "fang_collection",
 				Temp: map[string]interface{}{"p": 1},
 			})
@@ -112,7 +112,7 @@ var fangList = &spider.Spider{
 								remoteId = strings.Replace(remoteAttr[1], ".htm", "", 1)
 							}
 
-							logs.Log.Critical("当前房源id: %v", remoteId)
+							logs.Log().Critical("当前房源id: %v", remoteId)
 							//解析传入的片段
 							// 结果存入Response中转
 							ctx.Output(map[int]interface{}{

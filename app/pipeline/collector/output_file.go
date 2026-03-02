@@ -18,25 +18,25 @@ import (
 )
 
 // outputFile writes a file cell to disk.
-func (self *Collector) outputFile(file data.FileCell) {
+func (c *Collector) outputFile(file data.FileCell) {
 	defer func() {
 		data.PutFileCell(file)
-		self.wait.Done()
+		c.wait.Done()
 	}()
 
 	// Path format: file/"RuleName"/"time"/"Name"
 	p, n := filepath.Split(filepath.Clean(file["Name"].(string)))
-	// dir := filepath.Join(config.FILE_DIR, util.FileNameReplace(self.namespace())+"__"+cache.StartTime.Format("2006-01-02 15:04:05"), p)
-	dir := filepath.Join(config.FILE_DIR, util.FileNameReplace(self.namespace()), p)
+	// dir := filepath.Join(config.Conf().FileDir, util.FileNameReplace(c.namespace())+"__"+cache.StartTime.Format("2006-01-02 15:04:05"), p)
+	dir := filepath.Join(config.Conf().FileDir, util.FileNameReplace(c.namespace()), p)
 
 	fileName := filepath.Join(dir, util.FileNameReplace(n))
 
 	d, err := os.Stat(dir)
 	if err != nil || !d.IsDir() {
 		if r := result.RetVoid(os.MkdirAll(dir, 0777)); r.IsErr() {
-			logs.Log.Error(
+			logs.Log().Error(
 				" *     Fail  [File download: %v | KEYIN: %v | Batch: %v]   %v [ERROR]  %v\n",
-				self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, r.UnwrapErr(),
+				c.Spider.GetName(), c.Spider.GetKeyin(), atomic.LoadUint64(&c.fileBatch), fileName, r.UnwrapErr(),
 			)
 			return
 		}
@@ -45,29 +45,29 @@ func (self *Collector) outputFile(file data.FileCell) {
 	// Create file with 0777 if not exists, truncate if exists
 	f, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
-		logs.Log.Error(
+		logs.Log().Error(
 			" *     Fail  [File download: %v | KEYIN: %v | Batch: %v]   %v [ERROR]  %v\n",
-			self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, err,
+			c.Spider.GetName(), c.Spider.GetKeyin(), atomic.LoadUint64(&c.fileBatch), fileName, err,
 		)
 		return
 	}
-	defer closer.LogClose(f, logs.Log.Error)
+	defer closer.LogClose(f, logs.Log().Error)
 
 	size, err := io.Copy(f, bytes.NewReader(file["Bytes"].([]byte)))
 	if err != nil {
-		logs.Log.Error(
+		logs.Log().Error(
 			" *     Fail  [File download: %v | KEYIN: %v | Batch: %v]   %v (%s) [ERROR]  %v\n",
-			self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)), err,
+			c.Spider.GetName(), c.Spider.GetKeyin(), atomic.LoadUint64(&c.fileBatch), fileName, bytesSize.Format(uint64(size)), err,
 		)
 		return
 	}
 
-	self.addFileSum(1)
+	c.addFileSum(1)
 
-	logs.Log.Informational(" * ")
-	logs.Log.App(
+	logs.Log().Informational(" * ")
+	logs.Log().App(
 		" *     [File download: %v | KEYIN: %v | Batch: %v]   %v (%s)\n",
-		self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, bytesSize.Format(uint64(size)),
+		c.Spider.GetName(), c.Spider.GetKeyin(), atomic.LoadUint64(&c.fileBatch), fileName, bytesSize.Format(uint64(size)),
 	)
-	logs.Log.Informational(" * ")
+	logs.Log().Informational(" * ")
 }

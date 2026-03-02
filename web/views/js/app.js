@@ -22,6 +22,7 @@ window.onbeforeunload = function () {
 
 ws.onopen = function () {
     console.log("connected to " + wsUri);
+    home();
 };
 
 
@@ -218,7 +219,7 @@ function getForm() {
         'Keyins': document.pholcus.elements['Keyins'].value,
         'ThreadNum': document.pholcus.elements['ThreadNum'].value,
         'Limit': document.pholcus.elements['Limit'].value,
-        'DockerCap': document.pholcus.elements['DockerCap'].value,
+        'BatchCap': document.pholcus.elements['BatchCap'].value,
         'Pausetime': document.pholcus.elements['Pausetime'].value,
         'ProxyMinute': document.pholcus.elements['ProxyMinute'].value,
         'OutType': document.pholcus.elements['OutType'].value,

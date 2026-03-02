@@ -142,33 +142,33 @@ func (bl *BeeLogger) Async(enable bool) *BeeLogger {
 }
 
 // SetLogger provides a given logger adapter into BeeLogger with config string.
-func (bl *BeeLogger) SetLogger(adaptername string, config map[string]interface{}) error {
+func (bl *BeeLogger) SetLogger(adapterName string, config map[string]interface{}) error {
 	bl.lock.Lock()
 	defer bl.lock.Unlock()
-	if log, ok := adapters[adaptername]; ok {
+	if log, ok := adapters[adapterName]; ok {
 		lg := log()
 		err := lg.Init(config)
-		bl.outputs[adaptername] = lg
+		bl.outputs[adapterName] = lg
 		if err != nil {
 			fmt.Println("logs.BeeLogger.SetLogger: " + err.Error())
 			return err
 		}
 	} else {
-		return fmt.Errorf("logs: unknown adaptername %q (forgotten Register?)", adaptername)
+		return fmt.Errorf("logs: unknown adapterName %q (forgotten Register?)", adapterName)
 	}
 	return nil
 }
 
 // remove a logger adapter in BeeLogger.
-func (bl *BeeLogger) DelLogger(adaptername string) error {
+func (bl *BeeLogger) DelLogger(adapterName string) error {
 	bl.lock.Lock()
 	defer bl.lock.Unlock()
-	if lg, ok := bl.outputs[adaptername]; ok {
+	if lg, ok := bl.outputs[adapterName]; ok {
 		lg.Destroy()
-		delete(bl.outputs, adaptername)
+		delete(bl.outputs, adapterName)
 		return nil
 	} else {
-		return fmt.Errorf("logs: unknown adaptername %q (forgotten Register?)", adaptername)
+		return fmt.Errorf("logs: unknown adapterName %q (forgotten Register?)", adapterName)
 	}
 }
 
@@ -373,7 +373,7 @@ func (bl *BeeLogger) Close() {
 	}
 }
 
-func (bl *BeeLogger) Rest() {
+func (bl *BeeLogger) PauseOutput() {
 	if i, _ := bl.Status(); i != WORK {
 		return
 	}

@@ -14,27 +14,27 @@ import (
 // --- Beanstalkd Output ---
 
 func init() {
-	DataOutput["beanstalkd"] = func(self *Collector) (r result.VoidResult) {
+	DataOutput["beanstalkd"] = func(col *Collector) (r result.VoidResult) {
 		defer r.Catch()
 		client := beanstalkd.New().Unwrap()
 		defer client.Close()
 
-		namespace := fmt.Sprintf("%v__%v-%v", util.FileNameReplace(self.namespace()), self.sum[0], self.sum[1])
+		namespace := fmt.Sprintf("%v__%v-%v", util.FileNameReplace(col.namespace()), col.sum[0], col.sum[1])
 		createtime := fmt.Sprintf("%d", time.Now().Unix())
 
-		for _, datacell := range self.dataDocker {
-			var subNamespace = util.FileNameReplace(self.subNamespace(datacell))
+		for _, datacell := range col.dataBuf {
+			var subNamespace = util.FileNameReplace(col.subNamespace(datacell))
 
 			tmp := make(map[string]interface{})
-			for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
+			for _, title := range col.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 				vd := datacell["Data"].(map[string]interface{})
 				if v, ok := vd[title].(string); ok || vd[title] == nil {
 					tmp[title] = v
 				} else {
-					tmp[title] = util.JsonString(vd[title])
+					tmp[title] = util.JSONString(vd[title])
 				}
 			}
-			if self.Spider.OutDefaultField() {
+			if col.Spider.OutDefaultField() {
 				tmp["Url"] = datacell["Url"].(string)
 				tmp["ParentUrl"] = datacell["ParentUrl"].(string)
 				tmp["DownloadTime"] = datacell["DownloadTime"].(string)

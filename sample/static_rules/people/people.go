@@ -57,7 +57,7 @@ var People = &spider.Spider{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
 				Method: "GET",
-				Url:    "http://news.people.com.cn/210801/211150/index.js?cache=false",
+				URL:    "http://news.people.com.cn/210801/211150/index.js?cache=false",
 				Rule:   "新闻列表",
 			})
 		},
@@ -82,7 +82,7 @@ var People = &spider.Spider{
 					newsLength := len(news.Items)
 					for i := 0; i < newsLength; i++ {
 						ctx.AddQueue(&request.Request{
-							Url:  news.Items[i].Url,
+							URL:  news.Items[i].Url,
 							Rule: "热点新闻",
 							Temp: map[string]interface{}{
 								"id":       news.Items[i].Id,

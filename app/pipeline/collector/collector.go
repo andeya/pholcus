@@ -19,8 +19,9 @@ type Collector struct {
 	*spider.Spider
 	DataChan    chan data.DataCell
 	FileChan    chan data.FileCell
-	dataDocker  []data.DataCell
+	dataBuf     []data.DataCell
 	outType     string
+	batchCap    int
 	dataBatch   uint64
 	fileBatch   uint64
 	wait        sync.WaitGroup
@@ -30,69 +31,66 @@ type Collector struct {
 }
 
 // NewCollector creates a new Collector for the given spider.
-func NewCollector(sp *spider.Spider) *Collector {
-	var self = &Collector{}
-	self.Spider = sp
-	self.outType = cache.Task.OutType
-	if cache.Task.DockerCap < 1 {
-		cache.Task.DockerCap = 1
+func NewCollector(sp *spider.Spider, outType string, batchCap int) *Collector {
+	if batchCap < 1 {
+		batchCap = 1
 	}
-	self.DataChan = make(chan data.DataCell, cache.Task.DockerCap)
-	self.FileChan = make(chan data.FileCell, cache.Task.DockerCap)
-	self.dataDocker = make([]data.DataCell, 0, cache.Task.DockerCap)
-	self.sum = [4]uint64{}
-	// self.size = [2]uint64{}
-	self.dataBatch = 0
-	self.fileBatch = 0
-	return self
+	return &Collector{
+		Spider:   sp,
+		outType:  outType,
+		batchCap: batchCap,
+		DataChan: make(chan data.DataCell, batchCap),
+		FileChan: make(chan data.FileCell, batchCap),
+		dataBuf:  make([]data.DataCell, 0, batchCap),
+	}
 }
 
 // CollectData sends a data cell to the collector.
-func (self *Collector) CollectData(dataCell data.DataCell) (r result.VoidResult) {
+func (c *Collector) CollectData(dataCell data.DataCell) (r result.VoidResult) {
 	defer func() {
 		if p := recover(); p != nil {
-			logs.Log.Error("panic recovered: %v\n%s", p, debug.Stack())
+			logs.Log().Error("panic recovered: %v\n%s", p, debug.Stack())
 			r = result.FmtErrVoid("输出协程已终止")
 		}
 	}()
-	self.DataChan <- dataCell
+	c.DataChan <- dataCell
 	return result.OkVoid()
 }
 
 // CollectFile sends a file cell to the collector.
-func (self *Collector) CollectFile(fileCell data.FileCell) (r result.VoidResult) {
+func (c *Collector) CollectFile(fileCell data.FileCell) (r result.VoidResult) {
 	defer func() {
 		if p := recover(); p != nil {
-			logs.Log.Error("panic recovered: %v\n%s", p, debug.Stack())
+			logs.Log().Error("panic recovered: %v\n%s", p, debug.Stack())
 			r = result.FmtErrVoid("输出协程已终止")
 		}
 	}()
-	self.FileChan <- fileCell
+	c.FileChan <- fileCell
 	return result.OkVoid()
 }
 
 // Stop closes the collector's channels and shuts down the pipeline.
-func (self *Collector) Stop() {
+func (c *Collector) Stop() {
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				logs.Log.Error("panic recovered: %v\n%s", p, debug.Stack())
+				logs.Log().Error("panic recovered: %v\n%s", p, debug.Stack())
 			}
 		}()
-		close(self.DataChan)
+		close(c.DataChan)
 	}()
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
-				logs.Log.Error("panic recovered: %v\n%s", p, debug.Stack())
+				logs.Log().Error("panic recovered: %v\n%s", p, debug.Stack())
 			}
 		}()
-		close(self.FileChan)
+		close(c.FileChan)
 	}()
 }
 
 // Start launches the data collection and output pipeline.
-func (self *Collector) Start() {
+func (c *Collector) Start() {
 	go func() {
 		dataStop := make(chan bool)
 		fileStop := make(chan bool)
@@ -100,34 +98,34 @@ func (self *Collector) Start() {
 		go func() {
 			defer func() {
 				if p := recover(); p != nil {
-					logs.Log.Error("panic recovered: %v\n%s", p, debug.Stack())
+					logs.Log().Error("panic recovered: %v\n%s", p, debug.Stack())
 				}
 			}()
-			for data := range self.DataChan {
-				self.dataDocker = append(self.dataDocker, data)
+			for data := range c.DataChan {
+				c.dataBuf = append(c.dataBuf, data)
 
-				if len(self.dataDocker) < cache.Task.DockerCap {
+				if len(c.dataBuf) < c.batchCap {
 					continue
 				}
 
-				self.dataBatch++
-				self.outputData()
+				c.dataBatch++
+				c.outputData()
 			}
-			self.dataBatch++
-			self.outputData()
+			c.dataBatch++
+			c.outputData()
 			close(dataStop)
 		}()
 
 		go func() {
 			defer func() {
 				if p := recover(); p != nil {
-					logs.Log.Error("panic recovered: %v\n%s", p, debug.Stack())
+					logs.Log().Error("panic recovered: %v\n%s", p, debug.Stack())
 				}
 			}()
-			for file := range self.FileChan {
-				atomic.AddUint64(&self.fileBatch, 1)
-				self.wait.Add(1)
-				go self.outputFile(file)
+			for file := range c.FileChan {
+				atomic.AddUint64(&c.fileBatch, 1)
+				c.wait.Add(1)
+				go c.outputFile(file)
 			}
 			close(fileStop)
 		}()
@@ -135,58 +133,58 @@ func (self *Collector) Start() {
 		<-dataStop
 		<-fileStop
 
-		self.wait.Wait()
+		c.wait.Wait()
 
-		self.Report()
+		c.Report()
 	}()
 }
 
-func (self *Collector) resetDataDocker() {
-	for _, cell := range self.dataDocker {
+func (c *Collector) resetDataBuf() {
+	for _, cell := range c.dataBuf {
 		data.PutDataCell(cell)
 	}
-	self.dataDocker = self.dataDocker[:0]
+	c.dataBuf = c.dataBuf[:0]
 }
 
 // dataSum returns the total number of text records output.
-func (self *Collector) dataSum() uint64 {
-	self.dataSumLock.RLock()
-	defer self.dataSumLock.RUnlock()
-	return self.sum[1]
+func (c *Collector) dataSum() uint64 {
+	c.dataSumLock.RLock()
+	defer c.dataSumLock.RUnlock()
+	return c.sum[1]
 }
 
 // addDataSum increments the text record count.
-func (self *Collector) addDataSum(add uint64) {
-	self.dataSumLock.Lock()
-	defer self.dataSumLock.Unlock()
-	self.sum[0] = self.sum[1]
-	self.sum[1] += add
+func (c *Collector) addDataSum(add uint64) {
+	c.dataSumLock.Lock()
+	defer c.dataSumLock.Unlock()
+	c.sum[0] = c.sum[1]
+	c.sum[1] += add
 }
 
 // fileSum returns the total number of files output.
-func (self *Collector) fileSum() uint64 {
-	self.fileSumLock.RLock()
-	defer self.fileSumLock.RUnlock()
-	return self.sum[3]
+func (c *Collector) fileSum() uint64 {
+	c.fileSumLock.RLock()
+	defer c.fileSumLock.RUnlock()
+	return c.sum[3]
 }
 
 // addFileSum increments the file count.
-func (self *Collector) addFileSum(add uint64) {
-	self.fileSumLock.Lock()
-	defer self.fileSumLock.Unlock()
-	self.sum[2] = self.sum[3]
-	self.sum[3] += add
+func (c *Collector) addFileSum(add uint64) {
+	c.fileSumLock.Lock()
+	defer c.fileSumLock.Unlock()
+	c.sum[2] = c.sum[3]
+	c.sum[3] += add
 }
 
 // Report sends the collection report to the report channel.
-func (self *Collector) Report() {
+func (c *Collector) Report() {
 	cache.ReportChan <- &cache.Report{
-		SpiderName: self.Spider.GetName(),
-		Keyin:      self.GetKeyin(),
-		DataNum:    self.dataSum(),
-		FileNum:    self.fileSum(),
-		// DataSize:   self.dataSize(),
-		// FileSize: self.fileSize(),
+		SpiderName: c.Spider.GetName(),
+		Keyin:      c.GetKeyin(),
+		DataNum:    c.dataSum(),
+		FileNum:    c.fileSum(),
+		// DataSize:   c.dataSize(),
+		// FileSize: c.fileSize(),
 		Time: time.Since(cache.StartTime),
 	}
 }

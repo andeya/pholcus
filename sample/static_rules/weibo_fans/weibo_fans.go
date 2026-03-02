@@ -40,7 +40,7 @@ var WeiboFans = &spider.Spider{
 		Root: func(ctx *spider.Context) {
 			param := strings.Split(ctx.GetKeyin(), "::")
 			if len(param) != 2 {
-				logs.Log.Error("自定义输入的参数不正确！")
+				logs.Log().Error("自定义输入的参数不正确！")
 				return
 			}
 			id := strings.Trim(param[0], " ")
@@ -56,7 +56,7 @@ var WeiboFans = &spider.Spider{
 			}
 			for i := count1; i > 0; i-- {
 				ctx.AddQueue(&request.Request{
-					Url:          "http://weibo.com/" + id + "/fans?cfs=600&relate=fans&t=1&f=1&type=&Pl_Official_RelationFans__68_page=" + strconv.Itoa(i) + "#Pl_Official_RelationFans__68",
+					URL:          "http://weibo.com/" + id + "/fans?cfs=600&relate=fans&t=1&f=1&type=&Pl_Official_RelationFans__68_page=" + strconv.Itoa(i) + "#Pl_Official_RelationFans__68",
 					Rule:         "好友列表",
 					Header:       http.Header{"Cookie": []string{cookie}},
 					DownloaderID: 0,
@@ -64,7 +64,7 @@ var WeiboFans = &spider.Spider{
 			}
 			for i := 1; i <= count2; i++ {
 				ctx.AddQueue(&request.Request{
-					Url:          "http://www.weibo.com/" + id + "/fans?cfs=&relate=fans&t=5&f=1&type=&Pl_Official_RelationFans__68_page=" + strconv.Itoa(i) + "#Pl_Official_RelationFans__68",
+					URL:          "http://www.weibo.com/" + id + "/fans?cfs=&relate=fans&t=5&f=1&type=&Pl_Official_RelationFans__68_page=" + strconv.Itoa(i) + "#Pl_Official_RelationFans__68",
 					Rule:         "好友列表",
 					Header:       http.Header{"Cookie": []string{cookie}},
 					DownloaderID: 0,
@@ -90,7 +90,7 @@ var WeiboFans = &spider.Spider{
 						粉丝 := s.Find(".info_connect em a").Eq(1).Text()
 						微博 := s.Find(".info_connect em a").Eq(2).Text()
 						x := &request.Request{
-							Url:          url,
+							URL:          url,
 							Rule:         "好友资料",
 							DownloaderID: 0,
 							Temp: map[string]interface{}{

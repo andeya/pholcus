@@ -40,7 +40,7 @@ var Miyabaobei = &spider.Spider{
 	EnableCookie: false,
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
-			ctx.AddQueue(&request.Request{Url: "http://www.miyabaobei.com/", Rule: "获取版块URL"})
+			ctx.AddQueue(&request.Request{URL: "http://www.miyabaobei.com/", Rule: "获取版块URL"})
 		},
 
 		Trunk: map[string]*spider.Rule{
@@ -74,7 +74,7 @@ var Miyabaobei = &spider.Spider{
 				AidFunc: func(ctx *spider.Context, aid map[string]interface{}) interface{} {
 					req := aid["req"].(*request.Request)
 					for loop := aid["loop"].([2]int); loop[0] < loop[1]; loop[0]++ {
-						req.Url = aid["urlBase"].(string) + "&per_page=" + strconv.Itoa(loop[0]*40)
+						req.URL = aid["urlBase"].(string) + "&per_page=" + strconv.Itoa(loop[0]*40)
 						ctx.AddQueue(req)
 					}
 					return nil

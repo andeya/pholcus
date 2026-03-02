@@ -3,7 +3,6 @@ module github.com/andeya/pholcus
 go 1.24.0
 
 require (
-	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/Shopify/sarama v1.23.1
 	github.com/andeya/gust v1.20.7
 	github.com/andybalholm/cascadia v1.0.0
@@ -15,6 +14,7 @@ require (
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/tidwall/gjson v1.3.2
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
+	gopkg.in/ini.v1 v1.67.1
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce
 )
 

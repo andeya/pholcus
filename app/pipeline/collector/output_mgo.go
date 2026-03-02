@@ -14,7 +14,7 @@ import (
 // --- MongoDB Output ---
 
 func init() {
-	DataOutput["mgo"] = func(self *Collector) result.VoidResult {
+	DataOutput["mgo"] = func(col *Collector) result.VoidResult {
 		if mgo.Error() != nil {
 			mgo.Refresh()
 			if mgo.Error() != nil {
@@ -23,15 +23,15 @@ func init() {
 		}
 		return mgo.Call(func(src pool.Src) error {
 			var (
-				db          = src.(*mgo.MgoSrc).DB(config.DB_NAME)
-				namespace   = util.FileNameReplace(self.namespace())
+				db          = src.(*mgo.MgoSrc).DB(config.Conf().DBName)
+				namespace   = util.FileNameReplace(col.namespace())
 				collections = make(map[string]*mgov2.Collection)
 				dataMap     = make(map[string][]interface{})
 				err         error
 			)
 
-			for _, datacell := range self.dataDocker {
-				subNamespace := util.FileNameReplace(self.subNamespace(datacell))
+			for _, datacell := range col.dataBuf {
+				subNamespace := util.FileNameReplace(col.subNamespace(datacell))
 				cName := joinNamespaces(namespace, subNamespace)
 
 				if _, ok := collections[subNamespace]; !ok {
@@ -42,7 +42,7 @@ func init() {
 				}
 				delete(datacell, "Data")
 				delete(datacell, "RuleName")
-				if !self.Spider.OutDefaultField() {
+				if !col.Spider.OutDefaultField() {
 					delete(datacell, "Url")
 					delete(datacell, "ParentUrl")
 					delete(datacell, "DownloadTime")
@@ -57,7 +57,7 @@ func init() {
 				for i := 0; i < loop; i++ {
 					err = c.Insert(docs[i*mgo.MaxLen : (i+1)*mgo.MaxLen]...)
 					if err != nil {
-						logs.Log.Error("%v", err)
+						logs.Log().Error("%v", err)
 					}
 				}
 				if count%mgo.MaxLen == 0 {
@@ -65,7 +65,7 @@ func init() {
 				}
 				err = c.Insert(docs[loop*mgo.MaxLen:]...)
 				if err != nil {
-					logs.Log.Error("%v", err)
+					logs.Log().Error("%v", err)
 				}
 			}
 

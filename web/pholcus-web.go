@@ -63,12 +63,12 @@ func Run() {
 
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {
-		logs.Log.Emergency("ListenAndServe: %v", err)
+		logs.Log().Emergency("ListenAndServe: %v", err)
 	}
 }
 
 func appInit() {
-	app.LogicApp.SetLog(Lsc).SetAppConf("Mode", cache.Task.Mode)
+	app.LogicApp.SetLog(LogSocketCtrl).SetAppConf("Mode", cache.Task.Mode)
 
 	spiderMenu = iterator.Map(iterator.FromSlice(app.LogicApp.GetSpiderLib()), func(sp *spider.Spider) map[string]string {
 		return map[string]string{"name": sp.GetName(), "description": sp.GetDescription()}

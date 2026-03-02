@@ -27,7 +27,7 @@ var (
 	threadflag         *int
 	pauseflag          *int64
 	proxyflag          *int64
-	dockerflag         *int
+	batchCapFlag       *int
 	successInheritflag *bool
 	failureInheritflag *bool
 )
@@ -39,7 +39,7 @@ func init() {
 
 // DefaultRun starts the application with the given default UI.
 func DefaultRun(uiDefault string) {
-	fmt.Printf("%v\n\n", config.FULL_NAME)
+	fmt.Printf("%v\n\n", config.FullName)
 	flag.String("a *********************************************** common *********************************************** -a", "", "")
 	uiflag = flag.String("_ui", uiDefault, "   <选择操作界面> [web] [gui] [cmd]")
 	flagCommon()
@@ -52,34 +52,36 @@ func DefaultRun(uiDefault string) {
 }
 
 func flagCommon() {
+	rc := &config.Conf().Run
+
 	modeflag = flag.Int(
 		"a_mode",
-		cache.Task.Mode,
+		rc.Mode,
 		"   <运行模式: ["+strconv.Itoa(status.OFFLINE)+"] 单机    ["+strconv.Itoa(status.SERVER)+"] 服务端    ["+strconv.Itoa(status.CLIENT)+"] 客户端>")
 
 	portflag = flag.Int(
 		"a_port",
-		cache.Task.Port,
+		rc.Port,
 		"   <端口号: 只填写数字即可，不含冒号，单机模式不填>")
 
 	masterflag = flag.String(
 		"a_master",
-		cache.Task.Master,
+		rc.Master,
 		"   <服务端IP: 不含端口，客户端模式下使用>")
 
 	keyinsflag = flag.String(
 		"a_keyins",
-		cache.Task.Keyins,
-		"   <自定义配置: 多任务请分别多包一层“<>”>")
+		"",
+		"   <自定义配置: 多任务请分别多包一层\u201c<>\u201d>")
 
 	limitflag = flag.Int64(
 		"a_limit",
-		cache.Task.Limit,
+		rc.Limit,
 		"   <采集上限（默认限制URL数）> [>=0]")
 
 	outputflag = flag.String(
 		"a_outtype",
-		cache.Task.OutType,
+		rc.OutType,
 		func() string {
 			var outputlib string
 			for _, v := range app.LogicApp.GetOutputLib() {
@@ -90,32 +92,32 @@ func flagCommon() {
 
 	threadflag = flag.Int(
 		"a_thread",
-		cache.Task.ThreadNum,
+		rc.ThreadNum,
 		"   <并发协程> [1~99999]")
 
 	pauseflag = flag.Int64(
 		"a_pause",
-		cache.Task.Pausetime,
+		rc.Pausetime,
 		"   <平均暂停时间/ms> [>=100]")
 
 	proxyflag = flag.Int64(
 		"a_proxyminute",
-		cache.Task.ProxyMinute,
+		rc.ProxyMinute,
 		"   <代理IP更换频率: /m，为0时不使用代理> [>=0]")
 
-	dockerflag = flag.Int(
-		"a_dockercap",
-		cache.Task.DockerCap,
-		"   <分批输出> [1~5000000]")
+	batchCapFlag = flag.Int(
+		"a_batchcap",
+		rc.BatchCap,
+		"   <分批输出容量> [1~5000000]")
 
 	successInheritflag = flag.Bool(
 		"a_success",
-		cache.Task.SuccessInherit,
+		rc.SuccessInherit,
 		"   <继承并保存成功记录> [true] [false]")
 
 	failureInheritflag = flag.Bool(
 		"a_failure",
-		cache.Task.FailureInherit,
+		rc.FailureInherit,
 		"   <继承并保存失败记录> [true] [false]")
 }
 
@@ -129,7 +131,7 @@ func writeFlag() {
 	cache.Task.ThreadNum = *threadflag
 	cache.Task.Pausetime = *pauseflag
 	cache.Task.ProxyMinute = *proxyflag
-	cache.Task.DockerCap = *dockerflag
+	cache.Task.BatchCap = *batchCapFlag
 	cache.Task.SuccessInherit = *successInheritflag
 	cache.Task.FailureInherit = *failureInheritflag
 }

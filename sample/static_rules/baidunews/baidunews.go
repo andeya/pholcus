@@ -92,7 +92,7 @@ var BaiduNews = &spider.Spider{
 					v := rss_BaiduNews[k]
 
 					ctx.AddQueue(&request.Request{
-						Url:    v,
+						URL:    v,
 						Rule:   "XML列表页",
 						Header: http.Header{"Content-Type": []string{"application/xml"}},
 						Temp:   map[string]interface{}{"src": k},
@@ -116,13 +116,13 @@ var BaiduNews = &spider.Spider{
 					page := ctx.GetText()
 					rss := new(BaiduNewsRss)
 					if err := xml.Unmarshal([]byte(page), rss); err != nil {
-						logs.Log.Error("XML列表页: %v", err)
+						logs.Log().Error("XML列表页: %v", err)
 						return
 					}
 					content := rss.Channel
 					for _, v := range content.Item {
 						ctx.AddQueue(&request.Request{
-							Url:  v.Link,
+							URL:  v.Link,
 							Rule: "新闻详情",
 							Temp: map[string]interface{}{
 								"title":       spidercommon.CleanHtml(v.Title, 4),

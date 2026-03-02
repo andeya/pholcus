@@ -247,19 +247,19 @@ func HrefSub(src string, sub string) string {
 
 var domainReg = regexp.MustCompile(`([a-zA-Z0-9]+://([a-zA-Z0-9\:\_\-\.])+(/)?)(.)*`)
 
-// GetHerf resolves a relative or absolute href against a base URL and current page URL.
-func GetHerf(baseurl string, url string, herf string, mustBase bool) string {
-	if strings.HasPrefix(herf, `javascript:`) {
+// GetHref resolves a relative or absolute href against a base URL and current page URL.
+func GetHref(baseURL string, url string, href string, mustBase bool) string {
+	if strings.HasPrefix(href, `javascript:`) {
 		return ``
 	}
 	result := ""
-	herf = Deprive2(herf)
-	if !strings.HasSuffix(baseurl, "/") {
-		baseurl += "/"
+	href = Deprive2(href)
+	if !strings.HasSuffix(baseURL, "/") {
+		baseURL += "/"
 	}
 
-	if !mustBase && !strings.HasPrefix(url, baseurl) {
-		baseurl = domainReg.ReplaceAllString(url, "$1")
+	if !mustBase && !strings.HasPrefix(url, baseURL) {
+		baseURL = domainReg.ReplaceAllString(url, "$1")
 	}
 
 	refIndex := strings.LastIndex(url, "/") + 1
@@ -275,41 +275,41 @@ func GetHerf(baseurl string, url string, herf string, mustBase bool) string {
 	}*/
 	url = url[:refIndex]
 
-	/*refIndex = strings.LastIndex(herf, "/") + 1
-	sub = herf[refIndex:]
+	/*refIndex = strings.LastIndex(href, "/") + 1
+	sub = href[refIndex:]
 	if len(sub) > 0 &&
 		strings.Index(sub, ".") == -1 &&
 		strings.Index(sub, "?") == -1 &&
 		strings.Index(sub, "#") == -1 {
-		herf = herf + `/`
+		href = href + `/`
 	}*/
 
-	if strings.HasPrefix(herf, "./../") {
-		herf = strings.Replace(herf, "./", "", 1)
+	if strings.HasPrefix(href, "./../") {
+		href = strings.Replace(href, "./", "", 1)
 	}
 
-	if len(herf) == 0 {
+	if len(href) == 0 {
 		result = ""
-	} else if herf == "/" {
-		result = baseurl
-	} else if strings.HasPrefix(herf, "./") {
+	} else if href == "/" {
+		result = baseURL
+	} else if strings.HasPrefix(href, "./") {
 		/*reg := regexp.MustCompile(`^(./)(.*)`)
-		result = url + strings.Trim(reg.ReplaceAllString(herf, "$2"), " ")*/
-		result = url + strings.Replace(herf, "./", "", 1)
-	} else if strings.HasPrefix(herf, "/") {
+		result = url + strings.Trim(reg.ReplaceAllString(href, "$2"), " ")*/
+		result = url + strings.Replace(href, "./", "", 1)
+	} else if strings.HasPrefix(href, "/") {
 		//reg = regexp.MustCompile(`^(http)(s)?(://)([0-9A-Za-z.\-_]+)(/)(.*)`)
-		result = strings.Trim(baseurl, " ") + herf[1:]
-	} else if mustBase && !strings.HasPrefix(herf, baseurl) &&
-		(strings.Index(herf, "://") > -1 ||
-			(strings.Index(herf, "/") == -1 &&
-				strings.Count(herf, ".") > 3)) { //IP
+		result = strings.Trim(baseURL, " ") + href[1:]
+	} else if mustBase && !strings.HasPrefix(href, baseURL) &&
+		(strings.Index(href, "://") > -1 ||
+			(strings.Index(href, "/") == -1 &&
+				strings.Count(href, ".") > 3)) { //IP
 
 		result = ""
-	} else if strings.Index(herf, "://") > -1 ||
-		(strings.Index(herf, "/") == -1 && strings.Count(herf, ".") > 3) { //IP
-		result = herf
+	} else if strings.Index(href, "://") > -1 ||
+		(strings.Index(href, "/") == -1 && strings.Count(href, ".") > 3) { //IP
+		result = href
 	} else {
-		count := strings.Count(herf, "../")
+		count := strings.Count(href, "../")
 		if count > 0 {
 			urlArr := strings.SplitAfter(url, "/")
 			len := cap(urlArr) - count - 1
@@ -320,10 +320,10 @@ func GetHerf(baseurl string, url string, herf string, mustBase bool) string {
 						preUrl += str
 					}
 				}
-				result = preUrl + strings.ReplaceAll(herf, "../", "")
+				result = preUrl + strings.ReplaceAll(href, "../", "")
 			}
 		} else {
-			result = url + herf
+			result = url + href
 		}
 	}
 

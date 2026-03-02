@@ -49,7 +49,7 @@ var AlibabaProduct = &spider.Spider{
 					keyin := spidercommon.EncodeString(ctx.GetKeyin(), "gbk")
 					for loop := aid["loop"].([2]int); loop[0] < loop[1]; loop[0]++ {
 						ctx.AddQueue(&request.Request{
-							Url:    "http://s.1688.com/selloffer/offer_search.htm?enableAsync=false&earseDirect=false&button_click=top&pageSize=60&n=y&offset=3&uniqfield=pic_tag_id&keyins=" + keyin + "&beginPage=" + strconv.Itoa(loop[0]+1),
+							URL:    "http://s.1688.com/selloffer/offer_search.htm?enableAsync=false&earseDirect=false&button_click=top&pageSize=60&n=y&offset=3&uniqfield=pic_tag_id&keyins=" + keyin + "&beginPage=" + strconv.Itoa(loop[0]+1),
 							Rule:   aid["Rule"].(string),
 							Header: http.Header{"Content-Type": []string{"text/html; charset=gbk"}},
 						})
@@ -58,15 +58,15 @@ var AlibabaProduct = &spider.Spider{
 				},
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
-					// logs.Log.Debug(ctx.GetText())
+					// logs.Log().Debug(ctx.GetText())
 					pageTag := query.Find("#sm-pagination div[data-total-page]")
 					// 跳转
 					if len(pageTag.Nodes) == 0 {
-						logs.Log.Critical("[消息提示：| 任务：%v | KEYIN：%v | 规则：%v] 由于跳转AJAX问题，目前只能每个子类抓取 1 页……\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
+						logs.Log().Critical("[消息提示：| 任务：%v | KEYIN：%v | 规则：%v] 由于跳转AJAX问题，目前只能每个子类抓取 1 页……\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
 						query.Find(".sm-floorhead-typemore a").Each(func(i int, s *goquery.Selection) {
 							if href := s.Attr("href"); href.IsSome() {
 								ctx.AddQueue(&request.Request{
-									Url:    href.Unwrap(),
+									URL:    href.Unwrap(),
 									Header: http.Header{"Content-Type": []string{"text/html; charset=gbk"}},
 									Rule:   "搜索结果",
 								})
@@ -80,7 +80,7 @@ var AlibabaProduct = &spider.Spider{
 					if total > ctx.GetLimit() {
 						total = ctx.GetLimit()
 					} else if total == 0 {
-						logs.Log.Critical("[消息提示：| 任务：%v | KEYIN：%v | 规则：%v] 没有抓取到任何数据！！！\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
+						logs.Log().Critical("[消息提示：| 任务：%v | KEYIN：%v | 规则：%v] 没有抓取到任何数据！！！\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
 						return
 					}
 

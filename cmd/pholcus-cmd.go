@@ -39,7 +39,7 @@ func Flag() {
 	flag.String(
 		"c_z",
 		"",
-		"CMD-EXAMPLE: $ pholcus -_ui=cmd -a_mode="+strconv.Itoa(status.OFFLINE)+" -c_spider=3,8 -a_outtype=csv -a_thread=20 -a_dockercap=5000 -a_pause=300 -a_proxyminute=0 -a_keyins=\"<pholcus><golang>\" -a_limit=10 -a_success=true -a_failure=true\n",
+		"CMD-EXAMPLE: $ pholcus -_ui=cmd -a_mode="+strconv.Itoa(status.OFFLINE)+" -c_spider=3,8 -a_outtype=csv -a_thread=20 -a_batchcap=5000 -a_pause=300 -a_proxyminute=0 -a_keyins=\"<pholcus><golang>\" -a_limit=10 -a_success=true -a_failure=true\n",
 	)
 }
 
@@ -87,23 +87,23 @@ func run() {
 
 // parseInput reads task parameters from stdin in server mode.
 func parseInput() {
-	logs.Log.Informational("\nRequired task parameter: %v\nOptional task parameters: %v\n", "-c_spider", []string{
+	logs.Log().Informational("\nRequired task parameter: %v\nOptional task parameters: %v\n", "-c_spider", []string{
 		"-a_keyins",
 		"-a_limit",
 		"-a_outtype",
 		"-a_thread",
 		"-a_pause",
 		"-a_proxyminute",
-		"-a_dockercap",
+		"-a_batchcap",
 		"-a_success",
 		"-a_failure"})
-	logs.Log.Informational("\nAdd task:\n")
+	logs.Log().Informational("\nAdd task:\n")
 retry:
 	*spiderflag = ""
 	input := [12]string{}
 	fmt.Scanln(&input[0], &input[1], &input[2], &input[3], &input[4], &input[5], &input[6], &input[7], &input[8], &input[9])
 	if strings.Index(input[0], "=") < 4 {
-		logs.Log.Informational("\nInvalid task parameters, please re-enter:")
+		logs.Log().Informational("\nInvalid task parameters, please re-enter:")
 		goto retry
 	}
 	for _, v := range input {
@@ -141,15 +141,15 @@ retry:
 				break
 			}
 			cache.Task.ProxyMinute = proxyminute
-		case "-a_dockercap":
-			dockercap, err := strconv.Atoi(value)
+		case "-a_batchcap":
+			batchcap, err := strconv.Atoi(value)
 			if err != nil {
 				break
 			}
-			if dockercap < 1 {
-				dockercap = 1
+			if batchcap < 1 {
+				batchcap = 1
 			}
-			cache.Task.DockerCap = dockercap
+			cache.Task.BatchCap = batchcap
 		case "-a_success":
 			if value == "true" {
 				cache.Task.SuccessInherit = true
@@ -165,14 +165,14 @@ retry:
 		case "-c_spider":
 			*spiderflag = value
 		default:
-			logs.Log.Informational("\nUnknown parameter detected. Required: %v\nOptional: %v\n", "-c_spider", []string{
+			logs.Log().Informational("\nUnknown parameter detected. Required: %v\nOptional: %v\n", "-c_spider", []string{
 				"-a_keyins",
 				"-a_limit",
 				"-a_outtype",
 				"-a_thread",
 				"-a_pause",
 				"-a_proxyminute",
-				"-a_dockercap",
+				"-a_batchcap",
 				"-a_success",
 				"-a_failure"})
 			goto retry

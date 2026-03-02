@@ -82,8 +82,8 @@ func (lv *LogView) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-func (self *LogView) Clean() {
-	self.logChan = make(chan string, 1024)
+func (lv *LogView) Clean() {
+	lv.logChan = make(chan string, 1024)
 }
 
 func (lv *LogView) WndProc(hwnd win.HWND, msg uint32, wParam, lParam uintptr) uintptr {

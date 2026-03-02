@@ -12,7 +12,7 @@ import (
 )
 
 // GUI输入
-type Inputor struct {
+type InputConfig struct {
 	Spiders []*model.GUISpider
 	*cache.AppConf
 	Pausetime   int64
@@ -32,7 +32,7 @@ var (
 	spiderMenu      *model.SpiderMenu
 )
 
-var Input = &Inputor{
+var Input = &InputConfig{
 	AppConf:     cache.Task,
 	Pausetime:   cache.Task.Pausetime,
 	ProxyMinute: cache.Task.ProxyMinute,

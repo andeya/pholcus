@@ -42,7 +42,7 @@ var Hollandandbarrett = &spider.Spider{
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				Url:  "http://www.hollandandbarrett.com/",
+				URL:  "http://www.hollandandbarrett.com/",
 				Rule: "获取版块URL",
 			},
 			)
@@ -60,7 +60,7 @@ var Hollandandbarrett = &spider.Spider{
 							u := url.Unwrap()
 							tit := s.Attr("title").UnwrapOr("")
 							ctx.AddQueue(&request.Request{
-								Url:  "http://www.hollandandbarrett.com" + u + "?showAll=1&pageHa=1&es=true&vm=grid&imd=true&format=json&single=true",
+								URL:  "http://www.hollandandbarrett.com" + u + "?showAll=1&pageHa=1&es=true&vm=grid&imd=true&format=json&single=true",
 								Rule: "获取总数",
 								Temp: map[string]interface{}{
 									"type":    tit,
@@ -85,11 +85,11 @@ var Hollandandbarrett = &spider.Spider{
 					total = strings.Trim(total, " \t\n")
 
 					if total == "0" {
-						logs.Log.Critical("[消息提示：| 任务：%v | 关键词：%v | 规则：%v] 没有抓取到任何数据！!!\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
+						logs.Log().Critical("[消息提示：| 任务：%v | 关键词：%v | 规则：%v] 没有抓取到任何数据！!!\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
 					} else {
 
 						ctx.AddQueue(&request.Request{
-							Url:  "http://www.hollandandbarrett.com" + ctx.GetTemp("baseUrl", "").(string) + "?showAll=" + total + "&pageHa=1&es=true&vm=grid&imd=true&format=json&single=true",
+							URL:  "http://www.hollandandbarrett.com" + ctx.GetTemp("baseUrl", "").(string) + "?showAll=" + total + "&pageHa=1&es=true&vm=grid&imd=true&format=json&single=true",
 							Rule: "商品详情",
 							Temp: map[string]interface{}{
 								"type": ctx.GetTemp("type", "").(string),
@@ -121,7 +121,7 @@ var Hollandandbarrett = &spider.Spider{
 					err := json.Unmarshal([]byte(src), &infos)
 
 					if err != nil {
-						logs.Log.Error("error is %v\n", err)
+						logs.Log().Error("error is %v\n", err)
 						return
 					} else {
 						for _, info1 := range infos["contents"].([]interface{})[0].(map[string]interface{})["mainContent"].([]interface{})[0].(map[string]interface{})["records"].([]interface{}) {

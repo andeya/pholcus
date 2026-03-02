@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/andeya/gust/option"
+	"github.com/andeya/pholcus/app/downloader"
 	"github.com/andeya/pholcus/config"
 	"github.com/andeya/pholcus/runtime/status"
 )
@@ -13,6 +14,7 @@ import (
 type (
 	CrawlerPool interface {
 		Reset(spiderNum int) int
+		SetPipelineConfig(outType string, batchCap int)
 		Use() Crawler
 		UseOpt() option.Option[Crawler]
 		Free(Crawler)
@@ -23,101 +25,113 @@ type (
 		count    int
 		usable   chan Crawler
 		all      []Crawler
+		dl       downloader.Downloader
+		outType  string
+		batchCap int
 		status   int
 		sync.RWMutex
 	}
 )
 
-// NewCrawlerPool creates a new crawler pool.
-func NewCrawlerPool() CrawlerPool {
+// NewCrawlerPool creates a new crawler pool with the given Downloader.
+func NewCrawlerPool(dl downloader.Downloader) CrawlerPool {
 	return &cq{
 		status: status.RUN,
-		all:    make([]Crawler, 0, config.CRAWLS_CAP),
+		dl:     dl,
+		all:    make([]Crawler, 0, config.Conf().CrawlsCap),
 	}
+}
+
+// SetPipelineConfig sets the output type and batch capacity for new crawlers.
+func (cq *cq) SetPipelineConfig(outType string, batchCap int) {
+	cq.Lock()
+	defer cq.Unlock()
+	cq.outType = outType
+	cq.batchCap = batchCap
 }
 
 // Reset configures the pool size based on the number of spiders to run.
 // When reusing a pool instance, it efficiently resizes to the new capacity.
-func (self *cq) Reset(spiderNum int) int {
-	self.Lock()
-	defer self.Unlock()
+func (cq *cq) Reset(spiderNum int) int {
+	cq.Lock()
+	defer cq.Unlock()
 	var wantNum int
-	if spiderNum < config.CRAWLS_CAP {
+	if spiderNum < config.Conf().CrawlsCap {
 		wantNum = spiderNum
 	} else {
-		wantNum = config.CRAWLS_CAP
+		wantNum = config.Conf().CrawlsCap
 	}
 	if wantNum <= 0 {
 		wantNum = 1
 	}
-	self.capacity = wantNum
-	self.count = 0
-	self.usable = make(chan Crawler, wantNum)
-	for _, crawler := range self.all {
-		if self.count < self.capacity {
-			self.usable <- crawler
-			self.count++
+	cq.capacity = wantNum
+	cq.count = 0
+	cq.usable = make(chan Crawler, wantNum)
+	for _, crawler := range cq.all {
+		if cq.count < cq.capacity {
+			cq.usable <- crawler
+			cq.count++
 		}
 	}
-	self.status = status.RUN
+	cq.status = status.RUN
 	return wantNum
 }
 
 // Use acquires a crawler from the pool in a concurrency-safe manner.
-func (self *cq) Use() Crawler {
-	return self.UseOpt().UnwrapOr(nil)
+func (cq *cq) Use() Crawler {
+	return cq.UseOpt().UnwrapOr(nil)
 }
 
 // UseOpt acquires a crawler from the pool; returns None when pool is stopped.
-func (self *cq) UseOpt() option.Option[Crawler] {
+func (cq *cq) UseOpt() option.Option[Crawler] {
 	var crawler Crawler
 	for {
-		self.Lock()
-		if self.status == status.STOP {
-			self.Unlock()
+		cq.Lock()
+		if cq.status == status.STOP {
+			cq.Unlock()
 			return option.None[Crawler]()
 		}
 		select {
-		case crawler = <-self.usable:
-			self.Unlock()
+		case crawler = <-cq.usable:
+			cq.Unlock()
 			return option.Some(crawler)
 		default:
-			if self.count < self.capacity {
-				crawler = New(self.count)
-				self.all = append(self.all, crawler)
-				self.count++
-				self.Unlock()
+			if cq.count < cq.capacity {
+				crawler = New(cq.count, cq.dl, cq.outType, cq.batchCap)
+				cq.all = append(cq.all, crawler)
+				cq.count++
+				cq.Unlock()
 				return option.Some(crawler)
 			}
 		}
-		self.Unlock()
+		cq.Unlock()
 		time.Sleep(time.Second)
 	}
 }
 
 // Free returns a crawler to the pool.
-func (self *cq) Free(crawler Crawler) {
-	self.RLock()
-	defer self.RUnlock()
-	if self.status == status.STOP || !crawler.CanStop() {
+func (cq *cq) Free(crawler Crawler) {
+	cq.RLock()
+	defer cq.RUnlock()
+	if cq.status == status.STOP || !crawler.CanStop() {
 		return
 	}
-	self.usable <- crawler
+	cq.usable <- crawler
 }
 
 // Stop terminates all crawler tasks in the pool.
-func (self *cq) Stop() {
-	self.Lock()
-	if self.status == status.STOP {
-		self.Unlock()
+func (cq *cq) Stop() {
+	cq.Lock()
+	if cq.status == status.STOP {
+		cq.Unlock()
 		return
 	}
-	self.status = status.STOP
-	close(self.usable)
-	self.usable = nil
-	self.Unlock()
+	cq.status = status.STOP
+	close(cq.usable)
+	cq.usable = nil
+	cq.Unlock()
 
-	for _, crawler := range self.all {
+	for _, crawler := range cq.all {
 		crawler.Stop()
 	}
 }

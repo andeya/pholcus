@@ -24,7 +24,7 @@ import (
 type (
 	Request interface {
 		// url
-		GetUrl() string
+		GetURL() string
 		// GET POST POST-M HEAD
 		GetMethod() string
 		// POST values
@@ -51,7 +51,7 @@ type (
 
 	// DefaultRequest is the default Request implementation.
 	DefaultRequest struct {
-		Url          string      // required
+		URL          string      // required
 		Method       string      // GET POST POST-M HEAD (default GET)
 		Header       http.Header // http header
 		EnableCookie bool        // set in Spider.EnableCookie
@@ -91,109 +91,109 @@ const (
 	DefaultRetryPause  = 2 * time.Second // default pause before retry
 )
 
-func (self *DefaultRequest) prepare() {
-	if self.Method == "" {
-		self.Method = DefaultMethod
+func (dr *DefaultRequest) prepare() {
+	if dr.Method == "" {
+		dr.Method = DefaultMethod
 	}
-	self.Method = strings.ToUpper(self.Method)
+	dr.Method = strings.ToUpper(dr.Method)
 
-	if self.Header == nil {
-		self.Header = make(http.Header)
-	}
-
-	if self.DialTimeout < 0 {
-		self.DialTimeout = 0
-	} else if self.DialTimeout == 0 {
-		self.DialTimeout = DefaultDialTimeout
+	if dr.Header == nil {
+		dr.Header = make(http.Header)
 	}
 
-	if self.ConnTimeout < 0 {
-		self.ConnTimeout = 0
-	} else if self.ConnTimeout == 0 {
-		self.ConnTimeout = DefaultConnTimeout
+	if dr.DialTimeout < 0 {
+		dr.DialTimeout = 0
+	} else if dr.DialTimeout == 0 {
+		dr.DialTimeout = DefaultDialTimeout
 	}
 
-	if self.TryTimes == 0 {
-		self.TryTimes = DefaultTryTimes
+	if dr.ConnTimeout < 0 {
+		dr.ConnTimeout = 0
+	} else if dr.ConnTimeout == 0 {
+		dr.ConnTimeout = DefaultConnTimeout
 	}
 
-	if self.RetryPause <= 0 {
-		self.RetryPause = DefaultRetryPause
+	if dr.TryTimes == 0 {
+		dr.TryTimes = DefaultTryTimes
 	}
 
-	if self.DownloaderID != PhantomJsID {
-		self.DownloaderID = SurfID
+	if dr.RetryPause <= 0 {
+		dr.RetryPause = DefaultRetryPause
+	}
+
+	if dr.DownloaderID != PhantomJsID {
+		dr.DownloaderID = SurfID
 	}
 }
 
 // url
-func (self *DefaultRequest) GetUrl() string {
-	self.once.Do(self.prepare)
-	return self.Url
+func (dr *DefaultRequest) GetURL() string {
+	dr.once.Do(dr.prepare)
+	return dr.URL
 }
 
 // GET POST POST-M HEAD
-func (self *DefaultRequest) GetMethod() string {
-	self.once.Do(self.prepare)
-	return self.Method
+func (dr *DefaultRequest) GetMethod() string {
+	dr.once.Do(dr.prepare)
+	return dr.Method
 }
 
 // POST values
-func (self *DefaultRequest) GetPostData() string {
-	self.once.Do(self.prepare)
-	return self.PostData
+func (dr *DefaultRequest) GetPostData() string {
+	dr.once.Do(dr.prepare)
+	return dr.PostData
 }
 
 // http header
-func (self *DefaultRequest) GetHeader() http.Header {
-	self.once.Do(self.prepare)
-	return self.Header
+func (dr *DefaultRequest) GetHeader() http.Header {
+	dr.once.Do(dr.prepare)
+	return dr.Header
 }
 
 // enable http cookies
-func (self *DefaultRequest) GetEnableCookie() bool {
-	self.once.Do(self.prepare)
-	return self.EnableCookie
+func (dr *DefaultRequest) GetEnableCookie() bool {
+	dr.once.Do(dr.prepare)
+	return dr.EnableCookie
 }
 
 // dial tcp: i/o timeout
-func (self *DefaultRequest) GetDialTimeout() time.Duration {
-	self.once.Do(self.prepare)
-	return self.DialTimeout
+func (dr *DefaultRequest) GetDialTimeout() time.Duration {
+	dr.once.Do(dr.prepare)
+	return dr.DialTimeout
 }
 
 // WSARecv tcp: i/o timeout
-func (self *DefaultRequest) GetConnTimeout() time.Duration {
-	self.once.Do(self.prepare)
-	return self.ConnTimeout
+func (dr *DefaultRequest) GetConnTimeout() time.Duration {
+	dr.once.Do(dr.prepare)
+	return dr.ConnTimeout
 }
 
 // the max times of download
-func (self *DefaultRequest) GetTryTimes() int {
-	self.once.Do(self.prepare)
-	return self.TryTimes
+func (dr *DefaultRequest) GetTryTimes() int {
+	dr.once.Do(dr.prepare)
+	return dr.TryTimes
 }
 
 // the pause time of retry
-func (self *DefaultRequest) GetRetryPause() time.Duration {
-	self.once.Do(self.prepare)
-	return self.RetryPause
+func (dr *DefaultRequest) GetRetryPause() time.Duration {
+	dr.once.Do(dr.prepare)
+	return dr.RetryPause
 }
 
 // the download ProxyHost
-func (self *DefaultRequest) GetProxy() string {
-	self.once.Do(self.prepare)
-	return self.Proxy
+func (dr *DefaultRequest) GetProxy() string {
+	dr.once.Do(dr.prepare)
+	return dr.Proxy
 }
 
 // max redirect times
-func (self *DefaultRequest) GetRedirectTimes() int {
-	self.once.Do(self.prepare)
-	return self.RedirectTimes
+func (dr *DefaultRequest) GetRedirectTimes() int {
+	dr.once.Do(dr.prepare)
+	return dr.RedirectTimes
 }
 
 // select Surf ro PhomtomJS
-func (self *DefaultRequest) GetDownloaderID() int {
-	self.once.Do(self.prepare)
-	return self.DownloaderID
+func (dr *DefaultRequest) GetDownloaderID() int {
+	dr.once.Do(dr.prepare)
+	return dr.DownloaderID
 }

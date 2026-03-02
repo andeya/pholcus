@@ -41,7 +41,7 @@ var Wangyi = &spider.Spider{
 	EnableCookie: false,
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
-			ctx.AddQueue(&request.Request{Url: "http://news.163.com/rank/", Rule: "排行榜主页"})
+			ctx.AddQueue(&request.Request{URL: "http://news.163.com/rank/", Rule: "排行榜主页"})
 		},
 
 		Trunk: map[string]*spider.Rule{
@@ -51,7 +51,7 @@ var Wangyi = &spider.Spider{
 					query := ctx.GetDom()
 					query.Find(".subNav a").Each(func(i int, s *goquery.Selection) {
 						if url := s.Attr("href"); url.IsSome() {
-							ctx.AddQueue(&request.Request{Url: url.Unwrap(), Rule: "新闻排行榜"})
+							ctx.AddQueue(&request.Request{URL: url.Unwrap(), Rule: "新闻排行榜"})
 						}
 					})
 				},
@@ -92,7 +92,7 @@ var Wangyi = &spider.Spider{
 					})
 					for k, v := range urls_top {
 						ctx.AddQueue(&request.Request{
-							Url:  k,
+							URL:  k,
 							Rule: "热点新闻",
 							Temp: map[string]interface{}{
 								"newsType": newsType,
@@ -119,7 +119,7 @@ var Wangyi = &spider.Spider{
 					if pageAll := query.Find(".ep-pages-all"); len(pageAll.Nodes) != 0 {
 						if pageAllUrl := pageAll.Attr("href"); pageAllUrl.IsSome() {
 							ctx.AddQueue(&request.Request{
-								Url:  pageAllUrl.Unwrap(),
+								URL:  pageAllUrl.Unwrap(),
 								Rule: "热点新闻",
 								Temp: ctx.CopyTemps(),
 							})

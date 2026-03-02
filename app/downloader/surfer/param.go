@@ -47,7 +47,7 @@ type Param struct {
 func NewParam(req Request) (r result.Result[*Param]) {
 	defer r.Catch()
 	param := new(Param)
-	param.url = result.Ret(UrlEncode(req.GetUrl())).Unwrap()
+	param.url = result.Ret(URLEncode(req.GetURL())).Unwrap()
 
 	if req.GetProxy() != "" {
 		param.proxy = result.Ret(url.Parse(req.GetProxy())).Unwrap()
@@ -108,7 +108,7 @@ func NewParam(req Request) (r result.Result[*Param]) {
 }
 
 // writeback populates the response with Request content.
-func (self *Param) writeback(resp *http.Response) *http.Response {
+func (p *Param) writeback(resp *http.Response) *http.Response {
 	if resp == nil {
 		resp = new(http.Response)
 		resp.Request = new(http.Request)
@@ -120,9 +120,9 @@ func (self *Param) writeback(resp *http.Response) *http.Response {
 		resp.Header = make(http.Header)
 	}
 
-	resp.Request.Method = self.method
-	resp.Request.Header = self.header
-	resp.Request.Host = self.url.Host
+	resp.Request.Method = p.method
+	resp.Request.Header = p.header
+	resp.Request.Host = p.url.Host
 
 	return resp
 }
@@ -130,15 +130,15 @@ func (self *Param) writeback(resp *http.Response) *http.Response {
 // checkRedirect is used as the value to http.Client.CheckRedirect
 // when redirectTimes equal 0, redirect times is ∞
 // when redirectTimes less than 0, not allow redirects
-func (self *Param) checkRedirect(req *http.Request, via []*http.Request) error {
-	if self.redirectTimes == 0 {
+func (p *Param) checkRedirect(req *http.Request, via []*http.Request) error {
+	if p.redirectTimes == 0 {
 		return nil
 	}
-	if len(via) >= self.redirectTimes {
-		if self.redirectTimes < 0 {
+	if len(via) >= p.redirectTimes {
+		if p.redirectTimes < 0 {
 			return fmt.Errorf("not allow redirects.")
 		}
-		return fmt.Errorf("stopped after %v redirects.", self.redirectTimes)
+		return fmt.Errorf("stopped after %v redirects.", p.redirectTimes)
 	}
 	return nil
 }

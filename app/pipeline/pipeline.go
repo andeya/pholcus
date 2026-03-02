@@ -17,6 +17,6 @@ type Pipeline interface {
 }
 
 // New creates a new Pipeline for the given spider.
-func New(sp *spider.Spider) Pipeline {
-	return collector.NewCollector(sp)
+func New(sp *spider.Spider, outType string, batchCap int) Pipeline {
+	return collector.NewCollector(sp, outType, batchCap)
 }

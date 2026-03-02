@@ -16,7 +16,7 @@ type AppConf struct {
 	ThreadNum      int    // global max concurrency
 	Pausetime      int64  // pause duration reference in ms (random: Pausetime/2 ~ Pausetime*2)
 	OutType        string // output method
-	DockerCap      int    // segment dump container capacity
+	BatchCap       int    // batch output capacity per flush
 	Limit          int64  // crawl limit; 0 means unlimited; if set to LIMIT in rules, uses custom limit; otherwise defaults to request count limit
 	ProxyMinute    int64  // proxy IP rotation interval in minutes
 	SuccessInherit bool   // inherit historical success records

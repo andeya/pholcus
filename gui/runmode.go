@@ -19,7 +19,7 @@ func runmodeWindow() {
 			DataSource:     Input,
 			ErrorPresenter: declarative.ErrorPresenterRef{&ep},
 		},
-		Title:   config.FULL_NAME,
+		Title:   config.FullName,
 		MinSize: declarative.Size{450, 350},
 		Layout:  declarative.VBox{ /*MarginsZero: true*/ },
 		Children: []declarative.Widget{
@@ -66,7 +66,7 @@ func runmodeWindow() {
 				AssignTo: &runStopBtn,
 				OnClicked: func() {
 					if err := db.Submit(); err != nil {
-						logs.Log.Error("%v", err)
+						logs.Log().Error("%v", err)
 						return
 					}
 

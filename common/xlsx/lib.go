@@ -815,7 +815,7 @@ func readWorkbookRelationsFromZipFile(workbookRels *zip.File) (WorkBookRels, err
 // xlsx.File struct populated with its contents.  In most cases
 // ReadZip is not used directly, but is called internally by OpenFile.
 func ReadZip(f *zip.ReadCloser) result.Result[*File] {
-	defer closer.LogClose(f, logs.Log.Error)
+	defer closer.LogClose(f, logs.Log().Error)
 	return ReadZipReader(&f.Reader)
 }
 

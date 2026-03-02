@@ -4,6 +4,13 @@ import (
 	"sync"
 )
 
+const (
+	FieldRuleName     = "RuleName"
+	FieldURL          = "Url"
+	FieldParentURL    = "ParentUrl"
+	FieldDownloadTime = "DownloadTime"
+)
+
 type (
 	// DataCell is a storage unit for text data.
 	DataCell map[string]interface{}
@@ -26,20 +33,20 @@ var (
 )
 
 // GetDataCell returns a DataCell from the pool with the given fields.
-func GetDataCell(ruleName string, data map[string]interface{}, url string, parentUrl string, downloadTime string) DataCell {
+func GetDataCell(ruleName string, data map[string]interface{}, url string, parentURL string, downloadTime string) DataCell {
 	cell := dataCellPool.Get().(DataCell)
-	cell["RuleName"] = ruleName
+	cell[FieldRuleName] = ruleName
 	cell["Data"] = data
-	cell["Url"] = url
-	cell["ParentUrl"] = parentUrl
-	cell["DownloadTime"] = downloadTime
+	cell[FieldURL] = url
+	cell[FieldParentURL] = parentURL
+	cell[FieldDownloadTime] = downloadTime
 	return cell
 }
 
 // GetFileCell returns a FileCell from the pool with the given fields.
 func GetFileCell(ruleName, name string, bytes []byte) FileCell {
 	cell := fileCellPool.Get().(FileCell)
-	cell["RuleName"] = ruleName
+	cell[FieldRuleName] = ruleName
 	cell["Name"] = name
 	cell["Bytes"] = bytes
 	return cell
@@ -47,17 +54,17 @@ func GetFileCell(ruleName, name string, bytes []byte) FileCell {
 
 // PutDataCell returns a DataCell to the pool.
 func PutDataCell(cell DataCell) {
-	cell["RuleName"] = nil
+	cell[FieldRuleName] = nil
 	cell["Data"] = nil
-	cell["Url"] = nil
-	cell["ParentUrl"] = nil
-	cell["DownloadTime"] = nil
+	cell[FieldURL] = nil
+	cell[FieldParentURL] = nil
+	cell[FieldDownloadTime] = nil
 	dataCellPool.Put(cell)
 }
 
 // PutFileCell returns a FileCell to the pool.
 func PutFileCell(cell FileCell) {
-	cell["RuleName"] = nil
+	cell[FieldRuleName] = nil
 	cell["Name"] = nil
 	cell["Bytes"] = nil
 	fileCellPool.Put(cell)

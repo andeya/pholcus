@@ -16,7 +16,7 @@ import (
 )
 
 func run(which string) {
-	_ = result.RetVoid(exec.Command("cmd.exe", "/c", "title", config.FULL_NAME).Start())
+	_ = result.RetVoid(exec.Command("cmd.exe", "/c", "title", config.FullName).Start())
 
 	switch which {
 	case "gui":

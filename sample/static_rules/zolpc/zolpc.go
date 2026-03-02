@@ -49,7 +49,7 @@ var Zolpc = &spider.Spider{
 				AidFunc: func(ctx *spider.Context, aid map[string]interface{}) interface{} {
 					for loop := aid["loop"].([2]int); loop[0] < loop[1]; loop[0]++ {
 						ctx.AddQueue(&request.Request{
-							Url:  "http://bbs.zol.com.cn/nbbbs/p" + strconv.Itoa(loop[0]) + ".html#c",
+							URL:  "http://bbs.zol.com.cn/nbbbs/p" + strconv.Itoa(loop[0]) + ".html#c",
 							Rule: aid["Rule"].(string),
 						})
 					}
@@ -82,9 +82,9 @@ var Zolpc = &spider.Spider{
 					var selectObj = ctx.GetTemp("html", &goquery.Selection{}).(*goquery.Selection)
 
 					//url
-					outUrls := selectObj.Find("td").Eq(1)
-					outUrl := outUrls.Attr("data-url").UnwrapOr("")
-					outUrl = "http://bbs.zol.com.cn/" + outUrl
+					outURLs := selectObj.Find("td").Eq(1)
+					outURL := outURLs.Attr("data-url").UnwrapOr("")
+					outURL = "http://bbs.zol.com.cn/" + outURL
 					//title type
 					outTitles := selectObj.Find("td").Eq(1)
 					outType := outTitles.Find(".iclass a").Text()
@@ -108,7 +108,7 @@ var Zolpc = &spider.Spider{
 					// 结果存入Response中转
 					ctx.Output(map[int]interface{}{
 						0: outType,
-						1: outUrl,
+						1: outURL,
 						2: outTitle,
 						3: author,
 						4: stime,

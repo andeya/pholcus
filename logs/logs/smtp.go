@@ -41,7 +41,7 @@ type SmtpWriter struct {
 }
 
 // create smtp writer.
-func NewSmtpWriter() LoggerInterface {
+func NewSMTPWriter() LoggerInterface {
 	return &SmtpWriter{Level: LevelDebug}
 }
 
@@ -162,5 +162,5 @@ func (s *SmtpWriter) Destroy() {
 }
 
 func init() {
-	Register("smtp", NewSmtpWriter)
+	Register("smtp", NewSMTPWriter)
 }

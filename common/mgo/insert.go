@@ -18,11 +18,11 @@ const (
 	MaxLen int = 5000 // batch size for bulk insert
 )
 
-func (self *Insert) Exec(resultPtr interface{}) (r result.Result[any]) {
+func (i *Insert) Exec(resultPtr interface{}) (r result.Result[any]) {
 	defer r.Catch()
 	var (
 		resultPtr2 = new([]string)
-		count      = len(self.Docs)
+		count      = len(i.Docs)
 		docs       = make([]interface{}, count)
 	)
 	if resultPtr != nil {
@@ -31,8 +31,8 @@ func (self *Insert) Exec(resultPtr interface{}) (r result.Result[any]) {
 	*resultPtr2 = make([]string, count)
 
 	Call(func(src pool.Src) error {
-		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
-		for i, doc := range self.Docs {
+		c := src.(*MgoSrc).DB(i.Database).C(i.Collection)
+		for i, doc := range i.Docs {
 			var _id string
 			if doc["_id"] == nil || doc["_id"] == interface{}("") || doc["_id"] == interface{}(0) {
 				objId := bson.NewObjectId()

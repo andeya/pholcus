@@ -96,7 +96,7 @@ func NewPhantom(phantomjsFile, tempJsDir string, jar ...*cookiejar.Jar) Surfer {
 }
 
 // Download implements the Surfer interface.
-func (self *Phantom) Download(req Request) (r result.Result[*http.Response]) {
+func (p *Phantom) Download(req Request) (r result.Result[*http.Response]) {
 	defer r.Catch()
 	var encoding = "utf-8"
 	if _, params, err := mime.ParseMediaType(req.GetHeader().Get("Content-Type")); err == nil {
@@ -111,7 +111,7 @@ func (self *Phantom) Download(req Request) (r result.Result[*http.Response]) {
 
 	cookie := ""
 	if req.GetEnableCookie() {
-		httpCookies := self.CookieJar.Cookies(param.url)
+		httpCookies := p.CookieJar.Cookies(param.url)
 		if len(httpCookies) > 0 {
 			surferCookies := make([]*Cookie, len(httpCookies))
 
@@ -132,8 +132,8 @@ func (self *Phantom) Download(req Request) (r result.Result[*http.Response]) {
 	resp.Request.URL = param.url
 
 	var args = []string{
-		self.jsFileMap["js"],
-		req.GetUrl(),
+		p.jsFileMap["js"],
+		req.GetURL(),
 		cookie,
 		encoding,
 		param.header.Get("User-Agent"),
@@ -151,7 +151,7 @@ func (self *Phantom) Download(req Request) (r result.Result[*http.Response]) {
 			time.Sleep(param.retryPause)
 		}
 
-		cmd := exec.Command(self.PhantomjsFile, args...)
+		cmd := exec.Command(p.PhantomjsFile, args...)
 		if resp.Body, err = cmd.StdoutPipe(); err != nil {
 			continue
 		}
@@ -184,7 +184,7 @@ func (self *Phantom) Download(req Request) (r result.Result[*http.Response]) {
 		}
 		if req.GetEnableCookie() {
 			if rc := resp.Cookies(); len(rc) > 0 {
-				self.CookieJar.SetCookies(param.url, rc)
+				p.CookieJar.SetCookies(param.url, rc)
 			}
 		}
 		resp.Body = io.NopCloser(strings.NewReader(retResp.Body))
@@ -203,25 +203,25 @@ func (self *Phantom) Download(req Request) (r result.Result[*http.Response]) {
 }
 
 // DestroyJsFiles removes temporary JS files.
-func (self *Phantom) DestroyJsFiles() {
-	p, _ := filepath.Split(self.TempJsDir)
-	if p == "" {
+func (p *Phantom) DestroyJsFiles() {
+	dir, _ := filepath.Split(p.TempJsDir)
+	if dir == "" {
 		return
 	}
-	for _, filename := range self.jsFileMap {
+	for _, filename := range p.jsFileMap {
 		os.Remove(filename)
 	}
-	if len(WalkDir(p)) == 1 {
-		os.Remove(p)
+	if len(WalkDir(dir)) == 1 {
+		os.Remove(dir)
 	}
 }
 
-func (self *Phantom) createJsFile(fileName, jsCode string) {
-	fullFileName := filepath.Join(self.TempJsDir, fileName)
+func (p *Phantom) createJsFile(fileName, jsCode string) {
+	fullFileName := filepath.Join(p.TempJsDir, fileName)
 	f, _ := os.Create(fullFileName)
 	f.Write([]byte(jsCode))
 	f.Close()
-	self.jsFileMap[fileName] = fullFileName
+	p.jsFileMap[fileName] = fullFileName
 }
 
 /*

@@ -47,93 +47,93 @@ func NewForm(ctx *spider.Context, rule string, u string, form *goquery.Selection
 }
 
 // Method returns the form method, eg "GET" or "POST" or "POST-M".
-func (self *Form) Method() string {
-	return self.method
+func (f *Form) Method() string {
+	return f.method
 }
 
 // Action returns the form action URL.
 // The URL will always be absolute.
-func (self *Form) Action() string {
-	return self.action
+func (f *Form) Action() string {
+	return f.action
 }
 
 // Input sets the value of a form field.
-func (self *Form) Input(name, value string) *Form {
-	if _, ok := self.fields[name]; ok {
-		self.fields.Set(name, value)
+func (f *Form) Input(name, value string) *Form {
+	if _, ok := f.fields[name]; ok {
+		f.fields.Set(name, value)
 	}
-	return self
+	return f
 }
 
 // Input sets the value of a form field.
-func (self *Form) Inputs(kv map[string]string) *Form {
+func (f *Form) Inputs(kv map[string]string) *Form {
 	for k, v := range kv {
-		if _, ok := self.fields[k]; ok {
-			self.fields.Set(k, v)
+		if _, ok := f.fields[k]; ok {
+			f.fields.Set(k, v)
 		}
 	}
-	return self
+	return f
 }
 
 // Submit submits the form.
 // Clicks the first button in the form, or submits the form without using
 // any button when the form does not contain any buttons.
-func (self *Form) Submit() bool {
-	if len(self.buttons) > 0 {
-		for name := range self.buttons {
-			return self.Click(name)
+func (f *Form) Submit() bool {
+	if len(f.buttons) > 0 {
+		for name := range f.buttons {
+			return f.Click(name)
 		}
 	}
-	return self.send("", "")
+	return f.send("", "")
 }
 
 // Click submits the form by clicking the button with the given name.
-func (self *Form) Click(button string) bool {
-	if _, ok := self.buttons[button]; !ok {
+func (f *Form) Click(button string) bool {
+	if _, ok := f.buttons[button]; !ok {
 		return false
 	}
-	return self.send(button, self.buttons[button][0])
+	return f.send(button, f.buttons[button][0])
 }
 
 // Dom returns the inner *goquery.Selection.
-func (self *Form) Dom() *goquery.Selection {
-	return self.selection
+func (f *Form) Dom() *goquery.Selection {
+	return f.selection
 }
 
 // send submits the form.
-func (self *Form) send(buttonName, buttonValue string) bool {
+func (f *Form) send(buttonName, buttonValue string) bool {
 
-	values := make(url.Values, len(self.fields)+1)
-	for name, vals := range self.fields {
+	values := make(url.Values, len(f.fields)+1)
+	for name, vals := range f.fields {
 		values[name] = vals
 	}
 	if buttonName != "" {
 		values.Set(buttonName, buttonValue)
 	}
 	valsStr := values.Encode()
-	if self.Method() == "GET" {
-		self.ctx.AddQueue(&request.Request{
-			Rule:   self.rule,
-			Url:    self.Action() + "?" + valsStr,
-			Method: self.Method(),
+	if f.Method() == "GET" {
+		f.ctx.AddQueue(&request.Request{
+			Rule:   f.rule,
+			URL:    f.Action() + "?" + valsStr,
+			Method: f.Method(),
 		})
 		return true
 	} else {
-		enctype := self.selection.Attr("enctype").UnwrapOr("")
+		enctype := f.selection.Attr("enctype").UnwrapOr("")
 		if enctype == "multipart/form-data" {
-			self.ctx.AddQueue(&request.Request{
-				Rule:     self.rule,
-				Url:      self.Action(),
+			f.ctx.AddQueue(&request.Request{
+				Rule:     f.rule,
+				URL:      f.Action(),
 				PostData: valsStr,
 				Method:   "POST-M",
 			})
 			return true
 		}
-		self.ctx.AddQueue(&request.Request{
-			Rule:     self.rule,
-			Url:      self.Action(),
+		f.ctx.AddQueue(&request.Request{
+			Rule:     f.rule,
+			URL:      f.Action(),
 			PostData: valsStr,
-			Method:   self.Method(),
+			Method:   f.Method(),
 		})
 		return true
 	}

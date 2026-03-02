@@ -18,7 +18,7 @@ import (
 // Request represents object waiting for being crawled.
 type Request struct {
 	Spider        string          // spider name, auto-set, do not set manually
-	Url           string          // target URL, required
+	URL           string          // target URL, required
 	Rule          string          // rule node name for parsing response, required
 	Method        string          // GET POST POST-M HEAD
 	Header        http.Header     // request headers
@@ -30,7 +30,7 @@ type Request struct {
 	RetryPause    time.Duration   // wait time before retry after download failure
 	RedirectTimes int             // max redirects; 0=unlimited, <0=no redirects
 	Temp          Temp            // temporary data
-	TempIsJson    map[string]bool // marks Temp fields stored as JSON; auto-set, do not set manually
+	TempIsJSON    map[string]bool // marks Temp fields stored as JSON; auto-set, do not set manually
 	Priority      int             // scheduling priority, default 0 (min priority)
 	Reloadable    bool            // whether the link can be re-downloaded
 	// DownloaderID: 0=Surf (high concurrency, full features), 1=PhantomJS (strong anti-block, slow, low concurrency)
@@ -49,67 +49,67 @@ const (
 )
 
 const (
-	SURF_ID    = 0 // Surf downloader (native Go), do not change
-	PHANTOM_ID = 1 // PhantomJS downloader (fallback, rarely used)
+	SurfID    = 0 // Surf downloader (native Go), do not change
+	PhantomID = 1 // PhantomJS downloader (fallback, rarely used)
 )
 
 // Prepare sets default values before sending a request.
-// Request.Url and Request.Rule must be set.
+// Request.URL and Request.Rule must be set.
 // Request.Spider is auto-set by the system.
 // Request.EnableCookie is set in Spider; per-request values are ignored.
 // Optional fields with defaults: Method (GET), DialTimeout, ConnTimeout, TryTimes,
 // RedirectTimes, RetryPause, DownloaderID (0=Surf, 1=PhantomJS).
-func (self *Request) Prepare() result.VoidResult {
-	URL, err := url.Parse(self.Url)
+func (r *Request) Prepare() result.VoidResult {
+	URL, err := url.Parse(r.URL)
 	if err != nil {
 		return result.TryErrVoid(err)
 	}
-	self.Url = URL.String()
+	r.URL = URL.String()
 
-	if self.Method == "" {
-		self.Method = "GET"
+	if r.Method == "" {
+		r.Method = "GET"
 	} else {
-		self.Method = strings.ToUpper(self.Method)
+		r.Method = strings.ToUpper(r.Method)
 	}
 
-	if self.Header == nil {
-		self.Header = make(http.Header)
+	if r.Header == nil {
+		r.Header = make(http.Header)
 	}
 
-	if self.DialTimeout < 0 {
-		self.DialTimeout = 0
-	} else if self.DialTimeout == 0 {
-		self.DialTimeout = DefaultDialTimeout
+	if r.DialTimeout < 0 {
+		r.DialTimeout = 0
+	} else if r.DialTimeout == 0 {
+		r.DialTimeout = DefaultDialTimeout
 	}
 
-	if self.ConnTimeout < 0 {
-		self.ConnTimeout = 0
-	} else if self.ConnTimeout == 0 {
-		self.ConnTimeout = DefaultConnTimeout
+	if r.ConnTimeout < 0 {
+		r.ConnTimeout = 0
+	} else if r.ConnTimeout == 0 {
+		r.ConnTimeout = DefaultConnTimeout
 	}
 
-	if self.TryTimes == 0 {
-		self.TryTimes = DefaultTryTimes
+	if r.TryTimes == 0 {
+		r.TryTimes = DefaultTryTimes
 	}
 
-	if self.RetryPause <= 0 {
-		self.RetryPause = DefaultRetryPause
+	if r.RetryPause <= 0 {
+		r.RetryPause = DefaultRetryPause
 	}
 
-	if self.Priority < 0 {
-		self.Priority = 0
+	if r.Priority < 0 {
+		r.Priority = 0
 	}
 
-	if self.DownloaderID < SURF_ID || self.DownloaderID > PHANTOM_ID {
-		self.DownloaderID = SURF_ID
+	if r.DownloaderID < SurfID || r.DownloaderID > PhantomID {
+		r.DownloaderID = SurfID
 	}
 
-	if self.TempIsJson == nil {
-		self.TempIsJson = make(map[string]bool)
+	if r.TempIsJSON == nil {
+		r.TempIsJSON = make(map[string]bool)
 	}
 
-	if self.Temp == nil {
-		self.Temp = make(Temp)
+	if r.Temp == nil {
+		r.Temp = make(Temp)
 	}
 	return result.OkVoid()
 }
@@ -121,12 +121,12 @@ func UnSerialize(s string) result.Result[*Request] {
 }
 
 // Serialize serializes the Request to JSON string.
-func (self *Request) Serialize() result.Result[string] {
-	for k, v := range self.Temp {
-		self.Temp.set(k, v)
-		self.TempIsJson[k] = true
+func (r *Request) Serialize() result.Result[string] {
+	for k, v := range r.Temp {
+		r.Temp.set(k, v)
+		r.TempIsJSON[k] = true
 	}
-	b, err := json.Marshal(self)
+	b, err := json.Marshal(r)
 	if err != nil {
 		return result.TryErr[string](err)
 	}
@@ -134,231 +134,231 @@ func (self *Request) Serialize() result.Result[string] {
 }
 
 // Unique returns the unique identifier for the request.
-func (self *Request) Unique() string {
-	if self.unique == "" {
-		block := md5.Sum([]byte(self.Spider + self.Rule + self.Url + self.Method))
-		self.unique = hex.EncodeToString(block[:])
+func (r *Request) Unique() string {
+	if r.unique == "" {
+		block := md5.Sum([]byte(r.Spider + r.Rule + r.URL + r.Method))
+		r.unique = hex.EncodeToString(block[:])
 	}
-	return self.unique
+	return r.unique
 }
 
 // Copy returns a deep copy of the request.
-func (self *Request) Copy() result.Result[*Request] {
+func (r *Request) Copy() result.Result[*Request] {
 	reqcopy := new(Request)
-	b, err := json.Marshal(self)
+	b, err := json.Marshal(r)
 	if err != nil {
 		return result.TryErr[*Request](err)
 	}
 	return result.Ret(reqcopy, json.Unmarshal(b, reqcopy))
 }
 
-// GetUrl returns the request URL.
-func (self *Request) GetUrl() string {
-	return self.Url
+// GetURL returns the request URL.
+func (r *Request) GetURL() string {
+	return r.URL
 }
 
 // GetMethod returns the HTTP method name (e.g. GET, POST).
-func (self *Request) GetMethod() string {
-	return self.Method
+func (r *Request) GetMethod() string {
+	return r.Method
 }
 
 // SetMethod sets the HTTP method.
-func (self *Request) SetMethod(method string) *Request {
-	self.Method = strings.ToUpper(method)
-	return self
+func (r *Request) SetMethod(method string) *Request {
+	r.Method = strings.ToUpper(method)
+	return r
 }
 
-func (self *Request) SetUrl(url string) *Request {
-	self.Url = url
-	return self
+func (r *Request) SetURL(url string) *Request {
+	r.URL = url
+	return r
 }
 
-func (self *Request) GetReferer() string {
-	return self.Header.Get("Referer")
+func (r *Request) GetReferer() string {
+	return r.Header.Get("Referer")
 }
 
-func (self *Request) SetReferer(referer string) *Request {
-	self.Header.Set("Referer", referer)
-	return self
+func (r *Request) SetReferer(referer string) *Request {
+	r.Header.Set("Referer", referer)
+	return r
 }
 
-func (self *Request) GetPostData() string {
-	return self.PostData
+func (r *Request) GetPostData() string {
+	return r.PostData
 }
 
-func (self *Request) GetHeader() http.Header {
-	return self.Header
+func (r *Request) GetHeader() http.Header {
+	return r.Header
 }
 
-func (self *Request) SetHeader(key, value string) *Request {
-	self.Header.Set(key, value)
-	return self
+func (r *Request) SetHeader(key, value string) *Request {
+	r.Header.Set(key, value)
+	return r
 }
 
-func (self *Request) AddHeader(key, value string) *Request {
-	self.Header.Add(key, value)
-	return self
+func (r *Request) AddHeader(key, value string) *Request {
+	r.Header.Add(key, value)
+	return r
 }
 
-func (self *Request) GetEnableCookie() bool {
-	return self.EnableCookie
+func (r *Request) GetEnableCookie() bool {
+	return r.EnableCookie
 }
 
-func (self *Request) SetEnableCookie(enableCookie bool) *Request {
-	self.EnableCookie = enableCookie
-	return self
+func (r *Request) SetEnableCookie(enableCookie bool) *Request {
+	r.EnableCookie = enableCookie
+	return r
 }
 
-func (self *Request) GetCookies() string {
-	return self.Header.Get("Cookie")
+func (r *Request) GetCookies() string {
+	return r.Header.Get("Cookie")
 }
 
-func (self *Request) SetCookies(cookie string) *Request {
-	self.Header.Set("Cookie", cookie)
-	return self
+func (r *Request) SetCookies(cookie string) *Request {
+	r.Header.Set("Cookie", cookie)
+	return r
 }
 
-func (self *Request) GetDialTimeout() time.Duration {
-	return self.DialTimeout
+func (r *Request) GetDialTimeout() time.Duration {
+	return r.DialTimeout
 }
 
-func (self *Request) GetConnTimeout() time.Duration {
-	return self.ConnTimeout
+func (r *Request) GetConnTimeout() time.Duration {
+	return r.ConnTimeout
 }
 
-func (self *Request) GetTryTimes() int {
-	return self.TryTimes
+func (r *Request) GetTryTimes() int {
+	return r.TryTimes
 }
 
-func (self *Request) GetRetryPause() time.Duration {
-	return self.RetryPause
+func (r *Request) GetRetryPause() time.Duration {
+	return r.RetryPause
 }
 
-func (self *Request) GetProxy() string {
-	return self.proxy
+func (r *Request) GetProxy() string {
+	return r.proxy
 }
 
-func (self *Request) SetProxy(proxy string) *Request {
-	self.proxy = proxy
-	return self
+func (r *Request) SetProxy(proxy string) *Request {
+	r.proxy = proxy
+	return r
 }
 
-func (self *Request) GetRedirectTimes() int {
-	return self.RedirectTimes
+func (r *Request) GetRedirectTimes() int {
+	return r.RedirectTimes
 }
 
-func (self *Request) GetRuleName() string {
-	return self.Rule
+func (r *Request) GetRuleName() string {
+	return r.Rule
 }
 
-func (self *Request) SetRuleName(ruleName string) *Request {
-	self.Rule = ruleName
-	return self
+func (r *Request) SetRuleName(ruleName string) *Request {
+	r.Rule = ruleName
+	return r
 }
 
-func (self *Request) GetSpiderName() string {
-	return self.Spider
+func (r *Request) GetSpiderName() string {
+	return r.Spider
 }
 
-func (self *Request) SetSpiderName(spiderName string) *Request {
-	self.Spider = spiderName
-	return self
+func (r *Request) SetSpiderName(spiderName string) *Request {
+	r.Spider = spiderName
+	return r
 }
 
-func (self *Request) IsReloadable() bool {
-	return self.Reloadable
+func (r *Request) IsReloadable() bool {
+	return r.Reloadable
 }
 
-func (self *Request) SetReloadable(can bool) *Request {
-	self.Reloadable = can
-	return self
+func (r *Request) SetReloadable(can bool) *Request {
+	r.Reloadable = can
+	return r
 }
 
 // GetTemp returns temporary cached data. defaultValue must not be nil.
-func (self *Request) GetTemp(key string, defaultValue interface{}) interface{} {
+func (r *Request) GetTemp(key string, defaultValue interface{}) interface{} {
 	if defaultValue == nil {
 		panic("*Request.GetTemp() defaultValue must not be nil, key=" + key)
 	}
-	self.lock.RLock()
-	defer self.lock.RUnlock()
+	r.lock.RLock()
+	defer r.lock.RUnlock()
 
-	if self.Temp[key] == nil {
+	if r.Temp[key] == nil {
 		return defaultValue
 	}
 
-	if self.TempIsJson[key] {
-		return self.Temp.get(key, defaultValue)
+	if r.TempIsJSON[key] {
+		return r.Temp.get(key, defaultValue)
 	}
 
-	return self.Temp[key]
+	return r.Temp[key]
 }
 
 // GetTempOpt returns temporary cached data as Option. None when key is missing.
-func (self *Request) GetTempOpt(key string) option.Option[interface{}] {
-	self.lock.RLock()
-	defer self.lock.RUnlock()
+func (r *Request) GetTempOpt(key string) option.Option[interface{}] {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
 
-	if _, ok := self.Temp[key]; !ok {
+	if _, ok := r.Temp[key]; !ok {
 		return option.None[interface{}]()
 	}
-	if self.TempIsJson[key] {
+	if r.TempIsJSON[key] {
 		var v interface{}
-		self.Temp.get(key, &v)
+		r.Temp.get(key, &v)
 		return option.Some(v)
 	}
-	return option.Some(self.Temp[key])
+	return option.Some(r.Temp[key])
 }
 
-func (self *Request) GetTemps() Temp {
-	return self.Temp
+func (r *Request) GetTemps() Temp {
+	return r.Temp
 }
 
-func (self *Request) SetTemp(key string, value interface{}) *Request {
-	self.lock.Lock()
-	self.Temp[key] = value
-	delete(self.TempIsJson, key)
-	self.lock.Unlock()
-	return self
+func (r *Request) SetTemp(key string, value interface{}) *Request {
+	r.lock.Lock()
+	r.Temp[key] = value
+	delete(r.TempIsJSON, key)
+	r.lock.Unlock()
+	return r
 }
 
-func (self *Request) SetTemps(temp map[string]interface{}) *Request {
-	self.lock.Lock()
-	self.Temp = temp
-	self.TempIsJson = make(map[string]bool)
-	self.lock.Unlock()
-	return self
+func (r *Request) SetTemps(temp map[string]interface{}) *Request {
+	r.lock.Lock()
+	r.Temp = temp
+	r.TempIsJSON = make(map[string]bool)
+	r.lock.Unlock()
+	return r
 }
 
-func (self *Request) GetPriority() int {
-	return self.Priority
+func (r *Request) GetPriority() int {
+	return r.Priority
 }
 
-func (self *Request) SetPriority(priority int) *Request {
-	self.Priority = priority
-	return self
+func (r *Request) SetPriority(priority int) *Request {
+	r.Priority = priority
+	return r
 }
 
-func (self *Request) GetDownloaderID() int {
-	return self.DownloaderID
+func (r *Request) GetDownloaderID() int {
+	return r.DownloaderID
 }
 
-func (self *Request) SetDownloaderID(id int) *Request {
-	self.DownloaderID = id
-	return self
+func (r *Request) SetDownloaderID(id int) *Request {
+	r.DownloaderID = id
+	return r
 }
 
-func (self *Request) MarshalJSON() ([]byte, error) {
-	for k, v := range self.Temp {
-		if self.TempIsJson[k] {
+func (r *Request) MarshalJSON() ([]byte, error) {
+	for k, v := range r.Temp {
+		if r.TempIsJSON[k] {
 			continue
 		}
-		self.Temp.set(k, v)
-		self.TempIsJson[k] = true
+		r.Temp.set(k, v)
+		r.TempIsJSON[k] = true
 	}
 	// Marshal a struct without the mutex to avoid copying sync.RWMutex
 	j := struct {
 		Spider        string
-		Url           string
+		URL           string
 		Rule          string
 		Method        string
 		Header        http.Header
@@ -370,28 +370,28 @@ func (self *Request) MarshalJSON() ([]byte, error) {
 		RetryPause    time.Duration
 		RedirectTimes int
 		Temp          Temp
-		TempIsJson    map[string]bool
+		TempIsJSON    map[string]bool
 		Priority      int
 		Reloadable    bool
 		DownloaderID  int
 	}{
-		Spider:        self.Spider,
-		Url:           self.Url,
-		Rule:          self.Rule,
-		Method:        self.Method,
-		Header:        self.Header,
-		EnableCookie:  self.EnableCookie,
-		PostData:      self.PostData,
-		DialTimeout:   self.DialTimeout,
-		ConnTimeout:   self.ConnTimeout,
-		TryTimes:      self.TryTimes,
-		RetryPause:    self.RetryPause,
-		RedirectTimes: self.RedirectTimes,
-		Temp:          self.Temp,
-		TempIsJson:    self.TempIsJson,
-		Priority:      self.Priority,
-		Reloadable:    self.Reloadable,
-		DownloaderID:  self.DownloaderID,
+		Spider:        r.Spider,
+		URL:           r.URL,
+		Rule:          r.Rule,
+		Method:        r.Method,
+		Header:        r.Header,
+		EnableCookie:  r.EnableCookie,
+		PostData:      r.PostData,
+		DialTimeout:   r.DialTimeout,
+		ConnTimeout:   r.ConnTimeout,
+		TryTimes:      r.TryTimes,
+		RetryPause:    r.RetryPause,
+		RedirectTimes: r.RedirectTimes,
+		Temp:          r.Temp,
+		TempIsJSON:    r.TempIsJSON,
+		Priority:      r.Priority,
+		Reloadable:    r.Reloadable,
+		DownloaderID:  r.DownloaderID,
 	}
 	return json.Marshal(j)
 }

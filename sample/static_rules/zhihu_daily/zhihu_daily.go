@@ -40,7 +40,7 @@ var ZhihuDaily = &spider.Spider{
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				Url:  "https://www.zhihu.com/explore#daily-hot",
+				URL:  "https://www.zhihu.com/explore#daily-hot",
 				Rule: "获取首页结果",
 				Temp: map[string]interface{}{
 					"target": "first",
@@ -53,7 +53,7 @@ var ZhihuDaily = &spider.Spider{
 				for i := 1; i < totalTimes; i++ {
 					offset := strconv.Itoa(i * 5)
 					ctx.AddQueue(&request.Request{
-						Url:  `https://www.zhihu.com/node/ExploreAnswerListV2?params={"offset":` + offset + `,"type":"day"}`,
+						URL:  `https://www.zhihu.com/node/ExploreAnswerListV2?params={"offset":` + offset + `,"type":"day"}`,
 						Rule: "获取首页结果",
 						Temp: map[string]interface{}{
 							"target": "next_page",
@@ -78,7 +78,7 @@ var ZhihuDaily = &spider.Spider{
 							urlOpt := selection.Attr("href")
 							url := changeToAbspath(urlOpt.UnwrapOr(""))
 							if urlOpt.IsSome() {
-								ctx.AddQueue(&request.Request{Url: url, Rule: "解析落地页"})
+								ctx.AddQueue(&request.Request{URL: url, Rule: "解析落地页"})
 							}
 						})
 				},

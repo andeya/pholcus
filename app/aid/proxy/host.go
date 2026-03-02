@@ -15,15 +15,15 @@ type ProxyForHost struct {
 }
 
 // Len implements sort.Interface.
-func (self *ProxyForHost) Len() int {
-	return len(self.proxys)
+func (ph *ProxyForHost) Len() int {
+	return len(ph.proxys)
 }
 
-func (self *ProxyForHost) Less(i, j int) bool {
-	return self.timedelay[i] < self.timedelay[j]
+func (ph *ProxyForHost) Less(i, j int) bool {
+	return ph.timedelay[i] < ph.timedelay[j]
 }
 
-func (self *ProxyForHost) Swap(i, j int) {
-	self.proxys[i], self.proxys[j] = self.proxys[j], self.proxys[i]
-	self.timedelay[i], self.timedelay[j] = self.timedelay[j], self.timedelay[i]
+func (ph *ProxyForHost) Swap(i, j int) {
+	ph.proxys[i], ph.proxys[j] = ph.proxys[j], ph.proxys[i]
+	ph.timedelay[i], ph.timedelay[j] = ph.timedelay[j], ph.timedelay[i]
 }

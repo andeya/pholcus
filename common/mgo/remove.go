@@ -16,20 +16,20 @@ type Remove struct {
 	Selector   map[string]interface{} // document selector
 }
 
-func (self *Remove) Exec(_ interface{}) (r result.Result[any]) {
-	defer r.Catch()
+func (r *Remove) Exec(_ interface{}) (res result.Result[any]) {
+	defer res.Catch()
 	Call(func(src pool.Src) error {
-		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
+		c := src.(*MgoSrc).DB(r.Database).C(r.Collection)
 
-		if id, ok := self.Selector["_id"]; ok {
+		if id, ok := r.Selector["_id"]; ok {
 			if idStr, ok2 := id.(string); !ok2 {
 				return fmt.Errorf("%v", "parameter _id must be of string type")
 			} else {
-				self.Selector["_id"] = bson.ObjectIdHex(idStr)
+				r.Selector["_id"] = bson.ObjectIdHex(idStr)
 			}
 		}
 
-		return c.Remove(self.Selector)
+		return c.Remove(r.Selector)
 	}).Unwrap()
 	return result.Ok[any](nil)
 }

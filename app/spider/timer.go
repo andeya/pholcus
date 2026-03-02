@@ -21,59 +21,59 @@ func newTimer() *Timer {
 }
 
 // sleep blocks until the named timer fires and reports whether it can still be used.
-func (self *Timer) sleep(id string) bool {
-	self.RLock()
-	if self.closed {
-		self.RUnlock()
+func (t *Timer) sleep(id string) bool {
+	t.RLock()
+	if t.closed {
+		t.RUnlock()
 		return false
 	}
 
-	c, ok := self.setting[id]
-	self.RUnlock()
+	c, ok := t.setting[id]
+	t.RUnlock()
 	if !ok {
 		return false
 	}
 
 	c.sleep()
 
-	self.RLock()
-	defer self.RUnlock()
-	if self.closed {
+	t.RLock()
+	defer t.RUnlock()
+	if t.closed {
 		return false
 	}
-	_, ok = self.setting[id]
+	_, ok = t.setting[id]
 
 	return ok
 }
 
 // set configures a timer. When bell is nil, tol is a countdown sleep duration;
 // otherwise tol specifies the wake-up occurrence (the tol-th bell from now).
-func (self *Timer) set(id string, tol time.Duration, bell *Bell) bool {
-	self.Lock()
-	defer self.Unlock()
-	if self.closed {
-		logs.Log.Critical("*** timer [%s]: failed to set, timer system is closed ***", id)
+func (t *Timer) set(id string, tol time.Duration, bell *Bell) bool {
+	t.Lock()
+	defer t.Unlock()
+	if t.closed {
+		logs.Log().Critical("*** timer [%s]: failed to set, timer system is closed ***", id)
 		return false
 	}
 	c, ok := newClock(id, tol, bell)
 	if !ok {
-		logs.Log.Critical("*** timer [%s]: failed to set, invalid parameters ***", id)
+		logs.Log().Critical("*** timer [%s]: failed to set, invalid parameters ***", id)
 		return ok
 	}
-	self.setting[id] = c
-	logs.Log.Critical("*** timer [%s]: set successfully ***", id)
+	t.setting[id] = c
+	logs.Log().Critical("*** timer [%s]: set successfully ***", id)
 	return ok
 }
 
 // drop cancels all timers and marks the Timer as closed.
-func (self *Timer) drop() {
-	self.Lock()
-	defer self.Unlock()
-	self.closed = true
-	for _, c := range self.setting {
+func (t *Timer) drop() {
+	t.Lock()
+	defer t.Unlock()
+	t.closed = true
+	for _, c := range t.setting {
 		c.wake()
 	}
-	self.setting = make(map[string]*Clock)
+	t.setting = make(map[string]*Clock)
 }
 
 type (
@@ -124,34 +124,34 @@ func newClock(id string, tol time.Duration, bell *Bell) (*Clock, bool) {
 	}, true
 }
 
-func (self *Clock) sleep() {
-	d := self.duration()
-	self.timer.Reset(d)
+func (c *Clock) sleep() {
+	d := c.duration()
+	c.timer.Reset(d)
 	t0 := time.Now()
-	logs.Log.Critical("*** timer <%s> sleeping %v, scheduled wake at %v ***", self.id, d, t0.Add(d).Format("2006-01-02 15:04:05"))
-	<-self.timer.C
+	logs.Log().Critical("*** timer <%s> sleeping %v, scheduled wake at %v ***", c.id, d, t0.Add(d).Format("2006-01-02 15:04:05"))
+	<-c.timer.C
 	t1 := time.Now()
-	logs.Log.Critical("*** timer <%s> woke at %v, actual sleep %v ***", self.id, t1.Format("2006-01-02 15:04:05"), t1.Sub(t0))
+	logs.Log().Critical("*** timer <%s> woke at %v, actual sleep %v ***", c.id, t1.Format("2006-01-02 15:04:05"), t1.Sub(t0))
 }
 
-func (self *Clock) wake() {
-	self.timer.Reset(0)
+func (c *Clock) wake() {
+	c.timer.Reset(0)
 }
 
-func (self *Clock) duration() time.Duration {
-	switch self.typ {
+func (c *Clock) duration() time.Duration {
+	switch c.typ {
 	case A:
-		t := time.Now()
-		year, month, day := t.Date()
-		bell := time.Date(year, month, day, self.bell.Hour, self.bell.Min, self.bell.Sec, 0, time.Local)
-		if bell.Before(t) {
-			bell = bell.Add(time.Hour * 24 * self.tol)
+		now := time.Now()
+		year, month, day := now.Date()
+		bell := time.Date(year, month, day, c.bell.Hour, c.bell.Min, c.bell.Sec, 0, time.Local)
+		if bell.Before(now) {
+			bell = bell.Add(time.Hour * 24 * c.tol)
 		} else {
-			bell = bell.Add(time.Hour * 24 * (self.tol - 1))
+			bell = bell.Add(time.Hour * 24 * (c.tol - 1))
 		}
-		return bell.Sub(t)
+		return bell.Sub(now)
 	case T:
-		return self.tol
+		return c.tol
 	}
 	return 0
 }

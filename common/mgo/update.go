@@ -17,20 +17,20 @@ type Update struct {
 	Change     map[string]interface{} // update document
 }
 
-func (self *Update) Exec(_ interface{}) (r result.Result[any]) {
+func (u *Update) Exec(_ interface{}) (r result.Result[any]) {
 	defer r.Catch()
 	Call(func(src pool.Src) error {
-		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
+		c := src.(*MgoSrc).DB(u.Database).C(u.Collection)
 
-		if id, ok := self.Selector["_id"]; ok {
+		if id, ok := u.Selector["_id"]; ok {
 			if idStr, ok2 := id.(string); !ok2 {
 				return fmt.Errorf("%v", "parameter _id must be of string type")
 			} else {
-				self.Selector["_id"] = bson.ObjectIdHex(idStr)
+				u.Selector["_id"] = bson.ObjectIdHex(idStr)
 			}
 		}
 
-		return c.Update(self.Selector, self.Change)
+		return c.Update(u.Selector, u.Change)
 	}).Unwrap()
 	return result.Ok[any](nil)
 }

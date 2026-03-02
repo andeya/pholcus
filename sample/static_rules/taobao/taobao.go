@@ -30,7 +30,7 @@ func init() {
 	Taobao.Register()
 }
 
-var cookies_Taobao = "mt=ci%3D-1_0; swfstore=35673; thw=cn; cna=fcr5DRDmwnQCAT2QxZSu3Db6; sloc=%E8%BE%BD%E5%AE%81; _tb_token_=XLlMHhT9BI8IzeA; ck1=; v=0; uc3=nk2=symxAo6NBazVq7cY2z0%3D&id2=UU23CgHxOwgwgA%3D%3D&vt3=F8dAT%2BCFEEyTLicOBEc%3D&lg2=U%2BGCWk%2F75gdr5Q%3D%3D; existShop=MTQzNDM1NDcyNg%3D%3D; lgc=%5Cu5C0F%5Cu7C73%5Cu7C92%5Cu559C%5Cu6B22%5Cu5927%5Cu6D77; tracknick=%5Cu5C0F%5Cu7C73%5Cu7C92%5Cu559C%5Cu6B22%5Cu5927%5Cu6D77; sg=%E6%B5%B721; cookie2=1433b814776e3b3c61f4ba3b8631a81a; cookie1=Bqbn0lh%2FkPm9D0NtnTdFiqggRYia%2FBrNeQpwLWlbyJk%3D; unb=2559173312; t=1a9b12bb535040723808836b32e53507; _cc_=WqG3DMC9EA%3D%3D; tg=5; _l_g_=Ug%3D%3D; _nk_=%5Cu5C0F%5Cu7C73%5Cu7C92%5Cu559C%5Cu6B22%5Cu5927%5Cu6D77; cookie17=UU23CgHxOwgwgA%3D%3D; mt=ci=0_1; x=e%3D1%26p%3D*%26s%3D0%26c%3D0%26f%3D0%26g%3D0%26t%3D0%26__ll%3D-1%26_ato%3D0; whl=-1%260%260%260; uc1=lltime=1434353890&cookie14=UoW0FrfFYp27FQ%3D%3D&existShop=false&cookie16=V32FPkk%2FxXMk5UvIbNtImtMfJQ%3D%3D&cookie21=U%2BGCWk%2F7p4mBoUyTltGF&tag=7&cookie15=Vq8l%2BKCLz3%2F65A%3D%3D&pas=0; isg=C08C1D752BC08A3DCDF1FE6611FA3EE1; l=Ajk53TTUeK0ZKkG8yx7w7svcyasSxC34"
+var cookiesTaobao = "mt=ci%3D-1_0; swfstore=35673; thw=cn; cna=fcr5DRDmwnQCAT2QxZSu3Db6; sloc=%E8%BE%BD%E5%AE%81; _tb_token_=XLlMHhT9BI8IzeA; ck1=; v=0; uc3=nk2=symxAo6NBazVq7cY2z0%3D&id2=UU23CgHxOwgwgA%3D%3D&vt3=F8dAT%2BCFEEyTLicOBEc%3D&lg2=U%2BGCWk%2F75gdr5Q%3D%3D; existShop=MTQzNDM1NDcyNg%3D%3D; lgc=%5Cu5C0F%5Cu7C73%5Cu7C92%5Cu559C%5Cu6B22%5Cu5927%5Cu6D77; tracknick=%5Cu5C0F%5Cu7C73%5Cu7C92%5Cu559C%5Cu6B22%5Cu5927%5Cu6D77; sg=%E6%B5%B721; cookie2=1433b814776e3b3c61f4ba3b8631a81a; cookie1=Bqbn0lh%2FkPm9D0NtnTdFiqggRYia%2FBrNeQpwLWlbyJk%3D; unb=2559173312; t=1a9b12bb535040723808836b32e53507; _cc_=WqG3DMC9EA%3D%3D; tg=5; _l_g_=Ug%3D%3D; _nk_=%5Cu5C0F%5Cu7C73%5Cu7C92%5Cu559C%5Cu6B22%5Cu5927%5Cu6D77; cookie17=UU23CgHxOwgwgA%3D%3D; mt=ci=0_1; x=e%3D1%26p%3D*%26s%3D0%26c%3D0%26f%3D0%26g%3D0%26t%3D0%26__ll%3D-1%26_ato%3D0; whl=-1%260%260%260; uc1=lltime=1434353890&cookie14=UoW0FrfFYp27FQ%3D%3D&existShop=false&cookie16=V32FPkk%2FxXMk5UvIbNtImtMfJQ%3D%3D&cookie21=U%2BGCWk%2F7p4mBoUyTltGF&tag=7&cookie15=Vq8l%2BKCLz3%2F65A%3D%3D&pas=0; isg=C08C1D752BC08A3DCDF1FE6611FA3EE1; l=Ajk53TTUeK0ZKkG8yx7w7svcyasSxC34"
 
 var Taobao = &spider.Spider{
 	Name:        "淘宝数据",
@@ -42,10 +42,10 @@ var Taobao = &spider.Spider{
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				Url:  "http://list.taobao.com/browse/cat-0.htm",
+				URL:  "http://list.taobao.com/browse/cat-0.htm",
 				Rule: "生成请求",
 				Header: http.Header{
-					"Cookie": []string{cookies_Taobao},
+					"Cookie": []string{cookiesTaobao},
 				},
 			})
 		},
@@ -57,10 +57,10 @@ var Taobao = &spider.Spider{
 					for loop := aid["loop"].([2]int); loop[0] < loop[1]; loop[0]++ {
 						for _, loc := range loc_Taobao {
 							ctx.AddQueue(&request.Request{
-								Url:  "http:" + aid["urlBase"].(string) + "&_input_charset=utf-8&json=on&viewIndex=1&as=0&atype=b&style=grid&same_info=1&tid=0&isnew=2&data-action&module=page&s=0&loc=" + loc + "&pSize=96&data-key=s&data-value=" + strconv.Itoa(loop[0]*96),
+								URL:  "http:" + aid["urlBase"].(string) + "&_input_charset=utf-8&json=on&viewIndex=1&as=0&atype=b&style=grid&same_info=1&tid=0&isnew=2&data-action&module=page&s=0&loc=" + loc + "&pSize=96&data-key=s&data-value=" + strconv.Itoa(loop[0]*96),
 								Rule: aid["Rule"].(string),
 								Header: http.Header{
-									"Cookie": []string{cookies_Taobao},
+									"Cookie": []string{cookiesTaobao},
 								},
 								Temp: aid["Temp"].(map[string]interface{}),
 							})
@@ -104,11 +104,11 @@ var Taobao = &spider.Spider{
 					total = strings.Trim(total, " \t\n")
 					totalPage, _ := strconv.Atoi(total)
 					if total == "0" {
-						logs.Log.Critical("[消息提示：| 任务：%v | 关键词：%v | 规则：%v] 没有抓取到任何数据！!!\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
+						logs.Log().Critical("[消息提示：| 任务：%v | 关键词：%v | 规则：%v] 没有抓取到任何数据！!!\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
 					} else {
 						ctx.Aid(map[string]interface{}{
 							"loop":    [2]int{1, totalPage},
-							"urlBase": ctx.GetUrl(),
+							"urlBase": ctx.GetURL(),
 							"Rule":    "商品列表",
 							"Temp":    ctx.CopyTemps(),
 						}, "生成请求")
@@ -126,16 +126,16 @@ var Taobao = &spider.Spider{
 					infos := map[string]interface{}{}
 					err := json.Unmarshal([]byte(j), &infos)
 					if err != nil {
-						logs.Log.Error("商品列表解析错误： %v\n", err)
+						logs.Log().Error("商品列表解析错误： %v\n", err)
 						return
 					}
 					if infos["mallItemList"] == nil {
-						logs.Log.Error("商品列表解析错误： 内容不存在！")
+						logs.Log().Error("商品列表解析错误： 内容不存在！")
 						return
 					}
 					for _, item := range infos["mallItemList"].([]interface{}) {
 						item2 := item.(map[string]interface{})
-						temp := ctx.CreatItem(map[int]interface{}{
+						temp := ctx.CreateItem(map[int]interface{}{
 							0:  item2["title"],
 							1:  item2["price"],
 							2:  item2["currentPrice"],
@@ -162,7 +162,7 @@ var Taobao = &spider.Spider{
 							23: item2["spSource"],
 						}, "结果")
 						ctx.AddQueue(&request.Request{
-							Url:      "http:" + item2["href"].(string),
+							URL:      "http:" + item2["href"].(string),
 							Rule:     "商品详情",
 							Temp:     temp,
 							Priority: 1,
@@ -204,7 +204,7 @@ var Taobao = &spider.Spider{
 
 					ctx.AddQueue(&request.Request{
 						Rule: "商品评论",
-						Url: "http://rate.taobao.com/feedRateList.htm?siteID=4&rateType=&orderType=sort_weight&showContent=1&userNumId=" +
+						URL: "http://rate.taobao.com/feedRateList.htm?siteID=4&rateType=&orderType=sort_weight&showContent=1&userNumId=" +
 							ctx.GetTemp("sellerId", "").(string) +
 							"&auctionNumId=" +
 							ctx.GetTemp("itemId", "").(string) +
@@ -223,11 +223,11 @@ var Taobao = &spider.Spider{
 
 					infos := map[string]interface{}{}
 					if err := json.Unmarshal([]byte(j), &infos); err != nil {
-						logs.Log.Error("商品评论解析错误： %v\n", err)
+						logs.Log().Error("商品评论解析错误： %v\n", err)
 						return
 					}
 					if infos["comments"] == nil || infos["maxPage"] == nil || infos["currentPageNum"] == nil {
-						logs.Log.Error("商品评论解析错误： 内容不存在！")
+						logs.Log().Error("商品评论解析错误： 内容不存在！")
 						return
 					}
 					discussSlice := infos["comments"].([]interface{})
@@ -242,7 +242,7 @@ var Taobao = &spider.Spider{
 						// 请求下一页
 						ctx.AddQueue(&request.Request{
 							Rule: "商品评论",
-							Url: "http://rate.taobao.com/feedRateList.htm?siteID=4&rateType=&orderType=sort_weight&showContent=1&userNumId=" +
+							URL: "http://rate.taobao.com/feedRateList.htm?siteID=4&rateType=&orderType=sort_weight&showContent=1&userNumId=" +
 								ctx.GetTemp("sellerId", "").(string) +
 								"&auctionNumId=" +
 								ctx.GetTemp("itemId", "").(string) +

@@ -23,7 +23,7 @@ var BaiduSearch = &spider.Spider{
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				Url:  "http://www.baidu.com/s?wd=" + url.QueryEscape(ctx.GetKeyin()) + "&pn=0",
+				URL:  "http://www.baidu.com/s?wd=" + url.QueryEscape(ctx.GetKeyin()) + "&pn=0",
 				Rule: "搜索结果",
 			})
 		},
@@ -56,7 +56,7 @@ var BaiduSearch = &spider.Spider{
 					nextHref := query.Find("a.n").Last().AttrOr("href", "")
 					if nextHref != "" {
 						ctx.AddQueue(&request.Request{
-							Url:  "http://www.baidu.com" + nextHref,
+							URL:  "http://www.baidu.com" + nextHref,
 							Rule: "搜索结果",
 						})
 					}

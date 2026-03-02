@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 
+	"github.com/andeya/gust/result"
+	"github.com/andeya/gust/syncutil"
 	"github.com/andeya/pholcus/app/downloader/request"
 	"github.com/andeya/pholcus/app/downloader/surfer"
 	"github.com/andeya/pholcus/app/spider"
@@ -12,35 +14,37 @@ import (
 )
 
 type Surfer struct {
-	surf    surfer.Surfer
-	phantom surfer.Surfer
+	surf surfer.Surfer
 }
 
 var (
-	cookieJar, _     = cookiejar.New(nil) // nil options never returns error
+	cookieJar, _     = cookiejar.New(nil)
 	SurferDownloader = &Surfer{
-		surf:    surfer.New(cookieJar),
-		phantom: surfer.NewPhantom(config.PHANTOMJS, config.PHANTOMJS_TEMP, cookieJar),
+		surf: surfer.New(cookieJar),
 	}
 )
 
-func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.Context {
+var lazyPhantom = syncutil.NewLazyValueWithFunc(func() result.Result[surfer.Surfer] {
+	return result.Ok[surfer.Surfer](surfer.NewPhantom(config.Conf().PhantomJS, config.PhantomJSTemp, cookieJar))
+})
+
+func (s *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.Context {
 	ctx := spider.GetContext(sp, cReq)
 
 	var resp *http.Response
 	var err error
 
 	switch cReq.GetDownloaderID() {
-	case request.SURF_ID:
-		r := self.surf.Download(cReq)
+	case request.SurfID:
+		r := s.surf.Download(cReq)
 		if r.IsErr() {
 			err = r.UnwrapErr()
 		} else {
 			resp = r.Unwrap()
 		}
 
-	case request.PHANTOM_ID:
-		r := self.phantom.Download(cReq)
+	case request.PhantomID:
+		r := lazyPhantom.TryGetValue().Unwrap().Download(cReq)
 		if r.IsErr() {
 			err = r.UnwrapErr()
 		} else {

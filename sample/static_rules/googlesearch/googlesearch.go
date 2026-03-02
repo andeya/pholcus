@@ -57,26 +57,26 @@ var GoogleSearch = &spider.Spider{
 		Root: func(ctx *spider.Context) {
 			var url string
 			var success bool
-			logs.Log.Informational("Running google spider，this may take some time...")
+			logs.Log().Informational("Running google spider，this may take some time...")
 
 			for _, ip := range googleIp {
 				// url = "http://" + ip + "/search?q=" + ctx.GetKeyin() + "&newwindow=1&biw=1600&bih=398&start="
 				// Beware of redirections, if it doesnt work use google domain:
 				// url = "https://google.co.uk/search?q=" + ctx.GetKeyin()
 				url = "http://" + ip + "/?gws_rd=ssl#q=" + ctx.GetKeyin()
-				logs.Log.Informational("测试 " + ip)
+				logs.Log().Informational("测试 " + ip)
 				if goquery.NewDocument(url).IsOk() {
 					success = true
 					break
 				}
 			}
 			if !success {
-				logs.Log.Critical("Could not reach any of the Google mirrors")
+				logs.Log().Critical("Could not reach any of the Google mirrors")
 				return
 			}
-			logs.Log.Critical("Starting Google search ...")
+			logs.Log().Critical("Starting Google search ...")
 			ctx.AddQueue(&request.Request{
-				Url:  url,
+				URL:  url,
 				Rule: "total_pages",
 				Temp: map[string]interface{}{
 					"baseUrl": url,
@@ -90,7 +90,7 @@ var GoogleSearch = &spider.Spider{
 				AidFunc: func(ctx *spider.Context, aid map[string]interface{}) interface{} {
 					for loop := aid["loop"].([2]int); loop[0] < loop[1]; loop[0]++ {
 						ctx.AddQueue(&request.Request{
-							Url:  aid["urlBase"].(string) + "&start=" + strconv.Itoa(10*loop[0]),
+							URL:  aid["urlBase"].(string) + "&start=" + strconv.Itoa(10*loop[0]),
 							Rule: aid["Rule"].(string),
 						})
 					}
@@ -108,7 +108,7 @@ var GoogleSearch = &spider.Spider{
 					if total > ctx.GetLimit() {
 						total = ctx.GetLimit()
 					} else if total == 0 {
-						logs.Log.Critical("[ERROR：| Spider：%v | KEYIN：%v | Rule：%v] Did not fetch any data！!!\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
+						logs.Log().Critical("[ERROR：| Spider：%v | KEYIN：%v | Rule：%v] Did not fetch any data！!!\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
 						return
 					}
 					// 调用指定规则下辅助函数
@@ -135,7 +135,7 @@ var GoogleSearch = &spider.Spider{
 						t := s.Find(".r > a")
 						href := t.Attr("href").UnwrapOr("")
 						href = strings.TrimLeft(href, "/url?q=")
-						logs.Log.Informational(href)
+						logs.Log().Informational(href)
 						title := t.Text()
 						content := s.Find(".st").Text()
 						ctx.Output(map[int]interface{}{

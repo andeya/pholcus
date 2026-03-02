@@ -47,8 +47,8 @@ func BodyBytes(resp *http.Response) ([]byte, error) {
 	return body, err
 }
 
-// UrlEncode parses and encodes the URL, returning the result and any parse error.
-func UrlEncode(urlStr string) (*url.URL, error) {
+// URLEncode parses and encodes the URL, returning the result and any parse error.
+func URLEncode(urlStr string) (*url.URL, error) {
 	urlObj, err := url.Parse(urlStr)
 	urlObj.RawQuery = urlObj.Query().Encode()
 	return urlObj, err
@@ -58,7 +58,7 @@ func UrlEncode(urlStr string) (*url.URL, error) {
 func GetWDPath() string {
 	wd := os.Getenv("GOPATH")
 	if wd == "" {
-		panic("GOPATH is not setted in env.")
+		panic("GOPATH is not set in env.")
 	}
 	return wd
 }

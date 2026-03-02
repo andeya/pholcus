@@ -63,82 +63,82 @@ func New() *Proxy {
 }
 
 // Count returns the number of online proxy IPs.
-func (self *Proxy) Count() int32 {
-	return self.online
+func (p *Proxy) Count() int32 {
+	return p.online
 }
 
 // Update refreshes the proxy IP list.
-func (self *Proxy) Update() result.VoidResult {
-	f, err := os.Open(config.PROXY)
+func (p *Proxy) Update() result.VoidResult {
+	f, err := os.Open(config.Conf().ProxyFile)
 	if err != nil {
 		return result.TryErrVoid(err)
 	}
 	b, _ := io.ReadAll(f)
 	f.Close()
 
-	proxysIPType := self.proxyIPTypeRegexp.FindAllString(string(b), -1)
+	proxysIPType := p.proxyIPTypeRegexp.FindAllString(string(b), -1)
 	for _, proxy := range proxysIPType {
-		self.allIps[proxy] = self.ipRegexp.FindString(proxy)
-		self.all[proxy] = false
+		p.allIps[proxy] = p.ipRegexp.FindString(proxy)
+		p.all[proxy] = false
 	}
 
-	proxysUrlType := self.proxyUrlTypeRegexp.FindAllString(string(b), -1)
+	proxysUrlType := p.proxyUrlTypeRegexp.FindAllString(string(b), -1)
 	for _, proxy := range proxysUrlType {
-		gvalue := self.proxyUrlTypeRegexp.FindStringSubmatch(proxy)
-		self.allIps[proxy] = gvalue[6]
-		self.all[proxy] = false
+		gvalue := p.proxyUrlTypeRegexp.FindStringSubmatch(proxy)
+		p.allIps[proxy] = gvalue[6]
+		p.all[proxy] = false
 	}
 
-	log.Printf(" *     Read proxy IPs: %v\n", len(self.all))
+	log.Printf(" *     Read proxy IPs: %v\n", len(p.all))
 
-	self.findOnline()
+	p.findOnline()
 	return result.OkVoid()
 }
 
 // findOnline filters proxy IPs that are online.
-func (self *Proxy) findOnline() *Proxy {
+func (p *Proxy) findOnline() *Proxy {
 	log.Printf(" *     Filtering online proxy IPs...")
-	self.online = 0
-	for proxy := range self.all {
-		self.threadPool <- true
+	p.online = 0
+	for proxy := range p.all {
+		p.threadPool <- true
 		go func(proxy string) {
-			alive := ping.Ping(self.allIps[proxy], CONN_TIMEOUT).IsOk()
-			self.Lock()
-			self.all[proxy] = alive
-			self.Unlock()
+			alive := ping.Ping(p.allIps[proxy], CONN_TIMEOUT).IsOk()
+			p.Lock()
+			p.all[proxy] = alive
+			p.Unlock()
 			if alive {
-				atomic.AddInt32(&self.online, 1)
+				atomic.AddInt32(&p.online, 1)
 			}
-			<-self.threadPool
+			<-p.threadPool
 		}(proxy)
 	}
-	for len(self.threadPool) > 0 {
+	for len(p.threadPool) > 0 {
 		time.Sleep(0.2e9)
 	}
-	self.online = atomic.LoadInt32(&self.online)
-	log.Printf(" *     Online proxy IP filtering complete, total: %v\n", self.online)
+	p.online = atomic.LoadInt32(&p.online)
+	log.Printf(" *     Online proxy IP filtering complete, total: %v\n", p.online)
 
-	return self
+	return p
 }
 
 // UpdateTicker updates the ticker.
-func (self *Proxy) UpdateTicker(tickMinute int64) {
-	self.tickMinute = tickMinute
-	self.ticker = time.NewTicker(time.Duration(self.tickMinute) * time.Minute)
-	for _, proxyForHost := range self.usable {
+func (p *Proxy) UpdateTicker(tickMinute int64) {
+	p.tickMinute = tickMinute
+	p.ticker = time.NewTicker(time.Duration(p.tickMinute) * time.Minute)
+	for _, proxyForHost := range p.usable {
 		proxyForHost.curIndex++
 		proxyForHost.isEcho = true
 	}
 }
 
 // GetOne returns an unused proxy IP for this cycle and its response time.
-func (self *Proxy) GetOne(u string) option.Option[string] {
-	if self.online == 0 {
+func (p *Proxy) GetOne(u string) option.Option[string] {
+	if p.online == 0 {
 		return option.None[string]()
 	}
 	u2, _ := url.Parse(u)
 	if u2.Host == "" {
-		logs.Log.Informational(" *     [%v] Failed to set proxy IP, invalid target URL\n", u)
+		logs.Log().Informational(" *     [%v] Failed to set proxy IP, invalid target URL\n", u)
 		return option.None[string]()
 	}
 	var key = u2.Host
@@ -146,42 +146,42 @@ func (self *Proxy) GetOne(u string) option.Option[string] {
 		key = key[strings.Index(key, ".")+1:]
 	}
 
-	self.Lock()
-	defer self.Unlock()
+	p.Lock()
+	defer p.Unlock()
 
 	var ok = true
-	var proxyForHost = self.usable[key]
+	var proxyForHost = p.usable[key]
 
 	select {
-	case <-self.ticker.C:
+	case <-p.ticker.C:
 		proxyForHost.curIndex++
 		if proxyForHost.curIndex >= proxyForHost.Len() {
-			_, ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
+			_, ok = p.testAndSort(key, u2.Scheme+"://"+u2.Host)
 		}
 		proxyForHost.isEcho = true
 
 	default:
 		if proxyForHost == nil {
-			self.usable[key] = &ProxyForHost{
+			p.usable[key] = &ProxyForHost{
 				proxys:    []string{},
 				timedelay: []time.Duration{},
 				isEcho:    true,
 			}
-			proxyForHost, ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
+			proxyForHost, ok = p.testAndSort(key, u2.Scheme+"://"+u2.Host)
 		} else if l := proxyForHost.Len(); l == 0 {
 			ok = false
 		} else if proxyForHost.curIndex >= l {
-			_, ok = self.testAndSort(key, u2.Scheme+"://"+u2.Host)
+			_, ok = p.testAndSort(key, u2.Scheme+"://"+u2.Host)
 			proxyForHost.isEcho = true
 		}
 	}
 	if !ok {
-		logs.Log.Informational(" *     [%v] Failed to set proxy IP, no available proxy IPs\n", key)
+		logs.Log().Informational(" *     [%v] Failed to set proxy IP, no available proxy IPs\n", key)
 		return option.None[string]()
 	}
 	curProxy := proxyForHost.proxys[proxyForHost.curIndex]
 	if proxyForHost.isEcho {
-		logs.Log.Informational(" *     Set proxy IP to [%v](%v)\n",
+		logs.Log().Informational(" *     Set proxy IP to [%v](%v)\n",
 			curProxy,
 			proxyForHost.timedelay[proxyForHost.curIndex],
 		)
@@ -191,45 +191,45 @@ func (self *Proxy) GetOne(u string) option.Option[string] {
 }
 
 // testAndSort tests and sorts proxy IPs for the given host.
-func (self *Proxy) testAndSort(key string, testHost string) (*ProxyForHost, bool) {
-	logs.Log.Informational(" *     [%v] Testing and sorting proxy IPs...", key)
-	proxyForHost := self.usable[key]
+func (p *Proxy) testAndSort(key string, testHost string) (*ProxyForHost, bool) {
+	logs.Log().Informational(" *     [%v] Testing and sorting proxy IPs...", key)
+	proxyForHost := p.usable[key]
 	proxyForHost.proxys = []string{}
 	proxyForHost.timedelay = []time.Duration{}
 	proxyForHost.curIndex = 0
-	for proxy, online := range self.all {
+	for proxy, online := range p.all {
 		if !online {
 			continue
 		}
-		self.threadPool <- true
+		p.threadPool <- true
 		go func(proxy string) {
-			alive, timedelay := self.findUsable(proxy, testHost)
+			alive, timedelay := p.findUsable(proxy, testHost)
 			if alive {
 				proxyForHost.Mutex.Lock()
 				proxyForHost.proxys = append(proxyForHost.proxys, proxy)
 				proxyForHost.timedelay = append(proxyForHost.timedelay, timedelay)
 				proxyForHost.Mutex.Unlock()
 			}
-			<-self.threadPool
+			<-p.threadPool
 		}(proxy)
 	}
-	for len(self.threadPool) > 0 {
+	for len(p.threadPool) > 0 {
 		time.Sleep(0.2e9)
 	}
 	if proxyForHost.Len() > 0 {
 		sort.Sort(proxyForHost)
-		logs.Log.Informational(" *     [%v] Testing and sorting proxy IPs complete, available: %v\n", key, proxyForHost.Len())
+		logs.Log().Informational(" *     [%v] Testing and sorting proxy IPs complete, available: %v\n", key, proxyForHost.Len())
 		return proxyForHost, true
 	}
-	logs.Log.Informational(" *     [%v] Testing and sorting proxy IPs complete, no available proxy IPs\n", key)
+	logs.Log().Informational(" *     [%v] Testing and sorting proxy IPs complete, no available proxy IPs\n", key)
 	return proxyForHost, false
 }
 
 // findUsable tests proxy IP availability.
-func (self *Proxy) findUsable(proxy string, testHost string) (alive bool, timedelay time.Duration) {
+func (p *Proxy) findUsable(proxy string, testHost string) (alive bool, timedelay time.Duration) {
 	t0 := time.Now()
 	req := &request.Request{
-		Url:         testHost,
+		URL:         testHost,
 		Method:      "HEAD",
 		Header:      make(http.Header),
 		DialTimeout: time.Second * time.Duration(DAIL_TIMEOUT),
@@ -237,7 +237,7 @@ func (self *Proxy) findUsable(proxy string, testHost string) (alive bool, timede
 		TryTimes:    TRY_TIMES,
 	}
 	req.SetProxy(proxy)
-	r := self.surf.Download(req)
+	r := p.surf.Download(req)
 	if r.IsErr() {
 		return false, 0
 	}

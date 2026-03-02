@@ -22,7 +22,7 @@ func offlineWindow() {
 			DataSource:     Input,
 			ErrorPresenter: declarative.ErrorPresenterRef{&ep},
 		},
-		Title:   config.FULL_NAME + "                                                          【 运行模式 ->  单机 】",
+		Title:   config.FullName + "                                                          【 运行模式 ->  单机 】",
 		MinSize: declarative.Size{1100, 700},
 		Layout:  declarative.VBox{MarginsZero: true},
 		Children: []declarative.Widget{
@@ -94,7 +94,7 @@ func offlineWindow() {
 										Text: "*分批输出大小：（1~5,000,000 条数据）",
 									},
 									declarative.NumberEdit{
-										Value:    declarative.Bind("DockerCap", declarative.Range{1, 5000000}),
+										Value:    declarative.Bind("BatchCap", declarative.Range{1, 5000000}),
 										Suffix:   "",
 										Decimals: 0,
 									},
@@ -241,7 +241,7 @@ func offlineRunStop() {
 	}
 
 	if err := db.Submit(); err != nil {
-		logs.Log.Error("%v", err)
+		logs.Log().Error("%v", err)
 		return
 	}
 
@@ -249,7 +249,7 @@ func offlineRunStop() {
 	Input.Spiders = spiderMenu.GetChecked()
 
 	// if len(Input.Spiders) == 0 {
-	// 	logs.Log.Warning(" *     —— 亲，任务列表不能为空哦~")
+	// 	logs.Log().Warning(" *     —— 亲，任务列表不能为空哦~")
 	// 	return
 	// }
 

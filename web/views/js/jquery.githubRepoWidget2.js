@@ -24,20 +24,14 @@ $(function() {
 
             success: function(results) {
                 var repo = results.data;
-
-                var url_regex = /((http|https):\/\/)*[\w-]+(\.[\w-]+)+([\w.,@?^=%&amp;:\/~+#-]*[\w@?^=%&amp;\/~+#-])?/
-                if (repo.homepage && (m = repo.homepage.match(url_regex))) {
-                    if (m[0] && !m[1]) repo.homepage = 'http://' + m[0];
-                } else {
-                    repo.homepage = '';
-                }
+                if (!repo || !repo.html_url) return;
 
                 var $widget = $(' \
 					<div class="github-box repo">  \
 					    <div class="github-box-title"> \
 					        <div class="github-stats"> \
-					        Star<a class="watchers" title="Star" href="' + repo.url.replace('api.', '').replace('repos/', '') + '/stargazers" target="_blank">' + repo.stargazers_count + '</a> \
-					        Fork<a class="forks" title="Forks" href="' + repo.url.replace('api.', '').replace('repos/', '') + '/network" target="_blank">' + repo.forks + '</a> \
+					        Star<a class="watchers" title="Star" href="' + repo.html_url + '/stargazers" target="_blank">' + (repo.stargazers_count || 0) + '</a> \
+					        Fork<a class="forks" title="Forks" href="' + repo.html_url + '/network" target="_blank">' + (repo.forks_count || 0) + '</a> \
 					        </div> \
 					    </div> \
 					</div> \

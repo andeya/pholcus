@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"runtime/debug"
 	"strings"
+	"sync"
 
 	"github.com/robertkrimen/otto"
 
@@ -17,7 +18,10 @@ import (
 	"github.com/andeya/pholcus/logs"
 )
 
-var scriptTagRe = regexp.MustCompile(`(?s)(<Script[^>]*>)(.*?)(</Script>)`)
+var (
+	scriptTagRe     = regexp.MustCompile(`(?s)(<Script[^>]*>)(.*?)(</Script>)`)
+	registerDynOnce sync.Once
+)
 
 // evalScript executes JS and returns Result with Catch.
 func evalScript(vm *otto.Otto, script string) (r result.Result[otto.Value]) {
@@ -50,7 +54,14 @@ type (
 	}
 )
 
-func init() {
+// RegisterDynamicSpiders loads and registers all dynamic (JS-based) spider
+// rules from config.Conf().SpiderDir.
+// Safe to call multiple times; only the first call performs registration.
+func RegisterDynamicSpiders() {
+	registerDynOnce.Do(doRegisterDynamicSpiders)
+}
+
+func doRegisterDynamicSpiders() {
 	for _, _m := range getSpiderModles() {
 		m := _m
 		var sp = &Spider{
@@ -74,7 +85,7 @@ func init() {
 				vm.Set("self", self)
 				r := evalScript(vm, m.Namespace)
 				if r.IsErr() {
-					logs.Log.Error(" *     dynamic rule [Namespace]: %v\n", r.UnwrapErr())
+					logs.Log().Error(" *     dynamic rule [Namespace]: %v\n", r.UnwrapErr())
 					return ""
 				}
 				s, _ := r.Unwrap().ToString()
@@ -89,7 +100,7 @@ func init() {
 				vm.Set("dataCell", dataCell)
 				r := evalScript(vm, m.SubNamespace)
 				if r.IsErr() {
-					logs.Log.Error(" *     dynamic rule [SubNamespace]: %v\n", r.UnwrapErr())
+					logs.Log().Error(" *     dynamic rule [SubNamespace]: %v\n", r.UnwrapErr())
 					return ""
 				}
 				s, _ := r.Unwrap().ToString()
@@ -102,7 +113,7 @@ func init() {
 			vm.Set("ctx", ctx)
 			r := evalScript(vm, m.Root)
 			if r.IsErr() {
-				logs.Log.Error(" *     dynamic rule [Root]: %v\n", r.UnwrapErr())
+				logs.Log().Error(" *     dynamic rule [Root]: %v\n", r.UnwrapErr())
 			}
 		}
 
@@ -114,7 +125,7 @@ func init() {
 					vm.Set("ctx", ctx)
 					ev := evalScript(vm, parse)
 					if ev.IsErr() {
-						logs.Log.Error(" *     dynamic rule [ParseFunc]: %v\n", ev.UnwrapErr())
+						logs.Log().Error(" *     dynamic rule [ParseFunc]: %v\n", ev.UnwrapErr())
 					}
 				}
 			}(rule.ParseFunc)
@@ -126,7 +137,7 @@ func init() {
 					vm.Set("aid", aid)
 					ev := evalScript(vm, parse)
 					if ev.IsErr() {
-						logs.Log.Error(" *     dynamic rule [AidFunc]: %v\n", ev.UnwrapErr())
+						logs.Log().Error(" *     dynamic rule [AidFunc]: %v\n", ev.UnwrapErr())
 						return nil
 					}
 					return ev.Unwrap()
@@ -162,11 +173,11 @@ func wrapScriptCDATA(data []byte) []byte {
 func getSpiderModles() (ms []*SpiderModle) {
 	defer func() {
 		if p := recover(); p != nil {
-			logs.Log.Error("panic recovered (dynamic rule parsing): %v\n%s", p, debug.Stack())
+			logs.Log().Error("panic recovered (dynamic rule parsing): %v\n%s", p, debug.Stack())
 		}
 	}()
-	files, _ := filepath.Glob(path.Join(config.SPIDER_DIR, "*"+config.SPIDER_EXT))
-	oldFiles, _ := filepath.Glob(path.Join(config.SPIDER_DIR, "*"+config.SPIDER_EXT_OLD))
+	files, _ := filepath.Glob(path.Join(config.Conf().SpiderDir, "*"+config.SpiderExt))
+	oldFiles, _ := filepath.Glob(path.Join(config.Conf().SpiderDir, "*"+config.SpiderExtOld))
 	files = append(oldFiles, files...)
 	for _, filename := range files {
 		b, err := os.ReadFile(filename)

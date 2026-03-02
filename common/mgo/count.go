@@ -16,24 +16,24 @@ type Count struct {
 	Query      map[string]interface{} // query filter
 }
 
-func (self *Count) Exec(resultPtr interface{}) (r result.Result[any]) {
+func (cnt *Count) Exec(resultPtr interface{}) (r result.Result[any]) {
 	defer r.Catch()
 	resultPtr2 := resultPtr.(*int)
 	*resultPtr2 = 0
 
 	Call(func(src pool.Src) error {
-		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
+		c := src.(*MgoSrc).DB(cnt.Database).C(cnt.Collection)
 
-		if id, ok := self.Query["_id"]; ok {
+		if id, ok := cnt.Query["_id"]; ok {
 			if idStr, ok2 := id.(string); !ok2 {
 				return fmt.Errorf("%v", "parameter _id must be of string type")
 			} else {
-				self.Query["_id"] = bson.ObjectIdHex(idStr)
+				cnt.Query["_id"] = bson.ObjectIdHex(idStr)
 			}
 		}
 
 		var err error
-		*resultPtr2, err = c.Find(self.Query).Count()
+		*resultPtr2, err = c.Find(cnt.Query).Count()
 		return err
 	}).Unwrap()
 	return result.Ok[any](*resultPtr2)

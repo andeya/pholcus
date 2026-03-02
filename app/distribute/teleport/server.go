@@ -15,71 +15,71 @@ type tpServer struct {
 }
 
 // Server starts server mode; port defaults to DEFAULT_PORT.
-func (self *TP) Server(port ...string) {
-	self.reserveAPI()
-	self.mode = SERVER
+func (tp *TP) Server(port ...string) {
+	tp.reserveAPI()
+	tp.mode = SERVER
 	if len(port) > 0 {
-		self.port = port[0]
+		tp.port = port[0]
 	} else {
-		self.port = DEFAULT_PORT
+		tp.port = DEFAULT_PORT
 	}
-	if self.uid == "" {
-		self.uid = DEFAULT_SERVER_UID
+	if tp.uid == "" {
+		tp.uid = DEFAULT_SERVER_UID
 	}
-	if self.timeout == 0 {
-		self.timeout = DEFAULT_TIMEOUT_S
+	if tp.timeout == 0 {
+		tp.timeout = DEFAULT_TIMEOUT_S
 	}
-	go self.apiHandle()
-	go self.server()
+	go tp.apiHandle()
+	go tp.server()
 }
 
 // --- Server implementation ---
 
-func (self *TP) server() {
+func (tp *TP) server() {
 retry:
-	listenerRes := result.Ret(net.Listen("tcp", self.port))
+	listenerRes := result.Ret(net.Listen("tcp", tp.port))
 	if listenerRes.IsErr() {
 		debugPrintf("Debug: listen port error: %v", listenerRes.UnwrapErr())
 		time.Sleep(LOOP_TIMEOUT)
 		goto retry
 	}
-	self.listener = listenerRes.Unwrap()
+	tp.listener = listenerRes.Unwrap()
 
-	log.Printf(" *     —— Server listening (port %v) ——", self.port)
+	log.Printf(" *     —— Server listening (port %v) ——", tp.port)
 
-	for self.listener != nil {
-		connRes := result.Ret(self.listener.Accept())
+	for tp.listener != nil {
+		connRes := result.Ret(tp.listener.Accept())
 		if connRes.IsErr() {
 			return
 		}
 		conn := connRes.Unwrap()
 		debugPrintf("Debug: client %v connected, identity not yet verified", conn.RemoteAddr().String())
-		self.sGoConn(conn)
+		tp.sGoConn(conn)
 	}
 }
 
 // sGoConn starts read/write goroutines for each connection.
-func (self *TP) sGoConn(conn net.Conn) {
-	remoteAddr, connect := NewConnect(conn, self.connBufferLen, self.connWChanCap)
-	nodeuid, ok := self.sInitConn(connect, remoteAddr)
+func (tp *TP) sGoConn(conn net.Conn) {
+	remoteAddr, connect := NewConnect(conn, tp.connBufferLen, tp.connWChanCap)
+	nodeuid, ok := tp.sInitConn(connect, remoteAddr)
 	if !ok {
 		conn.Close()
 		return
 	}
 
-	go self.sReader(nodeuid)
-	go self.sWriter(nodeuid)
+	go tp.sReader(nodeuid)
+	go tp.sWriter(nodeuid)
 }
 
 // sInitConn initializes connection and binds node to conn; default key is node IP.
-func (self *TP) sInitConn(conn *Connect, remoteAddr string) (nodeuid string, usable bool) {
+func (tp *TP) sInitConn(conn *Connect, remoteAddr string) (nodeuid string, usable bool) {
 	readLen, err := conn.Read(conn.Buffer)
 	if result.TryErrVoid(err).IsErr() || readLen == 0 {
 		return
 	}
 	conn.TmpBuffer = append(conn.TmpBuffer, conn.Buffer[:readLen]...)
 	dataSlice := make([][]byte, 10)
-	dataSlice, conn.TmpBuffer = self.Unpack(conn.TmpBuffer)
+	dataSlice, conn.TmpBuffer = tp.Unpack(conn.TmpBuffer)
 
 	for i, data := range dataSlice {
 		debugPrintln("Debug: received data batch 1 before decode: ", string(data))
@@ -97,12 +97,12 @@ func (self *TP) sInitConn(conn *Connect, remoteAddr string) (nodeuid string, usa
 
 		if i == 0 {
 			debugPrintf("Debug: received data item 1 NetData: %+v", d)
-			if !self.checkRights(d, remoteAddr) {
+			if !tp.checkRights(d, remoteAddr) {
 				return
 			}
 
 			nodeuid = d.From
-			self.connPool[nodeuid] = conn
+			tp.connPool[nodeuid] = conn
 
 			if d.Operation != IDENTITY {
 				conn.Short = true
@@ -111,40 +111,40 @@ func (self *TP) sInitConn(conn *Connect, remoteAddr string) (nodeuid string, usa
 			}
 			conn.Usable = true
 		}
-		self.apiReadChan <- d
+		tp.apiReadChan <- d
 	}
 	return nodeuid, true
 }
 
 // sReader reads data on the server side.
-func (self *TP) sReader(nodeuid string) {
+func (tp *TP) sReader(nodeuid string) {
 	defer func() {
-		self.closeConn(nodeuid, false)
+		tp.closeConn(nodeuid, false)
 	}()
 
-	var conn = self.getConn(nodeuid)
+	var conn = tp.getConn(nodeuid)
 
 	for conn != nil {
 		if !conn.Short {
-			conn.SetReadDeadline(time.Now().Add(self.timeout))
+			conn.SetReadDeadline(time.Now().Add(tp.timeout))
 		}
-		if !self.read(conn) {
+		if !tp.read(conn) {
 			return
 		}
 	}
 }
 
 // sWriter sends data on the server side.
-func (self *TP) sWriter(nodeuid string) {
+func (tp *TP) sWriter(nodeuid string) {
 	defer func() {
-		self.closeConn(nodeuid, false)
+		tp.closeConn(nodeuid, false)
 	}()
 
-	var conn = self.getConn(nodeuid)
+	var conn = tp.getConn(nodeuid)
 
 	for conn != nil {
 		data := <-conn.WriteChan
-		self.send(data)
+		tp.send(data)
 		if conn.Short {
 			return
 		}

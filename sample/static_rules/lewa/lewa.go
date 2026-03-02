@@ -37,7 +37,7 @@ var Lewa = &spider.Spider{
 	EnableCookie: true,
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
-			ctx.AddQueue(&request.Request{Url: "http://accounts.lewaos.com/", Rule: "登录页"})
+			ctx.AddQueue(&request.Request{URL: "http://accounts.lewaos.com/", Rule: "登录页"})
 		},
 
 		Trunk: map[string]*spider.Rule{
@@ -45,7 +45,7 @@ var Lewa = &spider.Spider{
 			"登录页": {
 				ParseFunc: func(ctx *spider.Context) {
 					// ctx.AddQueue(&request.Request{
-					// 	Url:    "http://accounts.lewaos.com",
+					// 	URL:    "http://accounts.lewaos.com",
 					// 	Rule:   "登录后",
 					// 	Method: "POST",
 					// 	PostData: "username=123456@qq.com&password=123456&login_btn=login_btn&submit=login_btn",
@@ -69,9 +69,9 @@ var Lewa = &spider.Spider{
 						"Cookie": ctx.GetCookie(),
 					})
 					ctx.AddQueue(&request.Request{
-						Url:    "http://accounts.lewaos.com/member",
+						URL:    "http://accounts.lewaos.com/member",
 						Rule:   "个人中心",
-						Header: http.Header{"Referer": []string{ctx.GetUrl()}},
+						Header: http.Header{"Referer": []string{ctx.GetURL()}},
 					})
 				},
 			},

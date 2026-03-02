@@ -74,21 +74,21 @@ func PutContext(ctx *Context) {
 }
 
 // SetResponse binds the HTTP response to this context.
-func (self *Context) SetResponse(resp *http.Response) *Context {
-	self.Response = resp
-	return self
+func (ctx *Context) SetResponse(resp *http.Response) *Context {
+	ctx.Response = resp
+	return ctx
 }
 
 // SetError marks a download error on this context.
-func (self *Context) SetError(err error) {
-	self.err = err
+func (ctx *Context) SetError(err error) {
+	ctx.err = err
 }
 
 // --- Public Set/Exec Methods ---
 
 // AddQueue validates and enqueues a new crawl request.
 //
-// Required fields: Request.Url, Request.Rule.
+// Required fields: Request.URL, Request.Rule.
 // Request.Spider is set automatically; Request.EnableCookie is inherited from Spider.
 //
 // Fields with defaults (may be omitted):
@@ -101,41 +101,41 @@ func (self *Context) SetError(err error) {
 //   - DownloaderID: 0 = Surf (fast, full-featured), 1 = PhantomJS (slow, JS-capable)
 //
 // Referer is auto-filled from the current response URL if not set.
-func (self *Context) AddQueue(req *request.Request) *Context {
-	if self.spider.tryStop() != nil {
-		return self
+func (ctx *Context) AddQueue(req *request.Request) *Context {
+	if ctx.spider.tryStop() != nil {
+		return ctx
 	}
 
 	prepareResult := req.
-		SetSpiderName(self.spider.GetName()).
-		SetEnableCookie(self.spider.GetEnableCookie()).
+		SetSpiderName(ctx.spider.GetName()).
+		SetEnableCookie(ctx.spider.GetEnableCookie()).
 		Prepare()
 
 	if prepareResult.IsErr() {
-		logs.Log.Error(prepareResult.UnwrapErr().Error())
-		return self
+		logs.Log().Error(prepareResult.UnwrapErr().Error())
+		return ctx
 	}
 
-	if req.GetReferer() == "" && self.Response != nil {
-		req.SetReferer(self.GetUrl())
+	if req.GetReferer() == "" && ctx.Response != nil {
+		req.SetReferer(ctx.GetURL())
 	}
 
-	self.spider.RequestPush(req)
-	return self
+	ctx.spider.RequestPush(req)
+	return ctx
 }
 
 // JsAddQueue adds a request from a dynamic (JavaScript) rule definition.
-func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
-	if self.spider.tryStop() != nil {
-		return self
+func (ctx *Context) JsAddQueue(jreq map[string]interface{}) *Context {
+	if ctx.spider.tryStop() != nil {
+		return ctx
 	}
 
 	req := &request.Request{}
-	u, ok := jreq["Url"].(string)
+	u, ok := jreq["URL"].(string)
 	if !ok {
-		return self
+		return ctx
 	}
-	req.Url = u
+	req.URL = u
 	req.Rule, _ = jreq["Rule"].(string)
 	req.Method, _ = jreq["Method"].(string)
 	req.Header = http.Header{}
@@ -176,21 +176,21 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 	}
 
 	prepareResult := req.
-		SetSpiderName(self.spider.GetName()).
-		SetEnableCookie(self.spider.GetEnableCookie()).
+		SetSpiderName(ctx.spider.GetName()).
+		SetEnableCookie(ctx.spider.GetEnableCookie()).
 		Prepare()
 
 	if prepareResult.IsErr() {
-		logs.Log.Error(prepareResult.UnwrapErr().Error())
-		return self
+		logs.Log().Error(prepareResult.UnwrapErr().Error())
+		return ctx
 	}
 
-	if req.GetReferer() == "" && self.Response != nil {
-		req.SetReferer(self.GetUrl())
+	if req.GetReferer() == "" && ctx.Response != nil {
+		req.SetReferer(ctx.GetURL())
 	}
 
-	self.spider.RequestPush(req)
-	return self
+	ctx.spider.RequestPush(req)
+	return ctx
 }
 
 // Output collects a text result item.
@@ -198,52 +198,52 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 // When item is map[int]interface{}, fields are mapped using the existing ItemFields of ruleName.
 // When item is map[string]interface{}, missing ItemFields are auto-added.
 // An empty ruleName defaults to the current rule.
-func (self *Context) Output(item interface{}, ruleName ...string) {
-	_ruleName, rule, found := self.getRule(ruleName...)
+func (ctx *Context) Output(item interface{}, ruleName ...string) {
+	_ruleName, rule, found := ctx.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("spider %s: Output() called with non-existent rule name", self.spider.GetName())
+		logs.Log().Error("spider %s: Output() called with non-existent rule name", ctx.spider.GetName())
 		return
 	}
 	var _item map[string]interface{}
 	switch item2 := item.(type) {
 	case map[int]interface{}:
-		_item = self.CreatItem(item2, _ruleName)
+		_item = ctx.CreateItem(item2, _ruleName)
 	case request.Temp:
 		for k := range item2 {
-			self.spider.UpsertItemField(rule, k)
+			ctx.spider.UpsertItemField(rule, k)
 		}
 		_item = item2
 	case map[string]interface{}:
 		for k := range item2 {
-			self.spider.UpsertItemField(rule, k)
+			ctx.spider.UpsertItemField(rule, k)
 		}
 		_item = item2
 	}
-	self.Lock()
-	if self.spider.NotDefaultField {
-		self.items = append(self.items, data.GetDataCell(_ruleName, _item, "", "", ""))
+	ctx.Lock()
+	if ctx.spider.NotDefaultField {
+		ctx.items = append(ctx.items, data.GetDataCell(_ruleName, _item, "", "", ""))
 	} else {
-		self.items = append(self.items, data.GetDataCell(_ruleName, _item, self.GetUrl(), self.GetReferer(), time.Now().Format("2006-01-02 15:04:05")))
+		ctx.items = append(ctx.items, data.GetDataCell(_ruleName, _item, ctx.GetURL(), ctx.GetReferer(), time.Now().Format("2006-01-02 15:04:05")))
 	}
-	self.Unlock()
+	ctx.Unlock()
 }
 
 // FileOutput collects a file result from the response body.
 // nameOrExt optionally specifies a file name or extension; empty keeps the original.
 // Errors are logged internally; no return value for JS VM compatibility.
-func (self *Context) FileOutput(nameOrExt ...string) {
-	if self.Response == nil || self.Response.Body == nil {
-		logs.Log.Warning(" *     [FileOutput]: Response or Body is nil for %s", self.GetUrl())
+func (ctx *Context) FileOutput(nameOrExt ...string) {
+	if ctx.Response == nil || ctx.Response.Body == nil {
+		logs.Log().Warning(" *     [FileOutput]: Response or Body is nil for %s", ctx.GetURL())
 		return
 	}
-	body, err := io.ReadAll(self.Response.Body)
-	self.Response.Body.Close()
+	body, err := io.ReadAll(ctx.Response.Body)
+	ctx.Response.Body.Close()
 	if err != nil {
-		logs.Log.Error(" *     [FileOutput]: %v", err)
+		logs.Log().Error(" *     [FileOutput]: %v", err)
 		return
 	}
 
-	_, s := path.Split(self.GetUrl())
+	_, s := path.Split(ctx.GetURL())
 	n := strings.Split(s, "?")[0]
 
 	var baseName, ext string
@@ -265,410 +265,425 @@ func (self *Context) FileOutput(nameOrExt ...string) {
 		ext = ".html"
 	}
 
-	self.Lock()
-	self.files = append(self.files, data.GetFileCell(self.GetRuleName(), baseName+ext, body))
-	self.Unlock()
+	ctx.Lock()
+	ctx.files = append(ctx.files, data.GetFileCell(ctx.GetRuleName(), baseName+ext, body))
+	ctx.Unlock()
 }
 
-// CreatItem builds a text result map keyed by field names using the ItemFields of ruleName.
+// CreateItem builds a text result map keyed by field names using the ItemFields of ruleName.
 // An empty ruleName defaults to the current rule.
-func (self *Context) CreatItem(item map[int]interface{}, ruleName ...string) map[string]interface{} {
-	_, rule, found := self.getRule(ruleName...)
+func (ctx *Context) CreateItem(item map[int]interface{}, ruleName ...string) map[string]interface{} {
+	_, rule, found := ctx.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("spider %s: CreatItem() called with non-existent rule name", self.spider.GetName())
+		logs.Log().Error("spider %s: CreateItem() called with non-existent rule name", ctx.spider.GetName())
 		return nil
 	}
 
 	var item2 = make(map[string]interface{}, len(item))
 	for k, v := range item {
-		field := self.spider.GetItemField(rule, k)
+		field := ctx.spider.GetItemField(rule, k)
 		item2[field] = v
 	}
 	return item2
 }
 
 // SetTemp stores temporary data in the current request.
-func (self *Context) SetTemp(key string, value interface{}) *Context {
-	self.Request.SetTemp(key, value)
-	return self
+func (ctx *Context) SetTemp(key string, value interface{}) *Context {
+	ctx.Request.SetTemp(key, value)
+	return ctx
 }
 
-func (self *Context) SetUrl(url string) *Context {
-	self.Request.Url = url
-	return self
+func (ctx *Context) SetURL(url string) *Context {
+	ctx.Request.URL = url
+	return ctx
 }
 
-func (self *Context) SetReferer(referer string) *Context {
-	self.Request.Header.Set("Referer", referer)
-	return self
+func (ctx *Context) SetReferer(referer string) *Context {
+	ctx.Request.Header.Set("Referer", referer)
+	return ctx
 }
 
 // UpsertItemField adds a result field name to the given rule and returns its index.
 // If the field already exists, the existing index is returned.
 // An empty ruleName defaults to the current rule.
-func (self *Context) UpsertItemField(field string, ruleName ...string) (index int) {
-	_, rule, found := self.getRule(ruleName...)
+func (ctx *Context) UpsertItemField(field string, ruleName ...string) (index int) {
+	_, rule, found := ctx.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("spider %s: UpsertItemField() called with non-existent rule name", self.spider.GetName())
+		logs.Log().Error("spider %s: UpsertItemField() called with non-existent rule name", ctx.spider.GetName())
 		return
 	}
-	return self.spider.UpsertItemField(rule, field)
+	return ctx.spider.UpsertItemField(rule, field)
 }
 
 // Aid invokes the AidFunc of the specified rule.
 // An empty ruleName defaults to the current rule.
-func (self *Context) Aid(aid map[string]interface{}, ruleName ...string) interface{} {
-	if self.spider.tryStop() != nil {
+func (ctx *Context) Aid(aid map[string]interface{}, ruleName ...string) interface{} {
+	if ctx.spider.tryStop() != nil {
 		return nil
 	}
 
-	_, rule, found := self.getRule(ruleName...)
+	_, rule, found := ctx.getRule(ruleName...)
 	if !found {
 		if len(ruleName) > 0 {
-			logs.Log.Error("spider %s: Aid() called with non-existent rule: %s", self.spider.GetName(), ruleName[0])
+			logs.Log().Error("spider %s: Aid() called with non-existent rule: %s", ctx.spider.GetName(), ruleName[0])
 		} else {
-			logs.Log.Error("spider %s: Aid() called without specifying a rule name", self.spider.GetName())
+			logs.Log().Error("spider %s: Aid() called without specifying a rule name", ctx.spider.GetName())
 		}
 		return nil
 	}
 	if rule.AidFunc == nil {
-		logs.Log.Error("spider %s: rule %s has no AidFunc defined", self.spider.GetName(), ruleName[0])
+		logs.Log().Error("spider %s: rule %s has no AidFunc defined", ctx.spider.GetName(), ruleName[0])
 		return nil
 	}
-	return rule.AidFunc(self, aid)
+	return rule.AidFunc(ctx, aid)
 }
 
 // Parse dispatches the response to the ParseFunc of the specified rule.
 // An empty ruleName defaults to Root().
-func (self *Context) Parse(ruleName ...string) *Context {
-	if self.spider.tryStop() != nil {
-		return self
+func (ctx *Context) Parse(ruleName ...string) *Context {
+	if ctx.spider.tryStop() != nil {
+		return ctx
 	}
 
-	_ruleName, rule, found := self.getRule(ruleName...)
-	if self.Response != nil {
-		self.Request.SetRuleName(_ruleName)
+	_ruleName, rule, found := ctx.getRule(ruleName...)
+	if ctx.Response != nil {
+		ctx.Request.SetRuleName(_ruleName)
 	}
 	if !found {
-		self.spider.RuleTree.Root(self)
-		return self
+		ctx.spider.RuleTree.Root(ctx)
+		return ctx
 	}
 	if rule.ParseFunc == nil {
-		logs.Log.Error("spider %s: rule %s has no ParseFunc defined", self.spider.GetName(), ruleName[0])
-		return self
+		logs.Log().Error("spider %s: rule %s has no ParseFunc defined", ctx.spider.GetName(), ruleName[0])
+		return ctx
 	}
-	rule.ParseFunc(self)
-	return self
+	rule.ParseFunc(ctx)
+	return ctx
 }
 
 // SetKeyin sets the custom keyword/configuration input.
-func (self *Context) SetKeyin(keyin string) *Context {
-	self.spider.SetKeyin(keyin)
-	return self
+func (ctx *Context) SetKeyin(keyin string) *Context {
+	ctx.spider.SetKeyin(keyin)
+	return ctx
 }
 
 // SetLimit sets the maximum number of items to crawl.
-func (self *Context) SetLimit(max int) *Context {
-	self.spider.SetLimit(int64(max))
-	return self
+func (ctx *Context) SetLimit(max int) *Context {
+	ctx.spider.SetLimit(int64(max))
+	return ctx
 }
 
 // SetPausetime sets a custom pause interval (randomized: pause/2 ~ pause*2).
 // Overrides the externally configured value. Only overwrites an existing value when runtime[0] is true.
-func (self *Context) SetPausetime(pause int64, runtime ...bool) *Context {
-	self.spider.SetPausetime(pause, runtime...)
-	return self
+func (ctx *Context) SetPausetime(pause int64, runtime ...bool) *Context {
+	ctx.spider.SetPausetime(pause, runtime...)
+	return ctx
 }
 
 // SetTimer configures a timer identified by id.
 // When bell is nil, tol is a sleep duration (countdown timer).
 // When bell is non-nil, tol specifies the wake-up point (the tol-th bell occurrence from now).
-func (self *Context) SetTimer(id string, tol time.Duration, bell *Bell) bool {
-	return self.spider.SetTimer(id, tol, bell)
+func (ctx *Context) SetTimer(id string, tol time.Duration, bell *Bell) bool {
+	return ctx.spider.SetTimer(id, tol, bell)
 }
 
 // RunTimer starts the timer and reports whether it can continue to be used.
-func (self *Context) RunTimer(id string) bool {
-	return self.spider.RunTimer(id)
+func (ctx *Context) RunTimer(id string) bool {
+	return ctx.spider.RunTimer(id)
 }
 
 // ResetText replaces the downloaded text content and invalidates the DOM cache.
-func (self *Context) ResetText(body string) *Context {
+func (ctx *Context) ResetText(body string) *Context {
 	x := (*[2]uintptr)(unsafe.Pointer(&body))
 	h := [3]uintptr{x[0], x[1], x[1]}
-	self.text = *(*[]byte)(unsafe.Pointer(&h))
-	self.dom = nil
-	return self
+	ctx.text = *(*[]byte)(unsafe.Pointer(&h))
+	ctx.dom = nil
+	return ctx
 }
 
 // --- Public Get Methods ---
 
 // GetError returns the download error, or the spider's stop error if stopping.
-func (self *Context) GetError() error {
-	if err := self.spider.tryStop(); err != nil {
+func (ctx *Context) GetError() error {
+	if err := ctx.spider.tryStop(); err != nil {
 		return err
 	}
-	return self.err
+	return ctx.err
 }
 
 // Log returns the global logger instance.
 func (*Context) Log() logs.Logs {
-	return logs.Log
+	return logs.Log()
 }
 
 // GetSpider returns the spider bound to this context.
-func (self *Context) GetSpider() *Spider {
-	return self.spider
+func (ctx *Context) GetSpider() *Spider {
+	return ctx.spider
 }
 
 // GetResponse returns the HTTP response.
-func (self *Context) GetResponse() *http.Response {
-	return self.Response
+func (ctx *Context) GetResponse() *http.Response {
+	return ctx.Response
 }
 
 // GetStatusCode returns the HTTP response status code, or 0 if no response.
-func (self *Context) GetStatusCode() int {
-	if self.Response == nil {
+func (ctx *Context) GetStatusCode() int {
+	if ctx.Response == nil {
 		return 0
 	}
-	return self.Response.StatusCode
+	return ctx.Response.StatusCode
 }
 
 // GetRequest returns the original request.
-func (self *Context) GetRequest() *request.Request {
-	return self.Request
+func (ctx *Context) GetRequest() *request.Request {
+	return ctx.Request
 }
 
 // CopyRequest returns a deep copy of the original request.
-func (self *Context) CopyRequest() *request.Request {
-	return self.Request.Copy().Unwrap()
+func (ctx *Context) CopyRequest() *request.Request {
+	return ctx.Request.Copy().Unwrap()
 }
 
 // GetItemFields returns the result field name list for the given rule.
-func (self *Context) GetItemFields(ruleName ...string) []string {
-	_, rule, found := self.getRule(ruleName...)
+func (ctx *Context) GetItemFields(ruleName ...string) []string {
+	_, rule, found := ctx.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("spider %s: GetItemFields() called with non-existent rule name", self.spider.GetName())
+		logs.Log().Error("spider %s: GetItemFields() called with non-existent rule name", ctx.spider.GetName())
 		return nil
 	}
-	return self.spider.GetItemFields(rule)
+	return ctx.spider.GetItemFields(rule)
 }
 
 // GetItemField returns the field name at the given index, or "" if not found.
 // An empty ruleName defaults to the current rule.
-func (self *Context) GetItemField(index int, ruleName ...string) (field string) {
-	_, rule, found := self.getRule(ruleName...)
+func (ctx *Context) GetItemField(index int, ruleName ...string) (field string) {
+	_, rule, found := ctx.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("spider %s: GetItemField() called with non-existent rule name", self.spider.GetName())
+		logs.Log().Error("spider %s: GetItemField() called with non-existent rule name", ctx.spider.GetName())
 		return
 	}
-	return self.spider.GetItemField(rule, index)
+	return ctx.spider.GetItemField(rule, index)
 }
 
 // GetItemFieldIndex returns the index of the given field name, or -1 if not found.
 // An empty ruleName defaults to the current rule.
-func (self *Context) GetItemFieldIndex(field string, ruleName ...string) (index int) {
-	_, rule, found := self.getRule(ruleName...)
+func (ctx *Context) GetItemFieldIndex(field string, ruleName ...string) (index int) {
+	_, rule, found := ctx.getRule(ruleName...)
 	if !found {
-		logs.Log.Error("spider %s: GetItemFieldIndex() called with non-existent rule name", self.spider.GetName())
+		logs.Log().Error("spider %s: GetItemFieldIndex() called with non-existent rule name", ctx.spider.GetName())
 		return
 	}
-	return self.spider.GetItemFieldIndex(rule, field)
+	return ctx.spider.GetItemFieldIndex(rule, field)
 }
 
 // PullItems drains and returns all collected data items, resetting the internal buffer.
-func (self *Context) PullItems() (ds []data.DataCell) {
-	self.Lock()
-	ds = self.items
-	self.items = []data.DataCell{}
-	self.Unlock()
+func (ctx *Context) PullItems() (ds []data.DataCell) {
+	ctx.Lock()
+	ds = ctx.items
+	ctx.items = []data.DataCell{}
+	ctx.Unlock()
 	return
 }
 
 // PullFiles drains and returns all collected file results, resetting the internal buffer.
-func (self *Context) PullFiles() (fs []data.FileCell) {
-	self.Lock()
-	fs = self.files
-	self.files = []data.FileCell{}
-	self.Unlock()
+func (ctx *Context) PullFiles() (fs []data.FileCell) {
+	ctx.Lock()
+	fs = ctx.files
+	ctx.files = []data.FileCell{}
+	ctx.Unlock()
 	return
 }
 
 // GetKeyin returns the custom keyword/configuration input.
-func (self *Context) GetKeyin() string {
-	return self.spider.GetKeyin()
+func (ctx *Context) GetKeyin() string {
+	return ctx.spider.GetKeyin()
 }
 
 // GetLimit returns the maximum number of items to crawl.
-func (self *Context) GetLimit() int {
-	return int(self.spider.GetLimit())
+func (ctx *Context) GetLimit() int {
+	return int(ctx.spider.GetLimit())
 }
 
 // GetName returns the spider name.
-func (self *Context) GetName() string {
-	return self.spider.GetName()
+func (ctx *Context) GetName() string {
+	return ctx.spider.GetName()
 }
 
 // GetRules returns the full rule map.
-func (self *Context) GetRules() map[string]*Rule {
-	return self.spider.GetRules()
+func (ctx *Context) GetRules() map[string]*Rule {
+	return ctx.spider.GetRules()
 }
 
 // GetRule returns the rule with the given name.
-func (self *Context) GetRule(ruleName string) *Rule {
-	return self.spider.GetRule(ruleName)
+func (ctx *Context) GetRule(ruleName string) *Rule {
+	return ctx.spider.GetRule(ruleName)
 }
 
 // GetRuleName returns the current rule name from the request.
-func (self *Context) GetRuleName() string {
-	return self.Request.GetRuleName()
+func (ctx *Context) GetRuleName() string {
+	return ctx.Request.GetRuleName()
 }
 
 // GetTemp retrieves temporary data from the request by key.
 // defaultValue must not be a nil interface{}.
-func (self *Context) GetTemp(key string, defaultValue interface{}) interface{} {
-	return self.Request.GetTemp(key, defaultValue)
+func (ctx *Context) GetTemp(key string, defaultValue interface{}) interface{} {
+	return ctx.Request.GetTemp(key, defaultValue)
 }
 
 // GetTemps returns all temporary data from the request.
-func (self *Context) GetTemps() request.Temp {
-	return self.Request.GetTemps()
+func (ctx *Context) GetTemps() request.Temp {
+	return ctx.Request.GetTemps()
 }
 
 // CopyTemps returns a shallow copy of the request's temporary data.
-func (self *Context) CopyTemps() request.Temp {
+func (ctx *Context) CopyTemps() request.Temp {
 	temps := make(request.Temp)
-	for k, v := range self.Request.GetTemps() {
+	for k, v := range ctx.Request.GetTemps() {
 		temps[k] = v
 	}
 	return temps
 }
 
-// GetUrl returns the URL from the original request, preserving the unencoded form.
-func (self *Context) GetUrl() string {
-	return self.Request.Url
+// GetURL returns the URL from the original request, preserving the unencoded form.
+func (ctx *Context) GetURL() string {
+	return ctx.Request.URL
 }
 
 // GetMethod returns the HTTP method of the request.
-func (self *Context) GetMethod() string {
-	return self.Request.GetMethod()
+func (ctx *Context) GetMethod() string {
+	return ctx.Request.GetMethod()
 }
 
 // GetHost returns the host from the response URL, or "" if unavailable.
-func (self *Context) GetHost() string {
-	if self.Response == nil || self.Response.Request == nil || self.Response.Request.URL == nil {
+func (ctx *Context) GetHost() string {
+	if ctx.Response == nil || ctx.Response.Request == nil || ctx.Response.Request.URL == nil {
 		return ""
 	}
-	return self.Response.Request.URL.Host
+	return ctx.Response.Request.URL.Host
 }
 
 // GetHeader returns the response headers.
-func (self *Context) GetHeader() http.Header {
-	if self.Response == nil {
+func (ctx *Context) GetHeader() http.Header {
+	if ctx.Response == nil {
 		return http.Header{}
 	}
-	return self.Response.Header
+	return ctx.Response.Header
 }
 
 // GetRequestHeader returns the request headers from the actual HTTP request made.
-func (self *Context) GetRequestHeader() http.Header {
-	if self.Response == nil || self.Response.Request == nil {
+func (ctx *Context) GetRequestHeader() http.Header {
+	if ctx.Response == nil || ctx.Response.Request == nil {
 		return http.Header{}
 	}
-	return self.Response.Request.Header
+	return ctx.Response.Request.Header
 }
 
 // GetReferer returns the Referer header from the actual HTTP request made.
-func (self *Context) GetReferer() string {
-	if self.Response == nil || self.Response.Request == nil {
+func (ctx *Context) GetReferer() string {
+	if ctx.Response == nil || ctx.Response.Request == nil {
 		return ""
 	}
-	return self.Response.Request.Header.Get("Referer")
+	return ctx.Response.Request.Header.Get("Referer")
 }
 
 // GetCookie returns the Set-Cookie header from the response.
-func (self *Context) GetCookie() string {
-	if self.Response == nil {
+func (ctx *Context) GetCookie() string {
+	if ctx.Response == nil {
 		return ""
 	}
-	return self.Response.Header.Get("Set-Cookie")
+	return ctx.Response.Header.Get("Set-Cookie")
 }
 
 // GetDom returns the parsed HTML DOM, initializing it lazily from the response body.
-func (self *Context) GetDom() *goquery.Document {
-	if self.dom == nil {
-		if self.Response == nil {
-			logs.Log.Warning(" *     [GetDom]: Response is nil for %s", self.GetUrl())
+// Errors are stored in ctx.err and can be retrieved via GetError().
+func (ctx *Context) GetDom() *goquery.Document {
+	if ctx.dom == nil {
+		if ctx.Response == nil {
+			logs.Log().Warning(" *     [GetDom]: Response is nil for %s", ctx.GetURL())
 			return nil
 		}
-		self.initDom()
+		dom, err := ctx.initDom()
+		if err != nil {
+			ctx.err = err
+			logs.Log().Error(" *     [GetDom][%s]: %v", ctx.GetURL(), err)
+			return nil
+		}
+		return dom
 	}
-	return self.dom
+	return ctx.dom
 }
 
 // GetText returns the response body as a UTF-8 string, initializing it lazily.
-func (self *Context) GetText() string {
-	if self.text == nil {
-		if self.Response == nil {
-			logs.Log.Warning(" *     [GetText]: Response is nil for %s", self.GetUrl())
+// Errors are stored in ctx.err and can be retrieved via GetError().
+func (ctx *Context) GetText() string {
+	if ctx.text == nil {
+		if ctx.Response == nil {
+			logs.Log().Warning(" *     [GetText]: Response is nil for %s", ctx.GetURL())
 			return ""
 		}
-		self.initText()
+		if err := ctx.initText(); err != nil {
+			ctx.err = err
+			logs.Log().Error(" *     [GetText][%s]: %v", ctx.GetURL(), err)
+			return ""
+		}
 	}
-	return util.Bytes2String(self.text)
+	return util.Bytes2String(ctx.text)
 }
 
 // --- Private Methods ---
 
 // getRule resolves a rule by name, defaulting to the current request's rule.
-func (self *Context) getRule(ruleName ...string) (name string, rule *Rule, found bool) {
+func (ctx *Context) getRule(ruleName ...string) (name string, rule *Rule, found bool) {
 	if len(ruleName) == 0 {
-		if self.Response == nil {
+		if ctx.Response == nil {
 			return
 		}
-		name = self.GetRuleName()
+		name = ctx.GetRuleName()
 	} else {
 		name = ruleName[0]
 	}
-	rule = self.spider.GetRule(name)
+	rule = ctx.spider.GetRule(name)
 	return name, rule, rule != nil
 }
 
 // initDom parses the text body into a goquery Document.
-func (self *Context) initDom() *goquery.Document {
-	if self.text == nil {
-		self.initText()
+func (ctx *Context) initDom() (*goquery.Document, error) {
+	if ctx.text == nil {
+		if err := ctx.initText(); err != nil {
+			return nil, err
+		}
 	}
-	r := goquery.NewDocumentFromReader(bytes.NewReader(self.text))
+	r := goquery.NewDocumentFromReader(bytes.NewReader(ctx.text))
 	if r.IsErr() {
-		panic(r.UnwrapErr().Error())
+		return nil, r.UnwrapErr()
 	}
-	self.dom = r.Unwrap()
-	return self.dom
+	ctx.dom = r.Unwrap()
+	return ctx.dom, nil
 }
 
 // initText reads the response body and converts it to UTF-8 if needed.
-func (self *Context) initText() {
-	body, err := io.ReadAll(self.Response.Body)
-	self.Response.Body.Close()
+func (ctx *Context) initText() error {
+	body, err := io.ReadAll(ctx.Response.Body)
+	ctx.Response.Body.Close()
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
 
-	responseCT := self.Response.Header.Get("Content-Type")
-	requestCT := self.Request.Header.Get("Content-Type")
+	responseCT := ctx.Response.Header.Get("Content-Type")
+	requestCT := ctx.Request.Header.Get("Content-Type")
 	pageEncode := detectCharset(responseCT, requestCT)
 
-	if self.Request.DownloaderID == request.SURF_ID && !isUTF8(pageEncode) {
+	if ctx.Request.DownloaderID == request.SurfID && !isUTF8(pageEncode) {
 		converted, convErr := convertEncoding(body, pageEncode)
 		if convErr == nil {
-			self.text = converted
-			return
+			ctx.text = converted
+			return nil
 		}
-		logs.Log.Warning(" *     [convert][%v]: %v (ignore transcoding)\n", self.GetUrl(), convErr)
+		logs.Log().Warning(" *     [convert][%v]: %v (ignore transcoding)\n", ctx.GetURL(), convErr)
 	}
 
-	self.text = body
+	ctx.text = body
+	return nil
 }
 
 // detectCharset extracts charset from Content-Type headers (response first, then request).

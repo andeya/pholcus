@@ -13,7 +13,7 @@ func main() {
 
 	log.Println("********************************************* Surf GET download test start *********************************************")
 	r := surfer.Download(&surfer.DefaultRequest{
-		Url: "http://www.baidu.com/",
+		URL: "http://www.baidu.com/",
 	})
 	if r.IsErr() {
 		log.Fatal(r.UnwrapErr())
@@ -27,7 +27,7 @@ func main() {
 
 	log.Println("********************************************* Surf POST download test start *********************************************")
 	r = surfer.Download(&surfer.DefaultRequest{
-		Url:      "http://accounts.lewaos.com/",
+		URL:      "http://accounts.lewaos.com/",
 		Method:   "POST",
 		PostData: values,
 	})
@@ -44,7 +44,7 @@ func main() {
 	log.Println("********************************************* PhantomJS GET download test start *********************************************")
 
 	r = surfer.Download(&surfer.DefaultRequest{
-		Url:          "http://www.baidu.com/",
+		URL:          "http://www.baidu.com/",
 		DownloaderID: 1,
 	})
 	if r.IsErr() {
@@ -62,7 +62,7 @@ func main() {
 
 	r = surfer.Download(&surfer.DefaultRequest{
 		DownloaderID: 1,
-		Url:          "http://accounts.lewaos.com/",
+		URL:          "http://accounts.lewaos.com/",
 		Method:       "POST",
 		PostData:     values,
 	})

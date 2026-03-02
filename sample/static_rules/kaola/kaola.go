@@ -38,7 +38,7 @@ var Kaola = &spider.Spider{
 	EnableCookie: false,
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
-			ctx.AddQueue(&request.Request{Url: "http://www.kaola.com", Rule: "获取版块URL"})
+			ctx.AddQueue(&request.Request{URL: "http://www.kaola.com", Rule: "获取版块URL"})
 		},
 
 		Trunk: map[string]*spider.Rule{
@@ -52,7 +52,7 @@ var Kaola = &spider.Spider{
 							return
 						}
 						if url := s.Attr("href"); url.IsSome() {
-							ctx.AddQueue(&request.Request{Url: url.Unwrap(), Rule: "商品列表", Temp: map[string]interface{}{"goodsType": s.Text()}})
+							ctx.AddQueue(&request.Request{URL: url.Unwrap(), Rule: "商品列表", Temp: map[string]interface{}{"goodsType": s.Text()}})
 						}
 					})
 				},
@@ -64,7 +64,7 @@ var Kaola = &spider.Spider{
 					query.Find(".proinfo").Each(func(i int, s *goquery.Selection) {
 						if url := s.Find("a").Attr("href"); url.IsSome() {
 							ctx.AddQueue(&request.Request{
-								Url:  "http://www.kaola.com" + url.Unwrap(),
+								URL:  "http://www.kaola.com" + url.Unwrap(),
 								Rule: "商品详情",
 								Temp: map[string]interface{}{"goodsType": ctx.GetTemp("goodsType", "").(string)},
 							})

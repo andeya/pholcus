@@ -28,6 +28,6 @@ func NewConnect(conn net.Conn, bufferLen int, wChanCap int) (k string, v *Connec
 }
 
 // Addr returns the remote node address.
-func (self *Connect) Addr() string {
-	return self.Conn.RemoteAddr().String()
+func (conn *Connect) Addr() string {
+	return conn.Conn.RemoteAddr().String()
 }

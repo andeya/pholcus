@@ -11,16 +11,16 @@ import (
 type Temp map[string]interface{}
 
 // get returns temporary cached data by deserializing from JSON.
-func (self Temp) get(key string, defaultValue interface{}) interface{} {
+func (t Temp) get(key string, defaultValue interface{}) interface{} {
 	defer func() {
 		if p := recover(); p != nil {
-			logs.Log.Error(" *     Request.Temp.Get(%v): %v", key, p)
+			logs.Log().Error(" *     Request.Temp.Get(%v): %v", key, p)
 		}
 	}()
 
 	var (
 		err error
-		b   = util.String2Bytes(self[key].(string))
+		b   = util.String2Bytes(t[key].(string))
 	)
 
 	if reflect.TypeOf(defaultValue).Kind() == reflect.Ptr {
@@ -29,16 +29,16 @@ func (self Temp) get(key string, defaultValue interface{}) interface{} {
 		err = json.Unmarshal(b, &defaultValue)
 	}
 	if err != nil {
-		logs.Log.Error(" *     Request.Temp.Get(%v): %v", key, err)
+		logs.Log().Error(" *     Request.Temp.Get(%v): %v", key, err)
 	}
 	return defaultValue
 }
 
-func (self Temp) set(key string, value interface{}) Temp {
+func (t Temp) set(key string, value interface{}) Temp {
 	b, err := json.Marshal(value)
 	if err != nil {
-		logs.Log.Error(" *     Request.Temp.Set(%v): %v", key, err)
+		logs.Log().Error(" *     Request.Temp.Set(%v): %v", key, err)
 	}
-	self[key] = util.Bytes2String(b)
-	return self
+	t[key] = util.Bytes2String(b)
+	return t
 }

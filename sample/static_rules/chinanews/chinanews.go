@@ -39,7 +39,7 @@ var ChinaNews = &spider.Spider{
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				Url:  "http://www.chinanews.com/scroll-news/news1.html",
+				URL:  "http://www.chinanews.com/scroll-news/news1.html",
 				Rule: "滚动新闻",
 			})
 		},
@@ -54,7 +54,7 @@ var ChinaNews = &spider.Spider{
 					navBox.Each(func(i int, s *goquery.Selection) {
 						if url := s.Attr("href"); url.IsSome() {
 							ctx.AddQueue(&request.Request{
-								Url:  "http://www.chinanews.com" + url.Unwrap(),
+								URL:  "http://www.chinanews.com" + url.Unwrap(),
 								Rule: "新闻列表",
 							})
 						}
@@ -84,7 +84,7 @@ var ChinaNews = &spider.Spider{
 								u = "http://www.chinanews.com" + u
 							}
 							ctx.AddQueue(&request.Request{
-								Url:  u,
+								URL:  u,
 								Rule: "新闻内容",
 								Temp: map[string]interface{}{
 									"newsType":  newsType,

@@ -41,7 +41,7 @@ var GanjiGongsi = &spider.Spider{
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				Url:  "http://sz.ganji.com/gongsi/o1",
+				URL:  "http://sz.ganji.com/gongsi/o1",
 				Rule: "请求列表",
 				Temp: map[string]interface{}{"p": 1},
 			})
@@ -56,7 +56,7 @@ var GanjiGongsi = &spider.Spider{
 						return
 					}
 					ctx.AddQueue(&request.Request{
-						Url:         "http://sz.ganji.com/gongsi/o" + strconv.Itoa(curr+1),
+						URL:         "http://sz.ganji.com/gongsi/o" + strconv.Itoa(curr+1),
 						Rule:        "请求列表",
 						Temp:        map[string]interface{}{"p": curr + 1},
 						ConnTimeout: -1,
@@ -74,7 +74,7 @@ var GanjiGongsi = &spider.Spider{
 						Each(func(i int, s *goquery.Selection) {
 							url := s.Attr("href").UnwrapOr("")
 							ctx.AddQueue(&request.Request{
-								Url:         url,
+								URL:         url,
 								Rule:        "输出结果",
 								ConnTimeout: -1,
 							})
@@ -123,7 +123,7 @@ var GanjiGongsi = &spider.Spider{
 						case "联系电话：":
 							if img := s.Find("img").Attr("src"); img.IsSome() {
 								ctx.AddQueue(&request.Request{
-									Url:         "http://www.ganji.com" + img.Unwrap(),
+									URL:         "http://www.ganji.com" + img.Unwrap(),
 									Rule:        "联系方式",
 									Temp:        map[string]interface{}{"n": 公司 + "(" + 联系人 + ").png"},
 									Priority:    1,
@@ -150,7 +150,7 @@ var GanjiGongsi = &spider.Spider{
 					})
 
 					// 结果输出方式二
-					// var item map[string]interface{} = ctx.CreatItem(map[int]interface{}{
+					// var item map[string]interface{} = ctx.CreateItem(map[int]interface{}{
 					// 	0: 公司,
 					// 	1: 联系人,
 					// 	2: 地址,

@@ -6,7 +6,6 @@ import (
 
 	"github.com/andeya/pholcus/app/aid/proxy"
 	"github.com/andeya/pholcus/logs"
-	"github.com/andeya/pholcus/runtime/cache"
 	"github.com/andeya/pholcus/runtime/status"
 )
 
@@ -20,90 +19,90 @@ type scheduler struct {
 	sync.RWMutex              // global read-write lock
 }
 
-// sdl is the global scheduler instance.
-var sdl = &scheduler{
+// sched is the global scheduler instance.
+var sched = &scheduler{
 	status: status.RUN,
-	count:  make(chan bool, cache.Task.ThreadNum),
+	count:  make(chan bool, 1),
 	proxy:  proxy.New(),
 }
 
-// Init initialize scheduler.
-func Init() {
-	sdl.matrices = []*Matrix{}
-	sdl.count = make(chan bool, cache.Task.ThreadNum)
+// Init initializes the scheduler with the given concurrency and proxy settings.
+func Init(threadNum int, proxyMinute int64) {
+	sched.matrices = []*Matrix{}
+	sched.count = make(chan bool, threadNum)
 
-	if cache.Task.ProxyMinute > 0 {
-		if sdl.proxy.Count() > 0 {
-			sdl.useProxy = true
-			sdl.proxy.UpdateTicker(cache.Task.ProxyMinute)
-			logs.Log.Informational(" *     Using proxy IP, rotation interval: %v minutes\n", cache.Task.ProxyMinute)
+	if proxyMinute > 0 {
+		if sched.proxy.Count() > 0 {
+			sched.useProxy = true
+			sched.proxy.UpdateTicker(proxyMinute)
+			logs.Log().Informational(" *     Using proxy IP, rotation interval: %v minutes\n", proxyMinute)
 		} else {
-			sdl.useProxy = false
-			logs.Log.Informational(" *     Proxy IP list is empty, cannot use proxy\n")
+			sched.useProxy = false
+			logs.Log().Informational(" *     Proxy IP list is empty, cannot use proxy\n")
 		}
 	} else {
-		sdl.useProxy = false
-		logs.Log.Informational(" *     Not using proxy IP\n")
+		sched.useProxy = false
+		logs.Log().Informational(" *     Not using proxy IP\n")
 	}
 
-	sdl.status = status.RUN
+	sched.status = status.RUN
 }
 
 // ReloadProxyLib reload proxy ip list from config file.
 func ReloadProxyLib() {
-	sdl.proxy.Update()
+	sched.proxy.Update()
 }
 
 // AddMatrix registers a resource queue for the given spider and returns its Matrix.
 func AddMatrix(spiderName, spiderSubName string, maxPage int64) *Matrix {
 	matrix := newMatrix(spiderName, spiderSubName, maxPage)
-	sdl.RLock()
-	defer sdl.RUnlock()
-	sdl.matrices = append(sdl.matrices, matrix)
+	sched.RLock()
+	defer sched.RUnlock()
+	sched.matrices = append(sched.matrices, matrix)
 	return matrix
 }
 
 // PauseRecover toggles pause/resume for all crawl tasks.
 func PauseRecover() {
-	sdl.Lock()
-	defer sdl.Unlock()
-	switch sdl.status {
+	sched.Lock()
+	defer sched.Unlock()
+	switch sched.status {
 	case status.PAUSE:
-		sdl.status = status.RUN
+		sched.status = status.RUN
 	case status.RUN:
-		sdl.status = status.PAUSE
+		sched.status = status.PAUSE
 	}
 }
 
 // Stop terminates all crawl tasks.
 func Stop() {
-	sdl.Lock()
-	defer sdl.Unlock()
-	sdl.status = status.STOP
+	sched.Lock()
+	defer sched.Unlock()
+	sched.status = status.STOP
 	defer func() {
 		if p := recover(); p != nil {
-			logs.Log.Error("panic recovered: %v\n%s", p, debug.Stack())
+			logs.Log().Error("panic recovered: %v\n%s", p, debug.Stack())
 		}
 	}()
-	// for _, matrix := range sdl.matrices {
+	// for _, matrix := range sched.matrices {
 	// 	matrix.windup()
 	// }
-	close(sdl.count)
-	sdl.matrices = []*Matrix{}
+	close(sched.count)
+	sched.matrices = []*Matrix{}
 }
 
 // avgRes returns the average resources allocated per spider instance.
-func (self *scheduler) avgRes() int32 {
-	avg := int32(cap(sdl.count) / len(sdl.matrices))
+func (sched *scheduler) avgRes() int32 {
+	avg := int32(cap(sched.count) / len(sched.matrices))
 	if avg == 0 {
 		avg = 1
 	}
 	return avg
 }
 
-func (self *scheduler) checkStatus(s int) bool {
-	self.RLock()
-	b := self.status == s
-	self.RUnlock()
+func (sched *scheduler) checkStatus(s int) bool {
+	sched.RLock()
+	b := sched.status == s
+	sched.RUnlock()
 	return b
 }

@@ -41,7 +41,7 @@ var CarHome = &spider.Spider{
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				Url:  "http://club.autohome.com.cn/bbs/forum-o-200042-1.html?qaType=-1#pvareaid=101061",
+				URL:  "http://club.autohome.com.cn/bbs/forum-o-200042-1.html?qaType=-1#pvareaid=101061",
 				Rule: "请求列表",
 				Temp: map[string]interface{}{"p": 1},
 			})
@@ -57,7 +57,7 @@ var CarHome = &spider.Spider{
 						return
 					}
 					ctx.AddQueue(&request.Request{
-						Url:  "http://club.autohome.com.cn/bbs/forum-o-200042-" + strconv.Itoa(curr+1) + ".html?qaType=-1#pvareaid=101061",
+						URL:  "http://club.autohome.com.cn/bbs/forum-o-200042-" + strconv.Itoa(curr+1) + ".html?qaType=-1#pvareaid=101061",
 						Rule: "请求列表",
 						Temp: map[string]interface{}{"p": curr + 1},
 					})
@@ -74,7 +74,7 @@ var CarHome = &spider.Spider{
 						Each(func(i int, s *goquery.Selection) {
 							url := s.Find("dt a").Attr("href").UnwrapOr("")
 							ctx.AddQueue(&request.Request{
-								Url:      "http://club.autohome.com.cn" + url,
+								URL:      "http://club.autohome.com.cn" + url,
 								Rule:     "输出结果",
 								Priority: 1,
 							})

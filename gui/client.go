@@ -18,7 +18,7 @@ func clientWindow() {
 			DataSource:     Input,
 			ErrorPresenter: declarative.ErrorPresenterRef{&ep},
 		},
-		Title:    config.FULL_NAME + "                                                          【 运行模式 -> 客户端 】",
+		Title:    config.FullName + "                                                          【 运行模式 -> 客户端 】",
 		MinSize:  declarative.Size{1100, 600},
 		Layout:   declarative.VBox{MarginsZero: true},
 		Children: []declarative.Widget{

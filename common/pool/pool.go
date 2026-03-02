@@ -65,24 +65,24 @@ func ClassicPool(capacity, maxIdle int, factory Factory, gctime ...time.Duration
 }
 
 // Call invokes the callback with a resource from the pool.
-func (self *classic) Call(callback func(Src) error) result.VoidResult {
+func (c *classic) Call(callback func(Src) error) result.VoidResult {
 	var src Src
 	for {
-		self.RLock()
-		if self.closed {
-			self.RUnlock()
+		c.RLock()
+		if c.closed {
+			c.RUnlock()
 			return result.TryErrVoid(closedError)
 		}
 		select {
-		case src = <-self.srcs:
-			self.RUnlock()
+		case src = <-c.srcs:
+			c.RUnlock()
 			if !src.Usable() {
-				self.del(src)
+				c.del(src)
 				continue
 			}
 		default:
-			self.RUnlock()
-			err := self.incAuto()
+			c.RUnlock()
+			err := c.incAuto()
 			if err != nil {
 				return result.TryErrVoid(err)
 			}
@@ -95,83 +95,83 @@ func (self *classic) Call(callback func(Src) error) result.VoidResult {
 		if p := recover(); p != nil {
 			_ = fmt.Errorf("%v", p)
 		}
-		self.recover(src)
+		c.recover(src)
 	}()
 	return result.RetVoid(callback(src))
 }
 
 // Close destroys the pool and releases all resources.
-func (self *classic) Close() {
-	self.Lock()
-	defer self.Unlock()
-	if self.closed {
+func (c *classic) Close() {
+	c.Lock()
+	defer c.Unlock()
+	if c.closed {
 		return
 	}
-	self.closed = true
-	for i := len(self.srcs); i >= 0; i-- {
-		(<-self.srcs).Close()
+	c.closed = true
+	for i := len(c.srcs); i >= 0; i-- {
+		(<-c.srcs).Close()
 	}
-	close(self.srcs)
-	self.len = 0
+	close(c.srcs)
+	c.len = 0
 }
 
 // Len returns the current number of resources in the pool.
-func (self *classic) Len() int {
-	self.RLock()
-	defer self.RUnlock()
-	return self.len
+func (c *classic) Len() int {
+	c.RLock()
+	defer c.RUnlock()
+	return c.len
 }
 
 // gc runs the idle resource recycling goroutine.
-func (self *classic) gc() {
-	for !self.isClosed() {
-		self.Lock()
-		extra := len(self.srcs) - self.maxIdle
+func (c *classic) gc() {
+	for !c.isClosed() {
+		c.Lock()
+		extra := len(c.srcs) - c.maxIdle
 		if extra > 0 {
-			self.len -= extra
+			c.len -= extra
 			for ; extra > 0; extra-- {
-				(<-self.srcs).Close()
+				(<-c.srcs).Close()
 			}
 		}
-		self.Unlock()
-		time.Sleep(self.gctime)
+		c.Unlock()
+		time.Sleep(c.gctime)
 	}
 }
 
-func (self *classic) incAuto() error {
-	self.Lock()
-	defer self.Unlock()
-	if self.len >= self.capacity {
+func (c *classic) incAuto() error {
+	c.Lock()
+	defer c.Unlock()
+	if c.len >= c.capacity {
 		return nil
 	}
-	src, err := self.factory()
+	src, err := c.factory()
 	if err != nil {
 		return err
 	}
-	self.srcs <- src
-	self.len++
+	c.srcs <- src
+	c.len++
 	return nil
 }
 
-func (self *classic) del(src Src) {
+func (c *classic) del(src Src) {
 	src.Close()
-	self.Lock()
-	self.len--
-	self.Unlock()
+	c.Lock()
+	c.len--
+	c.Unlock()
 }
 
-func (self *classic) recover(src Src) {
-	self.RLock()
-	defer self.RUnlock()
-	if self.closed {
+func (c *classic) recover(src Src) {
+	c.RLock()
+	defer c.RUnlock()
+	if c.closed {
 		return
 	}
 	src.Reset()
-	self.srcs <- src
+	c.srcs <- src
 }
 
-func (self *classic) isClosed() bool {
-	self.RLock()
-	defer self.RUnlock()
-	return self.closed
+func (c *classic) isClosed() bool {
+	c.RLock()
+	defer c.RUnlock()
+	return c.closed
 }

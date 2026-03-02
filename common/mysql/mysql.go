@@ -8,12 +8,13 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/andeya/gust/result"
+	"github.com/andeya/gust/syncutil"
 	"github.com/andeya/pholcus/config"
 	"github.com/andeya/pholcus/logs"
 )
 
-// MyTable holds SQL conversion state for MySQL output.
-type MyTable struct {
+// Table holds SQL conversion state for MySQL output.
+type Table struct {
 	tableName        string
 	columnNames      [][2]string   // column header fields
 	rowsCount        int           // number of rows pending insert
@@ -23,13 +24,27 @@ type MyTable struct {
 	size             int // approximate content size
 }
 
+type mysqlConst struct {
+	maxPkt      int
+	maxConnChan chan bool
+}
+
 var (
-	err                error
-	db                 *sql.DB
-	once               sync.Once
-	max_allowed_packet = config.MYSQL_MAX_ALLOWED_PACKET - 1024
-	maxConnChan        = make(chan bool, config.MYSQL_CONN_CAP) // max concurrent execution limit
+	err  error
+	db   *sql.DB
+	once sync.Once
 )
+
+var lazyConst = syncutil.NewLazyValueWithFunc(func() result.Result[mysqlConst] {
+	return result.Ok(mysqlConst{
+		maxPkt:      config.Conf().MySQL.MaxAllowedPacket - 1024,
+		maxConnChan: make(chan bool, config.Conf().MySQL.ConnCap),
+	})
+})
+
+func getMysqlConst() *mysqlConst {
+	return lazyConst.GetPtr()
+}
 
 // DB returns the MySQL database connection and any initialization error.
 func DB() (*sql.DB, error) {
@@ -39,178 +54,183 @@ func DB() (*sql.DB, error) {
 // Refresh initializes or reconnects the MySQL database.
 func Refresh() {
 	once.Do(func() {
-		db, err = sql.Open("mysql", config.MYSQL_CONN_STR+"/"+config.DB_NAME+"?charset=utf8")
+		db, err = sql.Open("mysql", config.Conf().MySQL.ConnStr+"/"+config.Conf().DBName+"?charset=utf8")
 		if err != nil {
-			logs.Log.Error("Mysql: %v\n", err)
+			logs.Log().Error("Mysql: %v\n", err)
 			return
 		}
-		db.SetMaxOpenConns(config.MYSQL_CONN_CAP)
-		db.SetMaxIdleConns(config.MYSQL_CONN_CAP)
+		db.SetMaxOpenConns(config.Conf().MySQL.ConnCap)
+		db.SetMaxIdleConns(config.Conf().MySQL.ConnCap)
 	})
 	if err = db.Ping(); err != nil {
-		logs.Log.Error("Mysql: %v\n", err)
+		logs.Log().Error("Mysql: %v\n", err)
 	}
 }
 
-// New creates a new MyTable instance.
-func New() result.Result[*MyTable] {
-	return result.Ok(&MyTable{})
+// New creates a new Table instance.
+func New() result.Result[*Table] {
+	return result.Ok(&Table{})
 }
 
-// Clone returns a copy of the MyTable with the same table name, columns, and primary key settings.
-func (m *MyTable) Clone() *MyTable {
-	return &MyTable{
+// Clone returns a copy of the Table with the same table name, columns, and primary key settings.
+func (m *Table) Clone() *Table {
+	return &Table{
 		tableName:        m.tableName,
 		columnNames:      m.columnNames,
 		customPrimaryKey: m.customPrimaryKey,
 	}
 }
 
-// SetTableName sets the table name for the MyTable.
-func (self *MyTable) SetTableName(name string) *MyTable {
-	self.tableName = wrapSqlKey(name)
-	return self
+// SetTableName sets the table name for the Table.
+func (t *Table) SetTableName(name string) *Table {
+	t.tableName = wrapSQLKey(name)
+	return t
 }
 
 // AddColumn adds one or more column definitions to the table.
-func (self *MyTable) AddColumn(names ...string) *MyTable {
+func (t *Table) AddColumn(names ...string) *Table {
 	for _, name := range names {
 		name = strings.Trim(name, " ")
 		idx := strings.Index(name, " ")
-		self.columnNames = append(self.columnNames, [2]string{wrapSqlKey(name[:idx]), name[idx+1:]})
+		t.columnNames = append(t.columnNames, [2]string{wrapSQLKey(name[:idx]), name[idx+1:]})
 	}
-	return self
+	return t
 }
 
 // CustomPrimaryKey sets a custom primary key definition (optional).
-func (self *MyTable) CustomPrimaryKey(primaryKeyCode string) *MyTable {
-	self.AddColumn(primaryKeyCode)
-	self.customPrimaryKey = true
-	return self
+func (t *Table) CustomPrimaryKey(primaryKeyCode string) *Table {
+	t.AddColumn(primaryKeyCode)
+	t.customPrimaryKey = true
+	return t
 }
 
 // Create generates and executes a CREATE TABLE statement. Requires prior SetTableName() and AddColumn().
-func (self *MyTable) Create() (r result.VoidResult) {
+func (t *Table) Create() (r result.VoidResult) {
 	defer r.Catch()
-	if len(self.columnNames) == 0 {
+	if len(t.columnNames) == 0 {
 		return result.FmtErrVoid("Column can not be empty")
 	}
-	self.sqlCode = `CREATE TABLE IF NOT EXISTS ` + self.tableName + " ("
-	if !self.customPrimaryKey {
-		self.sqlCode += `id INT(12) NOT NULL PRIMARY KEY AUTO_INCREMENT,`
+	t.sqlCode = `CREATE TABLE IF NOT EXISTS ` + t.tableName + " ("
+	if !t.customPrimaryKey {
+		t.sqlCode += `id INT(12) NOT NULL PRIMARY KEY AUTO_INCREMENT,`
 	}
-	for _, title := range self.columnNames {
-		self.sqlCode += title[0] + ` ` + title[1] + `,`
+	for _, title := range t.columnNames {
+		t.sqlCode += title[0] + ` ` + title[1] + `,`
 	}
-	self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `) ENGINE=MyISAM DEFAULT CHARSET=utf8;`
+	t.sqlCode = t.sqlCode[:len(t.sqlCode)-1] + `) ENGINE=MyISAM DEFAULT CHARSET=utf8;`
 
-	maxConnChan <- true
+	mc := getMysqlConst()
+	mc.maxConnChan <- true
 	defer func() {
-		self.sqlCode = ""
-		<-maxConnChan
+		t.sqlCode = ""
+		<-mc.maxConnChan
 	}()
 
-	_, err := db.Exec(self.sqlCode)
+	_, err := db.Exec(t.sqlCode)
 	result.RetVoid(err).Unwrap()
 	return result.OkVoid()
 }
 
 // Truncate empties the table. Requires prior SetTableName().
-func (self *MyTable) Truncate() (r result.VoidResult) {
+func (t *Table) Truncate() (r result.VoidResult) {
 	defer r.Catch()
-	maxConnChan <- true
+	mc := getMysqlConst()
+	mc.maxConnChan <- true
 	defer func() {
-		<-maxConnChan
+		<-mc.maxConnChan
 	}()
-	_, err := db.Exec(`TRUNCATE TABLE ` + self.tableName)
+	_, err := db.Exec(`TRUNCATE TABLE ` + t.tableName)
 	result.RetVoid(err).Unwrap()
 	return result.OkVoid()
 }
 
-func (self *MyTable) addRow(value []string) *MyTable {
+func (t *Table) addRow(value []string) *Table {
 	for i, count := 0, len(value); i < count; i++ {
-		self.args = append(self.args, value[i])
+		t.args = append(t.args, value[i])
 	}
-	self.rowsCount++
-	return self
+	t.rowsCount++
+	return t
 }
 
 // AutoInsert adds a row for insert, flushing automatically when buffer is full or size limit is reached.
-func (self *MyTable) AutoInsert(value []string) *MyTable {
-	if self.rowsCount > 100 {
-		self.FlushInsert().Unwrap()
-		return self.AutoInsert(value)
+func (t *Table) AutoInsert(value []string) *Table {
+	mc := getMysqlConst()
+	if t.rowsCount > 100 {
+		t.FlushInsert().Unwrap()
+		return t.AutoInsert(value)
 	}
 	var nsize int
 	for _, v := range value {
 		nsize += len(v)
 	}
-	if nsize > max_allowed_packet {
-		logs.Log.Error("%v", "packet for query is too large. Try adjusting the 'maxallowedpacket'variable in the 'config.ini'")
-		return self
+	if nsize > mc.maxPkt {
+		logs.Log().Error("%v", "packet for query is too large. Try adjusting the 'maxallowedpacket'variable in the 'config.ini'")
+		return t
 	}
-	self.size += nsize
-	if self.size > max_allowed_packet {
-		self.FlushInsert().Unwrap()
-		return self.AutoInsert(value)
+	t.size += nsize
+	if t.size > mc.maxPkt {
+		t.FlushInsert().Unwrap()
+		return t.AutoInsert(value)
 	}
-	return self.addRow(value)
+	return t.addRow(value)
 }
 
 // FlushInsert executes the buffered INSERT. Create and AutoInsert must be called first.
-func (self *MyTable) FlushInsert() (r result.VoidResult) {
+func (t *Table) FlushInsert() (r result.VoidResult) {
 	defer r.Catch()
-	if self.rowsCount == 0 {
+	if t.rowsCount == 0 {
 		return result.OkVoid()
 	}
 
-	colCount := len(self.columnNames)
+	colCount := len(t.columnNames)
 	if colCount == 0 {
 		return result.OkVoid()
 	}
 
-	self.sqlCode = `INSERT INTO ` + self.tableName + `(`
+	t.sqlCode = `INSERT INTO ` + t.tableName + `(`
 
-	for _, v := range self.columnNames {
-		self.sqlCode += v[0] + ","
+	for _, v := range t.columnNames {
+		t.sqlCode += v[0] + ","
 	}
 
-	self.sqlCode = self.sqlCode[:len(self.sqlCode)-1] + `) VALUES `
+	t.sqlCode = t.sqlCode[:len(t.sqlCode)-1] + `) VALUES `
 
 	blank := ",(" + strings.Repeat(",?", colCount)[1:] + ")"
-	self.sqlCode += strings.Repeat(blank, self.rowsCount)[1:] + `;`
+	t.sqlCode += strings.Repeat(blank, t.rowsCount)[1:] + `;`
 
 	defer func() {
-		self.args = []interface{}{}
-		self.rowsCount = 0
-		self.size = 0
-		self.sqlCode = ""
+		t.args = []interface{}{}
+		t.rowsCount = 0
+		t.size = 0
+		t.sqlCode = ""
 	}()
 
-	maxConnChan <- true
+	mc := getMysqlConst()
+	mc.maxConnChan <- true
 	defer func() {
-		<-maxConnChan
+		<-mc.maxConnChan
 	}()
 
-	_, err := db.Exec(self.sqlCode, self.args...)
+	_, err := db.Exec(t.sqlCode, t.args...)
 	result.RetVoid(err).Unwrap()
 	return result.OkVoid()
 }
 
 // SelectAll returns all rows from the table. SetTableName must be called first.
-func (self *MyTable) SelectAll() result.Result[*sql.Rows] {
-	if self.tableName == "" {
+func (t *Table) SelectAll() result.Result[*sql.Rows] {
+	if t.tableName == "" {
 		return result.FmtErr[*sql.Rows]("表名不能为空")
 	}
-	self.sqlCode = `SELECT * FROM ` + self.tableName + `;`
+	t.sqlCode = `SELECT * FROM ` + t.tableName + `;`
 
-	maxConnChan <- true
+	mc := getMysqlConst()
+	mc.maxConnChan <- true
 	defer func() {
-		<-maxConnChan
+		<-mc.maxConnChan
 	}()
-	return result.Ret(db.Query(self.sqlCode))
+	return result.Ret(db.Query(t.sqlCode))
 }
 
-func wrapSqlKey(s string) string {
+func wrapSQLKey(s string) string {
 	return "`" + strings.ReplaceAll(s, "`", "") + "`"
 }

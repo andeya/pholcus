@@ -16,14 +16,14 @@ type BeanstalkdClient struct {
 	Tube string
 }
 
-// New creates a new BeanstalkdClient using config.BeanstalkdHost and config.BeanstalkdTube.
+// New creates a new BeanstalkdClient using config.Conf().Beanstalkd.Host and config.Conf().Beanstalkd.Tube.
 func New() result.Result[*BeanstalkdClient] {
 	tmp := new(BeanstalkdClient)
-	host := config.BeanstalkdHost
+	host := config.Conf().Beanstalkd.Host
 	if host == "" {
 		return result.TryErr[*BeanstalkdClient](errors.New("beanstalk host is empty"))
 	}
-	tube := config.BeanstalkdTube
+	tube := config.Conf().Beanstalkd.Tube
 	if tube == "" {
 		return result.TryErr[*BeanstalkdClient](errors.New("tube name is empty"))
 	}
@@ -53,7 +53,7 @@ func (srv *BeanstalkdClient) Send(content url.Values) result.VoidResult {
 
 	_, err := tube.Put([]byte(data), 1, 0, 0)
 	if err != nil {
-		logs.Log.Error("beanstalkd write error: %v, content=%s", err, data)
+		logs.Log().Error("beanstalkd write error: %v, content=%s", err, data)
 		return result.TryErrVoid(err)
 	}
 	return result.OkVoid()

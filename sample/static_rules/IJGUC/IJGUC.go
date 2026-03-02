@@ -43,7 +43,7 @@ var IJGUC = &spider.Spider{
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				Url:  "http://www.inderscience.com/info/inarticletoc.php?jcode=ijguc&year=2016&vol=7&issue=1",
+				URL:  "http://www.inderscience.com/info/inarticletoc.php?jcode=ijguc&year=2016&vol=7&issue=1",
 				Rule: "期刊列表",
 			})
 		},
@@ -57,7 +57,7 @@ var IJGUC = &spider.Spider{
 						query.Find(id).Each(func(j int, s *goquery.Selection) {
 							if url := s.Attr("href"); url.IsSome() {
 								// log.Print(url)
-								ctx.AddQueue(&request.Request{Url: url.Unwrap(), Rule: "文章列表"})
+								ctx.AddQueue(&request.Request{URL: url.Unwrap(), Rule: "文章列表"})
 							}
 						})
 					}
@@ -75,7 +75,7 @@ var IJGUC = &spider.Spider{
 										if k%2 == 0 {
 											if url := a.Attr("href"); url.IsSome() {
 												// log.Print(url)
-												ctx.AddQueue(&request.Request{Url: url.Unwrap(), Rule: "文章页"})
+												ctx.AddQueue(&request.Request{URL: url.Unwrap(), Rule: "文章页"})
 											}
 										}
 									})

@@ -6,7 +6,7 @@
     <title>{{.title}}</title>
     <!-- Tell the browser to be responsive to screen width -->
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
-    <link rel="shortcut icon" href="data:image/png;base64,{{.logo}}" type="image/x-icon">
+    <link rel="shortcut icon" href="/public/img/icon.png" type="image/x-icon">
     <!-- Bootstrap 3.3.4 -->
     <link href="/public/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
     <link href="/public/css/pholcus.css" rel="stylesheet" type="text/css" />
@@ -32,7 +32,7 @@
 <body>
     <div class="backdrop">
         <div id="step1">
-            <img src="data:image/png;base64,{{.logo}}" alt="pholcus" class="logo">
+            <img src="/public/img/icon.png" alt="pholcus" class="logo">
             <h1>Welcome to Pholcus</h1>
             <form class="form-horizontal" name="step1" method="GET" onsubmit="return Open('init');" enctype="multipart/form-data">
                 <div class="panel panel-default">
@@ -69,15 +69,23 @@
             </form>
         </div>
         <script type="text/javascript">
-            home();
+            // home() is triggered by ws.onopen in app.js
+            // to ensure WebSocket is ready before sending data.
+            // Only set up UI state that doesn't require WebSocket here.
+            (function() {
+                var m = parseInt($("#mode").val());
+                if (m !== offline && m !== server && m !== client) {
+                    $("#init").attr("disabled", "disabled");
+                }
+            })();
         </script>
         <div class="footer">
-            Github website: <a href="https://github.com/henrylee2cn/pholcus">Pholcus {{.version}}</a> / Author: {{.author}} / Discuss: <a href="http://shang.qq.com/wpa/qunwpa?idkey=83ee3e1a4be6bdb2b08a51a044c06ae52cf10a082f7c5cf6b36c1f78e8b03589">Go大数据群</a> / Apache License v2.
+            Github website: <a href="https://github.com/andeya/pholcus">Pholcus {{.version}}</a> / Author: {{.author}} / Apache License v2.
         </div>
         <!-- github -->
         <div>
             <script type="text/javascript" src="/public/js/jquery.githubRepoWidget2.js"></script>
-            <div class="github-widget" data-repo="henrylee2cn/pholcus" style="margin:5px;"></div>
+            <div class="github-widget" data-repo="andeya/pholcus" style="margin:5px;"></div>
         </div>
     </div>
 </body>

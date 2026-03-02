@@ -22,35 +22,35 @@ func NewProtocol(packetHeader string) *Protocol {
 	}
 }
 
-func (self *Protocol) ReSet(header string) {
-	self.header = header
-	self.headerLen = len([]byte(header))
+func (p *Protocol) ReSet(header string) {
+	p.header = header
+	p.headerLen = len([]byte(header))
 }
 
 // Packet frames a message for transmission.
-func (self *Protocol) Packet(message []byte) []byte {
-	return append(append([]byte(self.header), IntToBytes(len(message))...), message...)
+func (p *Protocol) Packet(message []byte) []byte {
+	return append(append([]byte(p.header), IntToBytes(len(message))...), message...)
 }
 
 // Unpack extracts messages from the buffer.
-func (self *Protocol) Unpack(buffer []byte) (readerSlice [][]byte, bufferOver []byte) {
+func (p *Protocol) Unpack(buffer []byte) (readerSlice [][]byte, bufferOver []byte) {
 	length := len(buffer)
 
 	var i int
 	for i = 0; i < length; i = i + 1 {
-		if length < i+self.headerLen+DataLengthOfLenth {
+		if length < i+p.headerLen+DataLengthOfLenth {
 			break
 		}
-		if string(buffer[i:i+self.headerLen]) == self.header {
-			messageLength := BytesToInt(buffer[i+self.headerLen : i+self.headerLen+DataLengthOfLenth])
-			if length < i+self.headerLen+DataLengthOfLenth+messageLength {
+		if string(buffer[i:i+p.headerLen]) == p.header {
+			messageLength := BytesToInt(buffer[i+p.headerLen : i+p.headerLen+DataLengthOfLenth])
+			if length < i+p.headerLen+DataLengthOfLenth+messageLength {
 				break
 			}
-			data := buffer[i+self.headerLen+DataLengthOfLenth : i+self.headerLen+DataLengthOfLenth+messageLength]
+			data := buffer[i+p.headerLen+DataLengthOfLenth : i+p.headerLen+DataLengthOfLenth+messageLength]
 
 			readerSlice = append(readerSlice, data)
 
-			i += self.headerLen + DataLengthOfLenth + messageLength - 1
+			i += p.headerLen + DataLengthOfLenth + messageLength - 1
 		}
 	}
 

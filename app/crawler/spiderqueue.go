@@ -34,26 +34,26 @@ func NewSpiderQueue() SpiderQueue {
 }
 
 // Reset clears the spider queue.
-func (self *sq) Reset() {
-	self.list = []*spider.Spider{}
+func (sq *sq) Reset() {
+	sq.list = []*spider.Spider{}
 }
 
 // Add appends a spider to the queue.
-func (self *sq) Add(sp *spider.Spider) {
-	sp.SetId(self.Len())
-	self.list = append(self.list, sp)
+func (sq *sq) Add(sp *spider.Spider) {
+	sp.SetID(sq.Len())
+	sq.list = append(sq.list, sp)
 }
 
 // AddAll appends all spiders in the list to the queue.
-func (self *sq) AddAll(list []*spider.Spider) {
+func (sq *sq) AddAll(list []*spider.Spider) {
 	for _, v := range list {
-		self.Add(v)
+		sq.Add(v)
 	}
 }
 
 // AddKeyins iterates over the spider queue and assigns Keyin values.
 // Spiders that already have an explicit Keyin are not reassigned.
-func (self *sq) AddKeyins(keyins string) {
+func (sq *sq) AddKeyins(keyins string) {
 	keyinSlice := util.KeyinsParse(keyins)
 	if len(keyinSlice) == 0 {
 		return
@@ -61,7 +61,7 @@ func (self *sq) AddKeyins(keyins string) {
 
 	unit1 := []*spider.Spider{} // spiders that cannot receive custom config
 	unit2 := []*spider.Spider{} // spiders that can receive custom config
-	for _, v := range self.GetAll() {
+	for _, v := range sq.GetAll() {
 		if v.GetKeyin() == spider.KEYIN {
 			unit2 = append(unit2, v)
 			continue
@@ -70,46 +70,46 @@ func (self *sq) AddKeyins(keyins string) {
 	}
 
 	if len(unit2) == 0 {
-		logs.Log.Warning("This batch of tasks does not require custom configuration.\n")
+		logs.Log().Warning("This batch of tasks does not require custom configuration.\n")
 		return
 	}
 
-	self.Reset()
+	sq.Reset()
 
 	for _, keyin := range keyinSlice {
 		for _, v := range unit2 {
 			v.Keyin = keyin
-			self.Add(v.Copy())
+			sq.Add(v.Copy())
 		}
 	}
-	if self.Len() == 0 {
-		self.AddAll(append(unit1, unit2...))
+	if sq.Len() == 0 {
+		sq.AddAll(append(unit1, unit2...))
 	}
 
-	self.AddAll(unit1)
+	sq.AddAll(unit1)
 }
 
 // GetByIndex returns the spider at the given index.
-func (self *sq) GetByIndex(idx int) *spider.Spider {
-	return self.GetByIndexOpt(idx).UnwrapOr(nil)
+func (sq *sq) GetByIndex(idx int) *spider.Spider {
+	return sq.GetByIndexOpt(idx).UnwrapOr(nil)
 }
 
 // GetByIndexOpt returns the spider at the given index as Option; None if out of range.
-func (self *sq) GetByIndexOpt(idx int) option.Option[*spider.Spider] {
-	if idx >= 0 && idx < len(self.list) {
-		return option.Some(self.list[idx])
+func (sq *sq) GetByIndexOpt(idx int) option.Option[*spider.Spider] {
+	if idx >= 0 && idx < len(sq.list) {
+		return option.Some(sq.list[idx])
 	}
 	return option.None[*spider.Spider]()
 }
 
 // GetByName returns the spider with the given name, or nil if not found.
-func (self *sq) GetByName(n string) *spider.Spider {
-	return self.GetByNameOpt(n).UnwrapOr(nil)
+func (sq *sq) GetByName(n string) *spider.Spider {
+	return sq.GetByNameOpt(n).UnwrapOr(nil)
 }
 
 // GetByNameOpt returns the spider with the given name as Option.
-func (self *sq) GetByNameOpt(n string) option.Option[*spider.Spider] {
-	for _, sp := range self.list {
+func (sq *sq) GetByNameOpt(n string) option.Option[*spider.Spider] {
+	for _, sp := range sq.list {
 		if sp.GetName() == n {
 			return option.Some(sp)
 		}
@@ -118,11 +118,11 @@ func (self *sq) GetByNameOpt(n string) option.Option[*spider.Spider] {
 }
 
 // GetAll returns all spiders in the queue.
-func (self *sq) GetAll() []*spider.Spider {
-	return self.list
+func (sq *sq) GetAll() []*spider.Spider {
+	return sq.list
 }
 
 // Len returns the number of spiders in the queue.
-func (self *sq) Len() int {
-	return len(self.list)
+func (sq *sq) Len() int {
+	return len(sq.list)
 }

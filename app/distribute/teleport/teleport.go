@@ -86,112 +86,112 @@ func New() Teleport {
 
 // --- Interface implementation ---
 
-func (self *TP) SetUID(mine string, server ...string) Teleport {
+func (tp *TP) SetUID(mine string, server ...string) Teleport {
 	if len(server) > 0 {
-		self.tpClient.serverUID = server[0]
+		tp.tpClient.serverUID = server[0]
 	}
-	self.uid = mine
-	return self
+	tp.uid = mine
+	return tp
 }
 
 // SetAPI sets the application API.
-func (self *TP) SetAPI(api API) Teleport {
-	self.api = api
-	return self
+func (tp *TP) SetAPI(api API) Teleport {
+	tp.api = api
+	return tp
 }
 
 // Request pushes data; blocks until a connection exists; empty nodeuid sends to a random node.
-func (self *TP) Request(body interface{}, operation string, flag string, nodeuid ...string) {
+func (tp *TP) Request(body interface{}, operation string, flag string, nodeuid ...string) {
 	var conn *Connect
 	var uid string
 	if len(nodeuid) == 0 {
 		for {
-			if self.CountNodes() > 0 {
+			if tp.CountNodes() > 0 {
 				break
 			}
 			time.Sleep(LOOP_TIMEOUT)
 		}
-		for uid, conn = range self.connPool {
+		for uid, conn = range tp.connPool {
 			if conn.Usable {
 				nodeuid = append(nodeuid, uid)
 				break
 			}
 		}
 	}
-	conn = self.getConn(nodeuid[0])
+	conn = tp.getConn(nodeuid[0])
 	for conn == nil || !conn.Usable {
-		conn = self.getConn(nodeuid[0])
+		conn = tp.getConn(nodeuid[0])
 		time.Sleep(LOOP_TIMEOUT)
 	}
-	conn.WriteChan <- NewNetData(self.uid, nodeuid[0], operation, flag, body)
+	conn.WriteChan <- NewNetData(tp.uid, nodeuid[0], operation, flag, body)
 }
 
 // Close disconnects; empty nodeuid closes all; in server mode also stops listening.
-func (self *TP) Close(nodeuid ...string) {
-	if self.mode == CLIENT {
-		self.tpClient.mustClose = true
+func (tp *TP) Close(nodeuid ...string) {
+	if tp.mode == CLIENT {
+		tp.tpClient.mustClose = true
 
-	} else if self.mode == SERVER && self.tpServer.listener != nil {
-		self.tpServer.listener.Close()
-		log.Printf(" *     —— Server stopped listening on %v ——", self.port)
+	} else if tp.mode == SERVER && tp.tpServer.listener != nil {
+		tp.tpServer.listener.Close()
+		log.Printf(" *     —— Server stopped listening on %v ——", tp.port)
 	}
 
 	if len(nodeuid) == 0 {
-		for uid, conn := range self.connPool {
-			delete(self.connPool, uid)
+		for uid, conn := range tp.connPool {
+			delete(tp.connPool, uid)
 			conn.Close()
-			self.closeMsg(uid, conn.Addr(), conn.Short)
+			tp.closeMsg(uid, conn.Addr(), conn.Short)
 		}
 		return
 	}
 
 	for _, uid := range nodeuid {
-		conn := self.connPool[uid]
-		delete(self.connPool, uid)
+		conn := tp.connPool[uid]
+		delete(tp.connPool, uid)
 		conn.Close()
-		self.closeMsg(uid, conn.Addr(), conn.Short)
+		tp.closeMsg(uid, conn.Addr(), conn.Short)
 	}
 }
 
 // SetPackHeader sets the packet header string.
-func (self *TP) SetPackHeader(header string) Teleport {
-	self.Protocol.ReSet(header)
-	return self
+func (tp *TP) SetPackHeader(header string) Teleport {
+	tp.Protocol.ReSet(header)
+	return tp
 }
 
 // SetApiRChan sets the global receive channel length.
-func (self *TP) SetApiRChan(length int) Teleport {
-	self.apiReadChan = make(chan *NetData, length)
-	return self
+func (tp *TP) SetApiRChan(length int) Teleport {
+	tp.apiReadChan = make(chan *NetData, length)
+	return tp
 }
 
 // SetConnWChan sets per-connection write channel length.
-func (self *TP) SetConnWChan(length int) Teleport {
-	self.connWChanCap = length
-	return self
+func (tp *TP) SetConnWChan(length int) Teleport {
+	tp.connWChanCap = length
+	return tp
 }
 
 // SetConnBuffer sets per-connection receive buffer size.
-func (self *TP) SetConnBuffer(length int) Teleport {
-	self.connBufferLen = length
-	return self
+func (tp *TP) SetConnBuffer(length int) Teleport {
+	tp.connBufferLen = length
+	return tp
 }
 
 // SetTimeout sets connection timeout (heartbeat interval).
-func (self *TP) SetTimeout(long time.Duration) Teleport {
-	self.timeout = long
-	return self
+func (tp *TP) SetTimeout(long time.Duration) Teleport {
+	tp.timeout = long
+	return tp
 }
 
 // GetMode returns run mode.
-func (self *TP) GetMode() int {
-	return self.mode
+func (tp *TP) GetMode() int {
+	return tp.mode
 }
 
 // CountNodes returns the number of active connections.
-func (self *TP) CountNodes() int {
+func (tp *TP) CountNodes() int {
 	count := 0
-	for _, conn := range self.connPool {
+	for _, conn := range tp.connPool {
 		if conn != nil && conn.Usable {
 			count++
 		}
@@ -199,24 +199,24 @@ func (self *TP) CountNodes() int {
 	return count
 }
 
-func (self *TP) read(conn *Connect) bool {
+func (tp *TP) read(conn *Connect) bool {
 	readLen, err := conn.Read(conn.Buffer)
 	if result.TryErrVoid(err).IsErr() || readLen == 0 {
 		return false
 	}
 	conn.TmpBuffer = append(conn.TmpBuffer, conn.Buffer[:readLen]...)
-	self.save(conn)
+	tp.save(conn)
 	return true
 }
 
 // getConn returns the connection for the given node UID.
-func (self *TP) getConn(nodeuid string) *Connect {
-	return self.connPool[nodeuid]
+func (tp *TP) getConn(nodeuid string) *Connect {
+	return tp.connPool[nodeuid]
 }
 
 // getConnAddr returns the address of the connection for the given node UID.
-func (self *TP) getConnAddr(nodeuid string) string {
-	conn := self.getConn(nodeuid)
+func (tp *TP) getConnAddr(nodeuid string) string {
+	conn := tp.getConn(nodeuid)
 	if conn == nil {
 		return ""
 	}
@@ -224,31 +224,31 @@ func (self *TP) getConnAddr(nodeuid string) string {
 }
 
 // closeConn closes the connection and exits the goroutine.
-func (self *TP) closeConn(nodeuid string, reconnect bool) {
-	conn, ok := self.connPool[nodeuid]
+func (tp *TP) closeConn(nodeuid string, reconnect bool) {
+	conn, ok := tp.connPool[nodeuid]
 	if !ok {
 		return
 	}
 
 	if reconnect {
-		self.connPool[nodeuid] = nil
+		tp.connPool[nodeuid] = nil
 	} else {
-		delete(self.connPool, nodeuid)
+		delete(tp.connPool, nodeuid)
 	}
 
 	if conn == nil {
 		return
 	}
 	conn.Close()
-	self.closeMsg(nodeuid, conn.Addr(), conn.Short)
+	tp.closeMsg(nodeuid, conn.Addr(), conn.Short)
 }
 
 // closeMsg logs connection close.
-func (self *TP) closeMsg(uid, addr string, short bool) {
+func (tp *TP) closeMsg(uid, addr string, short bool) {
 	if short {
 		return
 	}
-	switch self.mode {
+	switch tp.mode {
 	case SERVER:
 		log.Printf(" *     —— Disconnected from client %v (%v) ——", uid, addr)
 	case CLIENT:
@@ -257,9 +257,9 @@ func (self *TP) closeMsg(uid, addr string, short bool) {
 }
 
 // send encodes and sends data.
-func (self *TP) send(data *NetData) {
+func (tp *TP) send(data *NetData) {
 	if data.From == "" {
-		data.From = self.uid
+		data.From = tp.uid
 	}
 
 	d := result.Ret(json.Marshal(*data)).UnwrapOrElse(func(err error) []byte {
@@ -269,21 +269,21 @@ func (self *TP) send(data *NetData) {
 	if d == nil {
 		return
 	}
-	conn := self.getConn(data.To)
+	conn := tp.getConn(data.To)
 	if conn == nil {
 		debugPrintf("Debug: send data connection closed: %+v", data)
 		return
 	}
-	end := self.Packet(d)
+	end := tp.Packet(d)
 	conn.Write(end)
 	debugPrintf("Debug: send data success: %+v", data)
 }
 
 // save decodes received data and stores it in the cache.
-func (self *TP) save(conn *Connect) {
+func (tp *TP) save(conn *Connect) {
 	debugPrintf("Debug: received data bytes: %v", conn.TmpBuffer)
 	dataSlice := make([][]byte, 10)
-	dataSlice, conn.TmpBuffer = self.Unpack(conn.TmpBuffer)
+	dataSlice, conn.TmpBuffer = tp.Unpack(conn.TmpBuffer)
 
 	for _, data := range dataSlice {
 		debugPrintf("Debug: received data before decode: %v", string(data))
@@ -296,36 +296,36 @@ func (self *TP) save(conn *Connect) {
 		if d.From == "" {
 			d.From = conn.Addr()
 		}
-		self.apiReadChan <- d
+		tp.apiReadChan <- d
 		debugPrintf("Debug: received data NetData: %+v", d)
 	}
 }
 
 // apiHandle processes requests concurrently via the API.
-func (self *TP) apiHandle() {
+func (tp *TP) apiHandle() {
 	for {
-		req := <-self.apiReadChan
+		req := <-tp.apiReadChan
 		go func(req *NetData) {
 			var conn *Connect
 
 			operation, from, to, flag := req.Operation, req.To, req.From, req.Flag
-			handle, ok := self.api[operation]
+			handle, ok := tp.api[operation]
 
 			if !ok {
-				if self.mode == SERVER {
-					self.autoErrorHandle(req, LLLEGAL, "Server ("+self.getConn(to).LocalAddr().String()+") has no API: "+req.Operation, to)
-					log.Printf("Client %v (%v) requesting non-existent API: %v", to, self.getConnAddr(to), req.Operation)
+				if tp.mode == SERVER {
+					tp.autoErrorHandle(req, LLLEGAL, "Server ("+tp.getConn(to).LocalAddr().String()+") has no API: "+req.Operation, to)
+					log.Printf("Client %v (%v) requesting non-existent API: %v", to, tp.getConnAddr(to), req.Operation)
 				} else {
-					self.autoErrorHandle(req, LLLEGAL, "Client "+from+" ("+self.getConn(to).LocalAddr().String()+") has no API: "+req.Operation, to)
-					log.Printf("Server (%v) requesting non-existent API: %v", self.getConnAddr(to), req.Operation)
+					tp.autoErrorHandle(req, LLLEGAL, "Client "+from+" ("+tp.getConn(to).LocalAddr().String()+") has no API: "+req.Operation, to)
+					log.Printf("Server (%v) requesting non-existent API: %v", tp.getConnAddr(to), req.Operation)
 				}
 				return
 			}
 
 			resp := handle.Process(req)
 			if resp == nil {
-				if conn = self.getConn(to); conn != nil && self.getConn(to).Short {
-					self.closeConn(to, false)
+				if conn = tp.getConn(to); conn != nil && tp.getConn(to).Short {
+					tp.closeConn(to, false)
 				}
 				return //continue
 			}
@@ -334,8 +334,8 @@ func (self *TP) apiHandle() {
 				resp.To = to
 			}
 
-			if conn = self.getConn(resp.To); conn == nil {
-				self.autoErrorHandle(req, FAILURE, "", to)
+			if conn = tp.getConn(resp.To); conn == nil {
+				tp.autoErrorHandle(req, FAILURE, "", to)
 				return
 			}
 
@@ -357,21 +357,21 @@ func (self *TP) apiHandle() {
 	}
 }
 
-func (self *TP) autoErrorHandle(data *NetData, status int, msg string, reqFrom string) bool {
-	oldConn := self.getConn(reqFrom)
+func (tp *TP) autoErrorHandle(data *NetData, status int, msg string, reqFrom string) bool {
+	oldConn := tp.getConn(reqFrom)
 	if oldConn == nil {
 		return false
 	}
 	respErr := ReturnError(data, status, msg)
-	respErr.From = self.uid
+	respErr.From = tp.uid
 	respErr.To = reqFrom
 	oldConn.WriteChan <- respErr
 	return true
 }
 
 // checkRights validates connection permissions.
-func (self *TP) checkRights(data *NetData, addr string) bool {
-	if data.To != self.uid {
+func (tp *TP) checkRights(data *NetData, addr string) bool {
+	if data.To != tp.uid {
 		log.Printf("Unknown connection (%v) provided wrong server identifier, request rejected", addr)
 		return false
 	}
@@ -379,9 +379,9 @@ func (self *TP) checkRights(data *NetData, addr string) bool {
 }
 
 // reserveAPI sets system-reserved API handlers.
-func (self *TP) reserveAPI() {
-	self.api[IDENTITY] = identi
-	self.api[HEARTBEAT] = beat
+func (tp *TP) reserveAPI() {
+	tp.api[IDENTITY] = identi
+	tp.api[HEARTBEAT] = beat
 }
 
 var identi, beat = new(identity), new(heartbeat)

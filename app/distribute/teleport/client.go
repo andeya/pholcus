@@ -16,44 +16,44 @@ type tpClient struct {
 }
 
 // Client starts client mode.
-func (self *TP) Client(serverAddr string, port string, isShort ...bool) {
+func (tp *TP) Client(serverAddr string, port string, isShort ...bool) {
 	if len(isShort) > 0 && isShort[0] {
-		self.tpClient.short = true
-	} else if self.timeout == 0 {
-		self.timeout = DEFAULT_TIMEOUT_C
+		tp.tpClient.short = true
+	} else if tp.timeout == 0 {
+		tp.timeout = DEFAULT_TIMEOUT_C
 	}
-	if self.tpClient.serverUID == "" {
-		self.tpClient.serverUID = DEFAULT_SERVER_UID
+	if tp.tpClient.serverUID == "" {
+		tp.tpClient.serverUID = DEFAULT_SERVER_UID
 	}
-	self.reserveAPI()
-	self.mode = CLIENT
+	tp.reserveAPI()
+	tp.mode = CLIENT
 
 	if port != "" {
-		self.port = port
+		tp.port = port
 	} else {
-		self.port = DEFAULT_PORT
+		tp.port = DEFAULT_PORT
 	}
 
-	self.serverAddr = serverAddr
+	tp.serverAddr = serverAddr
 
-	self.tpClient.mustClose = false
+	tp.tpClient.mustClose = false
 
-	go self.apiHandle()
-	go self.client()
+	go tp.apiHandle()
+	go tp.client()
 }
 
 // --- Client implementation ---
 
-func (self *TP) client() {
-	if !self.short {
+func (tp *TP) client() {
+	if !tp.short {
 		log.Println(" *     —— Connecting to server... ——")
 	}
 
 RetryLabel:
-	connRes := result.Ret(net.Dial("tcp", self.serverAddr+self.port))
+	connRes := result.Ret(net.Dial("tcp", tp.serverAddr+tp.port))
 	if connRes.IsErr() {
-		if self.tpClient.mustClose {
-			self.tpClient.mustClose = false
+		if tp.tpClient.mustClose {
+			tp.tpClient.mustClose = false
 			return
 		}
 		time.Sleep(LOOP_TIMEOUT)
@@ -61,77 +61,77 @@ RetryLabel:
 	}
 	conn := connRes.Unwrap()
 	debugPrintf("Debug: connected to server: %v", conn.RemoteAddr().String())
-	self.cGoConn(conn)
+	tp.cGoConn(conn)
 
-	if !self.short {
-		for self.CountNodes() > 0 {
+	if !tp.short {
+		for tp.CountNodes() > 0 {
 			time.Sleep(LOOP_TIMEOUT)
 		}
-		if _, ok := self.connPool[self.tpClient.serverUID]; ok {
+		if _, ok := tp.connPool[tp.tpClient.serverUID]; ok {
 			goto RetryLabel
 		}
 	}
 }
 
 // cGoConn starts read/write goroutines for the connection.
-func (self *TP) cGoConn(conn net.Conn) {
-	remoteAddr, connect := NewConnect(conn, self.connBufferLen, self.connWChanCap)
+func (tp *TP) cGoConn(conn net.Conn) {
+	remoteAddr, connect := NewConnect(conn, tp.connBufferLen, tp.connWChanCap)
 
-	self.connPool[self.tpClient.serverUID] = connect
+	tp.connPool[tp.tpClient.serverUID] = connect
 
-	if self.uid == "" {
-		self.uid = conn.LocalAddr().String()
+	if tp.uid == "" {
+		tp.uid = conn.LocalAddr().String()
 	}
 
-	if !self.short {
-		self.send(NewNetData(self.uid, self.tpClient.serverUID, IDENTITY, "", nil))
+	if !tp.short {
+		tp.send(NewNetData(tp.uid, tp.tpClient.serverUID, IDENTITY, "", nil))
 		log.Printf(" *     —— Connected to server: %v ——", remoteAddr)
 	} else {
 		connect.Short = true
 	}
 
-	self.connPool[self.tpClient.serverUID].Usable = true
-	go self.cReader(self.tpClient.serverUID)
-	go self.cWriter(self.tpClient.serverUID)
+	tp.connPool[tp.tpClient.serverUID].Usable = true
+	go tp.cReader(tp.tpClient.serverUID)
+	go tp.cWriter(tp.tpClient.serverUID)
 }
 
 // cReader reads data on the client side.
-func (self *TP) cReader(nodeuid string) {
+func (tp *TP) cReader(nodeuid string) {
 	defer func() {
-		self.closeConn(nodeuid, true)
+		tp.closeConn(nodeuid, true)
 	}()
 
-	var conn = self.getConn(nodeuid)
+	var conn = tp.getConn(nodeuid)
 
 	for {
-		if !self.read(conn) {
+		if !tp.read(conn) {
 			break
 		}
 	}
 }
 
 // cWriter sends data on the client side.
-func (self *TP) cWriter(nodeuid string) {
+func (tp *TP) cWriter(nodeuid string) {
 	defer func() {
-		self.closeConn(nodeuid, true)
+		tp.closeConn(nodeuid, true)
 	}()
 
-	var conn = self.getConn(nodeuid)
+	var conn = tp.getConn(nodeuid)
 
 	for conn != nil {
-		if self.short {
-			self.send(<-conn.WriteChan)
+		if tp.short {
+			tp.send(<-conn.WriteChan)
 			continue
 		}
 
-		timing := time.After(self.timeout)
+		timing := time.After(tp.timeout)
 		data := new(NetData)
 		select {
 		case data = <-conn.WriteChan:
 		case <-timing:
-			data = NewNetData(self.uid, nodeuid, HEARTBEAT, "", nil)
+			data = NewNetData(tp.uid, nodeuid, HEARTBEAT, "", nil)
 		}
 
-		self.send(data)
+		tp.send(data)
 	}
 }

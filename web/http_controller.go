@@ -27,7 +27,7 @@ func init() {
 func web(rw http.ResponseWriter, req *http.Request) {
 	r := globalSessions.SessionStart(rw, req)
 	if r.IsErr() {
-		logs.Log.Error("session start: %v", r.UnwrapErr())
+		logs.Log().Error("session start: %v", r.UnwrapErr())
 		http.Error(rw, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -35,23 +35,22 @@ func web(rw http.ResponseWriter, req *http.Request) {
 	defer sess.SessionRelease(rw)
 	indexR := result.Ret(viewsFS.ReadFile("views/index.html"))
 	if indexR.IsErr() {
-		logs.Log.Error("read index.html: %v", indexR.UnwrapErr())
+		logs.Log().Error("read index.html: %v", indexR.UnwrapErr())
 		http.Error(rw, "internal error", http.StatusInternalServerError)
 		return
 	}
 	index := indexR.Unwrap()
 	tR := result.Ret(template.New("index").Parse(string(index)))
 	if tR.IsErr() {
-		logs.Log.Error("%v", tR.UnwrapErr())
+		logs.Log().Error("%v", tR.UnwrapErr())
 		http.Error(rw, "internal error", http.StatusInternalServerError)
 		return
 	}
 	t := tR.Unwrap()
 	data := map[string]interface{}{
-		"title":   config.NAME,
-		"logo":    config.ICON_PNG,
-		"version": config.VERSION,
-		"author":  config.AUTHOR,
+		"title":   config.Name,
+		"version": config.Version,
+		"author":  config.Author,
 		"mode": map[string]int{
 			"offline": status.OFFLINE,
 			"server":  status.SERVER,

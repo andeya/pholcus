@@ -37,9 +37,9 @@ var (
 	isNumRegexp    = regexp.MustCompile(`^\d+$`)
 )
 
-// JsonpToJson modify jsonp string to json string
+// JSONPToJSON modify jsonp string to json string
 // Example: forbar({a:"1",b:2}) to {"a":"1","b":2}
-func JsonpToJson(json string) string {
+func JSONPToJSON(json string) string {
 	start := strings.Index(json, "{")
 	end := strings.LastIndex(json, "}")
 	start1 := strings.Index(json, "[")
@@ -73,7 +73,7 @@ func Mkdir(filePath string) result.VoidResult {
 func GetWDPath() string {
 	wd := os.Getenv("GOPATH")
 	if wd == "" {
-		panic("GOPATH is not setted in env.")
+		panic("GOPATH is not set in env.")
 	}
 	return wd
 }
@@ -223,8 +223,8 @@ func IsNum(a string) bool {
 	return isNumRegexp.MatchString(a)
 }
 
-// XML2mapstr converts simple XML to a string map (supports UTF-8).
-func XML2mapstr(xmldoc string) map[string]string {
+// XML2MapStr converts simple XML to a string map (supports UTF-8).
+func XML2MapStr(xmldoc string) map[string]string {
 	var t xml.Token
 	var err error
 	inputReader := strings.NewReader(xmldoc)
@@ -281,8 +281,8 @@ func MakeMd5(obj interface{}, length int) string {
 	return s[:length]
 }
 
-// JsonString converts obj to a JSON string.
-func JsonString(obj interface{}) string {
+// JSONString converts obj to a JSON string.
+func JSONString(obj interface{}) string {
 	b, _ := json.Marshal(obj)
 	s := fmt.Sprintf("%+v", Bytes2String(b))
 	r := strings.ReplaceAll(s, `\u003c`, "<")

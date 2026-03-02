@@ -34,10 +34,10 @@ func Refresh() {
 		conf := sarama.NewConfig()
 		conf.Producer.RequiredAcks = sarama.WaitForAll
 		conf.Producer.Retry.Max = 10
-		brokerList := config.KAFKA_BORKERS
+		brokerList := config.Conf().Kafka.Brokers
 		producer, err = sarama.NewSyncProducer(strings.Split(brokerList, ","), conf)
 		if err != nil {
-			logs.Log.Error("Kafka: %v\n", err)
+			logs.Log().Error("Kafka: %v\n", err)
 		}
 	})
 }
@@ -54,7 +54,7 @@ func (p *KafkaSender) SetTopic(topic string) {
 
 // Push sends data as a JSON message to the configured topic.
 func (p *KafkaSender) Push(data map[string]interface{}) result.VoidResult {
-	val := util.JsonString(data)
+	val := util.JSONString(data)
 	_, _, err := producer.SendMessage(&sarama.ProducerMessage{
 		Topic: p.topic,
 		Value: sarama.StringEncoder(val),

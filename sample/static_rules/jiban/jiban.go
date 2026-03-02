@@ -34,7 +34,7 @@ var Jiban = &spider.Spider{
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				Url:         "http://www.005.tv/zx/list_526_1.html",
+				URL:         "http://www.005.tv/zx/list_526_1.html",
 				Rule:        "请求",
 				Temp:        map[string]interface{}{"p": 1},
 				ConnTimeout: -1,
@@ -55,7 +55,7 @@ var Jiban = &spider.Spider{
 						}
 					})
 					ctx.AddQueue(&request.Request{
-						Url:         "http://www.005.tv/zx/list_526_" + strconv.Itoa(curr+1) + ".html",
+						URL:         "http://www.005.tv/zx/list_526_" + strconv.Itoa(curr+1) + ".html",
 						Rule:        "请求",
 						Temp:        map[string]interface{}{"p": curr + 1},
 						ConnTimeout: -1,
@@ -72,7 +72,7 @@ var Jiban = &spider.Spider{
 						Each(func(i int, s *goquery.Selection) {
 							url := s.Attr("href").UnwrapOr("")
 							ctx.AddQueue(&request.Request{
-								Url:         url,
+								URL:         url,
 								Rule:        "news",
 								ConnTimeout: -1,
 							})

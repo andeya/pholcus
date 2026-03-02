@@ -17,7 +17,7 @@
         var keyin = ctx.GetKeyin();
         var url = "http://www.baidu.com/s?wd=" + encodeURIComponent(keyin) + "&pn=0";
         ctx.JsAddQueue({
-            Url: url,
+            URL: url,
             Rule: "搜索结果"
         });
         </Script>
@@ -51,7 +51,7 @@
             var nextHref = nextPage.AttrOr("href", "");
             if (nextHref !== "") {
                 ctx.JsAddQueue({
-                    Url: "http://www.baidu.com" + nextHref,
+                    URL: "http://www.baidu.com" + nextHref,
                     Rule: "搜索结果"
                 });
             }

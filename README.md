@@ -1,52 +1,149 @@
-# Pholcus
+<div align="center">
+  <img src="https://github.com/andeya/pholcus/raw/master/doc/icon.png" width="120" alt="Pholcus Logo"/>
+  <h1>Pholcus（幽灵蛛）</h1>
+  <p><strong>纯 Go 语言编写的分布式高并发爬虫框架</strong></p>
 
 [![GitHub release](https://img.shields.io/github/release/andeya/pholcus.svg?style=flat-square)](https://github.com/andeya/pholcus/releases)
+[![GitHub stars](https://img.shields.io/github/stars/andeya/pholcus.svg?style=flat-square&label=Stars)](https://github.com/andeya/pholcus/stargazers)
 [![Go Reference](https://pkg.go.dev/badge/github.com/andeya/pholcus.svg)](https://pkg.go.dev/github.com/andeya/pholcus)
 [![Go Report Card](https://goreportcard.com/badge/github.com/andeya/pholcus?style=flat-square)](https://goreportcard.com/report/andeya/pholcus)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](https://github.com/andeya/pholcus/blob/master/LICENSE)
 [![GitHub issues](https://img.shields.io/github/issues/andeya/pholcus.svg?style=flat-square)](https://github.com/andeya/pholcus/issues?q=is%3Aopen+is%3Aissue)
 [![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/andeya/pholcus.svg?style=flat-square)](https://github.com/andeya/pholcus/issues?q=is%3Aissue+is%3Aclosed)
 
-Pholcus（幽灵蛛）是一款纯 Go 语言编写的支持分布式的高并发爬虫软件，仅用于编程学习与研究。
+<p>
+  <a href="#快速开始">快速开始</a> •
+  <a href="#核心特性">核心特性</a> •
+  <a href="#架构设计">架构设计</a> •
+  <a href="#操作界面">操作界面</a> •
+  <a href="#规则编写">规则编写</a> •
+  <a href="#常见问题">FAQ</a>
+</p>
 
-它支持单机、服务端、客户端三种运行模式，拥有 Web、GUI、命令行三种操作界面；规则简单灵活、批量任务并发、输出方式丰富（mysql/mongodb/kafka/csv/excel 等）；另外它还支持横纵向两种抓取模式，支持模拟登录和任务暂停、取消等一系列高级功能。
+</div>
 
-![Pholcus](https://github.com/andeya/pholcus/raw/master/doc/icon.png)
+---
 
 ## 免责声明
 
-**本软件仅用于学术研究，使用者需遵守其所在地的相关法律法规，请勿用于非法用途！！
-如在中国大陆频频爆出爬虫开发者涉诉与违规的[新闻](https://github.com/HiddenStrawberry/Crawler_Illegal_Cases_In_China)。**
+> **本软件仅用于学术研究，使用者需遵守其所在地的相关法律法规，请勿用于非法用途！**
+>
+> 如在中国大陆频频爆出爬虫开发者涉诉与违规的 [新闻](https://github.com/HiddenStrawberry/Crawler_Illegal_Cases_In_China)。
+>
+> **郑重声明：因违法违规使用造成的一切后果，使用者自行承担！**
 
-**郑重声明：因违法违规使用造成的一切后果，使用者自行承担！！**
+---
 
-## 爬虫原理
+## 核心特性
 
-![模块结构](https://github.com/andeya/pholcus/raw/master/doc/module.png)
+<table>
+<tr>
+<td width="50%">
 
-![项目架构](https://github.com/andeya/pholcus/raw/master/doc/project.png)
+**运行模式**
 
-![分布式架构](https://github.com/andeya/pholcus/raw/master/doc/distribute.png)
+- 单机模式 — 开箱即用
+- 服务端模式 — 分发任务
+- 客户端模式 — 接收并执行任务
 
-## 框架特点
+</td>
+<td width="50%">
 
-- 为具备一定 Go 或 JS 编程基础的用户提供只需关注规则定制、功能完备的重量级爬虫工具
-- 支持单机、服务端、客户端三种运行模式
-- GUI（仅 Windows）、Web、Cmd 三种操作界面，可通过参数控制打开方式
-- 支持状态控制，如暂停、恢复、停止等
-- 可控制采集量与并发协程数
-- 支持多采集任务并发执行
-- 支持代理 IP 列表，可控制更换频率
-- 支持采集过程随机停歇，模拟人工行为
-- 根据规则需求，提供自定义配置输入接口
-- 支持 mysql、mongodb、kafka、csv、excel、原文件下载共六种输出方式
-- 支持分批输出，且每批数量可控
-- 支持静态 Go 和动态 JS 两种采集规则，支持横纵向两种抓取模式，且有大量 Demo
-- 持久化成功记录，便于自动去重
-- 序列化失败请求，支持反序列化自动重载处理
-- 采用 surfer 高并发下载器，支持 GET/POST/HEAD 方法及 http/https 协议，同时支持固定 UserAgent 自动保存 cookie 与随机大量 UserAgent 禁用 cookie 两种模式，高度模拟浏览器行为，可实现模拟登录等功能
-- 服务器/客户端模式采用 Teleport 高并发 SocketAPI 框架，全双工长连接通信，内部数据传输格式为 JSON
+**操作界面**
+
+- Web UI — 跨平台，浏览器操作
+- GUI — Windows 原生界面
+- Cmd — 命令行批量调度
+
+</td>
+</tr>
+<tr>
+<td>
+
+**数据输出**
+
+- MySQL / MongoDB
+- Kafka / Beanstalkd
+- CSV / Excel
+- 原文件下载
+
+</td>
+<td>
+
+**爬虫规则**
+
+- 静态规则（Go）— 高性能，深度定制
+- 动态规则（JS/XML）— 热加载，无需编译
+- 30+ 内置示例规则
+
+</td>
+</tr>
+</table>
+
+**更多亮点：**
+
+- 高并发下载器 [surfer](app/downloader/surfer)，支持 GET / POST / HEAD，兼容 HTTP / HTTPS
+- 智能 Cookie 管理：固定 UserAgent 自动保存 cookie，或随机 UserAgent 禁用 cookie
+- 模拟登录、自定义 Header、POST 表单提交
+- 代理 IP 池，可按频率自动更换
+- 随机停歇机制，模拟人工行为
+- 采集量与并发协程数可控
+- 请求自动去重 + 失败请求自动重试
+- 成功记录持久化，支持断点续爬
+- 分布式通信全双工 Socket 框架
+
+---
+
+## 架构设计
+
+<details>
+<summary><b>模块结构</b></summary>
+<br/>
+<img src="https://github.com/andeya/pholcus/raw/master/doc/module.png" alt="模块结构" width="700"/>
+</details>
+
+<details>
+<summary><b>项目架构</b></summary>
+<br/>
+<img src="https://github.com/andeya/pholcus/raw/master/doc/project.png" alt="项目架构" width="700"/>
+</details>
+
+<details>
+<summary><b>分布式架构</b></summary>
+<br/>
+<img src="https://github.com/andeya/pholcus/raw/master/doc/distribute.png" alt="分布式架构" width="700"/>
+</details>
+
+### 目录结构
+
+```
+pholcus/
+├── app/                    核心逻辑
+│   ├── crawler/            爬虫引擎 & 并发池
+│   ├── downloader/         下载器（surfer）
+│   ├── pipeline/           数据管道 & 多种输出后端
+│   ├── scheduler/          请求调度器
+│   ├── spider/             爬虫规则引擎
+│   ├── distribute/         分布式 Master/Slave 通信
+│   └── aid/                辅助模块（历史记录、代理 IP）
+├── config/                 配置管理
+├── exec/                   启动入口 & 平台适配
+├── cmd/                    命令行模式
+├── gui/                    GUI 模式（Windows）
+├── web/                    Web UI 模式
+├── common/                 公共工具库（DB 驱动、编码、队列等）
+├── logs/                   日志模块
+├── runtime/                运行时缓存 & 状态
+└── sample/                 示例程序 & 30+ 爬虫规则
+```
+
+---
 
 ## 快速开始
+
+### 环境要求
+
+- Go 1.18+（推荐 1.22+）
 
 ### 获取源码
 
@@ -55,23 +152,22 @@ git clone https://github.com/andeya/pholcus.git
 cd pholcus
 ```
 
-### 创建项目
+### 编写入口
 
-参考 `sample/pholcus_web.go`：
+创建 `main.go`（或参考 `sample/main.go`）：
 
 ```go
 package main
 
 import (
     "github.com/andeya/pholcus/exec"
-    _ "github.com/andeya/pholcus/sample/static_rules" // 公开维护的 spider 规则库
-    // _ "yourproject/rules_pte"         // 也可以自由添加自己的规则库
+    _ "github.com/andeya/pholcus/sample/static_rules"  // 内置规则库
+    // _ "yourproject/rules"                            // 自定义规则库
 )
 
 func main() {
-    // 设置运行时默认操作界面，并开始运行
-    // 可通过 -a_ui 参数指定为 "web"、"gui" 或 "cmd"
-    // 其中 "gui" 仅支持 Windows 系统
+    // 启动界面：web / gui / cmd
+    // 可通过 -a_ui 运行参数覆盖
     exec.DefaultRun("web")
 }
 ```
@@ -79,141 +175,70 @@ func main() {
 ### 编译运行
 
 ```bash
-# 编译（非 Windows 平台会自动排除 GUI 包）
+# 编译（非 Windows 平台自动排除 GUI 包）
 go build -o pholcus ./sample/
 
-# 查看可选参数
+# 查看所有可选参数
 ./pholcus -h
 ```
 
-Windows 下隐藏 cmd 窗口的编译方法：
+Windows 下隐藏 cmd 窗口的编译方式：
 
 ```bash
 go build -ldflags="-H=windowsgui -linkmode=internal" -o pholcus.exe ./sample/
 ```
 
+### 命令行参数一览
+
+```bash
+./pholcus -h
+```
+
 ![命令行帮助](https://github.com/andeya/pholcus/raw/master/doc/help.jpg)
 
-> _Web 版操作界面_
+---
+
+## 操作界面
+
+### Web UI
+
+启动后访问 `http://localhost:2015`，在浏览器中即可完成蜘蛛选择、参数配置、任务启停等全部操作。
 
 ![Web 界面](https://github.com/andeya/pholcus/raw/master/doc/webshow_1.png)
 
-> _GUI 版操作界面（仅 Windows）_
+### GUI（仅 Windows）
+
+原生桌面客户端，功能与 Web 版一致。
 
 ![GUI 界面](https://github.com/andeya/pholcus/raw/master/doc/guishow_0.jpg)
 
-> _Cmd 版运行参数设置示例_
+### Cmd 命令行
+
+适用于服务器部署或 cron 定时任务场景。
 
 ```bash
 pholcus -_ui=cmd -a_mode=0 -c_spider=3,8 -a_outtype=csv -a_thread=20 \
-    -a_dockercap=5000 -a_pause=300 -a_proxyminute=0 \
+    -a_batchcap=5000 -a_pause=300 -a_proxyminute=0 \
     -a_keyins="<pholcus><golang>" -a_limit=10 -a_success=true -a_failure=true
 ```
 
-> **注意：** Mac 下如使用代理 IP 功能，请务必获取 root 用户权限，否则无法通过 `ping` 获取可用代理。
+---
 
-## 运行时目录结构
+## 规则编写
 
-```
-├── pholcus                    可执行文件
-├── dyn_rules/                 动态规则目录（由 config.ini 中 spiderdir 配置）
-│   └── xxx.pholcus.xml        动态规则文件（同时兼容 .pholcus.html）
-└── pholcus_pkg/               运行时文件目录
-    ├── config.ini             配置文件
-    ├── proxy.lib              代理 IP 列表文件
-    ├── phantomjs              PhantomJS 程序文件
-    ├── text_out/              文本数据文件输出目录
-    ├── file_out/              文件结果输出目录
-    ├── logs/                  日志目录
-    ├── history/               历史记录目录
-    └── cache/                 临时缓存目录
-```
+Pholcus 支持 **静态规则（Go）** 和 **动态规则（JS/XML）** 两种方式。
 
-## 动态规则示例
+### 静态规则（Go）
 
-特点：动态加载规则，无需重新编译软件，书写简单，添加自由，适用于轻量级的采集项目。
-
-> 支持 `.pholcus.xml`（推荐）和 `.pholcus.html`（兼容旧版）两种扩展名。`<Script>` 标签内的 JS 代码会自动包裹 CDATA，无需手动转义 `<`、`>`、`&` 等特殊字符。
-
-将以下内容保存为 `dyn_rules/example.pholcus.xml`（参考 `sample/dyn_rules/baidu_search.pholcus.xml`）：
-
-```xml
-<Spider>
-    <Name>动态规则示例</Name>
-    <Description>动态规则示例 [Auto Page] [http://xxx.xxx.xxx]</Description>
-    <Pausetime>300</Pausetime>
-    <EnableLimit>false</EnableLimit>
-    <EnableCookie>true</EnableCookie>
-    <EnableKeyin>false</EnableKeyin>
-    <NotDefaultField>false</NotDefaultField>
-    <Namespace>
-        <Script></Script>
-    </Namespace>
-    <SubNamespace>
-        <Script></Script>
-    </SubNamespace>
-    <Root>
-        <Script param="ctx">
-        ctx.JsAddQueue({
-            Url: "http://xxx.xxx.xxx",
-            Rule: "登录页"
-        });
-        </Script>
-    </Root>
-    <Rule name="登录页">
-        <ParseFunc>
-            <Script param="ctx">
-            ctx.JsAddQueue({
-                Url: "http://xxx.xxx.xxx",
-                Rule: "登录后",
-                Method: "POST",
-                PostData: "username=user@example.com&password=pass&submit=login"
-            });
-            </Script>
-        </ParseFunc>
-    </Rule>
-    <Rule name="登录后">
-        <ParseFunc>
-            <Script param="ctx">
-            ctx.Output({
-                "全部": ctx.GetText()
-            });
-            ctx.JsAddQueue({
-                Url: "http://accounts.xxx.xxx/member",
-                Rule: "个人中心",
-                Header: {
-                    "Referer": [ctx.GetUrl()]
-                }
-            });
-            </Script>
-        </ParseFunc>
-    </Rule>
-    <Rule name="个人中心">
-        <ParseFunc>
-            <Script param="ctx">
-            ctx.Output({
-                "全部": ctx.GetText()
-            });
-            </Script>
-        </ParseFunc>
-    </Rule>
-</Spider>
-```
-
-## 静态规则示例
-
-特点：随软件一同编译，定制性更强，效率更高，适用于重量级的采集项目。
-
-在 `sample/static_rules/` 目录下新建 Go 文件（参考 `sample/static_rules/chinanews/chinanews.go`）：
+随软件一同编译，性能最优，适合重量级采集项目。在 `sample/static_rules/` 下新建 Go 文件即可：
 
 ```go
 package rules
 
 import (
     "net/http"
-
     "github.com/andeya/pholcus/app/downloader/request"
-    spider "github.com/andeya/pholcus/app/spider"
+    "github.com/andeya/pholcus/app/spider"
 )
 
 func init() {
@@ -221,40 +246,18 @@ func init() {
 }
 
 var mySpider = &spider.Spider{
-    Name:         "静态规则示例",
-    Description:  "静态规则示例 [Auto Page] [http://xxx.xxx.xxx]",
+    Name:         "示例爬虫",
+    Description:  "示例爬虫 [Auto Page] [http://example.com]",
     EnableCookie: true,
     RuleTree: &spider.RuleTree{
         Root: func(ctx *spider.Context) {
             ctx.AddQueue(&request.Request{
-                Url:  "http://xxx.xxx.xxx",
-                Rule: "登录页",
+                URL:  "http://example.com",
+                Rule: "首页",
             })
         },
         Trunk: map[string]*spider.Rule{
-            "登录页": {
-                ParseFunc: func(ctx *spider.Context) {
-                    ctx.AddQueue(&request.Request{
-                        Url:      "http://xxx.xxx.xxx",
-                        Rule:     "登录后",
-                        Method:   "POST",
-                        PostData: "username=user@example.com&password=pass&submit=login",
-                    })
-                },
-            },
-            "登录后": {
-                ParseFunc: func(ctx *spider.Context) {
-                    ctx.Output(map[int]interface{}{
-                        0: ctx.GetText(),
-                    })
-                    ctx.AddQueue(&request.Request{
-                        Url:    "http://accounts.xxx.xxx/member",
-                        Rule:   "个人中心",
-                        Header: http.Header{"Referer": []string{ctx.GetUrl()}},
-                    })
-                },
-            },
-            "个人中心": {
+            "首页": {
                 ParseFunc: func(ctx *spider.Context) {
                     ctx.Output(map[int]interface{}{
                         0: ctx.GetText(),
@@ -266,9 +269,70 @@ var mySpider = &spider.Spider{
 }
 ```
 
-## 代理 IP
+> 更多示例见 [`sample/static_rules/`](sample/static_rules/)，涵盖百度、京东、淘宝、知乎等 30+ 网站。
 
-代理 IP 写在 `pholcus_pkg/proxy.lib` 文件中，格式如下（一行一个）：
+### 动态规则（JS/XML）
+
+无需编译即可热加载，适合轻量级采集。将 `.pholcus.xml` 文件放入 `dyn_rules/` 目录：
+
+```xml
+<Spider>
+    <Name>百度搜索</Name>
+    <Description>百度搜索 [Auto Page] [http://www.baidu.com]</Description>
+    <Pausetime>300</Pausetime>
+    <EnableLimit>false</EnableLimit>
+    <EnableCookie>true</EnableCookie>
+    <EnableKeyin>true</EnableKeyin>
+    <NotDefaultField>false</NotDefaultField>
+    <Namespace><Script></Script></Namespace>
+    <SubNamespace><Script></Script></SubNamespace>
+    <Root>
+        <Script param="ctx">
+        ctx.JsAddQueue({
+            URL: "http://www.baidu.com/s?wd=" + ctx.GetKeyin(),
+            Rule: "搜索结果"
+        });
+        </Script>
+    </Root>
+    <Rule name="搜索结果">
+        <ParseFunc>
+            <Script param="ctx">
+            ctx.Output({
+                "标题": ctx.GetDom().Find("title").Text(),
+                "内容": ctx.GetText()
+            });
+            </Script>
+        </ParseFunc>
+    </Rule>
+</Spider>
+```
+
+> 同时兼容 `.pholcus.html` 旧格式。`<Script>` 标签内自动包裹 CDATA，无需手动转义特殊字符。
+
+---
+
+## 配置说明
+
+### 运行时目录
+
+```
+├── pholcus                    可执行文件
+├── dyn_rules/                 动态规则目录（可在 config.ini 中配置）
+│   └── xxx.pholcus.xml        动态规则文件
+└── pholcus_pkg/               运行时文件目录
+    ├── config.ini             配置文件
+    ├── proxy.lib              代理 IP 列表
+    ├── phantomjs              PhantomJS 程序
+    ├── text_out/              文本输出目录
+    ├── file_out/              文件输出目录
+    ├── logs/                  日志目录
+    ├── history/               历史记录目录
+    └── cache/                 临时缓存目录
+```
+
+### 代理 IP
+
+在 `pholcus_pkg/proxy.lib` 文件中逐行写入代理地址：
 
 ```
 http://183.141.168.95:3128
@@ -276,24 +340,79 @@ https://60.13.146.92:8088
 http://59.59.4.22:8090
 ```
 
-在操作界面选择"代理 IP 更换频率"或命令行设置 `-a_proxyminute` 参数即可启用。
+通过界面选择"代理 IP 更换频率"或命令行参数 `-a_proxyminute` 启用。
 
-> **注意：** Mac 下如使用代理 IP 功能，请务必获取 root 用户权限，否则无法通过 `ping` 获取可用代理。
+> **注意：** macOS 下使用代理 IP 功能需要 root 权限，否则无法通过 `ping` 检测可用代理。
 
-## FAQ
+---
 
-**请求队列中，重复的 URL 是否会自动去重？**
+## 内置爬虫规则
 
-URL 默认情况下是去重的，但可以通过设置 `Request.Reloadable = true` 忽略重复。
+| 分类     | 规则名称                                                  |
+| -------- | --------------------------------------------------------- |
+| 搜索引擎 | 百度搜索、百度新闻、谷歌搜索、京东搜索、淘宝搜索          |
+| 电商平台 | 京东、淘宝、考拉海购、蜜芽宝贝、顺丰海淘、Holland&Barrett |
+| 新闻资讯 | 中国新闻网、网易新闻、人民网                              |
+| 社交问答 | 知乎日报、知乎编辑推荐、悟空问答、微博粉丝                |
+| 房产汽车 | 房天下二手房、汽车之家                                    |
+| 数码科技 | ZOL 手机、ZOL 电脑、ZOL 平板、乐蛙                        |
+| 分类信息 | 赶集公司、全国区号                                        |
+| 社交工具 | QQ 头像                                                   |
+| 学术期刊 | IJGUC                                                     |
+| 其他     | 阿里巴巴、技版、文件下载测试                              |
 
-**URL 指向的页面内容若有更新，框架是否有判断机制？**
+---
 
-框架无法直接判断页面内容更新，但用户可以在规则中自定义支持。
+## 常见问题
 
-**请求成功是依据 HTTP 状态码判断？**
+<details>
+<summary><b>请求队列中重复的 URL 会自动去重吗？</b></summary>
 
-不是判断状态码，而是判断服务器有无响应流返回。即 404 页面同样属于请求成功。
+默认自动去重。如需允许重复请求，设置 `Request.Reloadable = true`。
 
-**请求失败后的重新请求机制？**
+</details>
 
-每个 URL 尝试下载指定次数后，若依然失败，则将该请求追加到一个类似 defer 性质的特殊队列中。在当前任务正常结束后，将自动添加至下载队列再次下载。如果依然失败，则保存至失败历史记录。下次执行该条爬虫规则时，可通过选择继承历史失败记录，把这些失败请求自动加入重试队列。
+<details>
+<summary><b>框架能否判断页面内容是否更新？</b></summary>
+
+框架不内置页面变更检测，但可在规则中自定义实现。
+
+</details>
+
+<details>
+<summary><b>请求成功的判定标准是什么？</b></summary>
+
+以服务器是否返回响应流为准，而非 HTTP 状态码。即 404 页面也算"请求成功"。
+
+</details>
+
+<details>
+<summary><b>请求失败后如何重试？</b></summary>
+
+每个 URL 尝试下载指定次数后，若仍失败则进入 defer 队列。当前任务正常结束后自动重试。再次失败则保存至失败历史记录。下次执行同一规则时，可选择继承历史失败记录进行自动重试。
+
+</details>
+
+---
+
+## 参与贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+1. Fork 本仓库
+2. 创建特性分支：`git checkout -b feature/your-feature`
+3. 提交更改：`git commit -m 'Add your feature'`
+4. 推送分支：`git push origin feature/your-feature`
+5. 提交 Pull Request
+
+---
+
+## 开源协议
+
+本项目基于 [Apache License 2.0](LICENSE) 开源。
+
+---
+
+<div align="center">
+  <sub>Created by <a href="https://github.com/andeya">andeya</a> — 如果觉得有帮助，请给个 Star 支持！</sub>
+</div>

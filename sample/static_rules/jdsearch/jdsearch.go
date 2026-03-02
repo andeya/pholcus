@@ -50,13 +50,13 @@ var JDSearch = &spider.Spider{
 					for loop := aid["loop"].([2]int); loop[0] < loop[1]; loop[0]++ {
 						ctx.AddQueue(
 							&request.Request{
-								Url:  "http://search.jd.com/Search?keyin=" + ctx.GetKeyin() + "&enc=utf-8&qrst=1&rt=1&stop=1&click=&psort=&page=" + strconv.Itoa(2*loop[0]+1),
+								URL:  "http://search.jd.com/Search?keyin=" + ctx.GetKeyin() + "&enc=utf-8&qrst=1&rt=1&stop=1&click=&psort=&page=" + strconv.Itoa(2*loop[0]+1),
 								Rule: aid["Rule"].(string),
 							},
 						)
 						ctx.AddQueue(
 							&request.Request{
-								Url:  "http://search.jd.com/Search?keyin=" + ctx.GetKeyin() + "&enc=utf-8&qrst=1&rt=1&stop=1&click=&psort=&page=" + strconv.Itoa(2*loop[0]+2),
+								URL:  "http://search.jd.com/Search?keyin=" + ctx.GetKeyin() + "&enc=utf-8&qrst=1&rt=1&stop=1&click=&psort=&page=" + strconv.Itoa(2*loop[0]+2),
 								Rule: aid["Rule"].(string),
 							},
 						)
@@ -75,7 +75,7 @@ var JDSearch = &spider.Spider{
 					if total > ctx.GetLimit() {
 						total = ctx.GetLimit()
 					} else if total == 0 {
-						logs.Log.Critical("[消息提示：| 任务：%v | KEYIN：%v | 规则：%v] 没有抓取到任何数据！!!\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
+						logs.Log().Critical("[消息提示：| 任务：%v | KEYIN：%v | 规则：%v] 没有抓取到任何数据！!!\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
 						return
 					}
 					// 调用指定规则下辅助函数

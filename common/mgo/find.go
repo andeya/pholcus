@@ -20,23 +20,23 @@ type Find struct {
 	Select     interface{}            // projection, e.g. {"name":1} to return only name
 }
 
-func (self *Find) Exec(resultPtr interface{}) (r result.Result[any]) {
+func (f *Find) Exec(resultPtr interface{}) (r result.Result[any]) {
 	defer r.Catch()
 	resultPtr2 := resultPtr.(*map[string]interface{})
 	*resultPtr2 = map[string]interface{}{}
 
 	Call(func(src pool.Src) error {
-		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
+		c := src.(*MgoSrc).DB(f.Database).C(f.Collection)
 
-		if id, ok := self.Query["_id"]; ok {
+		if id, ok := f.Query["_id"]; ok {
 			if idStr, ok2 := id.(string); !ok2 {
 				return fmt.Errorf("%v", "parameter _id must be of string type")
 			} else {
-				self.Query["_id"] = bson.ObjectIdHex(idStr)
+				f.Query["_id"] = bson.ObjectIdHex(idStr)
 			}
 		}
 
-		q := c.Find(self.Query)
+		q := c.Find(f.Query)
 
 		total, err := q.Count()
 		if err != nil {
@@ -44,20 +44,20 @@ func (self *Find) Exec(resultPtr interface{}) (r result.Result[any]) {
 		}
 		(*resultPtr2)["Total"] = total
 
-		if len(self.Sort) > 0 {
-			q.Sort(self.Sort...)
+		if len(f.Sort) > 0 {
+			q.Sort(f.Sort...)
 		}
 
-		if self.Skip > 0 {
-			q.Skip(self.Skip)
+		if f.Skip > 0 {
+			q.Skip(f.Skip)
 		}
 
-		if self.Limit > 0 {
-			q.Limit(self.Limit)
+		if f.Limit > 0 {
+			q.Limit(f.Limit)
 		}
 
-		if self.Select != nil {
-			q.Select(self.Select)
+		if f.Select != nil {
+			q.Select(f.Select)
 		}
 		docs := []interface{}{}
 		err = q.All(&docs)

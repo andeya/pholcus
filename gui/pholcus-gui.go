@@ -49,7 +49,7 @@ func SetTaskConf() {
 		SetAppConf("Pausetime", Input.Pausetime).
 		SetAppConf("ProxyMinute", Input.ProxyMinute).
 		SetAppConf("OutType", Input.OutType).
-		SetAppConf("DockerCap", Input.DockerCap).
+		SetAppConf("BatchCap", Input.BatchCap).
 		SetAppConf("Limit", Input.Limit).
 		SetAppConf("Keyins", Input.Keyins)
 }

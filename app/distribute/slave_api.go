@@ -8,8 +8,8 @@ import (
 	"github.com/andeya/pholcus/logs"
 )
 
-// SlaveApi creates the slave node API.
-func SlaveApi(n Distributer) teleport.API {
+// SlaveAPI creates the slave node API.
+func SlaveAPI(n Distributor) teleport.API {
 	return teleport.API{
 		"task": &slaveTaskHandle{n},
 	}
@@ -17,15 +17,15 @@ func SlaveApi(n Distributer) teleport.API {
 
 // slaveTaskHandle receives tasks from the master and adds them to the task jar.
 type slaveTaskHandle struct {
-	Distributer
+	Distributor
 }
 
-func (self *slaveTaskHandle) Process(receive *teleport.NetData) *teleport.NetData {
+func (sth *slaveTaskHandle) Process(receive *teleport.NetData) *teleport.NetData {
 	t := &Task{}
 	if r := result.RetVoid(json.Unmarshal([]byte(receive.Body.(string)), t)); r.IsErr() {
-		logs.Log.Error("JSON decode failed: %v", receive.Body)
+		logs.Log().Error("JSON decode failed: %v", receive.Body)
 		return nil
 	}
-	self.Receive(t)
+	sth.Receive(t)
 	return nil
 }

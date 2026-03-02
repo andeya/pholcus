@@ -49,12 +49,12 @@ func New(jar ...*cookiejar.Jar) Surfer {
 }
 
 // Download implements the Surfer interface.
-func (self *Surf) Download(req Request) (r result.Result[*http.Response]) {
+func (s *Surf) Download(req Request) (r result.Result[*http.Response]) {
 	defer r.Catch()
 	param := NewParam(req).Unwrap()
 	param.header.Set("Connection", "close")
-	param.client = self.buildClient(param)
-	resp, err := self.httpRequest(param)
+	param.client = s.buildClient(param)
+	resp, err := s.httpRequest(param)
 	result.RetVoid(err).Unwrap()
 
 	switch resp.Header.Get("Content-Encoding") {
@@ -100,13 +100,13 @@ func (d *DnsCache) Query(addr string) option.Option[string] {
 }
 
 // buildClient creates, configures, and returns a *http.Client type.
-func (self *Surf) buildClient(param *Param) *http.Client {
+func (s *Surf) buildClient(param *Param) *http.Client {
 	client := &http.Client{
 		CheckRedirect: param.checkRedirect,
 	}
 
 	if param.enableCookie {
-		client.Jar = self.CookieJar
+		client.Jar = s.CookieJar
 	}
 
 	transport := &http.Transport{
@@ -155,7 +155,7 @@ func (self *Surf) buildClient(param *Param) *http.Client {
 }
 
 // send uses the given *http.Request to make an HTTP request.
-func (self *Surf) httpRequest(param *Param) (resp *http.Response, err error) {
+func (s *Surf) httpRequest(param *Param) (resp *http.Response, err error) {
 	req, err := http.NewRequest(param.method, param.url.String(), param.body)
 	if err != nil {
 		return nil, err

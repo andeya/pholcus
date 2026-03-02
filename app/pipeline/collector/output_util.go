@@ -5,27 +5,27 @@ import (
 )
 
 // namespace returns the main namespace (relative to DB name); optional, does not depend on data content.
-func (self *Collector) namespace() string {
-	if self.Spider.Namespace == nil {
-		if self.Spider.GetSubName() == "" {
-			return self.Spider.GetName()
+func (c *Collector) namespace() string {
+	if c.Spider.Namespace == nil {
+		if c.Spider.GetSubName() == "" {
+			return c.Spider.GetName()
 		}
-		return self.Spider.GetName() + "__" + self.Spider.GetSubName()
+		return c.Spider.GetName() + "__" + c.Spider.GetSubName()
 	}
-	return self.Spider.Namespace(self.Spider)
+	return c.Spider.Namespace(c.Spider)
 }
 
 // subNamespace returns the sub-namespace (relative to table name); optional, may depend on data content.
-func (self *Collector) subNamespace(dataCell map[string]interface{}) string {
-	if self.Spider.SubNamespace == nil {
+func (c *Collector) subNamespace(dataCell map[string]interface{}) string {
+	if c.Spider.SubNamespace == nil {
 		return dataCell["RuleName"].(string)
 	}
 	defer func() {
 		if p := recover(); p != nil {
-			logs.Log.Error("subNamespace: %v", p)
+			logs.Log().Error("subNamespace: %v", p)
 		}
 	}()
-	return self.Spider.SubNamespace(self.Spider, dataCell)
+	return c.Spider.SubNamespace(c.Spider, dataCell)
 }
 
 // joinNamespaces concatenates main and sub-namespace with double underscore.

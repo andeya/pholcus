@@ -80,7 +80,7 @@ var WukongWenda = &spider.Spider{
 				header.Add("User-Agent", UA)
 
 				ctx.AddQueue(&request.Request{
-					Url:    url,
+					URL:    url,
 					Header: header,
 					Rule:   "获取结果",
 				})
@@ -128,13 +128,13 @@ var WukongWenda = &spider.Spider{
 						header := http.Header{}
 						header.Add("User-Agent", UA)
 
-						visit_url := ctx.GetUrl()
-						if strings.Contains(visit_url, "&max_behot_time=") {
-							visit_url = strings.Split(visit_url, "&max_behot_time=")[0]
+						visitURL := ctx.GetURL()
+						if strings.Contains(visitURL, "&max_behot_time=") {
+							visitURL = strings.Split(visitURL, "&max_behot_time=")[0]
 						}
 
 						ctx.AddQueue(&request.Request{
-							Url:    visit_url + "&max_behot_time=" + newOffset,
+							URL:    visitURL + "&max_behot_time=" + newOffset,
 							Header: header,
 							Rule:   "获取结果",
 						})

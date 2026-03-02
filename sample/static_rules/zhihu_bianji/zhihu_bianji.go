@@ -45,7 +45,7 @@ var ZhihuBianji = &spider.Spider{
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				Url:  "https://www.zhihu.com/explore/recommendations",
+				URL:  "https://www.zhihu.com/explore/recommendations",
 				Rule: "知乎编辑推荐",
 			})
 
@@ -60,7 +60,7 @@ var ZhihuBianji = &spider.Spider{
 						Each(func(i int, s *goquery.Selection) {
 							if url := s.Attr("href"); url.IsSome() {
 								u := changeToAbspath(url.Unwrap())
-								ctx.AddQueue(&request.Request{Url: u, Rule: "解析落地页"})
+								ctx.AddQueue(&request.Request{URL: u, Rule: "解析落地页"})
 							}
 						})
 
@@ -83,7 +83,7 @@ var ZhihuBianji = &spider.Spider{
 						header := make(http.Header)
 						header.Set("Content-Type", "application/x-www-form-urlencoded")
 						ctx.AddQueue(&request.Request{
-							Url:        "https://www.zhihu.com/node/ExploreRecommendListV2",
+							URL:        "https://www.zhihu.com/node/ExploreRecommendListV2",
 							Rule:       aid["Rule"].(string),
 							Method:     "POST",
 							Header:     header,
@@ -129,9 +129,9 @@ var ZhihuBianji = &spider.Spider{
 						if url := selection.Attr("href"); url.IsSome() {
 							u := changeToAbspath(url.Unwrap())
 							if filterZhihuAnswerURL(u) {
-								ctx.AddQueue(&request.Request{Url: u, Rule: "解析知乎问答落地页"})
+								ctx.AddQueue(&request.Request{URL: u, Rule: "解析知乎问答落地页"})
 							} else {
-								ctx.AddQueue(&request.Request{Url: u, Rule: "解析知乎文章落地页"})
+								ctx.AddQueue(&request.Request{URL: u, Rule: "解析知乎文章落地页"})
 							}
 						}
 					})

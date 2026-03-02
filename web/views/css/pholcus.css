@@ -33,8 +33,11 @@ textarea {
 
 .logo {
     display: block;
+    width: 96px;
+    height: 96px;
     margin-left: auto;
     margin-right: auto;
+    image-rendering: -webkit-optimize-contrast;
 }
 
 h1 {

@@ -10,7 +10,7 @@ type List struct {
 	Dbs []string // list of database names to query (empty = all)
 }
 
-func (self *List) Exec(resultPtr interface{}) (r result.Result[any]) {
+func (l *List) Exec(resultPtr interface{}) (r result.Result[any]) {
 	defer r.Catch()
 	resultPtr2 := resultPtr.(*map[string][]string)
 	*resultPtr2 = map[string][]string{}
@@ -22,7 +22,7 @@ func (self *List) Exec(resultPtr interface{}) (r result.Result[any]) {
 			return err
 		}
 
-		if len(self.Dbs) == 0 {
+		if len(l.Dbs) == 0 {
 			for _, dbname := range dbs {
 				(*resultPtr2)[dbname], err = s.DB(dbname).CollectionNames()
 				if err != nil {
@@ -32,7 +32,7 @@ func (self *List) Exec(resultPtr interface{}) (r result.Result[any]) {
 			return nil
 		}
 
-		for _, dbname := range self.Dbs {
+		for _, dbname := range l.Dbs {
 			(*resultPtr2)[dbname], err = s.DB(dbname).CollectionNames()
 			if err != nil {
 				return err

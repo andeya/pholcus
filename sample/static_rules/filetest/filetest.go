@@ -37,13 +37,13 @@ var FileTest = &spider.Spider{
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				Url:          "https://www.baidu.com/img/bd_logo1.png",
+				URL:          "https://www.baidu.com/img/bd_logo1.png",
 				Rule:         "百度图片",
 				ConnTimeout:  -1,
 				DownloaderID: 0, //图片等多媒体文件必须使用0（surfer surf go原生下载器）
 			})
 			ctx.AddQueue(&request.Request{
-				Url:          "https://github.com/andeya/pholcus",
+				URL:          "https://github.com/andeya/pholcus",
 				Rule:         "Pholcus页面",
 				ConnTimeout:  -1,
 				DownloaderID: 0, //文本文件可使用0或者1（0：surfer surf go原生下载器；1：surfer plantomjs内核）

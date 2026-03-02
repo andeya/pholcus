@@ -52,7 +52,7 @@ var Avatar = &spider.Spider{
 							url = "http://www.woyaogexing.com/touxiang/index_" + strconv.Itoa(loop[0]+1) + ".html"
 						}
 						ctx.AddQueue(&request.Request{
-							Url:    url,
+							URL:    url,
 							Rule:   aid["Rule"].(string),
 							Header: http.Header{"Content-Type": []string{"text/html; charset=utf-8"}},
 						})
@@ -61,15 +61,15 @@ var Avatar = &spider.Spider{
 				},
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
-					// logs.Log.Debug(ctx.GetText())
+					// logs.Log().Debug(ctx.GetText())
 					pageTag := query.Find("div.pageNum.wp div.page a:last-child")
 					// 跳转
 					if len(pageTag.Nodes) == 0 {
-						logs.Log.Critical("[消息提示：| 任务：%v | KEYIN：%v | 规则：%v] \n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
+						logs.Log().Critical("[消息提示：| 任务：%v | KEYIN：%v | 规则：%v] \n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
 						query.Find(".sm-floorhead-typemore a").Each(func(i int, s *goquery.Selection) {
 							if href := s.Attr("href"); href.IsSome() {
 								ctx.AddQueue(&request.Request{
-									Url:    href.Unwrap(),
+									URL:    href.Unwrap(),
 									Header: http.Header{"Content-Type": []string{"text/html; charset=utf-8"}},
 									Rule:   "搜索结果",
 								})
@@ -93,7 +93,7 @@ var Avatar = &spider.Spider{
 						name := selection.Find("p>a").Text()
 						fmt.Printf("nickname:%s \t url: %s\n", name, src)
 						ctx.AddQueue(&request.Request{
-							Url:          src,
+							URL:          src,
 							Rule:         "下载文件",
 							ConnTimeout:  -1,
 							DownloaderID: 0,

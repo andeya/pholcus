@@ -20,47 +20,47 @@ type SocketController struct {
 	wchanRWMutex sync.RWMutex
 }
 
-func (self *SocketController) GetConn(sessID string) *ws.Conn {
-	self.connRWMutex.RLock()
-	defer self.connRWMutex.RUnlock()
-	return self.connPool[sessID]
+func (sc *SocketController) GetConn(sessID string) *ws.Conn {
+	sc.connRWMutex.RLock()
+	defer sc.connRWMutex.RUnlock()
+	return sc.connPool[sessID]
 }
 
-func (self *SocketController) GetWchan(sessID string) *Wchan {
-	self.wchanRWMutex.RLock()
-	defer self.wchanRWMutex.RUnlock()
-	return self.wchanPool[sessID]
+func (sc *SocketController) GetWchan(sessID string) *Wchan {
+	sc.wchanRWMutex.RLock()
+	defer sc.wchanRWMutex.RUnlock()
+	return sc.wchanPool[sessID]
 }
 
-func (self *SocketController) Add(sessID string, conn *ws.Conn) {
-	self.connRWMutex.Lock()
-	self.wchanRWMutex.Lock()
-	defer self.connRWMutex.Unlock()
-	defer self.wchanRWMutex.Unlock()
+func (sc *SocketController) Add(sessID string, conn *ws.Conn) {
+	sc.connRWMutex.Lock()
+	sc.wchanRWMutex.Lock()
+	defer sc.connRWMutex.Unlock()
+	defer sc.wchanRWMutex.Unlock()
 
-	self.connPool[sessID] = conn
-	self.wchanPool[sessID] = newWchan()
+	sc.connPool[sessID] = conn
+	sc.wchanPool[sessID] = newWchan()
 }
 
-func (self *SocketController) Remove(sessID string, conn *ws.Conn) {
-	self.connRWMutex.Lock()
-	self.wchanRWMutex.Lock()
-	defer self.connRWMutex.Unlock()
-	defer self.wchanRWMutex.Unlock()
+func (sc *SocketController) Remove(sessID string, conn *ws.Conn) {
+	sc.connRWMutex.Lock()
+	sc.wchanRWMutex.Lock()
+	defer sc.connRWMutex.Unlock()
+	defer sc.wchanRWMutex.Unlock()
 
-	if self.connPool[sessID] == nil {
+	if sc.connPool[sessID] == nil {
 		return
 	}
-	wc := self.wchanPool[sessID]
+	wc := sc.wchanPool[sessID]
 	close(wc.wchan)
 	conn.Close()
-	delete(self.connPool, sessID)
-	delete(self.wchanPool, sessID)
+	delete(sc.connPool, sessID)
+	delete(sc.wchanPool, sessID)
 }
 
-func (self *SocketController) Write(sessID string, void map[string]interface{}, to ...int) {
-	self.wchanRWMutex.RLock()
-	defer self.wchanRWMutex.RUnlock()
+func (sc *SocketController) Write(sessID string, void map[string]interface{}, to ...int) {
+	sc.wchanRWMutex.RLock()
+	defer sc.wchanRWMutex.RUnlock()
 
 	// When to is 1: send only to current connection; -1: send to all except current; 0 or empty: send to all.
 	var t int = 0
@@ -72,7 +72,7 @@ func (self *SocketController) Write(sessID string, void map[string]interface{}, 
 
 	switch t {
 	case 1:
-		wc := self.wchanPool[sessID]
+		wc := sc.wchanPool[sessID]
 		if wc == nil {
 			return
 		}
@@ -80,8 +80,8 @@ func (self *SocketController) Write(sessID string, void map[string]interface{}, 
 		wc.wchan <- void
 
 	case 0, -1:
-		l := len(self.wchanPool)
-		for _sessID, wc := range self.wchanPool {
+		l := len(sc.wchanPool)
+		for _sessID, wc := range sc.wchanPool {
 			if t == -1 && _sessID == sessID {
 				continue
 			}
@@ -111,9 +111,9 @@ func newWchan() *Wchan {
 }
 
 var (
-	wsApi = map[string]func(string, map[string]interface{}){}
-	// Sc is the global SocketController for WebSocket API connections.
-	Sc = &SocketController{
+	wsAPI = map[string]func(string, map[string]interface{}){}
+	// WSController is the global SocketController for WebSocket API connections.
+	WSController = &SocketController{
 		connPool:  make(map[string]*ws.Conn),
 		wchanPool: make(map[string]*Wchan),
 	}
@@ -122,25 +122,25 @@ var (
 func wsHandle(conn *ws.Conn) {
 	defer func() {
 		if p := recover(); p != nil {
-			logs.Log.Error("%v", p)
+			logs.Log().Error("%v", p)
 		}
 	}()
 	r := globalSessions.SessionStart(nil, conn.Request())
 	if r.IsErr() {
-		logs.Log.Error("session start: %v", r.UnwrapErr())
+		logs.Log().Error("session start: %v", r.UnwrapErr())
 		return
 	}
 	sess := r.Unwrap()
 	sessID := sess.SessionID()
-	if Sc.GetConn(sessID) == nil {
-		Sc.Add(sessID, conn)
+	if WSController.GetConn(sessID) == nil {
+		WSController.Add(sessID, conn)
 	}
 
-	defer Sc.Remove(sessID, conn)
+	defer WSController.Remove(sessID, conn)
 
 	go func() {
 		var err error
-		for info := range Sc.GetWchan(sessID).wchan {
+		for info := range WSController.GetWchan(sessID).wchan {
 			if _, err = ws.JSON.Send(conn, info); err != nil {
 				return
 			}
@@ -154,22 +154,22 @@ func wsHandle(conn *ws.Conn) {
 			return
 		}
 
-		wsApi[util.Atoa(req["operate"]).UnwrapOr("")](sessID, req)
+		wsAPI[util.Atoa(req["operate"]).UnwrapOr("")](sessID, req)
 	}
 }
 
 func init() {
-	wsApi["refresh"] = func(sessID string, req map[string]interface{}) {
-		Sc.Write(sessID, tplData(app.LogicApp.GetAppConf("mode").(int)), 1)
+	wsAPI["refresh"] = func(sessID string, req map[string]interface{}) {
+		WSController.Write(sessID, tplData(app.LogicApp.GetAppConf("mode").(int)), 1)
 	}
 
-	wsApi["init"] = func(sessID string, req map[string]interface{}) {
+	wsAPI["init"] = func(sessID string, req map[string]interface{}) {
 		var mode = util.Atoi(req["mode"]).UnwrapOr(0)
 		var port = util.Atoi(req["port"]).UnwrapOr(0)
 		var master = util.Atoa(req["ip"]).UnwrapOr("") // master address without port
 		currMode := app.LogicApp.GetAppConf("mode").(int)
 		if currMode == status.UNSET {
-			app.LogicApp.Init(mode, port, master, Lsc)
+			app.LogicApp.Init(mode, port, master, LogSocketCtrl)
 		} else {
 			app.LogicApp = app.LogicApp.ReInit(mode, port, master)
 		}
@@ -178,50 +178,50 @@ func init() {
 			go app.LogicApp.Run()
 		}
 
-		Sc.Write(sessID, tplData(mode))
+		WSController.Write(sessID, tplData(mode))
 	}
 
-	wsApi["run"] = func(sessID string, req map[string]interface{}) {
+	wsAPI["run"] = func(sessID string, req map[string]interface{}) {
 		if app.LogicApp.GetAppConf("mode").(int) != status.CLIENT {
 			setConf(req)
 		}
 
 		if app.LogicApp.GetAppConf("mode").(int) == status.OFFLINE {
-			Sc.Write(sessID, map[string]interface{}{"operate": "run"})
+			WSController.Write(sessID, map[string]interface{}{"operate": "run"})
 		}
 
 		go func() {
 			app.LogicApp.Run()
 			if app.LogicApp.GetAppConf("mode").(int) == status.OFFLINE {
-				Sc.Write(sessID, map[string]interface{}{"operate": "stop"})
+				WSController.Write(sessID, map[string]interface{}{"operate": "stop"})
 			}
 		}()
 	}
 
 	// Stop current task; only supported in standalone mode.
-	wsApi["stop"] = func(sessID string, req map[string]interface{}) {
+	wsAPI["stop"] = func(sessID string, req map[string]interface{}) {
 		if app.LogicApp.GetAppConf("mode").(int) != status.OFFLINE {
-			Sc.Write(sessID, map[string]interface{}{"operate": "stop"})
+			WSController.Write(sessID, map[string]interface{}{"operate": "stop"})
 			return
 		} else {
 			app.LogicApp.Stop()
-			Sc.Write(sessID, map[string]interface{}{"operate": "stop"})
+			WSController.Write(sessID, map[string]interface{}{"operate": "stop"})
 		}
 	}
 
 	// Pause and resume task; only supported in standalone mode.
-	wsApi["pauseRecover"] = func(sessID string, req map[string]interface{}) {
+	wsAPI["pauseRecover"] = func(sessID string, req map[string]interface{}) {
 		if app.LogicApp.GetAppConf("mode").(int) != status.OFFLINE {
 			return
 		}
 		app.LogicApp.PauseRecover()
-		Sc.Write(sessID, map[string]interface{}{"operate": "pauseRecover"})
+		WSController.Write(sessID, map[string]interface{}{"operate": "pauseRecover"})
 	}
 
 	// Exit current mode.
-	wsApi["exit"] = func(sessID string, req map[string]interface{}) {
+	wsAPI["exit"] = func(sessID string, req map[string]interface{}) {
 		app.LogicApp = app.LogicApp.ReInit(status.UNSET, 0, "")
-		Sc.Write(sessID, map[string]interface{}{"operate": "exit"})
+		WSController.Write(sessID, map[string]interface{}{"operate": "exit"})
 	}
 }
 
@@ -230,11 +230,11 @@ func tplData(mode int) map[string]interface{} {
 
 	switch mode {
 	case status.OFFLINE:
-		info["title"] = config.FULL_NAME + "                                                          【 运行模式 ->  单机 】"
+		info["title"] = config.FullName + "                                                          【 运行模式 ->  单机 】"
 	case status.SERVER:
-		info["title"] = config.FULL_NAME + "                                                          【 运行模式 ->  服务端 】"
+		info["title"] = config.FullName + "                                                          【 运行模式 ->  服务端 】"
 	case status.CLIENT:
-		info["title"] = config.FULL_NAME + "                                                          【 运行模式 ->  客户端 】"
+		info["title"] = config.FullName + "                                                          【 运行模式 ->  客户端 】"
 	}
 
 	if mode == status.CLIENT {
@@ -278,10 +278,10 @@ func tplData(mode int) map[string]interface{} {
 		"curr": []int64{app.LogicApp.GetAppConf("ProxyMinute").(int64)},
 	}
 
-	info["DockerCap"] = map[string]int{
+	info["BatchCap"] = map[string]int{
 		"min":  1,
 		"max":  5000000,
-		"curr": app.LogicApp.GetAppConf("DockerCap").(int),
+		"curr": app.LogicApp.GetAppConf("BatchCap").(int),
 	}
 
 	if app.LogicApp.GetAppConf("Limit").(int64) == spider.LIMIT {
@@ -311,7 +311,7 @@ func setConf(req map[string]interface{}) {
 		SetAppConf("Pausetime", int64(util.Atoi(req["Pausetime"]).UnwrapOr(0))).
 		SetAppConf("ProxyMinute", int64(util.Atoi(req["ProxyMinute"]).UnwrapOr(0))).
 		SetAppConf("OutType", util.Atoa(req["OutType"]).UnwrapOr("")).
-		SetAppConf("DockerCap", util.Atoi(req["DockerCap"]).UnwrapOr(0)).
+		SetAppConf("BatchCap", util.Atoi(req["BatchCap"]).UnwrapOr(0)).
 		SetAppConf("Limit", int64(util.Atoi(req["Limit"]).UnwrapOr(0))).
 		SetAppConf("Keyins", util.Atoa(req["Keyins"]).UnwrapOr("")).
 		SetAppConf("SuccessInherit", req["SuccessInherit"] == "true").

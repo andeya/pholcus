@@ -17,23 +17,23 @@ type UpdateAll struct {
 	Change     map[string]interface{} // update document
 }
 
-func (self *UpdateAll) Exec(resultPtr interface{}) (r result.Result[any]) {
+func (ua *UpdateAll) Exec(resultPtr interface{}) (r result.Result[any]) {
 	defer r.Catch()
 	resultPtr2 := resultPtr.(*map[string]interface{})
 	*resultPtr2 = map[string]interface{}{}
 
 	Call(func(src pool.Src) error {
-		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
+		c := src.(*MgoSrc).DB(ua.Database).C(ua.Collection)
 
-		if id, ok := self.Selector["_id"]; ok {
+		if id, ok := ua.Selector["_id"]; ok {
 			if idStr, ok2 := id.(string); !ok2 {
 				return fmt.Errorf("%v", "parameter _id must be of string type")
 			} else {
-				self.Selector["_id"] = bson.ObjectIdHex(idStr)
+				ua.Selector["_id"] = bson.ObjectIdHex(idStr)
 			}
 		}
 
-		info, err := c.UpdateAll(self.Selector, self.Change)
+		info, err := c.UpdateAll(ua.Selector, ua.Change)
 		if err != nil {
 			return err
 		}

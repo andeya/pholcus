@@ -25,7 +25,7 @@ func serverWindow() {
 			DataSource:     Input,
 			ErrorPresenter: declarative.ErrorPresenterRef{ErrorPresenter: &ep},
 		},
-		Title:   config.FULL_NAME + "                                                          【 运行模式 -> 服务器 】",
+		Title:   config.FullName + "                                                          【 运行模式 -> 服务器 】",
 		MinSize: declarative.Size{Width: 1100, Height: 700},
 		Layout:  declarative.VBox{MarginsZero: true},
 		Children: []declarative.Widget{
@@ -97,7 +97,7 @@ func serverWindow() {
 										Text: "*分批输出大小：（1~5,000,000 条数据）",
 									},
 									declarative.NumberEdit{
-										Value:    declarative.Bind("DockerCap", declarative.Range{1, 5000000}),
+										Value:    declarative.Bind("BatchCap", declarative.Range{1, 5000000}),
 										Suffix:   "",
 										Decimals: 0,
 									},
@@ -202,7 +202,7 @@ func serverWindow() {
 // 点击开始事件
 func serverStart() {
 	if err := db.Submit(); err != nil {
-		logs.Log.Error("%v", err)
+		logs.Log().Error("%v", err)
 		return
 	}
 
@@ -210,7 +210,7 @@ func serverStart() {
 	Input.Spiders = spiderMenu.GetChecked()
 
 	if len(Input.Spiders) == 0 {
-		logs.Log.Warning(" *     —— 亲，任务列表不能为空哦~")
+		logs.Log().Warning(" *     —— 亲，任务列表不能为空哦~")
 		return
 	}
 

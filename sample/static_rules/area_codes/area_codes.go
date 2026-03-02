@@ -59,7 +59,7 @@ var AreaCodes2018 = &spider.Spider{
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				Url:  "http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2018/index.html",
+				URL:  "http://www.stats.gov.cn/tjsj/tjbz/tjyqhdmhcxhfdm/2018/index.html",
 				Rule: "省",
 			})
 		},
@@ -73,8 +73,8 @@ var AreaCodes2018 = &spider.Spider{
 					"上级",
 				},
 				ParseFunc: func(ctx *spider.Context) {
-					baseUrl := ctx.GetRequest().Url
-					baseUrl = baseUrl[:strings.LastIndex(baseUrl, "/")+1]
+					baseURL := ctx.GetRequest().URL
+					baseURL = baseURL[:strings.LastIndex(baseURL, "/")+1]
 					query := ctx.GetDom()
 					//cc := 0
 					query.Find("tr.provincetr").Each(func(i int, tr *goquery.Selection) {
@@ -83,7 +83,7 @@ var AreaCodes2018 = &spider.Spider{
 							if url := a.Attr("href"); url.IsSome() {
 								u := url.Unwrap()
 								code := strings.Split(u, ".")[0]
-								u = baseUrl + u
+								u = baseURL + u
 								//fmt.Println("0", a.Text()+":"+url)
 								ctx.Output(map[int]interface{}{
 									0: a.Text(),
@@ -91,7 +91,7 @@ var AreaCodes2018 = &spider.Spider{
 									2: 0,
 									3: 0,
 								})
-								ctx.AddQueue(&request.Request{Url: u, Rule: "市", Temp: request.Temp{"level": 0, "parent": code}})
+								ctx.AddQueue(&request.Request{URL: u, Rule: "市", Temp: request.Temp{"level": 0, "parent": code}})
 							}
 						})
 					})
@@ -106,8 +106,8 @@ var AreaCodes2018 = &spider.Spider{
 					"上级",
 				},
 				ParseFunc: func(ctx *spider.Context) {
-					baseUrl := ctx.GetRequest().Url
-					baseUrl = baseUrl[:strings.LastIndex(baseUrl, "/")+1]
+					baseURL := ctx.GetRequest().URL
+					baseURL = baseURL[:strings.LastIndex(baseURL, "/")+1]
 					level := ctx.GetRequest().Temp["level"].(int) + 1
 					parent := ctx.GetRequest().Temp["parent"].(string)
 					query := ctx.GetDom()
@@ -137,7 +137,7 @@ var AreaCodes2018 = &spider.Spider{
 								if url := a.Attr("href"); url.IsSome() {
 									u := url.Unwrap()
 									code := strings.Split(strings.Split(u, "/")[1], ".")[0]
-									u = baseUrl + u
+									u = baseURL + u
 									ctx.Output(map[int]interface{}{
 										0: a.Text(),
 										1: myCode,
@@ -145,7 +145,7 @@ var AreaCodes2018 = &spider.Spider{
 										3: parent,
 									})
 									//fmt.Println(level, a.Text(), myCode)
-									ctx.AddQueue(&request.Request{Url: u, Rule: "市", Temp: request.Temp{"level": level, "parent": code}})
+									ctx.AddQueue(&request.Request{URL: u, Rule: "市", Temp: request.Temp{"level": level, "parent": code}})
 								}
 							}
 						})
