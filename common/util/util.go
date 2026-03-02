@@ -43,7 +43,7 @@ func JSONPToJSON(json string) string {
 	start := strings.Index(json, "{")
 	end := strings.LastIndex(json, "}")
 	start1 := strings.Index(json, "[")
-	if start1 > 0 && start > start1 {
+	if start1 >= 0 && (start == -1 || start > start1) {
 		start = start1
 		end = strings.LastIndex(json, "]")
 	}
@@ -239,7 +239,7 @@ func XML2MapStr(xmldoc string) map[string]string {
 		case xml.StartElement:
 			key = token.Name.Local
 		case xml.CharData:
-			content := Bytes2String([]byte(token))
+			content := string(token)
 			m[key] = content
 		default:
 		}

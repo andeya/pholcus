@@ -28,6 +28,10 @@ var lazyPhantom = syncutil.NewLazyValueWithFunc(func() result.Result[surfer.Surf
 	return result.Ok[surfer.Surfer](surfer.NewPhantom(config.Conf().PhantomJS, config.PhantomJSTemp, cookieJar))
 })
 
+var lazyChrome = syncutil.NewLazyValueWithFunc(func() result.Result[surfer.Surfer] {
+	return result.Ok[surfer.Surfer](surfer.NewChrome(cookieJar))
+})
+
 func (s *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.Context {
 	ctx := spider.GetContext(sp, cReq)
 
@@ -45,6 +49,14 @@ func (s *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.Cont
 
 	case request.PhantomID:
 		r := lazyPhantom.TryGetValue().Unwrap().Download(cReq)
+		if r.IsErr() {
+			err = r.UnwrapErr()
+		} else {
+			resp = r.Unwrap()
+		}
+
+	case request.ChromeID:
+		r := lazyChrome.TryGetValue().Unwrap().Download(cReq)
 		if r.IsErr() {
 			err = r.UnwrapErr()
 		} else {

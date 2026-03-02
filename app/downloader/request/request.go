@@ -51,6 +51,7 @@ const (
 const (
 	SurfID    = 0 // Surf downloader (native Go), do not change
 	PhantomID = 1 // PhantomJS downloader (fallback, rarely used)
+	ChromeID  = 2 // Chromium headless browser downloader
 )
 
 // Prepare sets default values before sending a request.
@@ -100,7 +101,7 @@ func (r *Request) Prepare() result.VoidResult {
 		r.Priority = 0
 	}
 
-	if r.DownloaderID < SurfID || r.DownloaderID > PhantomID {
+	if r.DownloaderID < SurfID || r.DownloaderID > ChromeID {
 		r.DownloaderID = SurfID
 	}
 

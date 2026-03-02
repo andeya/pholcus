@@ -262,16 +262,3 @@ func (m *Matrix) setFailures(reqs map[string]*request.Request) {
 		logs.Log().Informational(" *     + Failed request: [%v]\n", req.GetURL())
 	}
 }
-
-// // windup performs cleanup when stopping tasks.
-// func (m *Matrix) windup() {
-// 	m.Lock()
-
-// 	m.reqs = make(map[int][]*request.Request)
-// 	m.priorities = []int{}
-// 	m.tempHistory = make(map[string]bool)
-
-// 	m.failures = make(map[string]*request.Request)
-
-// 	m.Unlock()
-// }

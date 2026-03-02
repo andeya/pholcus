@@ -82,7 +82,7 @@
 
 **更多亮点：**
 
-- 高并发下载器 [surfer](app/downloader/surfer)，支持 GET / POST / HEAD，兼容 HTTP / HTTPS
+- 三引擎下载器 [surfer](app/downloader/surfer)：Surf（高并发 HTTP）/ PhantomJS / **Chrome**（Chromium 无头浏览器，自动执行 JS）
 - 智能 Cookie 管理：固定 UserAgent 自动保存 cookie，或随机 UserAgent 禁用 cookie
 - 模拟登录、自定义 Header、POST 表单提交
 - 代理 IP 池，可按频率自动更换
@@ -308,6 +308,69 @@ var mySpider = &spider.Spider{
 ```
 
 > 同时兼容 `.pholcus.html` 旧格式。`<Script>` 标签内自动包裹 CDATA，无需手动转义特殊字符。
+
+---
+
+## 下载器
+
+Pholcus 内置三种下载引擎，通过 `DownloaderID` 切换：
+
+| ID | 名称 | 说明 |
+|----|------|------|
+| `0` | **Surf** | 默认引擎。纯 Go HTTP 客户端，高并发，适合大多数静态页面采集 |
+| `1` | **PhantomJS** | 基于 PhantomJS 的无头浏览器（已停止维护），可执行 JS，并发能力较低 |
+| `2` | **Chrome** | 基于 Chromium（chromedp）的无头浏览器，可执行 JS、绕过安全验证，推荐用于反爬严格的站点 |
+
+### 在静态规则（Go）中使用
+
+```go
+import "github.com/andeya/pholcus/app/downloader/request"
+
+// 使用默认 Surf 引擎（可省略 DownloaderID）
+ctx.AddQueue(&request.Request{
+    URL:  "https://example.com",
+    Rule: "页面",
+})
+
+// 使用 Chrome 无头浏览器引擎
+ctx.AddQueue(&request.Request{
+    URL:          "https://www.baidu.com/s?wd=pholcus",
+    Rule:         "搜索结果",
+    DownloaderID: request.ChromeID,
+})
+```
+
+### 在动态规则（JS/XML）中使用
+
+```xml
+<Script param="ctx">
+ctx.JsAddQueue({
+    URL: "https://www.baidu.com/s?wd=pholcus",
+    Rule: "搜索结果",
+    DownloaderID: 2
+});
+</Script>
+```
+
+### Chrome 引擎说明
+
+Chrome 引擎依赖本机安装的 Chromium / Google Chrome 浏览器，通过 [chromedp](https://github.com/chromedp/chromedp) 驱动。
+
+**适用场景：**
+- 目标网站有 JS 渲染的内容（SPA / CSR 页面）
+- 目标网站有安全验证（如百度安全验证）需要浏览器执行 JS 后自动跳转
+- 需要模拟真实浏览器环境绕过反爬检测
+
+**环境要求：**
+- 本机需安装 Chrome / Chromium 浏览器
+- macOS: `brew install --cask google-chrome` 或 `brew install chromium`
+- Linux: `apt install chromium-browser` 或 `yum install chromium`
+- Windows: 安装 Google Chrome 即可
+
+**注意事项：**
+- Chrome 引擎每次请求会启动独立的无头浏览器实例，资源消耗高于 Surf
+- 建议仅在 Surf 引擎无法获取内容时使用 Chrome
+- Chrome 引擎内置了反自动化检测（隐藏 `navigator.webdriver`、禁用自动化标志等）
 
 ---
 

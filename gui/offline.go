@@ -248,11 +248,6 @@ func offlineRunStop() {
 	// 读取任务
 	Input.Spiders = spiderMenu.GetChecked()
 
-	// if len(Input.Spiders) == 0 {
-	// 	logs.Log().Warning(" *     —— 亲，任务列表不能为空哦~")
-	// 	return
-	// }
-
 	runStopBtn.SetText("停止")
 
 	// 记录配置信息

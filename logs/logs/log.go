@@ -79,9 +79,6 @@ func Register(name string, log loggerType) {
 	if log == nil {
 		panic("logs: Register provide is nil")
 	}
-	// if _, dup := adapters[name]; dup {
-	// 	panic("logs: Register called twice for provider " + name)
-	// }
 	adapters[name] = log
 }
 

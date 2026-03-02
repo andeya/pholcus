@@ -66,26 +66,6 @@ type (
 	}
 )
 
-/*
- * Common config for task runtime
-type AppConf struct {
-	Mode           int    // Node role
-	Port           int    // Master node port
-	Master         string // Master server address (no port)
-	ThreadNum      int    // Global max concurrency
-	Pausetime      int64  // Pause duration in ms (random: Pausetime/2 ~ Pausetime*2)
-	OutType        string // Output method
-	BatchCap       int    // Batch output capacity per flush
-	BatchQueueCap  int    // Batch output pool capacity, >= 2
-	SuccessInherit bool   // Inherit historical success records
-	FailureInherit bool   // Inherit historical failure records
-	Limit          int64  // Collection limit, 0=unlimited; if rule sets LIMIT then custom limit, else default request limit
-	ProxyMinute    int64  // Proxy IP rotation interval in minutes
-	// Optional
-	Keyins string // Custom input, later split into Keyin config for multiple tasks
-}
-*/
-
 // LogicApp is the global singleton core interface instance.
 var LogicApp = New()
 

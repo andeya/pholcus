@@ -49,17 +49,3 @@ func clientWindow() {
 	// 运行窗体程序
 	mw.Run()
 }
-
-// 点击开始事件
-// func clientStart() {
-
-// 	if runStopBtn.Text() == "重新连接服务器" {
-// 		runStopBtn.SetEnabled(false)
-// 		runStopBtn.SetText("正在连接服务器…")
-// 		clientStop()
-// 		return
-// 	}
-
-// 	runStopBtn.SetText("断开服务器连接")
-
-// }

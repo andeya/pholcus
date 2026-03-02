@@ -24,6 +24,7 @@ import (
 )
 
 func TestFile(t *testing.T) {
+	os.Remove("test.log")
 	log := NewLogger(10000)
 	log.SetLogger("file", map[string]interface{}{"filename": "test.log"})
 	log.Debug("debug")
@@ -50,7 +51,7 @@ func TestFile(t *testing.T) {
 			linenum++
 		}
 	}
-	var expected = LevelDebug + 1
+	var expected = LevelDebug
 	if linenum != expected {
 		t.Fatal(linenum, "not "+strconv.Itoa(expected)+" lines")
 	}
@@ -58,6 +59,7 @@ func TestFile(t *testing.T) {
 }
 
 func TestFile2(t *testing.T) {
+	os.Remove("test2.log")
 	log := NewLogger(10000)
 	log.SetLogger("file", map[string]interface{}{"filename": "test2.log", "level": LevelError})
 	log.Debug("debug")
@@ -84,7 +86,7 @@ func TestFile2(t *testing.T) {
 			linenum++
 		}
 	}
-	var expected = LevelError + 1
+	var expected = LevelError
 	if linenum != expected {
 		t.Fatal(linenum, "not "+strconv.Itoa(expected)+" lines")
 	}

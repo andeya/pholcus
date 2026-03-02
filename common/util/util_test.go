@@ -36,12 +36,13 @@ func TestMkdir(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		dir := filepath.Join(tmp, "a", "b", "c")
-		r := Mkdir(dir)
+		filePath := filepath.Join(dir, "file.txt")
+		r := Mkdir(filePath)
 		if r.IsErr() {
-			t.Errorf("Mkdir(%q) failed: %v", dir, r.UnwrapErr())
+			t.Errorf("Mkdir(%q) failed: %v", filePath, r.UnwrapErr())
 		}
 		if _, err := os.Stat(dir); err != nil {
-			t.Errorf("directory not created: %v", err)
+			t.Errorf("parent directory not created: %v", err)
 		}
 	})
 

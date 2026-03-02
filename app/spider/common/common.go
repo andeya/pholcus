@@ -134,10 +134,6 @@ func ConvertToString(src string, srcCode string, tagCode string) string {
 	return result
 }
 
-// func GBKToUTF8(src string) string {
-// 	return DecodeString(EncodeString(src, "ISO-8859-1"), "GBK")
-// }
-
 func GBKToUTF8(src string) string {
 	return DecodeString(src, "GB18030")
 }
@@ -263,26 +259,7 @@ func GetHref(baseURL string, url string, href string, mustBase bool) string {
 	}
 
 	refIndex := strings.LastIndex(url, "/") + 1
-	/*sub := url[refIndex:]
-	if !strings.HasSuffix(url, "/") {
-		if strings.Index(sub, ".") == -1 &&
-			strings.Index(sub, "?") == -1 &&
-			strings.Index(sub, "#") == -1 {
-			url = url + `/`
-		} else {
-			url = url[:refIndex]
-		}
-	}*/
 	url = url[:refIndex]
-
-	/*refIndex = strings.LastIndex(href, "/") + 1
-	sub = href[refIndex:]
-	if len(sub) > 0 &&
-		strings.Index(sub, ".") == -1 &&
-		strings.Index(sub, "?") == -1 &&
-		strings.Index(sub, "#") == -1 {
-		href = href + `/`
-	}*/
 
 	if strings.HasPrefix(href, "./../") {
 		href = strings.Replace(href, "./", "", 1)
@@ -293,11 +270,8 @@ func GetHref(baseURL string, url string, href string, mustBase bool) string {
 	} else if href == "/" {
 		result = baseURL
 	} else if strings.HasPrefix(href, "./") {
-		/*reg := regexp.MustCompile(`^(./)(.*)`)
-		result = url + strings.Trim(reg.ReplaceAllString(href, "$2"), " ")*/
 		result = url + strings.Replace(href, "./", "", 1)
 	} else if strings.HasPrefix(href, "/") {
-		//reg = regexp.MustCompile(`^(http)(s)?(://)([0-9A-Za-z.\-_]+)(/)(.*)`)
 		result = strings.Trim(baseURL, " ") + href[1:]
 	} else if mustBase && !strings.HasPrefix(href, baseURL) &&
 		(strings.Index(href, "://") > -1 ||
@@ -326,10 +300,6 @@ func GetHref(baseURL string, url string, href string, mustBase bool) string {
 			result = url + href
 		}
 	}
-
-	/*if strings.Count(result, "://") > 1 {
-		result = strings.SplitN(result, "://", 2)[1]
-	}*/
 
 	return result
 }

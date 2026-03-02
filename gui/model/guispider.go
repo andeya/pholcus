@@ -145,11 +145,3 @@ func (m *SpiderMenu) Less(i, j int) bool {
 func (m *SpiderMenu) Swap(i, j int) {
 	m.items[i], m.items[j] = m.items[j], m.items[i]
 }
-
-// Called by the TableView to retrieve an item image.
-// func (m *SpiderMenu) Image(row int) interface{} {
-// 	// if m.items[row].Index%2 == 0 {
-// 	// 	return m.oddIcon
-// 	// }
-// 	return m.evenBitmap
-// }

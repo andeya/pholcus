@@ -18,13 +18,14 @@ var BaiduSearch = &spider.Spider{
 	Description:     "百度搜索结果 [www.baidu.com]",
 	Keyin:           spider.KEYIN,
 	Limit:           spider.LIMIT,
-	EnableCookie:    false,
+	EnableCookie:    true,
 	NotDefaultField: true,
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				URL:  "http://www.baidu.com/s?wd=" + url.QueryEscape(ctx.GetKeyin()) + "&pn=0",
-				Rule: "搜索结果",
+				URL:          "https://www.baidu.com/s?wd=" + url.QueryEscape(ctx.GetKeyin()) + "&pn=0",
+				Rule:         "搜索结果",
+				DownloaderID: request.ChromeID,
 			})
 		},
 
@@ -38,9 +39,9 @@ var BaiduSearch = &spider.Spider{
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
 					query.Find("div.result,div.result-op").Each(func(i int, s *goquery.Selection) {
-						title := strings.TrimSpace(s.Find("h3 a").Text())
-						href := s.Find("h3 a").AttrOr("href", "")
-						summary := strings.TrimSpace(s.Find(".c-abstract,.content-right_8Zs40").Text())
+						title := strings.TrimSpace(s.Find("h3.t a").Text())
+						href := s.Find("h3.t a").AttrOr("href", "")
+						summary := strings.TrimSpace(s.Find("[data-module=abstract]").Text())
 
 						if title == "" || href == "" {
 							return
@@ -56,8 +57,9 @@ var BaiduSearch = &spider.Spider{
 					nextHref := query.Find("a.n").Last().AttrOr("href", "")
 					if nextHref != "" {
 						ctx.AddQueue(&request.Request{
-							URL:  "http://www.baidu.com" + nextHref,
-							Rule: "搜索结果",
+							URL:          "https://www.baidu.com" + nextHref,
+							Rule:         "搜索结果",
+							DownloaderID: request.ChromeID,
 						})
 					}
 				},

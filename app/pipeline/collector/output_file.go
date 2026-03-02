@@ -26,7 +26,6 @@ func (c *Collector) outputFile(file data.FileCell) {
 
 	// Path format: file/"RuleName"/"time"/"Name"
 	p, n := filepath.Split(filepath.Clean(file["Name"].(string)))
-	// dir := filepath.Join(config.Conf().FileDir, util.FileNameReplace(c.namespace())+"__"+cache.StartTime.Format("2006-01-02 15:04:05"), p)
 	dir := filepath.Join(config.Conf().FileDir, util.FileNameReplace(c.namespace()), p)
 
 	fileName := filepath.Join(dir, util.FileNameReplace(n))

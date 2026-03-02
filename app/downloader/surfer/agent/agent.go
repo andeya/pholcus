@@ -45,9 +45,9 @@ const (
 
 // DefaultOSAttributes stores default OS attributes.
 var DefaultOSAttributes = map[int]OSAttributes{
-	Windows:   {"Windows NT", "6.3", []string{"x64"}},
-	Linux:     {"Linux", "3.16.1", []string{"x64"}},
-	Macintosh: {"Intel Mac OS X", "10_6_8", []string{}},
+	Windows:   {"Windows NT", "10.0", []string{"Win64", "x64"}},
+	Linux:     {"Linux", "x86_64", []string{}},
+	Macintosh: {"Intel Mac OS X", "10_15_7", []string{}},
 }
 
 type (
@@ -71,105 +71,49 @@ type (
 // Database is the "database" of user agents.
 var Database = UATable{
 	"chrome": {
-		"37.0.2049.0",
+		"127.0.6533.73",
 		Windows,
 		Formats{
-			"37": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) Chrome/{{.Ver}} Safari/537.36",
-			"36": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) Chrome/{{.Ver}} Safari/537.36",
-			"35": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) Chrome/{{.Ver}} Safari/537.36",
-			"34": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) Chrome/{{.Ver}} Safari/537.36",
-			"33": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) Chrome/{{.Ver}} Safari/537.36",
-			"32": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) Chrome/{{.Ver}} Safari/537.36",
-			"31": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) Chrome/{{.Ver}} Safari/537.36",
-			"30": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) Chrome/{{.Ver}} Safari/537.36",
+			"127": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{{.Ver}} Safari/537.36",
+			"126": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{{.Ver}} Safari/537.36",
+			"125": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{{.Ver}} Safari/537.36",
+			"124": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{{.Ver}} Safari/537.36",
+			"123": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{{.Ver}} Safari/537.36",
+			"122": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{{.Ver}} Safari/537.36",
+			"121": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{{.Ver}} Safari/537.36",
+			"120": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{{.Ver}} Safari/537.36",
 		},
 	},
 	"firefox": {
-		"31.0",
+		"127.0",
 		Windows,
 		Formats{
-			"31": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:31.0) Gecko/20100101 Firefox/{{.Ver}}",
-			"30": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:30.0) Gecko/20120101 Firefox/{{.Ver}}",
-			"29": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:29.0) Gecko/20120101 Firefox/{{.Ver}}",
-			"28": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:28.0) Gecko/20100101 Firefox/{{.Ver}}",
-			"27": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:27.0) Gecko/20130101 Firefox/{{.Ver}}",
-			"26": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:26.0) Gecko/20121011 Firefox/{{.Ver}}",
-			"25": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:25.0) Gecko/20100101 Firefox/{{.Ver}}",
+			"127": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:127.0) Gecko/20100101 Firefox/{{.Ver}}",
+			"126": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:126.0) Gecko/20100101 Firefox/{{.Ver}}",
+			"125": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:125.0) Gecko/20100101 Firefox/{{.Ver}}",
+			"124": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:124.0) Gecko/20100101 Firefox/{{.Ver}}",
+			"123": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:123.0) Gecko/20100101 Firefox/{{.Ver}}",
+			"122": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:122.0) Gecko/20100101 Firefox/{{.Ver}}",
+			"121": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:121.0) Gecko/20100101 Firefox/{{.Ver}}",
+			"120": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}; rv:120.0) Gecko/20100101 Firefox/{{.Ver}}",
 		},
 	},
-	"msie": {
-		"10.0",
+	"edge": {
+		"127.0.2651.74",
 		Windows,
 		Formats{
-			"10": "Mozilla/5.0 (compatible; MSIE 10.0; {{.OSN}} {{.OSV}}{{if .Coms}}{{.Coms}}; {{end}}Trident/5.0; .NET CLR 3.5.30729)",
-			"9":  "Mozilla/5.0 (compatible; MSIE 9.0; {{.OSN}} {{.OSV}}{{if .Coms}}{{.Coms}}; {{end}}Trident/5.0; .NET CLR 3.0.30729)",
-			"8":  "Mozilla/5.0 (compatible; MSIE 8.0; {{.OSN}} {{.OSV}}{{if .Coms}}{{.Coms}}; {{end}}Trident/4.0; .NET CLR 3.0.04320)",
-			"7":  "Mozilla/4.0 (compatible; MSIE 7.0; {{.OSN}} {{.OSV}}{{if .Coms}}{{.Coms}}; {{end}}.NET CLR 2.0.50727)",
-		},
-	},
-	"opera": {
-		"12.14",
-		Windows,
-		Formats{
-			"12": "Opera/9.80 ({{.OSN}} {{.OSV}}; U{{.Coms}}) Presto/2.9.181 Version/{{.Ver}}",
-			"11": "Opera/9.80 ({{.OSN}} {{.OSV}}; U{{.Coms}}) Presto/2.7.62 Version/{{.Ver}}",
-			"10": "Opera/9.80 ({{.OSN}} {{.OSV}}; U{{.Coms}}) Presto/2.2.15 Version/{{.Ver}}",
-			"9":  "Opera/9.00 ({{.OSN}} {{.OSV}}; U{{.Coms}})",
+			"127": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/{{.Ver}}",
+			"126": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/{{.Ver}}",
+			"125": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/{{.Ver}}",
+			"124": "Mozilla/5.0 ({{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/{{.Ver}}",
 		},
 	},
 	"safari": {
-		"6.0",
+		"17.5",
 		Macintosh,
 		Formats{
-			"6": "Mozilla/5.0 (Macintosh; {{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/536.26 (KHTML, like Gecko) Version/{{.Ver}} Safari/8536.25",
-			"5": "Mozilla/5.0 (Macintosh; {{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/531.2+ (KHTML, like Gecko) Version/{{.Ver}} Safari/531.2+",
-			"4": "Mozilla/5.0 (Macintosh; {{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/528.16 (KHTML, like Gecko) Version/{{.Ver}} Safari/528.16",
-		},
-	},
-	"itunes": {
-		"9.1.1",
-		Macintosh,
-		Formats{
-			"9": "iTunes/{{.Ver}}",
-			"8": "iTunes/{{.Ver}}",
-			"7": "iTunes/{{.Ver}} (Macintosh; U; PPC Mac OS X 10.4.7{{.Coms}})",
-			"6": "iTunes/{{.Ver}} (Macintosh; U; PPC Mac OS X 10.4.5{{.Coms}})",
-		},
-	},
-	"aol": {
-		"9.7",
-		Windows,
-		Formats{
-			"9": "Mozilla/5.0 (compatible; MSIE 9.0; AOL {{.Ver}}; AOLBuild 4343.19; {{.OSN}} {{.OSV}}; WOW64; Trident/5.0; FunWebProducts{{.Coms}})",
-			"8": "Mozilla/4.0 (compatible; MSIE 7.0; AOL {{.Ver}}; {{.OSN}} {{.OSV}}; GTB5; .NET CLR 1.1.4322; .NET CLR 2.0.50727{{.Coms}})",
-			"7": "Mozilla/4.0 (compatible; MSIE 7.0; AOL {{.Ver}}; {{.OSN}} {{.OSV}}; FunWebProducts{{.Coms}})",
-			"6": "Mozilla/4.0 (compatible; MSIE 6.0; AOL {{.Ver}}; {{.OSN}} {{.OSV}}{{.Coms}})",
-		},
-	},
-	"konqueror": {
-		"4.9",
-		Linux,
-		Formats{
-			"4": "Mozilla/5.0 (compatible; Konqueror/4.0; {{.OSN}}{{.Coms}}) KHTML/4.0.3 (like Gecko)",
-			"3": "Mozilla/5.0 (compatible; Konqueror/3.0-rc6; i686 {{.OSN}}; 20021127{{.Coms}})",
-			"2": "Mozilla/5.0 (compatible; Konqueror/2.1.1; {{.OSN}}{{.Coms}})",
-		},
-	},
-	"netscape": {
-		"9.1.0285",
-		Windows,
-		Formats{
-			"9": "Mozilla/5.0 ({{.OSN}}; U; {{.OSN}} {{.OSV}}; rv:1.9.2.4{{.Coms}}) Gecko/20070321 Netscape/{{.Ver}}",
-			"8": "Mozilla/5.0 ({{.OSN}}; U; {{.OSN}} {{.OSV}}; rv:1.7.5{{.Coms}}) Gecko/20050519 Netscape/{{.Ver}}",
-			"7": "Mozilla/5.0 ({{.OSN}}; U; {{.OSN}} {{.OSV}}; rv:1.0.1{{.Coms}}) Gecko/20020921 Netscape/{{.Ver}}",
-		},
-	},
-	"lynx": {
-		"2.8.8dev.3",
-		Linux,
-		Formats{
-			"2": "Lynx/{{.Ver}} libwww-FM/2.14 SSL-MM/1.4.1",
-			"1": "Lynx (textmode)",
+			"17": "Mozilla/5.0 (Macintosh; {{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/{{.Ver}} Safari/605.1.15",
+			"16": "Mozilla/5.0 (Macintosh; {{.OSN}} {{.OSV}}{{.Coms}}) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/{{.Ver}} Safari/605.1.15",
 		},
 	},
 	"googlebot": {
@@ -222,7 +166,7 @@ func init() {
 				osAttribs.Comments)
 			UserAgents["all"] = append(UserAgents["all"], ua)
 
-			if browser != "itunes" && browser != "lynx" && browser != "googlebot" && browser != "bingbot" && browser != "yahoobot" {
+			if browser != "googlebot" && browser != "bingbot" && browser != "yahoobot" {
 				UserAgents["common"] = append(UserAgents["common"], ua)
 			}
 		}

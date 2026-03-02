@@ -84,9 +84,6 @@ func Stop() {
 			logs.Log().Error("panic recovered: %v\n%s", p, debug.Stack())
 		}
 	}()
-	// for _, matrix := range sched.matrices {
-	// 	matrix.windup()
-	// }
 	close(sched.count)
 	sched.matrices = []*Matrix{}
 }

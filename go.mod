@@ -6,6 +6,7 @@ require (
 	github.com/Shopify/sarama v1.23.1
 	github.com/andeya/gust v1.20.7
 	github.com/andybalholm/cascadia v1.0.0
+	github.com/chromedp/chromedp v0.14.2
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/kr/beanstalk v0.0.0-20180818045031-cae1762e4858
 	github.com/lxn/walk v0.0.0-20190619151032-86d8802c197a
@@ -20,10 +21,16 @@ require (
 
 require (
 	github.com/DataDog/zstd v1.3.6-0.20190409195224-796139022798 // indirect
+	github.com/chromedp/cdproto v0.0.0-20250724212937-08a3db8b4327 // indirect
+	github.com/chromedp/sysutil v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/eapache/go-resiliency v1.1.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
+	github.com/go-json-experiment/json v0.0.0-20250725192818-e39067aee2d2 // indirect
+	github.com/gobwas/httphead v0.1.0 // indirect
+	github.com/gobwas/pool v0.2.1 // indirect
+	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.1 // indirect
 	github.com/jcmturner/gofork v0.0.0-20190328161633-dc7c13fece03 // indirect
@@ -32,7 +39,7 @@ require (
 	github.com/tidwall/match v1.0.1 // indirect
 	github.com/tidwall/pretty v1.0.0 // indirect
 	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5 // indirect
-	golang.org/x/sys v0.0.0-20190606165138-5da285871e9c // indirect
+	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
 	gopkg.in/Knetic/govaluate.v3 v3.0.0 // indirect

@@ -28,7 +28,7 @@ func TestCreateReal(t *testing.T) {
 }
 
 func TestCreateDefault(t *testing.T) {
-	browsers := []string{"Chrome", "Firefox", "MSIE", "Opera", "Safari"}
+	browsers := []string{"Chrome", "Firefox", "Edge", "Safari"}
 	for _, b := range browsers {
 		t.Run(b, func(t *testing.T) {
 			ua := CreateDefault(b)
@@ -40,12 +40,12 @@ func TestCreateDefault(t *testing.T) {
 }
 
 func TestCreateVersion(t *testing.T) {
-	ua := CreateVersion("Chrome", "37.0.2049.0")
+	ua := CreateVersion("Chrome", "127.0.6533.73")
 	if ua == "" {
 		t.Error("CreateVersion returned empty string")
 	}
-	if !strings.Contains(ua, "Chrome/37.0.2049.0") {
-		t.Errorf("CreateVersion = %q, want to contain 'Chrome/37.0.2049.0'", ua)
+	if !strings.Contains(ua, "Chrome/127.0.6533.73") {
+		t.Errorf("CreateVersion = %q, want to contain 'Chrome/127.0.6533.73'", ua)
 	}
 }
 
@@ -54,8 +54,8 @@ func TestTopVersion(t *testing.T) {
 		browser string
 		want    string
 	}{
-		{"chrome", "37.0.2049.0"},
-		{"firefox", "31.0"},
+		{"chrome", "127.0.6533.73"},
+		{"firefox", "127.0"},
 		{"unknown", "1.0"},
 	}
 	for _, tt := range tests {
@@ -69,9 +69,9 @@ func TestTopVersion(t *testing.T) {
 }
 
 func TestFormat(t *testing.T) {
-	f := Format("chrome", "37.0")
+	f := Format("chrome", "127.0")
 	if f == "" {
-		t.Error("Format(chrome, 37.0) returned empty string")
+		t.Error("Format(chrome, 127.0) returned empty string")
 	}
 	if !strings.Contains(f, "Chrome/{{.Ver}}") {
 		t.Errorf("Format = %q, want to contain template var", f)
@@ -91,7 +91,7 @@ func TestFormatFallbackToTopVersion(t *testing.T) {
 }
 
 func TestDatabaseContainsExpectedBrowsers(t *testing.T) {
-	expected := []string{"chrome", "firefox", "msie", "opera", "safari", "itunes", "aol", "konqueror", "netscape", "lynx", "googlebot", "bingbot", "yahoobot", "default"}
+	expected := []string{"chrome", "firefox", "edge", "safari", "googlebot", "bingbot", "yahoobot", "default"}
 	for _, b := range expected {
 		if _, ok := Database[b]; !ok {
 			t.Errorf("Database missing browser %q", b)

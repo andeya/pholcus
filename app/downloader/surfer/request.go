@@ -82,8 +82,9 @@ type (
 const (
 	SurfID      = 0 // Surf downloader identifier
 	PhantomJsID = 1 // PhantomJS downloader identifier
+	ChromeID    = 2 // Chromium headless browser downloader identifier
 	// Deprecated: Use PhantomJsID instead.
-	PhomtomJsID        = PhantomJsID
+	PhomtomJsID = PhantomJsID
 	DefaultMethod      = "GET"           // default request method
 	DefaultDialTimeout = 2 * time.Minute // default server request timeout
 	DefaultConnTimeout = 2 * time.Minute // default download timeout
@@ -121,7 +122,7 @@ func (dr *DefaultRequest) prepare() {
 		dr.RetryPause = DefaultRetryPause
 	}
 
-	if dr.DownloaderID != PhantomJsID {
+	if dr.DownloaderID != PhantomJsID && dr.DownloaderID != ChromeID {
 		dr.DownloaderID = SurfID
 	}
 }
