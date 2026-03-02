@@ -50,8 +50,8 @@ var Wangyi = &spider.Spider{
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
 					query.Find(".subNav a").Each(func(i int, s *goquery.Selection) {
-						if url, ok := s.Attr("href"); ok {
-							ctx.AddQueue(&request.Request{Url: url, Rule: "新闻排行榜"})
+						if url := s.Attr("href"); url.IsSome() {
+							ctx.AddQueue(&request.Request{Url: url.Unwrap(), Rule: "新闻排行榜"})
 						}
 					})
 				},
@@ -80,13 +80,13 @@ var Wangyi = &spider.Spider{
 								return
 							}
 							// 内容链接
-							url, ok := s.Find("a").Attr("href")
+							url := s.Find("a").Attr("href")
 
 							// 排名
 							top := s.Find(".cBlue").Text()
 
-							if ok {
-								urls_top[url] += topTit[n] + ":" + top + ","
+							if url.IsSome() {
+								urls_top[url.Unwrap()] += topTit[n] + ":" + top + ","
 							}
 						})
 					})
@@ -117,9 +117,9 @@ var Wangyi = &spider.Spider{
 
 					// 若有多页内容，则获取阅读全文的链接并获取内容
 					if pageAll := query.Find(".ep-pages-all"); len(pageAll.Nodes) != 0 {
-						if pageAllUrl, ok := pageAll.Attr("href"); ok {
+						if pageAllUrl := pageAll.Attr("href"); pageAllUrl.IsSome() {
 							ctx.AddQueue(&request.Request{
-								Url:  pageAllUrl,
+								Url:  pageAllUrl.Unwrap(),
 								Rule: "热点新闻",
 								Temp: ctx.CopyTemps(),
 							})

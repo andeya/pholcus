@@ -60,9 +60,9 @@ var ZhihuBianji = &spider.Spider{
 					regular := "#zh-recommend-list-full .zh-general-list .zm-item h2 a"
 					query.Find(regular).
 						Each(func(i int, s *goquery.Selection) {
-							if url, ok := s.Attr("href"); ok {
-								url = changeToAbspath(url)
-								ctx.AddQueue(&request.Request{Url: url, Rule: "解析落地页"})
+							if url := s.Attr("href"); url.IsSome() {
+								u := changeToAbspath(url.Unwrap())
+								ctx.AddQueue(&request.Request{Url: u, Rule: "解析落地页"})
 							}
 						})
 
@@ -128,12 +128,12 @@ var ZhihuBianji = &spider.Spider{
 					query := ctx.GetDom()
 
 					query.Find(".zm-item h2 a").Each(func(i int, selection *goquery.Selection) {
-						if url, ok := selection.Attr("href"); ok {
-							url = changeToAbspath(url)
-							if filterZhihuAnswerURL(url) {
-								ctx.AddQueue(&request.Request{Url: url, Rule: "解析知乎问答落地页"})
+						if url := selection.Attr("href"); url.IsSome() {
+							u := changeToAbspath(url.Unwrap())
+							if filterZhihuAnswerURL(u) {
+								ctx.AddQueue(&request.Request{Url: u, Rule: "解析知乎问答落地页"})
 							} else {
-								ctx.AddQueue(&request.Request{Url: url, Rule: "解析知乎文章落地页"})
+								ctx.AddQueue(&request.Request{Url: u, Rule: "解析知乎文章落地页"})
 							}
 						}
 					})

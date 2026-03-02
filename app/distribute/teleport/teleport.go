@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"log"
 	"time"
+
+	"github.com/andeya/gust/result"
 )
 
 // mode
@@ -17,14 +19,14 @@ const (
 
 // Reserved operation names for API handlers.
 const (
-	IDENTITY           = "+identity+"
-	HEARTBEAT          = "+heartbeat+"
+	IDENTITY            = "+identity+"
+	HEARTBEAT           = "+heartbeat+"
 	DEFAULT_PACK_HEADER = "andeya"
-	DEFAULT_SERVER_UID = "server"
-	DEFAULT_PORT       = ":8080"
-	DEFAULT_TIMEOUT_S  = 20e9
-	DEFAULT_TIMEOUT_C  = 15e9
-	LOOP_TIMEOUT       = 1e9
+	DEFAULT_SERVER_UID  = "server"
+	DEFAULT_PORT        = ":8080"
+	DEFAULT_TIMEOUT_S   = 20e9
+	DEFAULT_TIMEOUT_C   = 15e9
+	LOOP_TIMEOUT        = 1e9
 )
 
 type Teleport interface {
@@ -46,12 +48,12 @@ type Teleport interface {
 }
 
 type TP struct {
-	uid          string
-	mode         int
-	port         string
-	serverAddr   string
-	connPool     map[string]*Connect
-	timeout      time.Duration
+	uid        string
+	mode       int
+	port       string
+	serverAddr string
+	connPool   map[string]*Connect
+	timeout    time.Duration
 	*Protocol
 	apiReadChan   chan *NetData
 	connWChanCap  int
@@ -198,14 +200,11 @@ func (self *TP) CountNodes() int {
 }
 
 func (self *TP) read(conn *Connect) bool {
-	read_len, err := conn.Read(conn.Buffer)
-	if err != nil {
+	readLen, err := conn.Read(conn.Buffer)
+	if result.TryErrVoid(err).IsErr() || readLen == 0 {
 		return false
 	}
-	if read_len == 0 {
-		return false // connection already closed by client
-	}
-	conn.TmpBuffer = append(conn.TmpBuffer, conn.Buffer[:read_len]...)
+	conn.TmpBuffer = append(conn.TmpBuffer, conn.Buffer[:readLen]...)
 	self.save(conn)
 	return true
 }
@@ -263,9 +262,11 @@ func (self *TP) send(data *NetData) {
 		data.From = self.uid
 	}
 
-	d, err := json.Marshal(*data)
-	if err != nil {
+	d := result.Ret(json.Marshal(*data)).UnwrapOrElse(func(err error) []byte {
 		debugPrintln("Debug: send data encode error", err)
+		return nil
+	})
+	if d == nil {
 		return
 	}
 	conn := self.getConn(data.To)
@@ -288,16 +289,15 @@ func (self *TP) save(conn *Connect) {
 		debugPrintf("Debug: received data before decode: %v", string(data))
 
 		d := new(NetData)
-		err := json.Unmarshal(data, d)
-		if err == nil {
-			if d.From == "" {
-				d.From = conn.Addr()
-			}
-			self.apiReadChan <- d
-			debugPrintf("Debug: received data NetData: %+v", d)
-		} else {
-			debugPrintf("Debug: received data decode error: %v", err)
+		if r := result.RetVoid(json.Unmarshal(data, d)); r.IsErr() {
+			debugPrintf("Debug: received data decode error: %v", r.UnwrapErr())
+			continue
 		}
+		if d.From == "" {
+			d.From = conn.Addr()
+		}
+		self.apiReadChan <- d
+		debugPrintf("Debug: received data NetData: %+v", d)
 	}
 }
 

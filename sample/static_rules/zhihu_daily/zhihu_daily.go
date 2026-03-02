@@ -75,9 +75,9 @@ var ZhihuDaily = &spider.Spider{
 
 					query.Find(regular).
 						Each(func(i int, selection *goquery.Selection) {
-							url, isExist := selection.Attr("href")
-							url = changeToAbspath(url)
-							if isExist {
+							urlOpt := selection.Attr("href")
+							url := changeToAbspath(urlOpt.UnwrapOr(""))
+							if urlOpt.IsSome() {
 								ctx.AddQueue(&request.Request{Url: url, Rule: "解析落地页"})
 							}
 						})

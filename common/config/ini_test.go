@@ -86,40 +86,38 @@ peers = one;two;three
 	}
 	f.Close()
 	defer os.Remove("testini.conf")
-	iniconf, err := NewConfig("ini", "testini.conf")
-	if err != nil {
-		t.Fatal(err)
+	iniconfResult := NewConfig("ini", "testini.conf")
+	if iniconfResult.IsErr() {
+		t.Fatal(iniconfResult.UnwrapErr())
 	}
+	iniconf := iniconfResult.Unwrap()
 	for k, v := range keyValue {
-		var err error
 		var value interface{}
 		switch v.(type) {
 		case int:
-			value, err = iniconf.Int(k)
+			value = iniconf.Int(k).UnwrapOr(0)
 		case int64:
-			value, err = iniconf.Int64(k)
+			value = iniconf.Int64(k).UnwrapOr(0)
 		case float64:
-			value, err = iniconf.Float(k)
+			value = iniconf.Float(k).UnwrapOr(0)
 		case bool:
-			value, err = iniconf.Bool(k)
+			value = iniconf.Bool(k).UnwrapOr(false)
 		case []string:
 			value = iniconf.Strings(k)
 		case string:
-			value = iniconf.String(k)
+			value = iniconf.String(k).UnwrapOr("")
 		default:
-			value, err = iniconf.DIY(k)
+			value = iniconf.DIY(k).UnwrapOr(nil)
 		}
-		if err != nil {
-			t.Fatalf("get key %q value fail,err %s", k, err)
-		} else if fmt.Sprintf("%v", v) != fmt.Sprintf("%v", value) {
+		if fmt.Sprintf("%v", v) != fmt.Sprintf("%v", value) {
 			t.Fatalf("get key %q value, want %v got %v .", k, v, value)
 		}
 
 	}
-	if err = iniconf.Set("name", "astaxie"); err != nil {
-		t.Fatal(err)
+	if r := iniconf.Set("name", "astaxie"); r.IsErr() {
+		t.Fatal(r.UnwrapErr())
 	}
-	if iniconf.String("name") != "astaxie" {
+	if iniconf.String("name").UnwrapOr("") != "astaxie" {
 		t.Fatal("get name error")
 	}
 
@@ -159,10 +157,11 @@ httpport=8080
 name=mysql
 `
 	)
-	cfg, err := NewConfigData("ini", []byte(inicontext))
-	if err != nil {
-		t.Fatal(err)
+	cfgResult := NewConfigData("ini", []byte(inicontext))
+	if cfgResult.IsErr() {
+		t.Fatal(cfgResult.UnwrapErr())
 	}
+	cfg := cfgResult.Unwrap()
 	name := "newIniConfig.ini"
 	if err := cfg.SaveConfigFile(name); err != nil {
 		t.Fatal(err)

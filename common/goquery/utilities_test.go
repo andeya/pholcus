@@ -25,10 +25,11 @@ var allNodes = `<!doctype html>
 </html>`
 
 func TestNodeName(t *testing.T) {
-	doc, err := NewDocumentFromReader(strings.NewReader(allNodes))
-	if err != nil {
-		t.Fatal(err)
+	r := NewDocumentFromReader(strings.NewReader(allNodes))
+	if r.IsErr() {
+		t.Fatal(r.UnwrapErr())
 	}
+	doc := r.Unwrap()
 
 	n0 := doc.Nodes[0]
 	nDT := n0.FirstChild
@@ -63,10 +64,11 @@ func TestNodeName(t *testing.T) {
 }
 
 func TestNodeNameMultiSel(t *testing.T) {
-	doc, err := NewDocumentFromReader(strings.NewReader(allNodes))
-	if err != nil {
-		t.Fatal(err)
+	r := NewDocumentFromReader(strings.NewReader(allNodes))
+	if r.IsErr() {
+		t.Fatal(r.UnwrapErr())
 	}
+	doc := r.Unwrap()
 
 	in := []string{"p", "h1", "div"}
 	var out []string
@@ -82,10 +84,11 @@ func TestNodeNameMultiSel(t *testing.T) {
 }
 
 func TestOuterHtml(t *testing.T) {
-	doc, err := NewDocumentFromReader(strings.NewReader(allNodes))
-	if err != nil {
-		t.Fatal(err)
+	r := NewDocumentFromReader(strings.NewReader(allNodes))
+	if r.IsErr() {
+		t.Fatal(r.UnwrapErr())
 	}
+	doc := r.Unwrap()
 
 	n0 := doc.Nodes[0]
 	nDT := n0.FirstChild

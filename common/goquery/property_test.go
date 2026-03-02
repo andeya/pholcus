@@ -7,10 +7,10 @@ import (
 )
 
 func TestAttrExists(t *testing.T) {
-	if val, ok := Doc().Find("a").Attr("href"); !ok {
+	if val := Doc().Find("a").Attr("href"); !val.IsSome() {
 		t.Error("Expected a value for the href attribute.")
 	} else {
-		t.Logf("Href of first anchor: %v.", val)
+		t.Logf("Href of first anchor: %v.", val.Unwrap())
 	}
 }
 
@@ -28,8 +28,8 @@ func TestAttrOr(t *testing.T) {
 }
 
 func TestAttrNotExist(t *testing.T) {
-	if val, ok := Doc().Find("div.row-fluid").Attr("href"); ok {
-		t.Errorf("Expected no value for the href attribute, got %v.", val)
+	if val := Doc().Find("div.row-fluid").Attr("href"); val.IsSome() {
+		t.Errorf("Expected no value for the href attribute, got %v.", val.Unwrap())
 	}
 }
 
@@ -38,8 +38,7 @@ func TestRemoveAttr(t *testing.T) {
 
 	sel.RemoveAttr("id")
 
-	_, ok := sel.Attr("id")
-	if ok {
+	if sel.Attr("id").IsSome() {
 		t.Error("Expected there to be no id attributes set")
 	}
 }
@@ -49,13 +48,13 @@ func TestSetAttr(t *testing.T) {
 
 	sel.SetAttr("id", "not-main")
 
-	val, ok := sel.Attr("id")
-	if !ok {
+	val := sel.Attr("id")
+	if !val.IsSome() {
 		t.Error("Expected an id attribute on main")
 	}
 
-	if val != "not-main" {
-		t.Errorf("Expected an attribute id to be not-main, got %s", val)
+	if val.Unwrap() != "not-main" {
+		t.Errorf("Expected an attribute id to be not-main, got %s", val.Unwrap())
 	}
 }
 
@@ -64,13 +63,13 @@ func TestSetAttr2(t *testing.T) {
 
 	sel.SetAttr("foo", "bar")
 
-	val, ok := sel.Attr("foo")
-	if !ok {
+	val := sel.Attr("foo")
+	if !val.IsSome() {
 		t.Error("Expected an 'foo' attribute on main")
 	}
 
-	if val != "bar" {
-		t.Errorf("Expected an attribute 'foo' to be 'bar', got '%s'", val)
+	if val.Unwrap() != "bar" {
+		t.Errorf("Expected an attribute 'foo' to be 'bar', got '%s'", val.Unwrap())
 	}
 }
 
@@ -118,10 +117,11 @@ func TestHtml(t *testing.T) {
 
 func TestNbsp(t *testing.T) {
 	src := `<p>Some&nbsp;text</p>`
-	d, err := NewDocumentFromReader(strings.NewReader(src))
-	if err != nil {
-		t.Fatal(err)
+	r := NewDocumentFromReader(strings.NewReader(src))
+	if r.IsErr() {
+		t.Fatal(r.UnwrapErr())
 	}
+	d := r.Unwrap()
 	txt := d.Find("p").Text()
 	ix := strings.Index(txt, "\u00a0")
 	if ix != 4 {
@@ -143,7 +143,7 @@ func TestAddClass(t *testing.T) {
 	sel.AddClass("main main main")
 
 	// Make sure that class was only added once
-	if a, ok := sel.Attr("class"); !ok || a != "main" {
+	if a := sel.Attr("class"); !a.IsSome() || a.Unwrap() != "main" {
 		t.Error("Expected #main to have class main")
 	}
 }
@@ -162,8 +162,8 @@ func TestAddEmptyClass(t *testing.T) {
 	sel.AddClass("")
 
 	// Make sure that class was only added once
-	if a, ok := sel.Attr("class"); ok {
-		t.Errorf("Expected #main to not to have a class, have: %s", a)
+	if a := sel.Attr("class"); a.IsSome() {
+		t.Errorf("Expected #main to not to have a class, have: %s", a.Unwrap())
 	}
 }
 
@@ -203,8 +203,7 @@ func TestRemoveClass(t *testing.T) {
 	sel.RemoveClass("one row")
 
 	if !sel.HasClass("even") || sel.HasClass("one") || sel.HasClass("row") {
-		classes, _ := sel.Attr("class")
-		t.Error("Expected #nf1 to have class even, has ", classes)
+		t.Error("Expected #nf1 to have class even, has ", sel.Attr("class").UnwrapOr(""))
 	}
 }
 
@@ -221,14 +220,14 @@ func TestRemoveAllClasses(t *testing.T) {
 	sel := Doc2Clone().Find("#nf1")
 	sel.RemoveClass()
 
-	if a, ok := sel.Attr("class"); ok {
-		t.Error("All classes were not removed, has ", a)
+	if a := sel.Attr("class"); a.IsSome() {
+		t.Error("All classes were not removed, has ", a.Unwrap())
 	}
 
 	sel = Doc2Clone().Find("#main")
 	sel.RemoveClass()
-	if a, ok := sel.Attr("class"); ok {
-		t.Error("All classes were not removed, has ", a)
+	if a := sel.Attr("class"); a.IsSome() {
+		t.Error("All classes were not removed, has ", a.Unwrap())
 	}
 }
 
@@ -246,7 +245,7 @@ func TestToggleClass(t *testing.T) {
 	}
 
 	sel.ToggleClass("one even row")
-	if a, ok := sel.Attr("class"); ok {
-		t.Errorf("Expected #nf1 to have no classes, have %q", a)
+	if a := sel.Attr("class"); a.IsSome() {
+		t.Errorf("Expected #nf1 to have no classes, have %q", a.Unwrap())
 	}
 }

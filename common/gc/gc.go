@@ -16,6 +16,8 @@ var (
 )
 
 // ManualGC periodically frees memory from the heap for reuse.
+// Skipped for gust adoption: runtime.ReadMemStats, debug.FreeOSMemory, and
+// time.Tick do not return errors; no error-returning functions to convert.
 func ManualGC() {
 	go gcOnce.Do(func() {
 		tick := time.Tick(2 * time.Minute)

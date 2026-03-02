@@ -18,9 +18,12 @@
 package surfer
 
 import (
+	"errors"
 	"net/http"
 	"net/http/cookiejar"
 	"sync"
+
+	"github.com/andeya/gust/result"
 )
 
 var (
@@ -34,16 +37,16 @@ var (
 	cookieJar, _  = cookiejar.New(nil) // nil options never returns error
 )
 
-func Download(req Request) (resp *http.Response, err error) {
+func Download(req Request) result.Result[*http.Response] {
 	switch req.GetDownloaderID() {
 	case SurfID:
 		once_surf.Do(func() { surf = New(cookieJar) })
-		resp, err = surf.Download(req)
+		return surf.Download(req)
 	case PhantomJsID:
 		once_phantom.Do(func() { phantom = NewPhantom(phantomjsFile, tempJsDir, cookieJar) })
-		resp, err = phantom.Download(req)
+		return phantom.Download(req)
 	}
-	return
+	return result.TryErr[*http.Response](errors.New("unknown downloader id"))
 }
 
 // DestroyJsFiles removes PhantomJS temporary JS files.
@@ -59,5 +62,5 @@ type Surfer interface {
 	// HEAD @param url string, header http.Header, cookies []*http.Cookie
 	// POST PostForm @param url, referer string, values url.Values, header http.Header, cookies []*http.Cookie
 	// POST-M PostMultipart @param url, referer string, values url.Values, header http.Header, cookies []*http.Cookie
-	Download(Request) (resp *http.Response, err error)
+	Download(Request) result.Result[*http.Response]
 }

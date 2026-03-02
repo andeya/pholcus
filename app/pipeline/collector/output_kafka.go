@@ -1,10 +1,10 @@
 package collector
 
 import (
-	"fmt"
 	"regexp"
 	"sync"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/kafka"
 	"github.com/andeya/pholcus/common/util"
 	"github.com/andeya/pholcus/logs"
@@ -33,11 +33,9 @@ func init() {
 
 	var topic = regexp.MustCompile("^[0-9a-zA-Z_-]+$")
 
-	DataOutput["kafka"] = func(self *Collector) error {
-		_, err := kafka.GetProducer()
-		if err != nil {
-			return fmt.Errorf("kafka producer失败: %v", err)
-		}
+	DataOutput["kafka"] = func(self *Collector) (r result.VoidResult) {
+		defer r.Catch()
+		kafka.GetProducer().Unwrap()
 		var (
 			kafkas    = make(map[string]*kafka.KafkaSender)
 			namespace = util.FileNameReplace(self.namespace())
@@ -75,10 +73,9 @@ func init() {
 				data["parent_url"] = datacell["ParentUrl"].(string)
 				data["download_time"] = datacell["DownloadTime"].(string)
 			}
-			err := sender.Push(data)
-			util.CheckErr(err)
+			sender.Push(data).Unwrap()
 		}
 		kafkas = nil
-		return nil
+		return result.OkVoid()
 	}
 }

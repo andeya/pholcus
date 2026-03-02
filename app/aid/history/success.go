@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/mgo"
 	"github.com/andeya/pholcus/common/mysql"
 	"github.com/andeya/pholcus/config"
@@ -50,20 +51,19 @@ func (self *Success) DeleteSuccess(reqUnique string) {
 	self.RWMutex.Unlock()
 }
 
-func (self *Success) flush(provider string) (sLen int, err error) {
+func (self *Success) flush(provider string) result.Result[int] {
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
 
-	sLen = len(self.new)
+	sLen := len(self.new)
 	if sLen == 0 {
-		return
+		return result.Ok(0)
 	}
 
 	switch provider {
 	case "mgo":
 		if mgo.Error() != nil {
-			err = fmt.Errorf(" *     Fail  [add success record][mgo]: %v [ERROR]  %v\n", sLen, mgo.Error())
-			return
+			return result.TryErr[int](fmt.Errorf(" *     Fail  [add success record][mgo]: %v [ERROR]  %v\n", sLen, mgo.Error()))
 		}
 		var docs = make([]map[string]interface{}, sLen)
 		var i int
@@ -72,27 +72,26 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 			self.old[key] = true
 			i++
 		}
-		err := mgo.Mgo(nil, "insert", map[string]interface{}{
+		r := mgo.Mgo(nil, "insert", map[string]interface{}{
 			"Database":   config.DB_NAME,
 			"Collection": self.tabName,
 			"Docs":       docs,
 		})
-		if err != nil {
-			err = fmt.Errorf(" *     Fail  [add success record][mgo]: %v [ERROR]  %v\n", sLen, err)
+		if r.IsErr() {
+			return result.TryErr[int](fmt.Errorf(" *     Fail  [add success record][mgo]: %v [ERROR]  %v\n", sLen, r.UnwrapErr()))
 		}
 
 	case "mysql":
 		_, err := mysql.DB()
 		if err != nil {
-			return sLen, fmt.Errorf(" *     Fail  [add success record][mysql]: %v [ERROR]  %v\n", sLen, err)
+			return result.TryErr[int](fmt.Errorf(" *     Fail  [add success record][mysql]: %v [ERROR]  %v\n", sLen, err))
 		}
 		table, ok := getWriteMysqlTable(self.tabName)
 		if !ok {
-			table = mysql.New()
+			table = mysql.New().Unwrap()
 			table.SetTableName(self.tabName).CustomPrimaryKey(`id VARCHAR(255) NOT NULL PRIMARY KEY`)
-			err = table.Create()
-			if err != nil {
-				return sLen, fmt.Errorf(" *     Fail  [add success record][mysql]: %v [ERROR]  %v\n", sLen, err)
+			if r := table.Create(); r.IsErr() {
+				return result.TryErr[int](fmt.Errorf(" *     Fail  [add success record][mysql]: %v [ERROR]  %v\n", sLen, r.UnwrapErr()))
 			}
 			setWriteMysqlTable(self.tabName, table)
 		}
@@ -100,9 +99,8 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 			table.AutoInsert([]string{key})
 			self.old[key] = true
 		}
-		err = table.FlushInsert()
-		if err != nil {
-			return sLen, fmt.Errorf(" *     Fail  [add success record][mysql]: %v [ERROR]  %v\n", sLen, err)
+		if r := table.FlushInsert(); r.IsErr() {
+			return result.TryErr[int](fmt.Errorf(" *     Fail  [add success record][mysql]: %v [ERROR]  %v\n", sLen, r.UnwrapErr()))
 		}
 
 	default:
@@ -118,5 +116,5 @@ func (self *Success) flush(provider string) (sLen int, err error) {
 		}
 	}
 	self.new = make(map[string]bool)
-	return
+	return result.Ok(sLen)
 }

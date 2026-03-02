@@ -67,9 +67,9 @@ var Avatar = &spider.Spider{
 					if len(pageTag.Nodes) == 0 {
 						logs.Log.Critical("[消息提示：| 任务：%v | KEYIN：%v | 规则：%v] \n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
 						query.Find(".sm-floorhead-typemore a").Each(func(i int, s *goquery.Selection) {
-							if href, ok := s.Attr("href"); ok {
+							if href := s.Attr("href"); href.IsSome() {
 								ctx.AddQueue(&request.Request{
-									Url:    href,
+									Url:    href.Unwrap(),
 									Header: http.Header{"Content-Type": []string{"text/html; charset=utf-8"}},
 									Rule:   "搜索结果",
 								})
@@ -89,7 +89,7 @@ var Avatar = &spider.Spider{
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
 					query.Find(".txList").Each(func(i int, selection *goquery.Selection) {
-						src, _ := selection.Find("a.img>img").First().Attr("src")
+						src := selection.Find("a.img>img").First().Attr("src").UnwrapOr("")
 						name := selection.Find("p>a").Text()
 						fmt.Printf("nickname:%s \t url: %s\n", name, src)
 						ctx.AddQueue(&request.Request{

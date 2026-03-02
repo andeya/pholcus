@@ -783,10 +783,11 @@ func TestIssue26(t *testing.T) {
 		{s: img2, l: 1},
 	}
 	for _, c := range cases {
-		doc, err := NewDocumentFromReader(strings.NewReader(c.s))
-		if err != nil {
-			t.Fatal(err)
+		r := NewDocumentFromReader(strings.NewReader(c.s))
+		if r.IsErr() {
+			t.Fatal(r.UnwrapErr())
 		}
+		doc := r.Unwrap()
 		sel := doc.Find("img[src]")
 		assertLength(t, sel.Nodes, c.l)
 	}

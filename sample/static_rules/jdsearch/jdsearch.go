@@ -108,7 +108,7 @@ var JDSearch = &spider.Spider{
 						title = strings.Trim(title, " \t\n")
 
 						// 获取价格
-						price, _ := s.Find("strong[data-price]").First().Attr("data-price")
+						price := s.Find("strong[data-price]").First().Attr("data-price").UnwrapOr("")
 
 						// 获取评论数
 						e := s.Find(".extra").First()
@@ -117,11 +117,11 @@ var JDSearch = &spider.Spider{
 						discuss = re.FindString(discuss)
 
 						// 获取星级
-						level, _ := e.Find(".star span[id]").First().Attr("class")
+						level := e.Find(".star span[id]").First().Attr("class").UnwrapOr("")
 						level = re.FindString(level)
 
 						// 获取URL
-						url, _ := a.Attr("href")
+						url := a.Attr("href").UnwrapOr("")
 
 						// 结果存入Response中转
 						ctx.Output(map[int]interface{}{

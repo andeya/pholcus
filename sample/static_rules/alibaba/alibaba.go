@@ -64,9 +64,9 @@ var AlibabaProduct = &spider.Spider{
 					if len(pageTag.Nodes) == 0 {
 						logs.Log.Critical("[消息提示：| 任务：%v | KEYIN：%v | 规则：%v] 由于跳转AJAX问题，目前只能每个子类抓取 1 页……\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
 						query.Find(".sm-floorhead-typemore a").Each(func(i int, s *goquery.Selection) {
-							if href, ok := s.Attr("href"); ok {
+							if href := s.Attr("href"); href.IsSome() {
 								ctx.AddQueue(&request.Request{
-									Url:    href,
+									Url:    href.Unwrap(),
 									Header: http.Header{"Content-Type": []string{"text/html; charset=gbk"}},
 									Rule:   "搜索结果",
 								})
@@ -74,7 +74,7 @@ var AlibabaProduct = &spider.Spider{
 						})
 						return
 					}
-					total1, _ := pageTag.First().Attr("data-total-page")
+					total1 := pageTag.First().Attr("data-total-page").UnwrapOr("")
 					total1 = strings.Trim(total1, " \t\n")
 					total, _ := strconv.Atoi(total1)
 					if total > ctx.GetLimit() {
@@ -108,14 +108,14 @@ var AlibabaProduct = &spider.Spider{
 					query.Find("#sm-offer-list > li").Each(func(i int, s *goquery.Selection) {
 
 						// 获取公司
-						company, _ := s.Find("a.sm-offer-companyName").First().Attr("title")
+						company := s.Find("a.sm-offer-companyName").First().Attr("title").UnwrapOr("")
 
 						// 获取标题
 						t := s.Find(".sm-offer-title > a:nth-child(1)")
-						title, _ := t.Attr("title")
+						title := t.Attr("title").UnwrapOr("")
 
 						// 获取URL
-						url, _ := t.Attr("href")
+						url := t.Attr("href").UnwrapOr("")
 
 						// 获取价格
 						price := s.Find(".sm-offer-priceNum").First().Text()
@@ -124,7 +124,7 @@ var AlibabaProduct = &spider.Spider{
 						sales := s.Find("span.sm-offer-trade > em").First().Text()
 
 						// 获取地址
-						address, _ := s.Find(".sm-offer-location").First().Attr("title")
+						address := s.Find(".sm-offer-location").First().Attr("title").UnwrapOr("")
 
 						// 获取信用年限
 						level := s.Find("span.sm-offer-companyTag > a.sw-ui-flaticon-cxt16x16").First().Text()

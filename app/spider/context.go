@@ -106,13 +106,13 @@ func (self *Context) AddQueue(req *request.Request) *Context {
 		return self
 	}
 
-	err := req.
+	prepareResult := req.
 		SetSpiderName(self.spider.GetName()).
 		SetEnableCookie(self.spider.GetEnableCookie()).
 		Prepare()
 
-	if err != nil {
-		logs.Log.Error(err.Error())
+	if prepareResult.IsErr() {
+		logs.Log.Error(prepareResult.UnwrapErr().Error())
 		return self
 	}
 
@@ -175,13 +175,13 @@ func (self *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 		req.Temp = t
 	}
 
-	err := req.
+	prepareResult := req.
 		SetSpiderName(self.spider.GetName()).
 		SetEnableCookie(self.spider.GetEnableCookie()).
 		Prepare()
 
-	if err != nil {
-		logs.Log.Error(err.Error())
+	if prepareResult.IsErr() {
+		logs.Log.Error(prepareResult.UnwrapErr().Error())
 		return self
 	}
 
@@ -230,12 +230,13 @@ func (self *Context) Output(item interface{}, ruleName ...string) {
 
 // FileOutput collects a file result from the response body.
 // nameOrExt optionally specifies a file name or extension; empty keeps the original.
+// Errors are logged internally; no return value for JS VM compatibility.
 func (self *Context) FileOutput(nameOrExt ...string) {
 	if self.Response == nil || self.Response.Body == nil {
 		logs.Log.Warning(" *     [FileOutput]: Response or Body is nil for %s", self.GetUrl())
 		return
 	}
-	bytes, err := io.ReadAll(self.Response.Body)
+	body, err := io.ReadAll(self.Response.Body)
 	self.Response.Body.Close()
 	if err != nil {
 		logs.Log.Error(" *     [FileOutput]: %v", err)
@@ -265,7 +266,7 @@ func (self *Context) FileOutput(nameOrExt ...string) {
 	}
 
 	self.Lock()
-	self.files = append(self.files, data.GetFileCell(self.GetRuleName(), baseName+ext, bytes))
+	self.files = append(self.files, data.GetFileCell(self.GetRuleName(), baseName+ext, body))
 	self.Unlock()
 }
 
@@ -440,7 +441,7 @@ func (self *Context) GetRequest() *request.Request {
 
 // CopyRequest returns a deep copy of the original request.
 func (self *Context) CopyRequest() *request.Request {
-	return self.Request.Copy()
+	return self.Request.Copy().Unwrap()
 }
 
 // GetItemFields returns the result field name list for the given rule.
@@ -514,7 +515,7 @@ func (self *Context) GetRules() map[string]*Rule {
 }
 
 // GetRule returns the rule with the given name.
-func (self *Context) GetRule(ruleName string) (*Rule, bool) {
+func (self *Context) GetRule(ruleName string) *Rule {
 	return self.spider.GetRule(ruleName)
 }
 
@@ -629,8 +630,8 @@ func (self *Context) getRule(ruleName ...string) (name string, rule *Rule, found
 	} else {
 		name = ruleName[0]
 	}
-	rule, found = self.spider.GetRule(name)
-	return
+	rule = self.spider.GetRule(name)
+	return name, rule, rule != nil
 }
 
 // initDom parses the text body into a goquery Document.
@@ -638,11 +639,11 @@ func (self *Context) initDom() *goquery.Document {
 	if self.text == nil {
 		self.initText()
 	}
-	var err error
-	self.dom, err = goquery.NewDocumentFromReader(bytes.NewReader(self.text))
-	if err != nil {
-		panic(err.Error())
+	r := goquery.NewDocumentFromReader(bytes.NewReader(self.text))
+	if r.IsErr() {
+		panic(r.UnwrapErr().Error())
 	}
+	self.dom = r.Unwrap()
 	return self.dom
 }
 

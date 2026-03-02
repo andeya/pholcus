@@ -11,7 +11,7 @@ func BenchmarkAttr(b *testing.B) {
 	sel := DocW().Find("h1")
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		s, _ = sel.Attr("id")
+		s = sel.Attr("id").UnwrapOr("")
 	}
 	if s != "firstHeading" {
 		b.Fatalf("want firstHeading, got %q", s)

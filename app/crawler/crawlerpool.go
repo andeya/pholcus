@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/andeya/gust/option"
 	"github.com/andeya/pholcus/config"
 	"github.com/andeya/pholcus/runtime/status"
 )
@@ -13,6 +14,7 @@ type (
 	CrawlerPool interface {
 		Reset(spiderNum int) int
 		Use() Crawler
+		UseOpt() option.Option[Crawler]
 		Free(Crawler)
 		Stop()
 	}
@@ -63,24 +65,29 @@ func (self *cq) Reset(spiderNum int) int {
 
 // Use acquires a crawler from the pool in a concurrency-safe manner.
 func (self *cq) Use() Crawler {
+	return self.UseOpt().UnwrapOr(nil)
+}
+
+// UseOpt acquires a crawler from the pool; returns None when pool is stopped.
+func (self *cq) UseOpt() option.Option[Crawler] {
 	var crawler Crawler
 	for {
 		self.Lock()
 		if self.status == status.STOP {
 			self.Unlock()
-			return nil
+			return option.None[Crawler]()
 		}
 		select {
 		case crawler = <-self.usable:
 			self.Unlock()
-			return crawler
+			return option.Some(crawler)
 		default:
 			if self.count < self.capacity {
 				crawler = New(self.count)
 				self.all = append(self.all, crawler)
 				self.count++
 				self.Unlock()
-				return crawler
+				return option.Some(crawler)
 			}
 		}
 		self.Unlock()

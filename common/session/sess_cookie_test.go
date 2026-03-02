@@ -29,12 +29,9 @@ func TestCookie(t *testing.T) {
 	}
 	r, _ := http.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
-	sess, err := globalSessions.SessionStart(w, r)
-	if err != nil {
-		t.Fatal("set error,", err)
-	}
+	sess := globalSessions.SessionStart(w, r).Unwrap()
 	sess.Set("username", "astaxie")
-	if username := sess.Get("username"); username != "astaxie" {
+	if username := sess.Get("username").UnwrapOr(nil); username != "astaxie" {
 		t.Fatal("get username error")
 	}
 	sess.SessionRelease(w)
@@ -60,19 +57,13 @@ func TestDestorySessionCookie(t *testing.T) {
 
 	r, _ := http.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
-	session, err := globalSessions.SessionStart(w, r)
-	if err != nil {
-		t.Fatal("session start err,", err)
-	}
+	session := globalSessions.SessionStart(w, r).Unwrap()
 
 	// request again ,will get same sesssion id .
 	r1, _ := http.NewRequest("GET", "/", nil)
 	r1.Header.Set("Cookie", w.Header().Get("Set-Cookie"))
 	w = httptest.NewRecorder()
-	newSession, err := globalSessions.SessionStart(w, r1)
-	if err != nil {
-		t.Fatal("session start err,", err)
-	}
+	newSession := globalSessions.SessionStart(w, r1).Unwrap()
 	if newSession.SessionID() != session.SessionID() {
 		t.Fatal("get cookie session id is not the same again.")
 	}
@@ -83,10 +74,7 @@ func TestDestorySessionCookie(t *testing.T) {
 	r2.Header.Set("Cookie", w.Header().Get("Set-Cookie"))
 
 	w = httptest.NewRecorder()
-	newSession, err = globalSessions.SessionStart(w, r2)
-	if err != nil {
-		t.Fatal("session start error")
-	}
+	newSession = globalSessions.SessionStart(w, r2).Unwrap()
 	if newSession.SessionID() == session.SessionID() {
 		t.Fatal("after destroy session and reqeust again ,get cookie session id is same.")
 	}

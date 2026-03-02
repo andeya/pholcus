@@ -56,14 +56,15 @@ var Hollandandbarrett = &spider.Spider{
 					lis := query.Find(".footer-links nav.l-one-half a")
 
 					lis.Each(func(i int, s *goquery.Selection) {
-						if url, ok := s.Attr("href"); ok {
-							tit, _ := s.Attr("title")
+						if url := s.Attr("href"); url.IsSome() {
+							u := url.Unwrap()
+							tit := s.Attr("title").UnwrapOr("")
 							ctx.AddQueue(&request.Request{
-								Url:  "http://www.hollandandbarrett.com" + url + "?showAll=1&pageHa=1&es=true&vm=grid&imd=true&format=json&single=true",
+								Url:  "http://www.hollandandbarrett.com" + u + "?showAll=1&pageHa=1&es=true&vm=grid&imd=true&format=json&single=true",
 								Rule: "获取总数",
 								Temp: map[string]interface{}{
 									"type":    tit,
-									"baseUrl": url,
+									"baseUrl": u,
 								},
 							},
 							)

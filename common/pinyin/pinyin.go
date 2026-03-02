@@ -3,6 +3,8 @@ package pinyin
 import (
 	"regexp"
 	"strings"
+
+	"github.com/andeya/gust/option"
 )
 
 // Package metadata.
@@ -134,11 +136,13 @@ func applyStyle(p []string, a Args) []string {
 // SinglePinyin converts a single Chinese character (rune) to pinyin.
 func SinglePinyin(r rune, a Args) []string {
 	value, ok := PinyinDict[int(r)]
+	opt := option.BoolOpt(value, ok)
 	pys := []string{}
-	if ok {
+	if opt.IsSome() {
+		value := opt.Unwrap()
 		pys = strings.Split(value, ",")
 		if !a.Heteronym {
-			pys = strings.Split(value, ",")[:1]
+			pys = pys[:1]
 		}
 	}
 	return applyStyle(pys, a)

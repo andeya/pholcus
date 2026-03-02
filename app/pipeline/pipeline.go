@@ -2,6 +2,7 @@
 package pipeline
 
 import (
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/app/pipeline/collector"
 	"github.com/andeya/pholcus/app/pipeline/collector/data"
 	"github.com/andeya/pholcus/app/spider"
@@ -11,8 +12,8 @@ import (
 type Pipeline interface {
 	Start()
 	Stop()
-	CollectData(data.DataCell) error
-	CollectFile(data.FileCell) error
+	CollectData(data.DataCell) result.VoidResult
+	CollectFile(data.FileCell) result.VoidResult
 }
 
 // New creates a new Pipeline for the given spider.

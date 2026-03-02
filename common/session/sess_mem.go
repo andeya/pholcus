@@ -19,6 +19,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/andeya/gust/option"
 )
 
 var mempder = &MemProvider{list: list.New(), sessions: make(map[string]*list.Element)}
@@ -39,13 +41,11 @@ func (st *MemSessionStore) Set(key, value interface{}) {
 }
 
 // Get retrieves a value from the memory session by key.
-func (st *MemSessionStore) Get(key interface{}) interface{} {
+func (st *MemSessionStore) Get(key interface{}) option.Option[interface{}] {
 	st.lock.RLock()
 	defer st.lock.RUnlock()
-	if v, ok := st.value[key]; ok {
-		return v
-	}
-	return nil
+	v, ok := st.value[key]
+	return option.BoolOpt(v, ok)
 }
 
 // Delete removes a value from the memory session by key.
@@ -90,7 +90,8 @@ func (pder *MemProvider) SessionInit(maxlifetime int64, savePath string) error {
 // SessionRead returns the memory session store for the given sid.
 func (pder *MemProvider) SessionRead(sid string) (Store, error) {
 	pder.lock.RLock()
-	if element, ok := pder.sessions[sid]; ok {
+	element, ok := pder.sessions[sid]
+	if option.BoolOpt(element, ok).IsSome() {
 		go pder.SessionUpdate(sid)
 		pder.lock.RUnlock()
 		return element.Value.(*MemSessionStore), nil
@@ -98,8 +99,8 @@ func (pder *MemProvider) SessionRead(sid string) (Store, error) {
 	pder.lock.RUnlock()
 	pder.lock.Lock()
 	newsess := &MemSessionStore{sid: sid, timeAccessed: time.Now(), value: make(map[interface{}]interface{})}
-	element := pder.list.PushFront(newsess)
-	pder.sessions[sid] = element
+	el := pder.list.PushFront(newsess)
+	pder.sessions[sid] = el
 	pder.lock.Unlock()
 	return newsess, nil
 }
@@ -108,16 +109,15 @@ func (pder *MemProvider) SessionRead(sid string) (Store, error) {
 func (pder *MemProvider) SessionExist(sid string) bool {
 	pder.lock.RLock()
 	defer pder.lock.RUnlock()
-	if _, ok := pder.sessions[sid]; ok {
-		return true
-	}
-	return false
+	_, ok := pder.sessions[sid]
+	return option.BoolOpt(struct{}{}, ok).IsSome()
 }
 
 // SessionRegenerate creates a new session store with the new sid, copying data from the old one.
 func (pder *MemProvider) SessionRegenerate(oldsid, sid string) (Store, error) {
 	pder.lock.RLock()
-	if element, ok := pder.sessions[oldsid]; ok {
+	element, ok := pder.sessions[oldsid]
+	if option.BoolOpt(element, ok).IsSome() {
 		go pder.SessionUpdate(oldsid)
 		pder.lock.RUnlock()
 		pder.lock.Lock()
@@ -130,8 +130,8 @@ func (pder *MemProvider) SessionRegenerate(oldsid, sid string) (Store, error) {
 	pder.lock.RUnlock()
 	pder.lock.Lock()
 	newsess := &MemSessionStore{sid: sid, timeAccessed: time.Now(), value: make(map[interface{}]interface{})}
-	element := pder.list.PushFront(newsess)
-	pder.sessions[sid] = element
+	el := pder.list.PushFront(newsess)
+	pder.sessions[sid] = el
 	pder.lock.Unlock()
 	return newsess, nil
 }
@@ -140,7 +140,8 @@ func (pder *MemProvider) SessionRegenerate(oldsid, sid string) (Store, error) {
 func (pder *MemProvider) SessionDestroy(sid string) error {
 	pder.lock.Lock()
 	defer pder.lock.Unlock()
-	if element, ok := pder.sessions[sid]; ok {
+	element, ok := pder.sessions[sid]
+	if option.BoolOpt(element, ok).IsSome() {
 		delete(pder.sessions, sid)
 		pder.list.Remove(element)
 		return nil
@@ -179,7 +180,8 @@ func (pder *MemProvider) SessionAll() int {
 func (pder *MemProvider) SessionUpdate(sid string) error {
 	pder.lock.Lock()
 	defer pder.lock.Unlock()
-	if element, ok := pder.sessions[sid]; ok {
+	element, ok := pder.sessions[sid]
+	if option.BoolOpt(element, ok).IsSome() {
 		element.Value.(*MemSessionStore).timeAccessed = time.Now()
 		pder.list.MoveToFront(element)
 		return nil

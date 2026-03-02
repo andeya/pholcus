@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/andeya/gust/option"
 	"github.com/andeya/pholcus/common/closer"
 )
 
@@ -49,13 +50,11 @@ func (fs *FileSessionStore) Set(key, value interface{}) {
 }
 
 // Get retrieves a value from the file session.
-func (fs *FileSessionStore) Get(key interface{}) interface{} {
+func (fs *FileSessionStore) Get(key interface{}) option.Option[interface{}] {
 	fs.lock.RLock()
 	defer fs.lock.RUnlock()
-	if v, ok := fs.values[key]; ok {
-		return v
-	}
-	return nil
+	v, ok := fs.values[key]
+	return option.BoolOpt(v, ok)
 }
 
 // Delete removes a value from the file session by key.

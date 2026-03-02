@@ -83,7 +83,7 @@ var Zolpc = &spider.Spider{
 
 					//url
 					outUrls := selectObj.Find("td").Eq(1)
-					outUrl, _ := outUrls.Attr("data-url")
+					outUrl := outUrls.Attr("data-url").UnwrapOr("")
 					outUrl = "http://bbs.zol.com.cn/" + outUrl
 					//title type
 					outTitles := selectObj.Find("td").Eq(1)

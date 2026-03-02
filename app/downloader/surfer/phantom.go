@@ -27,6 +27,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/andeya/gust/result"
 )
 
 type (
@@ -94,7 +96,8 @@ func NewPhantom(phantomjsFile, tempJsDir string, jar ...*cookiejar.Jar) Surfer {
 }
 
 // Download implements the Surfer interface.
-func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
+func (self *Phantom) Download(req Request) (r result.Result[*http.Response]) {
+	defer r.Catch()
 	var encoding = "utf-8"
 	if _, params, err := mime.ParseMediaType(req.GetHeader().Get("Content-Type")); err == nil {
 		if cs, ok := params["charset"]; ok {
@@ -104,10 +107,7 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 
 	req.GetHeader().Del("Content-Type")
 
-	param, err := NewParam(req)
-	if err != nil {
-		return nil, err
-	}
+	param := NewParam(req).Unwrap()
 
 	cookie := ""
 	if req.GetEnableCookie() {
@@ -128,7 +128,7 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 		}
 	}
 
-	resp = param.writeback(resp)
+	resp := param.writeback(nil)
 	resp.Request.URL = param.url
 
 	var args = []string{
@@ -145,6 +145,7 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 		args = append([]string{"--proxy=" + req.GetProxy()}, args...)
 	}
 
+	var err error
 	for i := 0; i < param.tryTimes; i++ {
 		if i != 0 {
 			time.Sleep(param.retryPause)
@@ -187,6 +188,7 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 			}
 		}
 		resp.Body = io.NopCloser(strings.NewReader(retResp.Body))
+		err = nil
 		break
 	}
 
@@ -197,7 +199,7 @@ func (self *Phantom) Download(req Request) (resp *http.Response, err error) {
 		resp.StatusCode = http.StatusBadGateway
 		resp.Status = err.Error()
 	}
-	return
+	return result.Ok(resp)
 }
 
 // DestroyJsFiles removes temporary JS files.

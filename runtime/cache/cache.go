@@ -21,7 +21,7 @@ type AppConf struct {
 	ProxyMinute    int64  // proxy IP rotation interval in minutes
 	SuccessInherit bool   // inherit historical success records
 	FailureInherit bool   // inherit historical failure records
-	Keyins string // custom input; later split into Keyin config for multiple tasks
+	Keyins         string // custom input; later split into Keyin config for multiple tasks
 }
 
 // Task holds the default runtime configuration.
@@ -41,9 +41,9 @@ type Report struct {
 }
 
 var (
-	StartTime  time.Time     // timestamp when start button was clicked
-	ReportChan chan *Report  // text data summary report channel
-	pageSum    [2]uint64     // [total count, failure count]
+	StartTime  time.Time    // timestamp when start button was clicked
+	ReportChan chan *Report // text data summary report channel
+	pageSum    [2]uint64    // [total count, failure count]
 )
 
 // ResetPageCount resets the page counters.

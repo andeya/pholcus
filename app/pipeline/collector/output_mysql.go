@@ -1,12 +1,11 @@
 package collector
 
 import (
-	"fmt"
 	"sync"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/mysql"
 	"github.com/andeya/pholcus/common/util"
-	"github.com/andeya/pholcus/logs"
 )
 
 // --- MySQL Output ---
@@ -33,11 +32,10 @@ func init() {
 		mysqlTableLock.Unlock()
 	}
 
-	DataOutput["mysql"] = func(self *Collector) error {
+	DataOutput["mysql"] = func(self *Collector) (r result.VoidResult) {
+		defer r.Catch()
 		_, err := mysql.DB()
-		if err != nil {
-			return fmt.Errorf("Mysql数据库链接失败: %v", err)
-		}
+		result.RetVoid(err).Unwrap()
 		var (
 			mysqls    = make(map[string]*mysql.MyTable)
 			namespace = util.FileNameReplace(self.namespace())
@@ -51,7 +49,7 @@ func init() {
 				if ok {
 					mysqls[tName] = table
 				} else {
-					table = mysql.New()
+					table = mysql.New().Unwrap()
 					table.SetTableName(tName)
 					for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
 						table.AddColumn(title + ` MEDIUMTEXT`)
@@ -59,13 +57,9 @@ func init() {
 					if self.Spider.OutDefaultField() {
 						table.AddColumn(`Url VARCHAR(255)`, `ParentUrl VARCHAR(255)`, `DownloadTime VARCHAR(50)`)
 					}
-					if err := table.Create(); err != nil {
-						logs.Log.Error("%v", err)
-						continue
-					} else {
-						setMysqlTable(tName, table)
-						mysqls[tName] = table
-					}
+					table.Create().Unwrap()
+					setMysqlTable(tName, table)
+					mysqls[tName] = table
 				}
 			}
 			data := []string{}
@@ -83,9 +77,9 @@ func init() {
 			table.AutoInsert(data)
 		}
 		for _, tab := range mysqls {
-			util.CheckErr(tab.FlushInsert())
+			tab.FlushInsert().Unwrap()
 		}
 		mysqls = nil
-		return nil
+		return result.OkVoid()
 	}
 }

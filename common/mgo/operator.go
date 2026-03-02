@@ -1,18 +1,19 @@
 package mgo
 
 import (
-	"errors"
 	"reflect"
 	"strings"
+
+	"github.com/andeya/gust/result"
 )
 
 // Mgo is the unified entry for CRUD operations.
 // resultPtr types: count=*int, list=*map[string][]string, find=*map[string]interface{},
 // insert=*[]string (may be nil to skip IDs), update/remove=nil.
-func Mgo(resultPtr interface{}, operate string, option map[string]interface{}) error {
+func Mgo(resultPtr interface{}, operate string, option map[string]interface{}) result.Result[any] {
 	o := getOperator(operate)
 	if o == nil {
-		return errors.New("the db-operate " + operate + " does not exist!")
+		return result.FmtErr[any]("the db-operate %s does not exist!", operate)
 	}
 
 	v := reflect.ValueOf(o).Elem()
@@ -29,7 +30,7 @@ func Mgo(resultPtr interface{}, operate string, option map[string]interface{}) e
 
 // Operator defines the interface for CRUD operations.
 type Operator interface {
-	Exec(resultPtr interface{}) (err error)
+	Exec(resultPtr interface{}) result.Result[any]
 }
 
 // getOperator returns the Operator for the given operation name.

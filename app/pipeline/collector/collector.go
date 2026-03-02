@@ -2,12 +2,12 @@
 package collector
 
 import (
-	"fmt"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/app/pipeline/collector/data"
 	"github.com/andeya/pholcus/app/spider"
 	"github.com/andeya/pholcus/logs"
@@ -17,16 +17,16 @@ import (
 // Collector collects spider results and writes them to the configured output backend.
 type Collector struct {
 	*spider.Spider
-	DataChan     chan data.DataCell
-	FileChan     chan data.FileCell
-	dataDocker   []data.DataCell
-	outType      string
-	dataBatch    uint64
-	fileBatch    uint64
-	wait         sync.WaitGroup
-	sum          [4]uint64
-	dataSumLock  sync.RWMutex
-	fileSumLock  sync.RWMutex
+	DataChan    chan data.DataCell
+	FileChan    chan data.FileCell
+	dataDocker  []data.DataCell
+	outType     string
+	dataBatch   uint64
+	fileBatch   uint64
+	wait        sync.WaitGroup
+	sum         [4]uint64
+	dataSumLock sync.RWMutex
+	fileSumLock sync.RWMutex
 }
 
 // NewCollector creates a new Collector for the given spider.
@@ -48,29 +48,27 @@ func NewCollector(sp *spider.Spider) *Collector {
 }
 
 // CollectData sends a data cell to the collector.
-func (self *Collector) CollectData(dataCell data.DataCell) error {
-	var err error
+func (self *Collector) CollectData(dataCell data.DataCell) (r result.VoidResult) {
 	defer func() {
 		if p := recover(); p != nil {
 			logs.Log.Error("panic recovered: %v\n%s", p, debug.Stack())
-			err = fmt.Errorf("输出协程已终止")
+			r = result.FmtErrVoid("输出协程已终止")
 		}
 	}()
 	self.DataChan <- dataCell
-	return err
+	return result.OkVoid()
 }
 
 // CollectFile sends a file cell to the collector.
-func (self *Collector) CollectFile(fileCell data.FileCell) error {
-	var err error
+func (self *Collector) CollectFile(fileCell data.FileCell) (r result.VoidResult) {
 	defer func() {
 		if p := recover(); p != nil {
 			logs.Log.Error("panic recovered: %v\n%s", p, debug.Stack())
-			err = fmt.Errorf("输出协程已终止")
+			r = result.FmtErrVoid("输出协程已终止")
 		}
 	}()
 	self.FileChan <- fileCell
-	return err
+	return result.OkVoid()
 }
 
 // Stop closes the collector's channels and shuts down the pipeline.

@@ -56,8 +56,8 @@ var Shunfenghaitao = &spider.Spider{
 						if i == 0 {
 							return
 						}
-						if url, ok := s.Attr("href"); ok {
-							ctx.AddQueue(&request.Request{Url: url, Rule: "商品列表", Temp: map[string]interface{}{"goodsType": s.Text()}})
+						if url := s.Attr("href"); url.IsSome() {
+							ctx.AddQueue(&request.Request{Url: url.Unwrap(), Rule: "商品列表", Temp: map[string]interface{}{"goodsType": s.Text()}})
 						}
 					})
 				},
@@ -68,9 +68,9 @@ var Shunfenghaitao = &spider.Spider{
 					query := ctx.GetDom()
 
 					query.Find(".cms-src-item").Each(func(i int, s *goquery.Selection) {
-						if url, ok := s.Find("a").Attr("href"); ok {
+						if url := s.Find("a").Attr("href"); url.IsSome() {
 							ctx.AddQueue(&request.Request{
-								Url:  url,
+								Url:  url.Unwrap(),
 								Rule: "商品详情",
 								Temp: map[string]interface{}{"goodsType": ctx.GetTemp("goodsType", "").(string)},
 							})

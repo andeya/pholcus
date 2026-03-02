@@ -165,15 +165,16 @@ func TestNewDocumentFromReader(t *testing.T) {
 		buf.Reset()
 		buf.WriteString(c.src)
 
-		d, e := NewDocumentFromReader(buf)
-		if (e != nil) != c.err {
+		r := NewDocumentFromReader(buf)
+		if r.IsErr() != c.err {
 			if c.err {
 				t.Errorf("[%d] - expected error, got none", i)
 			} else {
-				t.Errorf("[%d] - expected no error, got %s", i, e)
+				t.Errorf("[%d] - expected no error, got %s", i, r.UnwrapErr())
 			}
 		}
-		if c.sel != "" {
+		if c.sel != "" && !r.IsErr() {
+			d := r.Unwrap()
 			s := d.Find(c.sel)
 			if s.Length() != c.cnt {
 				t.Errorf("[%d] - expected %d nodes, found %d", i, c.cnt, s.Length())
@@ -183,17 +184,18 @@ func TestNewDocumentFromReader(t *testing.T) {
 }
 
 func TestNewDocumentFromResponseNil(t *testing.T) {
-	_, e := NewDocumentFromResponse(nil)
-	if e == nil {
+	r := NewDocumentFromResponse(nil)
+	if !r.IsErr() {
 		t.Error("Expected error, got none")
 	}
 }
 
 func TestIssue103(t *testing.T) {
-	d, err := NewDocumentFromReader(strings.NewReader("<html><title>Scientists Stored These Images in DNA—Then Flawlessly Retrieved Them</title></html>"))
-	if err != nil {
-		t.Error(err)
+	r := NewDocumentFromReader(strings.NewReader("<html><title>Scientists Stored These Images in DNA—Then Flawlessly Retrieved Them</title></html>"))
+	if r.IsErr() {
+		t.Fatal(r.UnwrapErr())
 	}
+	d := r.Unwrap()
 	text := d.Find("title").Text()
 	for i, r := range text {
 		t.Logf("%d: %d - %q\n", i, r, string(r))

@@ -4,6 +4,8 @@ import (
 	"log"
 	"net"
 	"time"
+
+	"github.com/andeya/gust/result"
 )
 
 // tpClient holds client-only state.
@@ -48,8 +50,8 @@ func (self *TP) client() {
 	}
 
 RetryLabel:
-	conn, err := net.Dial("tcp", self.serverAddr+self.port)
-	if err != nil {
+	connRes := result.Ret(net.Dial("tcp", self.serverAddr+self.port))
+	if connRes.IsErr() {
 		if self.tpClient.mustClose {
 			self.tpClient.mustClose = false
 			return
@@ -57,6 +59,7 @@ RetryLabel:
 		time.Sleep(LOOP_TIMEOUT)
 		goto RetryLabel
 	}
+	conn := connRes.Unwrap()
 	debugPrintf("Debug: connected to server: %v", conn.RemoteAddr().String())
 	self.cGoConn(conn)
 

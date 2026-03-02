@@ -29,6 +29,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/closer"
 )
 
@@ -40,9 +42,9 @@ var (
 	bSemComment    = []byte{';'} // semicolon comment prefix
 	bEmpty         = []byte{}
 	bEqual         = []byte{'='} // key-value separator
-	bDQuote        = []byte{'"'}  // double-quote for values
+	bDQuote        = []byte{'"'} // double-quote for values
 	sectionStart   = []byte{'['} // section header start
-	sectionEnd     = []byte{']'}  // section header end
+	sectionEnd     = []byte{']'} // section header end
 	lineBreak      = "\n"
 )
 
@@ -52,14 +54,16 @@ type IniConfig struct {
 
 // Parse creates a new Config and parses the file configuration from the named file.
 func (ini *IniConfig) Parse(name string) (Configer, error) {
-	return ini.parseFile(name)
+	r := ini.parseFile(name)
+	if r.IsErr() {
+		return nil, r.UnwrapErr()
+	}
+	return r.Unwrap(), nil
 }
 
-func (ini *IniConfig) parseFile(name string) (*IniConfigContainer, error) {
-	file, err := os.Open(name)
-	if err != nil {
-		return nil, err
-	}
+func (ini *IniConfig) parseFile(name string) (r result.Result[*IniConfigContainer]) {
+	defer r.Catch()
+	file := result.Ret(os.Open(name)).Unwrap()
 
 	cfg := &IniConfigContainer{
 		file.Name(),
@@ -81,6 +85,9 @@ func (ini *IniConfig) parseFile(name string) (*IniConfigContainer, error) {
 		if err == io.EOF {
 			break
 		}
+		if err != nil {
+			panic(err)
+		}
 		if bytes.Equal(line, bEmpty) {
 			continue
 		}
@@ -96,11 +103,9 @@ func (ini *IniConfig) parseFile(name string) (*IniConfigContainer, error) {
 			continue
 		}
 		ensureSection(cfg, section)
-		if err := parseKeyValueLine(line, name, ini, cfg, section, &comment); err != nil {
-			return nil, err
-		}
+		result.RetVoid(parseKeyValueLine(line, name, ini, cfg, section, &comment)).Unwrap()
 	}
-	return cfg, nil
+	return result.Ok(cfg)
 }
 
 // skipBOM removes UTF-8 BOM from the reader if present.
@@ -166,10 +171,11 @@ func parseKeyValueLine(line []byte, filename string, ini *IniConfig, cfg *IniCon
 			if !path.IsAbs(otherfile) {
 				otherfile = path.Join(path.Dir(filename), otherfile)
 			}
-			inc, err := ini.parseFile(otherfile)
-			if err != nil {
-				return err
+			incResult := ini.parseFile(otherfile)
+			if incResult.IsErr() {
+				return incResult.UnwrapErr()
 			}
+			inc := incResult.Unwrap()
 			for sec, dt := range inc.data {
 				if _, ok := cfg.data[sec]; !ok {
 					cfg.data[sec] = make(map[string]string)
@@ -260,83 +266,68 @@ func (c *IniConfigContainer) SectionKeys(section string) []string {
 }
 
 // Bool returns the boolean value for a given key.
-func (c *IniConfigContainer) Bool(key string) (bool, error) {
-	return ParseBool(c.getdata(key))
+func (c *IniConfigContainer) Bool(key string) result.Result[bool] {
+	v, err := ParseBool(c.getdata(key))
+	return result.Ret(v, err)
 }
 
 // DefaultBool returns the boolean value for a given key, or defaultval on error.
 func (c *IniConfigContainer) DefaultBool(key string, defaultval bool) bool {
-	v, err := c.Bool(key)
-	if err != nil {
-		return defaultval
-	}
-	return v
+	return c.Bool(key).UnwrapOr(defaultval)
 }
 
 // Int returns the integer value for a given key.
-func (c *IniConfigContainer) Int(key string) (int, error) {
-	return strconv.Atoi(c.getdata(key))
+func (c *IniConfigContainer) Int(key string) result.Result[int] {
+	v, err := strconv.Atoi(c.getdata(key))
+	return result.Ret(v, err)
 }
 
 // DefaultInt returns the integer value for a given key, or defaultval on error.
 func (c *IniConfigContainer) DefaultInt(key string, defaultval int) int {
-	v, err := c.Int(key)
-	if err != nil {
-		return defaultval
-	}
-	return v
+	return c.Int(key).UnwrapOr(defaultval)
 }
 
 // Int64 returns the int64 value for a given key.
-func (c *IniConfigContainer) Int64(key string) (int64, error) {
-	return strconv.ParseInt(c.getdata(key), 10, 64)
+func (c *IniConfigContainer) Int64(key string) result.Result[int64] {
+	v, err := strconv.ParseInt(c.getdata(key), 10, 64)
+	return result.Ret(v, err)
 }
 
 // DefaultInt64 returns the int64 value for a given key, or defaultval on error.
 func (c *IniConfigContainer) DefaultInt64(key string, defaultval int64) int64 {
-	v, err := c.Int64(key)
-	if err != nil {
-		return defaultval
-	}
-	return v
+	return c.Int64(key).UnwrapOr(defaultval)
 }
 
 // Float returns the float value for a given key.
-func (c *IniConfigContainer) Float(key string) (float64, error) {
-	return strconv.ParseFloat(c.getdata(key), 64)
+func (c *IniConfigContainer) Float(key string) result.Result[float64] {
+	v, err := strconv.ParseFloat(c.getdata(key), 64)
+	return result.Ret(v, err)
 }
 
 // DefaultFloat returns the float64 value for a given key, or defaultval on error.
 func (c *IniConfigContainer) DefaultFloat(key string, defaultval float64) float64 {
-	v, err := c.Float(key)
-	if err != nil {
-		return defaultval
-	}
-	return v
+	return c.Float(key).UnwrapOr(defaultval)
 }
 
 // String returns the string value for a given key.
-func (c *IniConfigContainer) String(key string) string {
-	return c.getdata(key)
+func (c *IniConfigContainer) String(key string) option.Option[string] {
+	v, ok := c.getdataWithExists(key)
+	return option.BoolOpt(v, ok)
 }
 
 // DefaultString returns the string value for a given key, or defaultval if empty.
 func (c *IniConfigContainer) DefaultString(key string, defaultval string) string {
-	v := c.String(key)
-	if v == "" {
-		return defaultval
-	}
-	return v
+	return c.String(key).UnwrapOr(defaultval)
 }
 
 // Strings returns the []string value for a given key.
 // Return nil if config value does not exist or is empty.
 func (c *IniConfigContainer) Strings(key string) []string {
 	v := c.String(key)
-	if v == "" {
+	if v.IsNone() {
 		return nil
 	}
-	return strings.Split(v, ";")
+	return strings.Split(v.Unwrap(), ";")
 }
 
 // DefaultStrings returns the []string value for a given key, or defaultval if nil.
@@ -349,11 +340,11 @@ func (c *IniConfigContainer) DefaultStrings(key string, defaultval []string) []s
 }
 
 // GetSection returns map for the given section
-func (c *IniConfigContainer) GetSection(section string) (map[string]string, error) {
+func (c *IniConfigContainer) GetSection(section string) result.Result[map[string]string] {
 	if v, ok := c.data[section]; ok {
-		return v, nil
+		return result.Ok(v)
 	}
-	return nil, errors.New("section does not exist")
+	return result.TryErr[map[string]string](errors.New("section does not exist"))
 }
 
 func (c *IniConfigContainer) GetAllSections() map[string]map[string]string {
@@ -462,11 +453,11 @@ func (c *IniConfigContainer) SaveConfigFile(filename string) (err error) {
 }
 
 // Set writes a new value for key. Use "section::key" for section-specific keys.
-func (c *IniConfigContainer) Set(key, value string) error {
+func (c *IniConfigContainer) Set(key, value string) result.VoidResult {
 	c.Lock()
 	defer c.Unlock()
 	if len(key) == 0 {
-		return errors.New("key is empty")
+		return result.TryErrVoid(errors.New("key is empty"))
 	}
 
 	var (
@@ -486,21 +477,28 @@ func (c *IniConfigContainer) Set(key, value string) error {
 		c.data[section] = make(map[string]string)
 	}
 	c.data[section][k] = value
-	return nil
+	return result.OkVoid()
 }
 
 // DIY returns the raw value by a given key.
-func (c *IniConfigContainer) DIY(key string) (v interface{}, err error) {
-	if v, ok := c.data[strings.ToLower(key)]; ok {
-		return v, nil
+func (c *IniConfigContainer) DIY(key string) result.Result[interface{}] {
+	v, ok := c.getdataWithExists(key)
+	if ok {
+		return result.Ok[interface{}](v)
 	}
-	return v, errors.New("key not found")
+	return result.TryErr[interface{}](errors.New("key not found"))
 }
 
 // getdata returns the value for section.key or key.
 func (c *IniConfigContainer) getdata(key string) string {
+	v, _ := c.getdataWithExists(key)
+	return v
+}
+
+// getdataWithExists returns the value and whether the key exists.
+func (c *IniConfigContainer) getdataWithExists(key string) (string, bool) {
 	if len(key) == 0 {
-		return ""
+		return "", false
 	}
 	c.RLock()
 	defer c.RUnlock()
@@ -518,10 +516,10 @@ func (c *IniConfigContainer) getdata(key string) string {
 	}
 	if v, ok := c.data[section]; ok {
 		if vv, ok := v[k]; ok {
-			return vv
+			return vv, true
 		}
 	}
-	return ""
+	return "", false
 }
 
 func init() {

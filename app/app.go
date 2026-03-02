@@ -12,6 +12,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/andeya/gust/option"
 	"github.com/andeya/pholcus/app/crawler"
 	"github.com/andeya/pholcus/app/distribute"
 	"github.com/andeya/pholcus/app/distribute/teleport"
@@ -42,7 +43,7 @@ type (
 		PauseRecover()                                                // Pause or resume task in Offline mode
 		Status() int                                                  // Return current status
 		GetSpiderLib() []*spider.Spider                               // Get all spider species
-		GetSpiderByName(string) *spider.Spider                        // Get spider by name
+		GetSpiderByName(string) option.Option[*spider.Spider]         // Get spider by name
 		GetSpiderQueue() crawler.SpiderQueue                          // Get spider queue interface
 		GetOutputLib() []string                                       // Get all output methods
 		GetTaskJar() *distribute.TaskJar                              // Return task jar
@@ -251,8 +252,8 @@ func (self *Logic) GetSpiderLib() []*spider.Spider {
 }
 
 // GetSpiderByName returns a spider by name.
-func (self *Logic) GetSpiderByName(name string) *spider.Spider {
-	return self.SpiderSpecies.GetByName(name)
+func (self *Logic) GetSpiderByName(name string) option.Option[*spider.Spider] {
+	return self.SpiderSpecies.GetByNameOpt(name)
 }
 
 // GetMode returns current run mode.
@@ -465,11 +466,11 @@ func (self *Logic) taskToRun(t *distribute.Task) {
 	self.setAppConf(t)
 
 	for _, n := range t.Spiders {
-		sp := self.GetSpiderByName(n["name"])
-		if sp == nil {
+		spOpt := self.SpiderSpecies.GetByNameOpt(n["name"])
+		if spOpt.IsNone() {
 			continue
 		}
-		spcopy := sp.Copy()
+		spcopy := spOpt.Unwrap().Copy()
 		spcopy.SetPausetime(t.Pausetime)
 		if spcopy.GetLimit() > 0 {
 			spcopy.SetLimit(t.Limit)
@@ -514,8 +515,8 @@ func (self *Logic) goRun(count int) {
 		for self.IsPause() {
 			time.Sleep(time.Second)
 		}
-		c := self.CrawlerPool.Use()
-		if c != nil {
+		if opt := self.CrawlerPool.UseOpt(); opt.IsSome() {
+			c := opt.Unwrap()
 			go func(i int, c crawler.Crawler) {
 				c.Init(self.SpiderQueue.GetByIndex(i)).Run()
 				self.RWMutex.RLock()

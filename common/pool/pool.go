@@ -7,12 +7,14 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/andeya/gust/result"
 )
 
 type (
 	// Pool is a resource pool with a maximum capacity.
 	Pool interface {
-		Call(func(Src) error) error
+		Call(func(Src) error) result.VoidResult
 		Close()
 		Len() int
 	}
@@ -63,13 +65,13 @@ func ClassicPool(capacity, maxIdle int, factory Factory, gctime ...time.Duration
 }
 
 // Call invokes the callback with a resource from the pool.
-func (self *classic) Call(callback func(Src) error) (err error) {
+func (self *classic) Call(callback func(Src) error) result.VoidResult {
 	var src Src
 	for {
 		self.RLock()
 		if self.closed {
 			self.RUnlock()
-			return closedError
+			return result.TryErrVoid(closedError)
 		}
 		select {
 		case src = <-self.srcs:
@@ -80,9 +82,9 @@ func (self *classic) Call(callback func(Src) error) (err error) {
 			}
 		default:
 			self.RUnlock()
-			err = self.incAuto()
+			err := self.incAuto()
 			if err != nil {
-				return err
+				return result.TryErrVoid(err)
 			}
 			runtime.Gosched()
 			continue
@@ -91,12 +93,11 @@ func (self *classic) Call(callback func(Src) error) (err error) {
 	}
 	defer func() {
 		if p := recover(); p != nil {
-			err = fmt.Errorf("%v", p)
+			_ = fmt.Errorf("%v", p)
 		}
 		self.recover(src)
 	}()
-	err = callback(src)
-	return err
+	return result.RetVoid(callback(src))
 }
 
 // Close destroys the pool and releases all resources.

@@ -70,7 +70,7 @@ func flagCommon() {
 	keyinsflag = flag.String(
 		"a_keyins",
 		cache.Task.Keyins,
-		"   <自定义配置: 多任务请分别多包一层“<>”>"	)
+		"   <自定义配置: 多任务请分别多包一层“<>”>")
 
 	limitflag = flag.Int64(
 		"a_limit",

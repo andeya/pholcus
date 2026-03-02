@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/andeya/gust/option"
 	"golang.org/x/net/html"
 )
 
@@ -13,25 +14,16 @@ var rxClassTrim = regexp.MustCompile("[\t\r\n]")
 // Attr gets the specified attribute's value for the first element in the
 // Selection. To get the value for each element individually, use a looping
 // construct such as Each or Map method.
-func (s *Selection) Attr(attrName string) (val string, exists bool) {
+func (s *Selection) Attr(attrName string) option.Option[string] {
 	if len(s.Nodes) == 0 {
-		return
+		return option.None[string]()
 	}
 	return getAttributeValue(attrName, s.Nodes[0])
 }
 
 // AttrOr works like Attr but returns default value if attribute is not present.
 func (s *Selection) AttrOr(attrName, defaultValue string) string {
-	if len(s.Nodes) == 0 {
-		return defaultValue
-	}
-
-	val, exists := getAttributeValue(attrName, s.Nodes[0])
-	if !exists {
-		return defaultValue
-	}
-
-	return val
+	return s.Attr(attrName).UnwrapOr(defaultValue)
 }
 
 // RemoveAttr removes the named attribute from each element in the set of matched elements.
@@ -221,13 +213,12 @@ func getAttributePtr(attrName string, n *html.Node) *html.Attribute {
 	return nil
 }
 
-// Private function to get the specified attribute's value from a node.
-func getAttributeValue(attrName string, n *html.Node) (val string, exists bool) {
+// getAttributeValue returns the specified attribute's value from a node.
+func getAttributeValue(attrName string, n *html.Node) option.Option[string] {
 	if a := getAttributePtr(attrName, n); a != nil {
-		val = a.Val
-		exists = true
+		return option.Some(a.Val)
 	}
-	return
+	return option.None[string]()
 }
 
 // Get and normalize the "class" attribute from the node.

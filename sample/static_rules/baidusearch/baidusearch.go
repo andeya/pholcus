@@ -103,7 +103,7 @@ var BaiduSearch = &spider.Spider{
 
 						title := s.Find(".t").Text()
 						content := s.Find(".c-abstract").Text()
-						href, _ := s.Find(".t >a").Attr("href")
+						href := s.Find(".t >a").Attr("href").UnwrapOr("")
 						tar := s.Find(".g").Text()
 
 						re := regexp.MustCompile("\\<[\\S\\s]+?\\>")

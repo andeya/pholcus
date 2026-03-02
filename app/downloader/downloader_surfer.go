@@ -32,13 +32,23 @@ func (self *Surfer) Download(sp *spider.Spider, cReq *request.Request) *spider.C
 
 	switch cReq.GetDownloaderID() {
 	case request.SURF_ID:
-		resp, err = self.surf.Download(cReq)
+		r := self.surf.Download(cReq)
+		if r.IsErr() {
+			err = r.UnwrapErr()
+		} else {
+			resp = r.Unwrap()
+		}
 
 	case request.PHANTOM_ID:
-		resp, err = self.phantom.Download(cReq)
+		r := self.phantom.Download(cReq)
+		if r.IsErr() {
+			err = r.UnwrapErr()
+		} else {
+			resp = r.Unwrap()
+		}
 	}
 
-	if resp.StatusCode >= 400 {
+	if resp != nil && resp.StatusCode >= 400 {
 		err = errors.New("response status " + resp.Status)
 	}
 

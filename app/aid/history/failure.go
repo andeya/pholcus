@@ -3,10 +3,10 @@ package history
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
 	"sync"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/app/downloader/request"
 	"github.com/andeya/pholcus/common/mgo"
 	"github.com/andeya/pholcus/common/mysql"
@@ -48,77 +48,61 @@ func (self *Failure) DeleteFailure(req *request.Request) {
 }
 
 // flush clears historical failure records first, then updates.
-func (self *Failure) flush(provider string) (fLen int, err error) {
+func (self *Failure) flush(provider string) (r result.Result[int]) {
+	defer r.Catch()
 	self.RWMutex.Lock()
 	defer self.RWMutex.Unlock()
-	fLen = len(self.list)
+	fLen := len(self.list)
 
 	switch provider {
 	case "mgo":
-		if mgo.Error() != nil {
-			err = fmt.Errorf(" *     Fail  [add failure record][mgo]: %v [ERROR]  %v\n", fLen, mgo.Error())
-			return
-		}
+		result.RetVoid(mgo.Error()).Unwrap()
 		mgo.Call(func(src pool.Src) error {
 			c := src.(*mgo.MgoSrc).DB(config.DB_NAME).C(self.tabName)
 			c.DropCollection()
 			if fLen == 0 {
 				return nil
 			}
-
 			var docs = []interface{}{}
 			for key, req := range self.list {
-				docs = append(docs, map[string]interface{}{"_id": key, "failure": req.Serialize()})
+				docs = append(docs, map[string]interface{}{"_id": key, "failure": req.Serialize().Unwrap()})
 			}
 			c.Insert(docs...)
 			return nil
-		})
+		}).Unwrap()
 
 	case "mysql":
 		_, err := mysql.DB()
-		if err != nil {
-			return fLen, fmt.Errorf(" *     Fail  [add failure record][mysql]: %v [PING]  %v\n", fLen, err)
-		}
+		result.RetVoid(err).Unwrap()
 		table, ok := getWriteMysqlTable(self.tabName)
 		if !ok {
-			table = mysql.New()
+			table = mysql.New().Unwrap()
 			table.SetTableName(self.tabName).CustomPrimaryKey(`id VARCHAR(255) NOT NULL PRIMARY KEY`).AddColumn(`failure MEDIUMTEXT`)
 			setWriteMysqlTable(self.tabName, table)
-			err = table.Create()
-			if err != nil {
-				return fLen, fmt.Errorf(" *     Fail  [add failure record][mysql]: %v [CREATE]  %v\n", fLen, err)
-			}
+			table.Create().Unwrap()
 		} else {
-			err = table.Truncate()
-			if err != nil {
-				return fLen, fmt.Errorf(" *     Fail  [add failure record][mysql]: %v [TRUNCATE]  %v\n", fLen, err)
-			}
+			table.Truncate().Unwrap()
 		}
-
 		for key, req := range self.list {
-			table.AutoInsert([]string{key, req.Serialize()})
-			err = table.FlushInsert()
-			if err != nil {
-				fLen--
-			}
+			table.AutoInsert([]string{key, req.Serialize().Unwrap()})
+			table.FlushInsert().Unwrap()
 		}
 
 	default:
 		os.Remove(self.fileName)
 		if fLen == 0 {
-			return
+			return result.Ok(0)
 		}
-
-		f, _ := os.OpenFile(self.fileName, os.O_CREATE|os.O_WRONLY, 0777)
-
+		f, err := os.OpenFile(self.fileName, os.O_CREATE|os.O_WRONLY, 0777)
+		result.RetVoid(err).Unwrap()
 		docs := make(map[string]string, len(self.list))
 		for key, req := range self.list {
-			docs[key] = req.Serialize()
+			docs[key] = req.Serialize().Unwrap()
 		}
 		b, _ := json.Marshal(docs)
 		b = bytes.Replace(b, []byte(`\u0026`), []byte(`&`), -1)
 		f.Write(b)
 		f.Close()
 	}
-	return
+	return result.Ok(fLen)
 }

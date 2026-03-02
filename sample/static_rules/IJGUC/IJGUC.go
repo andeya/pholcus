@@ -55,9 +55,9 @@ var IJGUC = &spider.Spider{
 					for i := 1; i <= 7; i++ {
 						id := "#eventbody" + strconv.Itoa(i) + " a"
 						query.Find(id).Each(func(j int, s *goquery.Selection) {
-							if url, ok := s.Attr("href"); ok {
+							if url := s.Attr("href"); url.IsSome() {
 								// log.Print(url)
-								ctx.AddQueue(&request.Request{Url: url, Rule: "文章列表"})
+								ctx.AddQueue(&request.Request{Url: url.Unwrap(), Rule: "文章列表"})
 							}
 						})
 					}
@@ -73,9 +73,9 @@ var IJGUC = &spider.Spider{
 								if j == 1 {
 									table.Find("a").Each(func(k int, a *goquery.Selection) {
 										if k%2 == 0 {
-											if url, ok := a.Attr("href"); ok {
+											if url := a.Attr("href"); url.IsSome() {
 												// log.Print(url)
-												ctx.AddQueue(&request.Request{Url: url, Rule: "文章页"})
+												ctx.AddQueue(&request.Request{Url: url.Unwrap(), Rule: "文章页"})
 											}
 										}
 									})

@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"os/signal"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/config"
 
 	"github.com/andeya/pholcus/cmd" // cmd UI
@@ -12,7 +13,7 @@ import (
 )
 
 func run(which string) {
-	exec.Command("/bin/sh", "-c", "title", config.FULL_NAME).Start()
+	_ = result.RetVoid(exec.Command("/bin/sh", "-c", "title", config.FULL_NAME).Start())
 
 	switch which {
 	case "cmd":

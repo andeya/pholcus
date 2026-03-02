@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/beanstalkd"
 	"github.com/andeya/pholcus/common/util"
 )
@@ -13,17 +14,9 @@ import (
 // --- Beanstalkd Output ---
 
 func init() {
-	DataOutput["beanstalkd"] = func(self *Collector) (err error) {
-		defer func() {
-			if p := recover(); p != nil {
-				err = fmt.Errorf("%v", p)
-			}
-		}()
-
-		client, err := beanstalkd.New()
-		if err != nil {
-			return err
-		}
+	DataOutput["beanstalkd"] = func(self *Collector) (r result.VoidResult) {
+		defer r.Catch()
+		client := beanstalkd.New().Unwrap()
 		defer client.Close()
 
 		namespace := fmt.Sprintf("%v__%v-%v", util.FileNameReplace(self.namespace()), self.sum[0], self.sum[1])
@@ -49,16 +42,12 @@ func init() {
 
 			data := url.Values{}
 			res, err := json.Marshal(tmp)
-			if err != nil {
-				return err
-			}
-
+			result.RetVoid(err).Unwrap()
 			data.Add("createtime", createtime)
 			data.Add("type", namespace+"__"+subNamespace)
 			data.Add("content", string(res))
-			client.Send(data)
+			client.Send(data).Unwrap()
 		}
-
-		return
+		return result.OkVoid()
 	}
 }

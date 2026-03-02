@@ -125,7 +125,12 @@ func wsHandle(conn *ws.Conn) {
 			logs.Log.Error("%v", p)
 		}
 	}()
-	sess, _ := globalSessions.SessionStart(nil, conn.Request())
+	r := globalSessions.SessionStart(nil, conn.Request())
+	if r.IsErr() {
+		logs.Log.Error("session start: %v", r.UnwrapErr())
+		return
+	}
+	sess := r.Unwrap()
 	sessID := sess.SessionID()
 	if Sc.GetConn(sessID) == nil {
 		Sc.Add(sessID, conn)
@@ -149,7 +154,7 @@ func wsHandle(conn *ws.Conn) {
 			return
 		}
 
-		wsApi[util.Atoa(req["operate"])](sessID, req)
+		wsApi[util.Atoa(req["operate"]).UnwrapOr("")](sessID, req)
 	}
 }
 
@@ -159,9 +164,9 @@ func init() {
 	}
 
 	wsApi["init"] = func(sessID string, req map[string]interface{}) {
-		var mode = util.Atoi(req["mode"])
-		var port = util.Atoi(req["port"])
-		var master = util.Atoa(req["ip"]) // master address without port
+		var mode = util.Atoi(req["mode"]).UnwrapOr(0)
+		var port = util.Atoi(req["port"]).UnwrapOr(0)
+		var master = util.Atoa(req["ip"]).UnwrapOr("") // master address without port
 		currMode := app.LogicApp.GetAppConf("mode").(int)
 		if currMode == status.UNSET {
 			app.LogicApp.Init(mode, port, master, Lsc)
@@ -296,19 +301,19 @@ func tplData(mode int) map[string]interface{} {
 }
 
 func setConf(req map[string]interface{}) {
-	if tn := util.Atoi(req["ThreadNum"]); tn == 0 {
+	if tn := util.Atoi(req["ThreadNum"]).UnwrapOr(0); tn == 0 {
 		app.LogicApp.SetAppConf("ThreadNum", 1)
 	} else {
 		app.LogicApp.SetAppConf("ThreadNum", tn)
 	}
 
 	app.LogicApp.
-		SetAppConf("Pausetime", int64(util.Atoi(req["Pausetime"]))).
-		SetAppConf("ProxyMinute", int64(util.Atoi(req["ProxyMinute"]))).
-		SetAppConf("OutType", util.Atoa(req["OutType"])).
-		SetAppConf("DockerCap", util.Atoi(req["DockerCap"])).
-		SetAppConf("Limit", int64(util.Atoi(req["Limit"]))).
-		SetAppConf("Keyins", util.Atoa(req["Keyins"])).
+		SetAppConf("Pausetime", int64(util.Atoi(req["Pausetime"]).UnwrapOr(0))).
+		SetAppConf("ProxyMinute", int64(util.Atoi(req["ProxyMinute"]).UnwrapOr(0))).
+		SetAppConf("OutType", util.Atoa(req["OutType"]).UnwrapOr("")).
+		SetAppConf("DockerCap", util.Atoi(req["DockerCap"]).UnwrapOr(0)).
+		SetAppConf("Limit", int64(util.Atoi(req["Limit"]).UnwrapOr(0))).
+		SetAppConf("Keyins", util.Atoa(req["Keyins"]).UnwrapOr("")).
 		SetAppConf("SuccessInherit", req["SuccessInherit"] == "true").
 		SetAppConf("FailureInherit", req["FailureInherit"] == "true")
 
@@ -323,7 +328,7 @@ func setSpiderQueue(req map[string]interface{}) {
 	spiders := []*spider.Spider{}
 	for _, sp := range app.LogicApp.GetSpiderLib() {
 		for _, spName := range spNames {
-			if util.Atoa(spName) == sp.GetName() {
+			if util.Atoa(spName).UnwrapOr("") == sp.GetName() {
 				spiders = append(spiders, sp.Copy())
 			}
 		}

@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/app/downloader/request"
 	"github.com/andeya/pholcus/app/downloader/surfer"
 	"github.com/andeya/pholcus/common/ping"
@@ -66,11 +68,10 @@ func (self *Proxy) Count() int32 {
 }
 
 // Update refreshes the proxy IP list.
-func (self *Proxy) Update() *Proxy {
+func (self *Proxy) Update() result.VoidResult {
 	f, err := os.Open(config.PROXY)
 	if err != nil {
-		// logs.Log.Error("Error: %v\n", err)
-		return self
+		return result.TryErrVoid(err)
 	}
 	b, _ := io.ReadAll(f)
 	f.Close()
@@ -91,8 +92,7 @@ func (self *Proxy) Update() *Proxy {
 	log.Printf(" *     Read proxy IPs: %v\n", len(self.all))
 
 	self.findOnline()
-
-	return self
+	return result.OkVoid()
 }
 
 // findOnline filters proxy IPs that are online.
@@ -102,7 +102,7 @@ func (self *Proxy) findOnline() *Proxy {
 	for proxy := range self.all {
 		self.threadPool <- true
 		go func(proxy string) {
-			alive, _, _ := ping.Ping(self.allIps[proxy], CONN_TIMEOUT)
+			alive := ping.Ping(self.allIps[proxy], CONN_TIMEOUT).IsOk()
 			self.Lock()
 			self.all[proxy] = alive
 			self.Unlock()
@@ -132,14 +132,14 @@ func (self *Proxy) UpdateTicker(tickMinute int64) {
 }
 
 // GetOne returns an unused proxy IP for this cycle and its response time.
-func (self *Proxy) GetOne(u string) (curProxy string) {
+func (self *Proxy) GetOne(u string) option.Option[string] {
 	if self.online == 0 {
-		return
+		return option.None[string]()
 	}
 	u2, _ := url.Parse(u)
 	if u2.Host == "" {
 		logs.Log.Informational(" *     [%v] Failed to set proxy IP, invalid target URL\n", u)
-		return
+		return option.None[string]()
 	}
 	var key = u2.Host
 	if strings.Count(key, ".") > 1 {
@@ -177,9 +177,9 @@ func (self *Proxy) GetOne(u string) (curProxy string) {
 	}
 	if !ok {
 		logs.Log.Informational(" *     [%v] Failed to set proxy IP, no available proxy IPs\n", key)
-		return
+		return option.None[string]()
 	}
-	curProxy = proxyForHost.proxys[proxyForHost.curIndex]
+	curProxy := proxyForHost.proxys[proxyForHost.curIndex]
 	if proxyForHost.isEcho {
 		logs.Log.Informational(" *     Set proxy IP to [%v](%v)\n",
 			curProxy,
@@ -187,7 +187,7 @@ func (self *Proxy) GetOne(u string) (curProxy string) {
 		)
 		proxyForHost.isEcho = false
 	}
-	return
+	return option.Some(curProxy)
 }
 
 // testAndSort tests and sorts proxy IPs for the given host.
@@ -237,11 +237,13 @@ func (self *Proxy) findUsable(proxy string, testHost string) (alive bool, timede
 		TryTimes:    TRY_TIMES,
 	}
 	req.SetProxy(proxy)
-	resp, err := self.surf.Download(req)
-
-	if resp.StatusCode != http.StatusOK {
+	r := self.surf.Download(req)
+	if r.IsErr() {
 		return false, 0
 	}
-
-	return err == nil, time.Since(t0)
+	resp := r.Unwrap()
+	if resp == nil || resp.StatusCode != http.StatusOK {
+		return false, 0
+	}
+	return true, time.Since(t0)
 }

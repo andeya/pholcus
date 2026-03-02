@@ -47,7 +47,7 @@ var Jiban = &spider.Spider{
 				ParseFunc: func(ctx *spider.Context) {
 					var curr = ctx.GetTemp("p", int(0)).(int)
 					ctx.GetDom().Find(".pages .dede_pages  .pagelist  .thisclass a").Each(func(ii int, iio *goquery.Selection) {
-						url2, _ := iio.Attr("href")
+						url2 := iio.Attr("href").UnwrapOr("")
 						if url2 != "javascript:void(0);" {
 							if curr > 100 {
 								return
@@ -70,7 +70,7 @@ var Jiban = &spider.Spider{
 					ctx.GetDom().
 						Find(".article-list ul li .xs-100 div h3 a").
 						Each(func(i int, s *goquery.Selection) {
-							url, _ := s.Attr("href")
+							url := s.Attr("href").UnwrapOr("")
 							ctx.AddQueue(&request.Request{
 								Url:         url,
 								Rule:        "news",
@@ -95,8 +95,8 @@ var Jiban = &spider.Spider{
 							title = jo.Find(".articleTitle-name").Text()
 							time = jo.Find("span.time").Text()
 							jo.Find(".articleContent img").Each(func(x int, xo *goquery.Selection) {
-								if img, ok := xo.Attr("src"); ok {
-									img_url = img_url + img + ","
+								if img := xo.Attr("src"); img.IsSome() {
+									img_url = img_url + img.Unwrap() + ","
 								}
 							})
 							jo.Find(".articleContent img").ReplaceWithHtml("#image#")

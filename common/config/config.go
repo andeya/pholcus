@@ -46,25 +46,28 @@ package config
 
 import (
 	"fmt"
+
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
 )
 
 // Configer defines how to get and set value from configuration raw data.
 type Configer interface {
-	Set(key, val string) error   //support section::key type in given key when using ini type.
-	String(key string) string    //support section::key type in key string when using ini and json type; Int,Int64,Bool,Float,DIY are same.
-	Strings(key string) []string //get string slice
-	Int(key string) (int, error)
-	Int64(key string) (int64, error)
-	Bool(key string) (bool, error)
-	Float(key string) (float64, error)
+	Set(key, val string) result.VoidResult   //support section::key type in given key when using ini type.
+	String(key string) option.Option[string] //support section::key type in key string when using ini and json type; Int,Int64,Bool,Float,DIY are same.
+	Strings(key string) []string             //get string slice
+	Int(key string) result.Result[int]
+	Int64(key string) result.Result[int64]
+	Bool(key string) result.Result[bool]
+	Float(key string) result.Result[float64]
 	DefaultString(key string, defaultVal string) string      // support section::key type in key string when using ini and json type; Int,Int64,Bool,Float,DIY are same.
 	DefaultStrings(key string, defaultVal []string) []string //get string slice
 	DefaultInt(key string, defaultVal int) int
 	DefaultInt64(key string, defaultVal int64) int64
 	DefaultBool(key string, defaultVal bool) bool
 	DefaultFloat(key string, defaultVal float64) float64
-	DIY(key string) (interface{}, error)
-	GetSection(section string) (map[string]string, error)
+	DIY(key string) result.Result[interface{}]
+	GetSection(section string) result.Result[map[string]string]
 	SaveConfigFile(filename string) error
 }
 
@@ -91,22 +94,26 @@ func Register(name string, adapter Config) {
 
 // NewConfig adapterName is ini/json/xml/yaml.
 // filename is the config file path.
-func NewConfig(adapterName, filename string) (Configer, error) {
+func NewConfig(adapterName, filename string) result.Result[Configer] {
 	adapter, ok := adapters[adapterName]
-	if !ok {
-		return nil, fmt.Errorf("config: unknown adaptername %q (forgotten import?)", adapterName)
+	adapterOpt := option.BoolOpt(adapter, ok)
+	if adapterOpt.IsNone() {
+		return result.FmtErr[Configer]("config: unknown adaptername %q (forgotten import?)", adapterName)
 	}
-	return adapter.Parse(filename)
+	cfg, err := adapterOpt.Unwrap().Parse(filename)
+	return result.Ret(cfg, err)
 }
 
 // NewConfigData adapterName is ini/json/xml/yaml.
 // data is the config data.
-func NewConfigData(adapterName string, data []byte) (Configer, error) {
+func NewConfigData(adapterName string, data []byte) result.Result[Configer] {
 	adapter, ok := adapters[adapterName]
-	if !ok {
-		return nil, fmt.Errorf("config: unknown adaptername %q (forgotten import?)", adapterName)
+	adapterOpt := option.BoolOpt(adapter, ok)
+	if adapterOpt.IsNone() {
+		return result.FmtErr[Configer]("config: unknown adaptername %q (forgotten import?)", adapterName)
 	}
-	return adapter.ParseData(data)
+	cfg, err := adapterOpt.Unwrap().ParseData(data)
+	return result.Ret(cfg, err)
 }
 
 // ParseBool returns the boolean value represented by the string.

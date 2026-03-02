@@ -12,5 +12,5 @@ import (
 
 func TestPing(t *testing.T) {
 
-	t.Log(Ping("www.baidu.com", 5e9))
+	t.Log(Ping("www.baidu.com", 5))
 }

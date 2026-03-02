@@ -1,6 +1,11 @@
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+//
+// Gust adoption note (Task 8.1): Minimal opportunity. newServerConn has multiple
+// error paths that each write different HTTP error responses to buf before
+// returning; converting to result.Result would require significant restructuring.
+// serveWebSocket uses panic for Hijack failure (intentional). Skipped.
 
 package websocket
 

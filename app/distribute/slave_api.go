@@ -3,6 +3,7 @@ package distribute
 import (
 	"encoding/json"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/app/distribute/teleport"
 	"github.com/andeya/pholcus/logs"
 )
@@ -21,8 +22,7 @@ type slaveTaskHandle struct {
 
 func (self *slaveTaskHandle) Process(receive *teleport.NetData) *teleport.NetData {
 	t := &Task{}
-	err := json.Unmarshal([]byte(receive.Body.(string)), t)
-	if err != nil {
+	if r := result.RetVoid(json.Unmarshal([]byte(receive.Body.(string)), t)); r.IsErr() {
 		logs.Log.Error("JSON decode failed: %v", receive.Body)
 		return nil
 	}

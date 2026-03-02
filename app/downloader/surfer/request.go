@@ -51,10 +51,10 @@ type (
 
 	// DefaultRequest is the default Request implementation.
 	DefaultRequest struct {
-		Url          string       // required
-		Method       string       // GET POST POST-M HEAD (default GET)
-		Header       http.Header  // http header
-		EnableCookie bool         // set in Spider.EnableCookie
+		Url          string      // required
+		Method       string      // GET POST POST-M HEAD (default GET)
+		Header       http.Header // http header
+		EnableCookie bool        // set in Spider.EnableCookie
 		// POST values
 		PostData string
 		// dial tcp: i/o timeout

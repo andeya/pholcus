@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/closer"
 	"github.com/andeya/pholcus/logs"
 )
@@ -813,14 +814,14 @@ func readWorkbookRelationsFromZipFile(workbookRels *zip.File) (WorkBookRels, err
 // ReadZip() takes a pointer to a zip.ReadCloser and returns a
 // xlsx.File struct populated with its contents.  In most cases
 // ReadZip is not used directly, but is called internally by OpenFile.
-func ReadZip(f *zip.ReadCloser) (*File, error) {
+func ReadZip(f *zip.ReadCloser) result.Result[*File] {
 	defer closer.LogClose(f, logs.Log.Error)
 	return ReadZipReader(&f.Reader)
 }
 
 // ReadZipReader() can be used to read an XLSX in memory without
 // touching the filesystem.
-func ReadZipReader(r *zip.Reader) (*File, error) {
+func ReadZipReader(r *zip.Reader) result.Result[*File] {
 	var err error
 	var file *File
 	var reftable *RefTable
@@ -860,25 +861,25 @@ func ReadZipReader(r *zip.Reader) (*File, error) {
 		}
 	}
 	if workbookRels == nil {
-		return nil, fmt.Errorf("xl/_rels/workbook.xml.rels not found in input xlsx.")
+		return result.TryErr[*File](fmt.Errorf("xl/_rels/workbook.xml.rels not found in input xlsx."))
 	}
 	sheetXMLMap, err = readWorkbookRelationsFromZipFile(workbookRels)
 	if err != nil {
-		return nil, err
+		return result.TryErr[*File](err)
 	}
 	if len(worksheets) == 0 {
-		return nil, fmt.Errorf("Input xlsx contains no worksheets.")
+		return result.TryErr[*File](fmt.Errorf("Input xlsx contains no worksheets."))
 	}
 	file.worksheets = worksheets
 	reftable, err = readSharedStringsFromZipFile(sharedStrings)
 	if err != nil {
-		return nil, err
+		return result.TryErr[*File](err)
 	}
 	file.referenceTable = reftable
 	if themeFile != nil {
 		theme, err := readThemeFromZipFile(themeFile)
 		if err != nil {
-			return nil, err
+			return result.TryErr[*File](err)
 		}
 
 		file.theme = theme
@@ -886,21 +887,21 @@ func ReadZipReader(r *zip.Reader) (*File, error) {
 	if styles != nil {
 		style, err = readStylesFromZipFile(styles, file.theme)
 		if err != nil {
-			return nil, err
+			return result.TryErr[*File](err)
 		}
 
 		file.styles = style
 	}
 	sheetsByName, sheets, err = readSheetsFromZipFile(workbook, file, sheetXMLMap)
 	if err != nil {
-		return nil, err
+		return result.TryErr[*File](err)
 	}
 	if sheets == nil {
 		readerErr := new(XLSXReaderError)
 		readerErr.Err = "No sheets found in XLSX File"
-		return nil, readerErr
+		return result.TryErr[*File](readerErr)
 	}
 	file.Sheet = sheetsByName
 	file.Sheets = sheets
-	return file, nil
+	return result.Ok(file)
 }

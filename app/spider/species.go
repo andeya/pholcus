@@ -3,6 +3,7 @@ package spider
 import (
 	"fmt"
 
+	"github.com/andeya/gust/option"
 	"github.com/andeya/pholcus/common/pinyin"
 )
 
@@ -54,7 +55,10 @@ func (self *SpiderSpecies) Get() []*Spider {
 	return self.list
 }
 
-// GetByName returns the spider with the given name, or nil if not found.
-func (self *SpiderSpecies) GetByName(name string) *Spider {
-	return self.hash[name]
+// GetByNameOpt returns the spider with the given name as Option.
+func (self *SpiderSpecies) GetByNameOpt(name string) option.Option[*Spider] {
+	if sp, ok := self.hash[name]; ok {
+		return option.Some(sp)
+	}
+	return option.None[*Spider]()
 }

@@ -1,10 +1,9 @@
 package collector
 
 import (
-	"fmt"
-
 	mgov2 "gopkg.in/mgo.v2"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/mgo"
 	"github.com/andeya/pholcus/common/pool"
 	"github.com/andeya/pholcus/common/util"
@@ -15,11 +14,11 @@ import (
 // --- MongoDB Output ---
 
 func init() {
-	DataOutput["mgo"] = func(self *Collector) error {
+	DataOutput["mgo"] = func(self *Collector) result.VoidResult {
 		if mgo.Error() != nil {
 			mgo.Refresh()
 			if mgo.Error() != nil {
-				return fmt.Errorf("MongoBD数据库链接失败: %v", mgo.Error())
+				return result.FmtErrVoid("MongoBD数据库链接失败: %v", mgo.Error())
 			}
 		}
 		return mgo.Call(func(src pool.Src) error {

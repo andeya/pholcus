@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/andybalholm/cascadia"
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/closer"
+	"github.com/andybalholm/cascadia"
 
 	"golang.org/x/net/html"
 )
@@ -33,48 +34,44 @@ func NewDocumentFromNode(root *html.Node) *Document {
 // NewDocument is a Document constructor that takes a string URL as argument.
 // It loads the specified document, parses it, and stores the root Document
 // node, ready to be manipulated.
-func NewDocument(url string) (*Document, error) {
-	// Load the URL
+func NewDocument(url string) result.Result[*Document] {
 	res, e := http.Get(url)
 	if e != nil {
-		return nil, e
+		return result.TryErr[*Document](e)
 	}
 	return NewDocumentFromResponse(res)
 }
 
 // NewDocumentFromReader returns a Document from a generic reader.
-// It returns an error as second value if the reader's data cannot be parsed
-// as html. It does *not* check if the reader is also an io.Closer, so the
+// It does *not* check if the reader is also an io.Closer, so the
 // provided reader is never closed by this call, it is the responsibility
 // of the caller to close it if required.
-func NewDocumentFromReader(r io.Reader) (*Document, error) {
+func NewDocumentFromReader(r io.Reader) result.Result[*Document] {
 	root, e := html.Parse(r)
 	if e != nil {
-		return nil, e
+		return result.TryErr[*Document](e)
 	}
-	return newDocument(root, nil), nil
+	return result.Ok(newDocument(root, nil))
 }
 
 // NewDocumentFromResponse is another Document constructor that takes an http response as argument.
 // It loads the specified response's document, parses it, and stores the root Document
 // node, ready to be manipulated. The response's body is closed on return.
-func NewDocumentFromResponse(res *http.Response) (*Document, error) {
+func NewDocumentFromResponse(res *http.Response) result.Result[*Document] {
 	if res == nil {
-		return nil, errors.New("Response is nil")
+		return result.TryErr[*Document](errors.New("Response is nil"))
 	}
 	defer closer.LogClose(res.Body, log.Printf)
 	if res.Request == nil {
-		return nil, errors.New("Response.Request is nil")
+		return result.TryErr[*Document](errors.New("Response.Request is nil"))
 	}
 
-	// Parse the HTML into nodes
 	root, e := html.Parse(res.Body)
 	if e != nil {
-		return nil, e
+		return result.TryErr[*Document](e)
 	}
 
-	// Create and fill the document
-	return newDocument(root, res.Request.URL), nil
+	return result.Ok(newDocument(root, res.Request.URL))
 }
 
 // CloneDocument creates a deep-clone of a document.

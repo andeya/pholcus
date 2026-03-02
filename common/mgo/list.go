@@ -1,8 +1,7 @@
 package mgo
 
 import (
-	"fmt"
-
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/pool"
 )
 
@@ -11,22 +10,15 @@ type List struct {
 	Dbs []string // list of database names to query (empty = all)
 }
 
-func (self *List) Exec(resultPtr interface{}) (err error) {
-	defer func() {
-		if re := recover(); re != nil {
-			err = fmt.Errorf("%v", re)
-		}
-	}()
+func (self *List) Exec(resultPtr interface{}) (r result.Result[any]) {
+	defer r.Catch()
 	resultPtr2 := resultPtr.(*map[string][]string)
 	*resultPtr2 = map[string][]string{}
 
-	err = Call(func(src pool.Src) error {
-		var (
-			s   = src.(*MgoSrc)
-			dbs []string
-		)
-
-		if dbs, err = s.DatabaseNames(); err != nil {
+	Call(func(src pool.Src) error {
+		s := src.(*MgoSrc)
+		dbs, err := s.DatabaseNames()
+		if err != nil {
 			return err
 		}
 
@@ -37,7 +29,7 @@ func (self *List) Exec(resultPtr interface{}) (err error) {
 					return err
 				}
 			}
-			return err
+			return nil
 		}
 
 		for _, dbname := range self.Dbs {
@@ -46,8 +38,7 @@ func (self *List) Exec(resultPtr interface{}) (err error) {
 				return err
 			}
 		}
-		return err
-	})
-
-	return
+		return nil
+	}).Unwrap()
+	return result.Ok[any](*resultPtr2)
 }

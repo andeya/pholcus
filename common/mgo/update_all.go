@@ -5,6 +5,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/pool"
 )
 
@@ -16,16 +17,12 @@ type UpdateAll struct {
 	Change     map[string]interface{} // update document
 }
 
-func (self *UpdateAll) Exec(resultPtr interface{}) (err error) {
-	defer func() {
-		if re := recover(); re != nil {
-			err = fmt.Errorf("%v", re)
-		}
-	}()
+func (self *UpdateAll) Exec(resultPtr interface{}) (r result.Result[any]) {
+	defer r.Catch()
 	resultPtr2 := resultPtr.(*map[string]interface{})
 	*resultPtr2 = map[string]interface{}{}
 
-	err = Call(func(src pool.Src) error {
+	Call(func(src pool.Src) error {
 		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
 
 		if id, ok := self.Selector["_id"]; ok {
@@ -46,7 +43,6 @@ func (self *UpdateAll) Exec(resultPtr interface{}) (err error) {
 		(*resultPtr2)["UpsertedId"] = info.UpsertedId
 
 		return err
-	})
-
-	return
+	}).Unwrap()
+	return result.Ok[any](nil)
 }

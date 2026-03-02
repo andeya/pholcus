@@ -3,9 +3,8 @@ package web
 import (
 	"regexp"
 	"runtime/debug"
-	"sync"
-	"sync/atomic"
 
+	"github.com/andeya/gust/syncutil"
 	ws "github.com/andeya/pholcus/common/websocket"
 	"github.com/andeya/pholcus/logs"
 )
@@ -17,10 +16,14 @@ func wsLogHandle(conn *ws.Conn) {
 			logs.Log.Error("panic recovered: %v\n%s", p, debug.Stack())
 		}
 	}()
-	sess, _ := globalSessions.SessionStart(nil, conn.Request())
+	r := globalSessions.SessionStart(nil, conn.Request())
+	if r.IsErr() {
+		logs.Log.Error("session start: %v", r.UnwrapErr())
+		return
+	}
+	sess := r.Unwrap()
 	sessID := sess.SessionID()
-	connPool := Lsc.connPool.Load().(map[string]*ws.Conn)
-	if connPool[sessID] == nil {
+	if Lsc.connPool.Load(sessID).IsNone() {
 		Lsc.Add(sessID, conn)
 	}
 	defer func() {
@@ -35,17 +38,12 @@ func wsLogHandle(conn *ws.Conn) {
 
 // LogSocketController manages WebSocket connections for log streaming.
 type LogSocketController struct {
-	connPool atomic.Value
-	lock     sync.Mutex
+	connPool syncutil.SyncMap[string, *ws.Conn]
 }
 
 var (
 	// Lsc is the global LogSocketController for log streaming.
-	Lsc = func() *LogSocketController {
-		l := new(LogSocketController)
-		l.connPool.Store(make(map[string]*ws.Conn))
-		return l
-	}()
+	Lsc         = new(LogSocketController)
 	colorRegexp = regexp.MustCompile("\033\\[[0-9;]{1,4}m")
 )
 
@@ -56,48 +54,27 @@ func (self *LogSocketController) Write(p []byte) (int, error) {
 		}
 	}()
 	p = colorRegexp.ReplaceAll(p, []byte{})
-	connPool := self.connPool.Load().(map[string]*ws.Conn)
-	for sessID, conn := range connPool {
-		_, err := ws.Message.Send(conn, (string(p) + "\r\n"))
-		if err != nil {
+	self.connPool.Range(func(sessID string, conn *ws.Conn) bool {
+		if _, err := ws.Message.Send(conn, (string(p) + "\r\n")); err != nil {
 			self.Remove(sessID)
 		}
-	}
+		return true
+	})
 	return len(p), nil
 }
 
 func (self *LogSocketController) Add(sessID string, conn *ws.Conn) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	connPool := self.connPool.Load().(map[string]*ws.Conn)
-	newConnPool := make(map[string]*ws.Conn, len(connPool)+1)
-	for k, v := range connPool {
-		newConnPool[k] = v
-	}
-	newConnPool[sessID] = conn
-	self.connPool.Store(newConnPool)
+	self.connPool.Store(sessID, conn)
 }
 
 func (self *LogSocketController) Remove(sessID string) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
 	defer func() {
 		if p := recover(); p != nil {
 			logs.Log.Error("panic recovered: %v\n%s", p, debug.Stack())
 		}
 	}()
-	connPool := self.connPool.Load().(map[string]*ws.Conn)
-	conn := connPool[sessID]
-	if conn == nil {
-		return
+	connOpt := self.connPool.LoadAndDelete(sessID)
+	if connOpt.IsSome() {
+		connOpt.Unwrap().Close()
 	}
-	conn.Close()
-	newConnPool := make(map[string]*ws.Conn, len(connPool)+1)
-	for k, v := range connPool {
-		if k != sessID {
-			newConnPool[k] = v
-		}
-	}
-	self.connPool.Store(newConnPool)
 }

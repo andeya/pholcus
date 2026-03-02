@@ -51,16 +51,17 @@ var Miyabaobei = &spider.Spider{
 					lis := query.Find(".ccon")
 					lis.Each(func(i int, s *goquery.Selection) {
 						s.Find("a").Each(func(n int, ss *goquery.Selection) {
-							if url, ok := ss.Attr("href"); ok {
-								if !strings.Contains(url, "http://www.miyabaobei.com") {
-									url = "http://www.miyabaobei.com" + url
+							if url := ss.Attr("href"); url.IsSome() {
+								u := url.Unwrap()
+								if !strings.Contains(u, "http://www.miyabaobei.com") {
+									u = "http://www.miyabaobei.com" + u
 								}
 								ctx.Aid(map[string]interface{}{
 									"loop":    [2]int{0, 1},
-									"urlBase": url,
+									"urlBase": u,
 									"req": map[string]interface{}{
 										"Rule": "生成请求",
-										"Temp": map[string]interface{}{"baseUrl": url},
+										"Temp": map[string]interface{}{"baseUrl": u},
 									},
 								}, "生成请求")
 							}
@@ -123,7 +124,7 @@ var Miyabaobei = &spider.Spider{
 					goodsType = re.ReplaceAllString(goodsType, "")
 					query.Find(".bmfo").Each(func(i int, s *goquery.Selection) {
 						// 获取标题
-						title, _ := s.Find("p a").First().Attr("title")
+						title := s.Find("p a").First().Attr("title").UnwrapOr("")
 
 						// 获取价格
 						price := s.Find(".f20").Text()

@@ -8,6 +8,9 @@ import (
 	"log"
 	"reflect"
 	"strconv"
+
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
 )
 
 // Version returns the current implementation version.
@@ -20,24 +23,20 @@ type Json struct {
 	data interface{}
 }
 
-// NewJson returns a pointer to a new `Json` object
-// after unmarshaling `body` bytes
-func NewJson(body []byte) (*Json, error) {
+// NewJson returns a result.Result[*Json] after unmarshaling `body` bytes
+func NewJson(body []byte) result.Result[*Json] {
 	j := new(Json)
 	err := j.UnmarshalJSON(body)
-	if err != nil {
-		return nil, err
-	}
-	return j, nil
+	return result.Ret(j, err)
 }
 
-// NewFromReader returns a *Json by decoding from an io.Reader
-func NewFromReader(r io.Reader) (*Json, error) {
+// NewFromReader returns a result.Result[*Json] by decoding from an io.Reader
+func NewFromReader(r io.Reader) result.Result[*Json] {
 	j := new(Json)
 	dec := json.NewDecoder(r)
 	dec.UseNumber()
 	err := dec.Decode(&j.data)
-	return j, err
+	return result.Ret(j, err)
 }
 
 // New returns a pointer to a new, empty `Json` object
@@ -77,11 +76,11 @@ func (j *Json) UnmarshalJSON(p []byte) error {
 // Set modifies `Json` map by `key` and `value`
 // Useful for changing single key/value in a `Json` object easily.
 func (j *Json) Set(key string, val interface{}) {
-	m, err := j.Map()
-	if err != nil {
+	m := j.Map()
+	if m.IsErr() {
 		return
 	}
-	m[key] = val
+	m.Unwrap()[key] = val
 }
 
 // SetPath modifies `Json`, recursively checking/creating map keys for the supplied path,
@@ -125,11 +124,11 @@ func (j *Json) SetPath(branch []string, val interface{}) {
 
 // Del modifies `Json` map by deleting `key` if it is present.
 func (j *Json) Del(key string) {
-	m, err := j.Map()
-	if err != nil {
+	m := j.Map()
+	if m.IsErr() {
 		return
 	}
-	delete(m, key)
+	delete(m.Unwrap(), key)
 }
 
 // Get returns a pointer to a new `Json` object
@@ -139,9 +138,10 @@ func (j *Json) Del(key string) {
 //
 //	js.Get("top_level").Get("dict").Get("value").Int()
 func (j *Json) Get(key string) *Json {
-	m, err := j.Map()
-	if err == nil {
-		if val, ok := m[key]; ok {
+	m := j.Map()
+	if m.IsOk() {
+		mp := m.Unwrap()
+		if val, ok := mp[key]; ok {
 			return &Json{val}
 		}
 	}
@@ -168,153 +168,200 @@ func (j *Json) GetPath(branch ...string) *Json {
 //
 //	js.Get("top_level").Get("array").GetIndex(1).Get("key").Int()
 func (j *Json) GetIndex(index int) *Json {
-	a, err := j.Array()
-	if err == nil {
-		if len(a) > index {
-			return &Json{a[index]}
+	a := j.Array()
+	if a.IsOk() {
+		arr := a.Unwrap()
+		if len(arr) > index {
+			return &Json{arr[index]}
 		}
 	}
 	return &Json{nil}
 }
 
-// CheckGet returns a pointer to a new `Json` object and
-// a `bool` identifying success or failure
+// CheckGet returns an option.Option[*Json] identifying success or failure
 //
 // useful for chained operations when success is important:
 //
-//	if data, ok := js.Get("top_level").CheckGet("inner"); ok {
-//	    log.Println(data)
+//	if data := js.Get("top_level").CheckGet("inner"); data.IsSome() {
+//	    log.Println(data.Unwrap())
 //	}
-func (j *Json) CheckGet(key string) (*Json, bool) {
-	m, err := j.Map()
-	if err == nil {
-		if val, ok := m[key]; ok {
-			return &Json{val}, true
+func (j *Json) CheckGet(key string) option.Option[*Json] {
+	m := j.Map()
+	if m.IsOk() {
+		mp := m.Unwrap()
+		if val, ok := mp[key]; ok {
+			return option.Some(&Json{val})
 		}
 	}
-	return nil, false
+	return option.None[*Json]()
 }
 
 // Map type asserts to `map`
-func (j *Json) Map() (map[string]interface{}, error) {
+func (j *Json) Map() result.Result[map[string]interface{}] {
 	if m, ok := (j.data).(map[string]interface{}); ok {
-		return m, nil
+		return result.Ok(m)
 	}
-	return nil, errors.New("type assertion to map[string]interface{} failed")
+	return result.TryErr[map[string]interface{}](errors.New("type assertion to map[string]interface{} failed"))
 }
 
 // Array type asserts to an `array`
-func (j *Json) Array() ([]interface{}, error) {
+func (j *Json) Array() result.Result[[]interface{}] {
 	if a, ok := (j.data).([]interface{}); ok {
-		return a, nil
+		return result.Ok(a)
 	}
-	return nil, errors.New("type assertion to []interface{} failed")
+	return result.TryErr[[]interface{}](errors.New("type assertion to []interface{} failed"))
 }
 
 // Float64 coerces into a float64
-func (j *Json) Float64() (float64, error) {
+func (j *Json) Float64() result.Result[float64] {
 	switch j.data.(type) {
 	case json.Number:
-		return j.data.(json.Number).Float64()
+		f, err := j.data.(json.Number).Float64()
+		return result.Ret(f, err)
 	case float32, float64:
-		return reflect.ValueOf(j.data).Float(), nil
+		return result.Ok(reflect.ValueOf(j.data).Float())
 	case int, int8, int16, int32, int64:
-		return float64(reflect.ValueOf(j.data).Int()), nil
+		return result.Ok(float64(reflect.ValueOf(j.data).Int()))
 	case uint, uint8, uint16, uint32, uint64:
-		return float64(reflect.ValueOf(j.data).Uint()), nil
+		return result.Ok(float64(reflect.ValueOf(j.data).Uint()))
 	}
-	return 0, errors.New("invalid value type")
+	return result.TryErr[float64](errors.New("invalid value type"))
 }
 
 // Int coerces into an int
-func (j *Json) Int() (int, error) {
+func (j *Json) Int() result.Result[int] {
 	switch j.data.(type) {
 	case json.Number:
 		i, err := j.data.(json.Number).Int64()
-		return int(i), err
+		return result.Ret(int(i), err)
 	case float32, float64:
-		return int(reflect.ValueOf(j.data).Float()), nil
+		return result.Ok(int(reflect.ValueOf(j.data).Float()))
 	case int, int8, int16, int32, int64:
-		return int(reflect.ValueOf(j.data).Int()), nil
+		return result.Ok(int(reflect.ValueOf(j.data).Int()))
 	case uint, uint8, uint16, uint32, uint64:
-		return int(reflect.ValueOf(j.data).Uint()), nil
+		return result.Ok(int(reflect.ValueOf(j.data).Uint()))
 	}
-	return 0, errors.New("invalid value type")
+	return result.TryErr[int](errors.New("invalid value type"))
 }
 
 // Int64 coerces into an int64
-func (j *Json) Int64() (int64, error) {
+func (j *Json) Int64() result.Result[int64] {
 	switch j.data.(type) {
 	case json.Number:
-		return j.data.(json.Number).Int64()
+		return result.Ret(j.data.(json.Number).Int64())
 	case float32, float64:
-		return int64(reflect.ValueOf(j.data).Float()), nil
+		return result.Ok(int64(reflect.ValueOf(j.data).Float()))
 	case int, int8, int16, int32, int64:
-		return reflect.ValueOf(j.data).Int(), nil
+		return result.Ok(reflect.ValueOf(j.data).Int())
 	case uint, uint8, uint16, uint32, uint64:
-		return int64(reflect.ValueOf(j.data).Uint()), nil
+		return result.Ok(int64(reflect.ValueOf(j.data).Uint()))
 	}
-	return 0, errors.New("invalid value type")
+	return result.TryErr[int64](errors.New("invalid value type"))
 }
 
 // Uint64 coerces into an uint64
-func (j *Json) Uint64() (uint64, error) {
+func (j *Json) Uint64() result.Result[uint64] {
 	switch j.data.(type) {
 	case json.Number:
-		return strconv.ParseUint(j.data.(json.Number).String(), 10, 64)
+		u, err := strconv.ParseUint(j.data.(json.Number).String(), 10, 64)
+		return result.Ret(u, err)
 	case float32, float64:
-		return uint64(reflect.ValueOf(j.data).Float()), nil
+		return result.Ok(uint64(reflect.ValueOf(j.data).Float()))
 	case int, int8, int16, int32, int64:
-		return uint64(reflect.ValueOf(j.data).Int()), nil
+		return result.Ok(uint64(reflect.ValueOf(j.data).Int()))
 	case uint, uint8, uint16, uint32, uint64:
-		return reflect.ValueOf(j.data).Uint(), nil
+		return result.Ok(reflect.ValueOf(j.data).Uint())
 	}
-	return 0, errors.New("invalid value type")
+	return result.TryErr[uint64](errors.New("invalid value type"))
 }
 
 // Bool type asserts to `bool`
-func (j *Json) Bool() (bool, error) {
+func (j *Json) Bool() result.Result[bool] {
 	if s, ok := (j.data).(bool); ok {
-		return s, nil
+		return result.Ok(s)
 	}
-	return false, errors.New("type assertion to bool failed")
+	return result.TryErr[bool](errors.New("type assertion to bool failed"))
 }
 
 // String type asserts to `string`
-func (j *Json) String() (string, error) {
+func (j *Json) String() result.Result[string] {
 	if s, ok := (j.data).(string); ok {
-		return s, nil
+		return result.Ok(s)
 	}
-	return "", errors.New("type assertion to string failed")
+	return result.TryErr[string](errors.New("type assertion to string failed"))
 }
 
-// Bytes type asserts to `[]byte`
-func (j *Json) Bytes() ([]byte, error) {
+// Bytes returns []byte from string data
+func (j *Json) Bytes() result.Result[[]byte] {
 	if s, ok := (j.data).(string); ok {
-		return []byte(s), nil
+		return result.Ok([]byte(s))
 	}
-	return nil, errors.New("type assertion to []byte failed")
+	return result.TryErr[[]byte](errors.New("type assertion to []byte failed"))
 }
 
 // StringArray type asserts to an `array` of `string`
-func (j *Json) StringArray() ([]string, error) {
-	arr, err := j.Array()
-	if err != nil {
-		return nil, err
+func (j *Json) StringArray() result.Result[[]string] {
+	arr := j.Array()
+	if arr.IsErr() {
+		return result.TryErr[[]string](arr.UnwrapErr())
 	}
-	retArr := make([]string, 0, len(arr))
-	for _, a := range arr {
+	retArr := make([]string, 0, len(arr.Unwrap()))
+	for _, a := range arr.Unwrap() {
 		if a == nil {
 			retArr = append(retArr, "")
 			continue
 		}
 		s, ok := a.(string)
 		if !ok {
-			return nil, err
+			return result.TryErr[[]string](errors.New("array element is not string"))
 		}
 		retArr = append(retArr, s)
 	}
-	return retArr, nil
+	return result.Ok(retArr)
+}
+
+// IntArray type asserts to an `array` of `int`
+func (j *Json) IntArray() result.Result[[]int] {
+	arr := j.Array()
+	if arr.IsErr() {
+		return result.TryErr[[]int](arr.UnwrapErr())
+	}
+	retArr := make([]int, 0, len(arr.Unwrap()))
+	for _, a := range arr.Unwrap() {
+		if a == nil {
+			retArr = append(retArr, 0)
+			continue
+		}
+		ji := &Json{a}
+		ri := ji.Int()
+		if ri.IsErr() {
+			return result.TryErr[[]int](ri.UnwrapErr())
+		}
+		retArr = append(retArr, ri.Unwrap())
+	}
+	return result.Ok(retArr)
+}
+
+// Int64Array type asserts to an `array` of `int64`
+func (j *Json) Int64Array() result.Result[[]int64] {
+	arr := j.Array()
+	if arr.IsErr() {
+		return result.TryErr[[]int64](arr.UnwrapErr())
+	}
+	retArr := make([]int64, 0, len(arr.Unwrap()))
+	for _, a := range arr.Unwrap() {
+		if a == nil {
+			retArr = append(retArr, 0)
+			continue
+		}
+		ji := &Json{a}
+		ri := ji.Int64()
+		if ri.IsErr() {
+			return result.TryErr[[]int64](ri.UnwrapErr())
+		}
+		retArr = append(retArr, ri.Unwrap())
+	}
+	return result.Ok(retArr)
 }
 
 // MustArray guarantees the return of a `[]interface{}` (with optional default)
@@ -335,12 +382,7 @@ func (j *Json) MustArray(args ...[]interface{}) []interface{} {
 		log.Panicf("MustArray() received too many arguments %d", len(args))
 	}
 
-	a, err := j.Array()
-	if err == nil {
-		return a
-	}
-
-	return def
+	return j.Array().UnwrapOr(def)
 }
 
 // MustMap guarantees the return of a `map[string]interface{}` (with optional default)
@@ -361,12 +403,7 @@ func (j *Json) MustMap(args ...map[string]interface{}) map[string]interface{} {
 		log.Panicf("MustMap() received too many arguments %d", len(args))
 	}
 
-	a, err := j.Map()
-	if err == nil {
-		return a
-	}
-
-	return def
+	return j.Map().UnwrapOr(def)
 }
 
 // MustString guarantees the return of a `string` (with optional default)
@@ -385,12 +422,7 @@ func (j *Json) MustString(args ...string) string {
 		log.Panicf("MustString() received too many arguments %d", len(args))
 	}
 
-	s, err := j.String()
-	if err == nil {
-		return s
-	}
-
-	return def
+	return j.String().UnwrapOr(def)
 }
 
 // MustStringArray guarantees the return of a `[]string` (with optional default)
@@ -411,12 +443,7 @@ func (j *Json) MustStringArray(args ...[]string) []string {
 		log.Panicf("MustStringArray() received too many arguments %d", len(args))
 	}
 
-	a, err := j.StringArray()
-	if err == nil {
-		return a
-	}
-
-	return def
+	return j.StringArray().UnwrapOr(def)
 }
 
 // MustInt guarantees the return of an `int` (with optional default)
@@ -435,12 +462,7 @@ func (j *Json) MustInt(args ...int) int {
 		log.Panicf("MustInt() received too many arguments %d", len(args))
 	}
 
-	i, err := j.Int()
-	if err == nil {
-		return i
-	}
-
-	return def
+	return j.Int().UnwrapOr(def)
 }
 
 // MustFloat64 guarantees the return of a `float64` (with optional default)
@@ -459,12 +481,7 @@ func (j *Json) MustFloat64(args ...float64) float64 {
 		log.Panicf("MustFloat64() received too many arguments %d", len(args))
 	}
 
-	f, err := j.Float64()
-	if err == nil {
-		return f
-	}
-
-	return def
+	return j.Float64().UnwrapOr(def)
 }
 
 // MustBool guarantees the return of a `bool` (with optional default)
@@ -483,12 +500,7 @@ func (j *Json) MustBool(args ...bool) bool {
 		log.Panicf("MustBool() received too many arguments %d", len(args))
 	}
 
-	b, err := j.Bool()
-	if err == nil {
-		return b
-	}
-
-	return def
+	return j.Bool().UnwrapOr(def)
 }
 
 // MustInt64 guarantees the return of an `int64` (with optional default)
@@ -507,12 +519,7 @@ func (j *Json) MustInt64(args ...int64) int64 {
 		log.Panicf("MustInt64() received too many arguments %d", len(args))
 	}
 
-	i, err := j.Int64()
-	if err == nil {
-		return i
-	}
-
-	return def
+	return j.Int64().UnwrapOr(def)
 }
 
 // MustUInt64 guarantees the return of an `uint64` (with optional default)
@@ -531,10 +538,5 @@ func (j *Json) MustUint64(args ...uint64) uint64 {
 		log.Panicf("MustUint64() received too many arguments %d", len(args))
 	}
 
-	i, err := j.Uint64()
-	if err == nil {
-		return i
-	}
-
-	return def
+	return j.Uint64().UnwrapOr(def)
 }

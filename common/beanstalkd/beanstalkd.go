@@ -3,6 +3,7 @@ package beanstalkd
 import (
 	"net/url"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/config"
 	"github.com/andeya/pholcus/logs"
 	"github.com/kr/beanstalk"
@@ -16,23 +17,23 @@ type BeanstalkdClient struct {
 }
 
 // New creates a new BeanstalkdClient using config.BeanstalkdHost and config.BeanstalkdTube.
-func New() (*BeanstalkdClient, error) {
+func New() result.Result[*BeanstalkdClient] {
 	tmp := new(BeanstalkdClient)
 	host := config.BeanstalkdHost
 	if host == "" {
-		return nil, errors.New("beanstalk host is empty")
+		return result.TryErr[*BeanstalkdClient](errors.New("beanstalk host is empty"))
 	}
 	tube := config.BeanstalkdTube
 	if tube == "" {
-		return nil, errors.New("tube name is empty")
+		return result.TryErr[*BeanstalkdClient](errors.New("tube name is empty"))
 	}
 	conn, err := beanstalk.Dial("tcp", host)
 	if err != nil {
-		return nil, err
+		return result.TryErr[*BeanstalkdClient](err)
 	}
 	tmp.Tube = tube
 	tmp.Conn = conn
-	return tmp, nil
+	return result.Ok(tmp)
 }
 
 // Close closes the beanstalk connection.
@@ -43,9 +44,9 @@ func (srv *BeanstalkdClient) Close() {
 }
 
 // Send encodes content as URL values and puts it into the configured tube.
-func (srv *BeanstalkdClient) Send(content url.Values) {
+func (srv *BeanstalkdClient) Send(content url.Values) result.VoidResult {
 	if srv.Conn == nil {
-		return
+		return result.OkVoid()
 	}
 	data := content.Encode()
 	tube := &beanstalk.Tube{Conn: srv.Conn, Name: srv.Tube}
@@ -53,6 +54,7 @@ func (srv *BeanstalkdClient) Send(content url.Values) {
 	_, err := tube.Put([]byte(data), 1, 0, 0)
 	if err != nil {
 		logs.Log.Error("beanstalkd write error: %v, content=%s", err, data)
-		return
+		return result.TryErrVoid(err)
 	}
+	return result.OkVoid()
 }

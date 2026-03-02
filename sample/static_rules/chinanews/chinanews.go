@@ -52,9 +52,9 @@ var FileTest = &spider.Spider{
 					//获取分页导航
 					navBox := query.Find(".pagebox a")
 					navBox.Each(func(i int, s *goquery.Selection) {
-						if url, ok := s.Attr("href"); ok {
+						if url := s.Attr("href"); url.IsSome() {
 							ctx.AddQueue(&request.Request{
-								Url:  "http://www.chinanews.com" + url,
+								Url:  "http://www.chinanews.com" + url.Unwrap(),
 								Rule: "新闻列表",
 							})
 						}
@@ -76,9 +76,10 @@ var FileTest = &spider.Spider{
 						newsTitle := s.Find(".dd_bt a").Text()
 						//时间
 						newsTime := s.Find(".dd_time").Text()
-						if url, ok := s.Find(".dd_bt a").Attr("href"); ok {
+						if url := s.Find(".dd_bt a").Attr("href"); url.IsSome() {
+							u := url.Unwrap()
 							ctx.AddQueue(&request.Request{
-								Url:  "http://" + url[2:len(url)],
+								Url:  "http://" + u[2:len(u)],
 								Rule: "新闻内容",
 								Temp: map[string]interface{}{
 									"newsType":  newsType,

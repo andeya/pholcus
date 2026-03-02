@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"github.com/andeya/gust/option"
 	spider "github.com/andeya/pholcus/app/spider"
 	"github.com/andeya/pholcus/common/util"
 	"github.com/andeya/pholcus/logs"
@@ -14,7 +15,9 @@ type (
 		AddAll([]*spider.Spider)
 		AddKeyins(string) // AddKeyins assigns Keyin to queue members that have not been assigned yet
 		GetByIndex(int) *spider.Spider
+		GetByIndexOpt(int) option.Option[*spider.Spider]
 		GetByName(string) *spider.Spider
+		GetByNameOpt(string) option.Option[*spider.Spider]
 		GetAll() []*spider.Spider
 		Len() int // Len returns the queue length
 	}
@@ -88,17 +91,30 @@ func (self *sq) AddKeyins(keyins string) {
 
 // GetByIndex returns the spider at the given index.
 func (self *sq) GetByIndex(idx int) *spider.Spider {
-	return self.list[idx]
+	return self.GetByIndexOpt(idx).UnwrapOr(nil)
 }
 
-// GetByName returns the spider with the given name.
+// GetByIndexOpt returns the spider at the given index as Option; None if out of range.
+func (self *sq) GetByIndexOpt(idx int) option.Option[*spider.Spider] {
+	if idx >= 0 && idx < len(self.list) {
+		return option.Some(self.list[idx])
+	}
+	return option.None[*spider.Spider]()
+}
+
+// GetByName returns the spider with the given name, or nil if not found.
 func (self *sq) GetByName(n string) *spider.Spider {
+	return self.GetByNameOpt(n).UnwrapOr(nil)
+}
+
+// GetByNameOpt returns the spider with the given name as Option.
+func (self *sq) GetByNameOpt(n string) option.Option[*spider.Spider] {
 	for _, sp := range self.list {
 		if sp.GetName() == n {
-			return sp
+			return option.Some(sp)
 		}
 	}
-	return nil
+	return option.None[*spider.Spider]()
 }
 
 // GetAll returns all spiders in the queue.

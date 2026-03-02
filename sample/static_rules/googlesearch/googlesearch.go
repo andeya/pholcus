@@ -65,7 +65,7 @@ var GoogleSearch = &spider.Spider{
 				// url = "https://google.co.uk/search?q=" + ctx.GetKeyin()
 				url = "http://" + ip + "/?gws_rd=ssl#q=" + ctx.GetKeyin()
 				logs.Log.Informational("测试 " + ip)
-				if _, err := goquery.NewDocument(url); err == nil {
+				if goquery.NewDocument(url).IsOk() {
 					success = true
 					break
 				}
@@ -133,7 +133,7 @@ var GoogleSearch = &spider.Spider{
 					query := ctx.GetDom()
 					query.Find("#ires .g").Each(func(i int, s *goquery.Selection) {
 						t := s.Find(".r > a")
-						href, _ := t.Attr("href")
+						href := t.Attr("href").UnwrapOr("")
 						href = strings.TrimLeft(href, "/url?q=")
 						logs.Log.Informational(href)
 						title := t.Text()

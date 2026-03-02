@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/PuerkitoBio/goquery"
+	"github.com/andeya/pholcus/common/goquery"
 )
 
 // This example scrapes the reviews shown on the home page of metalsucks.net.
 func Example() {
 	// Load the HTML document
-	doc, err := goquery.NewDocument("http://metalsucks.net")
-	if err != nil {
-		log.Fatal(err)
+	r := goquery.NewDocument("http://metalsucks.net")
+	if r.IsErr() {
+		log.Fatal(r.UnwrapErr())
 	}
+	doc := r.Unwrap()
 
 	// Find the review items
 	doc.Find(".sidebar-reviews article .content-block").Each(func(i int, s *goquery.Selection) {

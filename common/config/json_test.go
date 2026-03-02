@@ -43,15 +43,16 @@ func TestJsonStartsWithArray(t *testing.T) {
 	}
 	f.Close()
 	defer os.Remove("testjsonWithArray.conf")
-	jsonconf, err := NewConfig("json", "testjsonWithArray.conf")
-	if err != nil {
-		t.Fatal(err)
+	jsonconfResult := NewConfig("json", "testjsonWithArray.conf")
+	if jsonconfResult.IsErr() {
+		t.Fatal(jsonconfResult.UnwrapErr())
 	}
-	rootArray, err := jsonconf.DIY("rootArray")
-	if err != nil {
+	jsonconf := jsonconfResult.Unwrap()
+	rootArrayResult := jsonconf.DIY("rootArray")
+	if rootArrayResult.IsErr() {
 		t.Error("array does not exist as element")
 	}
-	rootArrayCasted := rootArray.([]interface{})
+	rootArrayCasted := rootArrayResult.Unwrap().([]interface{})
 	if rootArrayCasted == nil {
 		t.Error("array from root is nil")
 	} else {
@@ -137,47 +138,48 @@ func TestJson(t *testing.T) {
 	}
 	f.Close()
 	defer os.Remove("testjson.conf")
-	jsonconf, err := NewConfig("json", "testjson.conf")
-	if err != nil {
-		t.Fatal(err)
+	jsonconfResult := NewConfig("json", "testjson.conf")
+	if jsonconfResult.IsErr() {
+		t.Fatal(jsonconfResult.UnwrapErr())
 	}
+	jsonconf := jsonconfResult.Unwrap()
 
 	for k, v := range keyValue {
-		var err error
 		var value interface{}
 		switch v.(type) {
 		case int:
-			value, err = jsonconf.Int(k)
+			value = jsonconf.Int(k).UnwrapOr(0)
 		case int64:
-			value, err = jsonconf.Int64(k)
+			value = jsonconf.Int64(k).UnwrapOr(0)
 		case float64:
-			value, err = jsonconf.Float(k)
+			value = jsonconf.Float(k).UnwrapOr(0)
 		case bool:
-			value, err = jsonconf.Bool(k)
+			value = jsonconf.Bool(k).UnwrapOr(false)
 		case []string:
 			value = jsonconf.Strings(k)
 		case string:
-			value = jsonconf.String(k)
+			value = jsonconf.String(k).UnwrapOr("")
 		default:
-			value, err = jsonconf.DIY(k)
+			value = jsonconf.DIY(k).UnwrapOr(nil)
 		}
-		if err != nil {
-			t.Fatalf("get key %q value fatal,%v err %s", k, v, err)
-		} else if fmt.Sprintf("%v", v) != fmt.Sprintf("%v", value) {
+		if fmt.Sprintf("%v", v) != fmt.Sprintf("%v", value) {
 			t.Fatalf("get key %q value, want %v got %v .", k, v, value)
 		}
 
 	}
-	if err = jsonconf.Set("name", "astaxie"); err != nil {
-		t.Fatal(err)
+	if r := jsonconf.Set("name", "astaxie"); r.IsErr() {
+		t.Fatal(r.UnwrapErr())
 	}
-	if jsonconf.String("name") != "astaxie" {
+	if jsonconf.String("name").UnwrapOr("") != "astaxie" {
 		t.Fatal("get name error")
 	}
 
-	if db, err := jsonconf.DIY("database"); err != nil {
-		t.Fatal(err)
-	} else if m, ok := db.(map[string]interface{}); !ok {
+	dbResult := jsonconf.DIY("database")
+	if dbResult.IsErr() {
+		t.Fatal(dbResult.UnwrapErr())
+	}
+	db := dbResult.Unwrap()
+	if m, ok := db.(map[string]interface{}); !ok {
 		t.Log(db)
 		t.Fatal("db not map[string]interface{}")
 	} else {
@@ -186,27 +188,27 @@ func TestJson(t *testing.T) {
 		}
 	}
 
-	if _, err := jsonconf.Int("unknown"); err == nil {
+	if jsonconf.Int("unknown").IsOk() {
 		t.Error("unknown keys should return an error when expecting an Int")
 	}
 
-	if _, err := jsonconf.Int64("unknown"); err == nil {
+	if jsonconf.Int64("unknown").IsOk() {
 		t.Error("unknown keys should return an error when expecting an Int64")
 	}
 
-	if _, err := jsonconf.Float("unknown"); err == nil {
+	if jsonconf.Float("unknown").IsOk() {
 		t.Error("unknown keys should return an error when expecting a Float")
 	}
 
-	if _, err := jsonconf.DIY("unknown"); err == nil {
+	if jsonconf.DIY("unknown").IsOk() {
 		t.Error("unknown keys should return an error when expecting an interface{}")
 	}
 
-	if val := jsonconf.String("unknown"); val != "" {
-		t.Error("unknown keys should return an empty string when expecting a String")
+	if jsonconf.String("unknown").IsSome() {
+		t.Error("unknown keys should return None when expecting a String")
 	}
 
-	if _, err := jsonconf.Bool("unknown"); err == nil {
+	if jsonconf.Bool("unknown").IsOk() {
 		t.Error("unknown keys should return an error when expecting a Bool")
 	}
 

@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/goquery"
 	"github.com/andeya/pholcus/common/mahonia"
 	"github.com/andeya/pholcus/common/ping"
@@ -68,11 +68,11 @@ func ExtractArticle(html string) string {
 
 	html = strings.ReplaceAll(html, ss[idx][0], `<pholcus id="pholcus">`+ss[idx][1]+`</pholcus>`)
 	r := strings.NewReader(html)
-	dom, err := goquery.NewDocumentFromReader(r)
-	if err != nil {
+	docResult := goquery.NewDocumentFromReader(r)
+	if docResult.IsErr() {
 		return ""
 	}
-	return dom.Find("pholcus#pholcus").Parent().Text()
+	return docResult.Unwrap().Find("pholcus#pholcus").Parent().Text()
 }
 
 // Deprive removes common whitespace escape characters.
@@ -198,11 +198,11 @@ func MakeUrl(path string, schemeAndHost ...string) (string, bool) {
 	return u, true
 }
 
-func Pinger(address string, timeoutSecond int) error {
+func Pinger(address string, timeoutSecond int) result.VoidResult {
 	return ping.Pinger(address, timeoutSecond)
 }
 
-func Ping(address string, timeoutSecond int) (alive bool, err error, timedelay time.Duration) {
+func Ping(address string, timeoutSecond int) result.Result[ping.PingResult] {
 	return ping.Ping(address, timeoutSecond)
 }
 

@@ -76,7 +76,7 @@ var Taobao = &spider.Spider{
 							type2 := b.Find(".subtitle a").Text()
 							b.Find(".sublist a").Each(func(i int, c *goquery.Selection) {
 								type3 := c.Text()
-								href3, _ := c.Attr("href")
+								href3 := c.Attr("href").UnwrapOr("")
 
 								ctx.Aid(map[string]interface{}{
 									"loop":    [2]int{0, 1},

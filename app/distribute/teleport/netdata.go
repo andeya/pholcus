@@ -1,9 +1,9 @@
 package teleport
 
 const (
-	SUCCESS  = 0
-	FAILURE  = -1
-	LLLEGAL  = -2
+	SUCCESS = 0
+	FAILURE = -1
+	LLLEGAL = -2
 )
 
 // NetData is the data transfer structure.

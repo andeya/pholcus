@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/config"
 	"github.com/andeya/pholcus/logs/logs"
 )
@@ -50,11 +51,9 @@ type (
 var Log = func() Logs {
 	p, _ := path.Split(config.LOG)
 	// Create directory when it does not exist
-	d, err := os.Stat(p)
-	if err != nil || !d.IsDir() {
-		if err := os.MkdirAll(p, 0777); err != nil {
-			// Log.Error("Error: %v\n", err)
-		}
+	statR := result.Ret(os.Stat(p))
+	if statR.IsErr() || !statR.Unwrap().IsDir() {
+		result.RetVoid(os.MkdirAll(p, 0777)).Unwrap()
 	}
 
 	ml := &mylog{
@@ -69,11 +68,10 @@ var Log = func() Logs {
 	})
 
 	if config.LOG_SAVE {
-		err = ml.BeeLogger.SetLogger("file", map[string]interface{}{
+		if r := result.RetVoid(ml.BeeLogger.SetLogger("file", map[string]interface{}{
 			"filename": config.LOG,
-		})
-		if err != nil {
-			fmt.Printf("Failed to create log file: %v", err)
+		})); r.IsErr() {
+			fmt.Printf("Failed to create log file: %v", r.UnwrapErr())
 		}
 	}
 

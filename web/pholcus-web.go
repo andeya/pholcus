@@ -13,7 +13,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/andeya/gust/iterator"
 	"github.com/andeya/pholcus/app"
+	"github.com/andeya/pholcus/app/spider"
 	"github.com/andeya/pholcus/logs"
 	"github.com/andeya/pholcus/runtime/cache"
 )
@@ -68,10 +70,7 @@ func Run() {
 func appInit() {
 	app.LogicApp.SetLog(Lsc).SetAppConf("Mode", cache.Task.Mode)
 
-	spiderMenu = func() (spmenu []map[string]string) {
-		for _, sp := range app.LogicApp.GetSpiderLib() {
-			spmenu = append(spmenu, map[string]string{"name": sp.GetName(), "description": sp.GetDescription()})
-		}
-		return spmenu
-	}()
+	spiderMenu = iterator.Map(iterator.FromSlice(app.LogicApp.GetSpiderLib()), func(sp *spider.Spider) map[string]string {
+		return map[string]string{"name": sp.GetName(), "description": sp.GetDescription()}
+	}).Collect()
 }

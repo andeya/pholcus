@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/util"
 	"github.com/andeya/pholcus/config"
 	"github.com/andeya/pholcus/logs"
@@ -23,8 +24,8 @@ type KafkaSender struct {
 }
 
 // GetProducer returns the Kafka sync producer and any initialization error.
-func GetProducer() (sarama.SyncProducer, error) {
-	return producer, err
+func GetProducer() result.Result[sarama.SyncProducer] {
+	return result.Ret(producer, err)
 }
 
 // Refresh initializes or reconnects the Kafka producer.
@@ -52,11 +53,11 @@ func (p *KafkaSender) SetTopic(topic string) {
 }
 
 // Push sends data as a JSON message to the configured topic.
-func (p *KafkaSender) Push(data map[string]interface{}) error {
+func (p *KafkaSender) Push(data map[string]interface{}) result.VoidResult {
 	val := util.JsonString(data)
 	_, _, err := producer.SendMessage(&sarama.ProducerMessage{
 		Topic: p.topic,
 		Value: sarama.StringEncoder(val),
 	})
-	return err
+	return result.RetVoid(err)
 }

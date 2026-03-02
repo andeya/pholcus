@@ -5,6 +5,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/pool"
 )
 
@@ -15,16 +16,12 @@ type Count struct {
 	Query      map[string]interface{} // query filter
 }
 
-func (self *Count) Exec(resultPtr interface{}) (err error) {
-	defer func() {
-		if re := recover(); re != nil {
-			err = fmt.Errorf("%v", re)
-		}
-	}()
+func (self *Count) Exec(resultPtr interface{}) (r result.Result[any]) {
+	defer r.Catch()
 	resultPtr2 := resultPtr.(*int)
 	*resultPtr2 = 0
 
-	err = Call(func(src pool.Src) error {
+	Call(func(src pool.Src) error {
 		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
 
 		if id, ok := self.Query["_id"]; ok {
@@ -35,8 +32,9 @@ func (self *Count) Exec(resultPtr interface{}) (err error) {
 			}
 		}
 
+		var err error
 		*resultPtr2, err = c.Find(self.Query).Count()
 		return err
-	})
-	return
+	}).Unwrap()
+	return result.Ok[any](*resultPtr2)
 }

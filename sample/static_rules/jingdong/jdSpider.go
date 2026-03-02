@@ -127,7 +127,7 @@ var JDSpider = &spider.Spider{
 						discuss := s.Find(".p-commit > strong > a").Text()
 
 						// 获取URL
-						url, _ := a.Attr("href")
+						url := a.Attr("href").UnwrapOr("")
 						url = "http:" + url
 
 						// 结果存入Response中转

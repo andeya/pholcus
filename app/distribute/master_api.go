@@ -3,6 +3,7 @@ package distribute
 import (
 	"encoding/json"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/app/distribute/teleport"
 	"github.com/andeya/pholcus/logs"
 )
@@ -21,8 +22,11 @@ type masterTaskHandle struct {
 }
 
 func (self *masterTaskHandle) Process(receive *teleport.NetData) *teleport.NetData {
-	b, _ := json.Marshal(self.Send(self.CountNodes()))
-	return teleport.ReturnData(string(b))
+	b := result.Ret(json.Marshal(self.Send(self.CountNodes())))
+	if b.IsErr() {
+		return teleport.ReturnError(receive, teleport.FAILURE, "marshal error: "+b.UnwrapErr().Error(), receive.From)
+	}
+	return teleport.ReturnData(string(b.Unwrap()))
 }
 
 // masterLogHandle receives and prints log messages from slave nodes.

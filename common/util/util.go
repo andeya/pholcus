@@ -22,8 +22,8 @@ import (
 
 	"golang.org/x/net/html/charset"
 
+	"github.com/andeya/gust/option"
 	"github.com/andeya/gust/result"
-	"github.com/andeya/pholcus/logs"
 )
 
 const (
@@ -55,17 +55,18 @@ func JsonpToJson(json string) string {
 }
 
 // Mkdir creates the directory for the given path.
-func Mkdir(Path string) {
-	p, _ := path.Split(Path)
+func Mkdir(filePath string) result.VoidResult {
+	p, _ := path.Split(filePath)
 	if p == "" {
-		return
+		return result.OkVoid()
 	}
 	d, err := os.Stat(p)
 	if err != nil || !d.IsDir() {
 		if err = os.MkdirAll(p, 0777); err != nil {
-			logs.Log.Error("failed to create path [%v]: %v\n", Path, err)
+			return result.FmtErrVoid("failed to create path [%v]: %v", filePath, err)
 		}
 	}
+	return result.OkVoid()
 }
 
 // The GetWDPath gets the work directory path.
@@ -80,7 +81,6 @@ func GetWDPath() string {
 // The IsDirExists judges path is directory or not.
 func IsDirExists(path string) bool {
 	fi, err := os.Stat(path)
-
 	if err != nil {
 		return os.IsExist(err)
 	}
@@ -90,34 +90,26 @@ func IsDirExists(path string) bool {
 // The IsFileExists judges path is file or not.
 func IsFileExists(path string) bool {
 	fi, err := os.Stat(path)
-
 	if err != nil {
 		return os.IsExist(err)
 	}
 	return !fi.IsDir()
 }
 
-// walkPath resolves targpath to an absolute path. Internal helper using gust.Result.
+// walkPath resolves targpath to an absolute path.
 func walkPath(targpath string) result.Result[string] {
 	if filepath.IsAbs(targpath) {
 		return result.Ok(targpath)
 	}
-	abs, err := filepath.Abs(targpath)
-	if err != nil {
-		return result.TryErr[string](err)
-	}
-	return result.Ok(abs)
+	return result.Ret(filepath.Abs(targpath))
 }
 
 // WalkFiles walks files under targpath, optionally filtered by suffixes.
-func WalkFiles(targpath string, suffixes ...string) (filelist []string) {
-	r := walkPath(targpath)
-	if r.IsErr() {
-		logs.Log.Error("util.WalkFiles: %v\n", r.UnwrapErr())
-		return
-	}
-	targpath = r.Unwrap()
-	err := filepath.Walk(targpath, func(retpath string, f os.FileInfo, err error) error {
+func WalkFiles(targpath string, suffixes ...string) (ret result.Result[[]string]) {
+	defer ret.Catch()
+	targpath = walkPath(targpath).Unwrap()
+	var filelist []string
+	result.RetVoid(filepath.Walk(targpath, func(retpath string, f os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -134,25 +126,16 @@ func WalkFiles(targpath string, suffixes ...string) (filelist []string) {
 			}
 		}
 		return nil
-	})
-
-	if err != nil {
-		logs.Log.Error("util.WalkFiles: %v\n", err)
-		return
-	}
-
-	return
+	})).Unwrap()
+	return result.Ok(filelist)
 }
 
 // WalkDir walks directories under targpath, optionally filtered by suffixes.
-func WalkDir(targpath string, suffixes ...string) (dirlist []string) {
-	r := walkPath(targpath)
-	if r.IsErr() {
-		logs.Log.Error("util.WalkDir: %v\n", r.UnwrapErr())
-		return
-	}
-	targpath = r.Unwrap()
-	err := filepath.Walk(targpath, func(retpath string, f os.FileInfo, err error) error {
+func WalkDir(targpath string, suffixes ...string) (ret result.Result[[]string]) {
+	defer ret.Catch()
+	targpath = walkPath(targpath).Unwrap()
+	var dirlist []string
+	result.RetVoid(filepath.Walk(targpath, func(retpath string, f os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -169,101 +152,70 @@ func WalkDir(targpath string, suffixes ...string) (dirlist []string) {
 			}
 		}
 		return nil
-	})
-
-	if err != nil {
-		logs.Log.Error("util.WalkDir: %v\n", err)
-		return
-	}
-
-	return
+	})).Unwrap()
+	return result.Ok(dirlist)
 }
 
 // WalkRelFiles walks files under targpath and returns relative paths, optionally filtered by suffixes.
-func WalkRelFiles(targpath string, suffixes ...string) (filelist []string) {
-	r := walkPath(targpath)
-	if r.IsErr() {
-		logs.Log.Error("util.WalkRelFiles: %v\n", r.UnwrapErr())
-		return
-	}
-	targpath = r.Unwrap()
-	err := filepath.Walk(targpath, func(retpath string, f os.FileInfo, err error) error {
+func WalkRelFiles(targpath string, suffixes ...string) (ret result.Result[[]string]) {
+	defer ret.Catch()
+	targpath = walkPath(targpath).Unwrap()
+	var filelist []string
+	result.RetVoid(filepath.Walk(targpath, func(retpath string, f os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if f.IsDir() {
 			return nil
 		}
+		relpath := RelPath(retpath).Unwrap()
 		if len(suffixes) == 0 {
-			filelist = append(filelist, RelPath(retpath))
+			filelist = append(filelist, relpath)
 			return nil
 		}
-		_retpath := RelPath(retpath)
 		for _, suffix := range suffixes {
-			if strings.HasSuffix(_retpath, suffix) {
-				filelist = append(filelist, _retpath)
+			if strings.HasSuffix(relpath, suffix) {
+				filelist = append(filelist, relpath)
 			}
 		}
 		return nil
-	})
-
-	if err != nil {
-		logs.Log.Error("util.WalkRelFiles: %v\n", err)
-		return
-	}
-
-	return
+	})).Unwrap()
+	return result.Ok(filelist)
 }
 
 // WalkRelDir walks directories under targpath and returns relative paths, optionally filtered by suffixes.
-func WalkRelDir(targpath string, suffixes ...string) (dirlist []string) {
-	r := walkPath(targpath)
-	if r.IsErr() {
-		logs.Log.Error("util.WalkRelDir: %v\n", r.UnwrapErr())
-		return
-	}
-	targpath = r.Unwrap()
-	err := filepath.Walk(targpath, func(retpath string, f os.FileInfo, err error) error {
+func WalkRelDir(targpath string, suffixes ...string) (ret result.Result[[]string]) {
+	defer ret.Catch()
+	targpath = walkPath(targpath).Unwrap()
+	var dirlist []string
+	result.RetVoid(filepath.Walk(targpath, func(retpath string, f os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if !f.IsDir() {
 			return nil
 		}
+		relpath := RelPath(retpath).Unwrap()
 		if len(suffixes) == 0 {
-			dirlist = append(dirlist, RelPath(retpath))
+			dirlist = append(dirlist, relpath)
 			return nil
 		}
-		_retpath := RelPath(retpath)
 		for _, suffix := range suffixes {
-			if strings.HasSuffix(_retpath, suffix) {
-				dirlist = append(dirlist, _retpath)
+			if strings.HasSuffix(relpath, suffix) {
+				dirlist = append(dirlist, relpath)
 			}
 		}
 		return nil
-	})
-
-	if err != nil {
-		logs.Log.Error("util.WalkRelDir: %v\n", err)
-		return
-	}
-
-	return
+	})).Unwrap()
+	return result.Ok(dirlist)
 }
 
 // RelPath converts targpath to a path relative to the current working directory.
-func RelPath(targpath string) string {
-	basepath, err := filepath.Abs("./")
-	if err != nil {
-		logs.Log.Error("util.RelPath: filepath.Abs: %v\n", err)
-		return targpath
-	}
-	rel, err := filepath.Rel(basepath, targpath)
-	if err != nil {
-		logs.Log.Error("util.RelPath: filepath.Rel(%q, %q): %v\n", basepath, targpath, err)
-		return targpath
-	}
-	return strings.ReplaceAll(rel, `\`, `/`)
+func RelPath(targpath string) (ret result.Result[string]) {
+	defer ret.Catch()
+	basepath := result.Ret(filepath.Abs("./")).Unwrap()
+	rel := result.Ret(filepath.Rel(basepath, targpath)).Unwrap()
+	return result.Ok(strings.ReplaceAll(rel, `\`, `/`))
 }
 
 // The IsNum judges string is number or not.
@@ -292,7 +244,6 @@ func XML2mapstr(xmldoc string) map[string]string {
 		default:
 		}
 	}
-
 	return m
 }
 
@@ -342,7 +293,7 @@ func JsonString(obj interface{}) string {
 // CheckErr checks and logs the error if non-nil.
 func CheckErr(err error) {
 	if err != nil {
-		logs.Log.Error("%v", err)
+		fmt.Printf("ERROR: %v\n", err)
 	}
 }
 func CheckErrPanic(err error) {
@@ -360,27 +311,27 @@ func FileNameReplace(fileName string) string {
 		switch r[i] {
 		case '"':
 			if q%2 == 1 {
-				r[i] = '“'
+				r[i] = '\u201c'
 			} else {
-				r[i] = '”'
+				r[i] = '\u201d'
 			}
 			q++
 		case ':':
-			r[i] = '：'
+			r[i] = '\uff1a'
 		case '*':
-			r[i] = '×'
+			r[i] = '\u00d7'
 		case '<':
-			r[i] = '＜'
+			r[i] = '\uff1c'
 		case '>':
-			r[i] = '＞'
+			r[i] = '\uff1e'
 		case '?':
-			r[i] = '？'
+			r[i] = '\uff1f'
 		case '/':
-			r[i] = '／'
+			r[i] = '\uff0f'
 		case '|':
-			r[i] = '∣'
+			r[i] = '\u2223'
 		case '\\':
-			r[i] = '╲'
+			r[i] = '\u2572'
 		}
 	}
 	return strings.ReplaceAll(string(r), USE_KEYIN, ``)
@@ -392,34 +343,37 @@ func ExcelSheetNameReplace(fileName string) string {
 	size := len(r)
 	for i := 0; i < size; i++ {
 		switch r[i] {
-		case ':', '：', '*', '?', '？', '/', '／', '\\', '╲', ']', '[':
+		case ':', '\uff1a', '*', '?', '\uff1f', '/', '\uff0f', '\\', '\u2572', ']', '[':
 			r[i] = '_'
 		}
 	}
 	return strings.ReplaceAll(string(r), USE_KEYIN, ``)
 }
 
-func Atoa(str interface{}) string {
+// Atoa extracts a string from an interface{} value, returning None if nil.
+func Atoa(str interface{}) option.Option[string] {
 	if str == nil {
-		return ""
+		return option.None[string]()
 	}
-	return strings.Trim(str.(string), " ")
+	return option.Some(strings.Trim(str.(string), " "))
 }
 
-func Atoi(str interface{}) int {
+// Atoi extracts an int from an interface{} value, returning None if nil.
+func Atoi(str interface{}) option.Option[int] {
 	if str == nil {
-		return 0
+		return option.None[int]()
 	}
 	i, _ := strconv.Atoi(strings.Trim(str.(string), " "))
-	return i
+	return option.Some(i)
 }
 
-func Atoui(str interface{}) uint {
+// Atoui extracts a uint from an interface{} value, returning None if nil.
+func Atoui(str interface{}) option.Option[uint] {
 	if str == nil {
-		return 0
+		return option.None[uint]()
 	}
 	u, _ := strconv.Atoi(strings.Trim(str.(string), " "))
-	return uint(u)
+	return option.Some(uint(u))
 }
 
 // RandomCreateBytes generate random []byte by specify chars.

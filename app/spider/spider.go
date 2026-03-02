@@ -33,7 +33,7 @@ type (
 		EnableCookie    bool                                                       // whether requests carry cookies
 		NotDefaultField bool                                                       // disable default output fields Url/ParentUrl/DownloadTime
 		Namespace       func(self *Spider) string                                  // namespace for output file/path naming
-		SubNamespace    func(self *Spider, dataCell map[string]interface{}) string  // sub-namespace, may depend on specific data content
+		SubNamespace    func(self *Spider, dataCell map[string]interface{}) string // sub-namespace, may depend on specific data content
 		RuleTree        *RuleTree                                                  // crawl rule tree
 
 		// System-assigned fields
@@ -113,15 +113,22 @@ func (self *Spider) GetSubName() string {
 	return self.subName
 }
 
-// GetRule returns the rule with the given name, with a found flag.
-func (self *Spider) GetRule(ruleName string) (*Rule, bool) {
-	rule, found := self.RuleTree.Trunk[ruleName]
-	return rule, found
+// GetRule returns the rule with the given name.
+func (self *Spider) GetRule(ruleName string) *Rule {
+	rule, ok := self.RuleTree.Trunk[ruleName]
+	if !ok {
+		return nil
+	}
+	return rule
 }
 
 // MustGetRule returns the rule with the given name (panics if missing).
 func (self *Spider) MustGetRule(ruleName string) *Rule {
-	return self.RuleTree.Trunk[ruleName]
+	rule := self.GetRule(ruleName)
+	if rule == nil {
+		panic("spider: rule not found: " + ruleName)
+	}
+	return rule
 }
 
 // GetRules returns the full rule map.
@@ -178,7 +185,7 @@ func (self *Spider) SetPausetime(pause int64, runtime ...bool) {
 }
 
 // SetTimer configures a timer identified by id.
-// When bell is nil, tol is a sleep duration (countdown); otherwise tol specifies the wake-up occurrence.
+// When bell is nil, tol is a countdown sleep duration; otherwise tol specifies the wake-up occurrence.
 func (self *Spider) SetTimer(id string, tol time.Duration, bell *Bell) bool {
 	if self.timer == nil {
 		self.timer = newTimer()

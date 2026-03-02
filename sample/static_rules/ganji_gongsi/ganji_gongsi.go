@@ -72,7 +72,7 @@ var GanjiGongsi = &spider.Spider{
 					ctx.GetDom().
 						Find(".com-list-2 table a").
 						Each(func(i int, s *goquery.Selection) {
-							url, _ := s.Attr("href")
+							url := s.Attr("href").UnwrapOr("")
 							ctx.AddQueue(&request.Request{
 								Url:         url,
 								Rule:        "输出结果",
@@ -121,9 +121,9 @@ var GanjiGongsi = &spider.Spider{
 							联系人 = t
 
 						case "联系电话：":
-							if img, ok := s.Find("img").Attr("src"); ok {
+							if img := s.Find("img").Attr("src"); img.IsSome() {
 								ctx.AddQueue(&request.Request{
-									Url:         "http://www.ganji.com" + img,
+									Url:         "http://www.ganji.com" + img.Unwrap(),
 									Rule:        "联系方式",
 									Temp:        map[string]interface{}{"n": 公司 + "(" + 联系人 + ").png"},
 									Priority:    1,

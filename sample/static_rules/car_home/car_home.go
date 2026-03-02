@@ -72,7 +72,7 @@ var CarHome = &spider.Spider{
 					ctx.GetDom().
 						Find(".list_dl").
 						Each(func(i int, s *goquery.Selection) {
-							url, _ := s.Find("dt a").Attr("href")
+							url := s.Find("dt a").Attr("href").UnwrapOr("")
 							ctx.AddQueue(&request.Request{
 								Url:      "http://club.autohome.com.cn" + url,
 								Rule:     "输出结果",
@@ -118,9 +118,9 @@ var CarHome = &spider.Spider{
 						fs := info.Eq(i).Find("a")
 						var f string
 						if len(fs.Nodes) > 1 {
-							f, _ = info.Eq(i).Find("a").Eq(1).Attr("title")
+							f = info.Eq(i).Find("a").Eq(1).Attr("title").UnwrapOr("")
 						} else {
-							f, _ = info.Eq(i).Find("a").First().Attr("title")
+							f = info.Eq(i).Find("a").First().Attr("title").UnwrapOr("")
 						}
 						if f == "" {
 							continue

@@ -24,6 +24,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/closer"
 )
 
@@ -71,109 +73,94 @@ type JSONConfigContainer struct {
 }
 
 // Bool returns the boolean value for a given key.
-func (c *JSONConfigContainer) Bool(key string) (bool, error) {
+func (c *JSONConfigContainer) Bool(key string) result.Result[bool] {
 	val := c.getData(key)
 	if val != nil {
-		return ParseBool(val)
+		v, err := ParseBool(val)
+		return result.Ret(v, err)
 	}
-	return false, fmt.Errorf("not exist key: %q", key)
+	return result.TryErr[bool](fmt.Errorf("not exist key: %q", key))
 }
 
 // DefaultBool returns the bool value for a given key, or defaultval on error.
 func (c *JSONConfigContainer) DefaultBool(key string, defaultval bool) bool {
-	if v, err := c.Bool(key); err == nil {
-		return v
-	}
-	return defaultval
+	return c.Bool(key).UnwrapOr(defaultval)
 }
 
 // Int returns the integer value for a given key.
-func (c *JSONConfigContainer) Int(key string) (int, error) {
+func (c *JSONConfigContainer) Int(key string) result.Result[int] {
 	val := c.getData(key)
 	if val != nil {
 		if v, ok := val.(float64); ok {
-			return int(v), nil
+			return result.Ok(int(v))
 		}
-		return 0, errors.New("not int value")
+		return result.TryErr[int](errors.New("not int value"))
 	}
-	return 0, errors.New("not exist key:" + key)
+	return result.TryErr[int](errors.New("not exist key:" + key))
 }
 
 // DefaultInt returns the integer value for a given key, or defaultval on error.
 func (c *JSONConfigContainer) DefaultInt(key string, defaultval int) int {
-	if v, err := c.Int(key); err == nil {
-		return v
-	}
-	return defaultval
+	return c.Int(key).UnwrapOr(defaultval)
 }
 
 // Int64 returns the int64 value for a given key.
-func (c *JSONConfigContainer) Int64(key string) (int64, error) {
+func (c *JSONConfigContainer) Int64(key string) result.Result[int64] {
 	val := c.getData(key)
 	if val != nil {
 		if v, ok := val.(float64); ok {
-			return int64(v), nil
+			return result.Ok(int64(v))
 		}
-		return 0, errors.New("not int64 value")
+		return result.TryErr[int64](errors.New("not int64 value"))
 	}
-	return 0, errors.New("not exist key:" + key)
+	return result.TryErr[int64](errors.New("not exist key:" + key))
 }
 
 // DefaultInt64 returns the int64 value for a given key, or defaultval on error.
 func (c *JSONConfigContainer) DefaultInt64(key string, defaultval int64) int64 {
-	if v, err := c.Int64(key); err == nil {
-		return v
-	}
-	return defaultval
+	return c.Int64(key).UnwrapOr(defaultval)
 }
 
 // Float returns the float value for a given key.
-func (c *JSONConfigContainer) Float(key string) (float64, error) {
+func (c *JSONConfigContainer) Float(key string) result.Result[float64] {
 	val := c.getData(key)
 	if val != nil {
 		if v, ok := val.(float64); ok {
-			return v, nil
+			return result.Ok(v)
 		}
-		return 0.0, errors.New("not float64 value")
+		return result.TryErr[float64](errors.New("not float64 value"))
 	}
-	return 0.0, errors.New("not exist key:" + key)
+	return result.TryErr[float64](errors.New("not exist key:" + key))
 }
 
 // DefaultFloat returns the float64 value for a given key, or defaultval on error.
 func (c *JSONConfigContainer) DefaultFloat(key string, defaultval float64) float64 {
-	if v, err := c.Float(key); err == nil {
-		return v
-	}
-	return defaultval
+	return c.Float(key).UnwrapOr(defaultval)
 }
 
 // String returns the string value for a given key.
-func (c *JSONConfigContainer) String(key string) string {
+func (c *JSONConfigContainer) String(key string) option.Option[string] {
 	val := c.getData(key)
 	if val != nil {
 		if v, ok := val.(string); ok {
-			return v
+			return option.Some(v)
 		}
 	}
-	return ""
+	return option.None[string]()
 }
 
 // DefaultString returns the string value for a given key, or defaultval if empty.
 func (c *JSONConfigContainer) DefaultString(key string, defaultval string) string {
-	// TODO FIXME should not use "" to replace non existence
-	if v := c.String(key); v != "" {
-		return v
-	}
-	return defaultval
+	return c.String(key).UnwrapOr(defaultval)
 }
 
 // Strings returns the []string value for a given key.
 func (c *JSONConfigContainer) Strings(key string) []string {
-	stringVal := c.String(key)
-	if stringVal == "" {
+	stringOpt := c.String(key)
+	if stringOpt.IsNone() {
 		return nil
 	}
-	return strings.Split(c.String(key), ";")
+	return strings.Split(stringOpt.Unwrap(), ";")
 }
 
 // DefaultStrings returns the []string value for a given key, or defaultval if nil.
@@ -185,11 +172,11 @@ func (c *JSONConfigContainer) DefaultStrings(key string, defaultval []string) []
 }
 
 // GetSection returns map for the given section
-func (c *JSONConfigContainer) GetSection(section string) (map[string]string, error) {
+func (c *JSONConfigContainer) GetSection(section string) result.Result[map[string]string] {
 	if v, ok := c.data[section]; ok {
-		return v.(map[string]string), nil
+		return result.Ok(v.(map[string]string))
 	}
-	return nil, errors.New("section does not exist: " + section)
+	return result.TryErr[map[string]string](errors.New("section does not exist: " + section))
 }
 
 // SaveConfigFile writes the configuration to the given file.
@@ -208,20 +195,20 @@ func (c *JSONConfigContainer) SaveConfigFile(filename string) (err error) {
 }
 
 // Set writes a new value for key.
-func (c *JSONConfigContainer) Set(key, val string) error {
+func (c *JSONConfigContainer) Set(key, val string) result.VoidResult {
 	c.Lock()
 	defer c.Unlock()
 	c.data[key] = val
-	return nil
+	return result.OkVoid()
 }
 
 // DIY returns the raw value by a given key.
-func (c *JSONConfigContainer) DIY(key string) (v interface{}, err error) {
+func (c *JSONConfigContainer) DIY(key string) result.Result[interface{}] {
 	val := c.getData(key)
 	if val != nil {
-		return val, nil
+		return result.Ok[interface{}](val)
 	}
-	return nil, errors.New("key does not exist")
+	return result.TryErr[interface{}](errors.New("key does not exist"))
 }
 
 // getData returns the value for section.key or key.

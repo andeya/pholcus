@@ -18,6 +18,9 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
 )
 
 type fakeConfigContainer struct {
@@ -28,29 +31,26 @@ func (c *fakeConfigContainer) getData(key string) string {
 	return c.data[strings.ToLower(key)]
 }
 
-func (c *fakeConfigContainer) Set(key, val string) error {
+func (c *fakeConfigContainer) Set(key, val string) result.VoidResult {
 	c.data[strings.ToLower(key)] = val
-	return nil
+	return result.OkVoid()
 }
 
-func (c *fakeConfigContainer) String(key string) string {
-	return c.getData(key)
+func (c *fakeConfigContainer) String(key string) option.Option[string] {
+	v, ok := c.data[strings.ToLower(key)]
+	return option.BoolOpt(v, ok)
 }
 
 func (c *fakeConfigContainer) DefaultString(key string, defaultval string) string {
-	v := c.getData(key)
-	if v == "" {
-		return defaultval
-	}
-	return v
+	return c.String(key).UnwrapOr(defaultval)
 }
 
 func (c *fakeConfigContainer) Strings(key string) []string {
-	v := c.getData(key)
-	if v == "" {
+	v := c.String(key)
+	if v.IsNone() {
 		return nil
 	}
-	return strings.Split(v, ";")
+	return strings.Split(v.Unwrap(), ";")
 }
 
 func (c *fakeConfigContainer) DefaultStrings(key string, defaultval []string) []string {
@@ -61,63 +61,51 @@ func (c *fakeConfigContainer) DefaultStrings(key string, defaultval []string) []
 	return v
 }
 
-func (c *fakeConfigContainer) Int(key string) (int, error) {
-	return strconv.Atoi(c.getData(key))
+func (c *fakeConfigContainer) Int(key string) result.Result[int] {
+	v, err := strconv.Atoi(c.getData(key))
+	return result.Ret(v, err)
 }
 
 func (c *fakeConfigContainer) DefaultInt(key string, defaultval int) int {
-	v, err := c.Int(key)
-	if err != nil {
-		return defaultval
-	}
-	return v
+	return c.Int(key).UnwrapOr(defaultval)
 }
 
-func (c *fakeConfigContainer) Int64(key string) (int64, error) {
-	return strconv.ParseInt(c.getData(key), 10, 64)
+func (c *fakeConfigContainer) Int64(key string) result.Result[int64] {
+	v, err := strconv.ParseInt(c.getData(key), 10, 64)
+	return result.Ret(v, err)
 }
 
 func (c *fakeConfigContainer) DefaultInt64(key string, defaultval int64) int64 {
-	v, err := c.Int64(key)
-	if err != nil {
-		return defaultval
-	}
-	return v
+	return c.Int64(key).UnwrapOr(defaultval)
 }
 
-func (c *fakeConfigContainer) Bool(key string) (bool, error) {
-	return ParseBool(c.getData(key))
+func (c *fakeConfigContainer) Bool(key string) result.Result[bool] {
+	v, err := ParseBool(c.getData(key))
+	return result.Ret(v, err)
 }
 
 func (c *fakeConfigContainer) DefaultBool(key string, defaultval bool) bool {
-	v, err := c.Bool(key)
-	if err != nil {
-		return defaultval
-	}
-	return v
+	return c.Bool(key).UnwrapOr(defaultval)
 }
 
-func (c *fakeConfigContainer) Float(key string) (float64, error) {
-	return strconv.ParseFloat(c.getData(key), 64)
+func (c *fakeConfigContainer) Float(key string) result.Result[float64] {
+	v, err := strconv.ParseFloat(c.getData(key), 64)
+	return result.Ret(v, err)
 }
 
 func (c *fakeConfigContainer) DefaultFloat(key string, defaultval float64) float64 {
-	v, err := c.Float(key)
-	if err != nil {
-		return defaultval
-	}
-	return v
+	return c.Float(key).UnwrapOr(defaultval)
 }
 
-func (c *fakeConfigContainer) DIY(key string) (interface{}, error) {
+func (c *fakeConfigContainer) DIY(key string) result.Result[interface{}] {
 	if v, ok := c.data[strings.ToLower(key)]; ok {
-		return v, nil
+		return result.Ok[interface{}](v)
 	}
-	return nil, errors.New("key not found")
+	return result.TryErr[interface{}](errors.New("key not found"))
 }
 
-func (c *fakeConfigContainer) GetSection(section string) (map[string]string, error) {
-	return nil, errors.New("not implemented in fakeConfigContainer")
+func (c *fakeConfigContainer) GetSection(section string) result.Result[map[string]string] {
+	return result.TryErr[map[string]string](errors.New("not implemented in fakeConfigContainer"))
 }
 
 func (c *fakeConfigContainer) SaveConfigFile(filename string) error {

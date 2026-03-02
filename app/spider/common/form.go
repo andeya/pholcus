@@ -119,7 +119,7 @@ func (self *Form) send(buttonName, buttonValue string) bool {
 		})
 		return true
 	} else {
-		enctype, _ := self.selection.Attr("enctype")
+		enctype := self.selection.Attr("enctype").UnwrapOr("")
 		if enctype == "multipart/form-data" {
 			self.ctx.AddQueue(&request.Request{
 				Rule:     self.rule,
@@ -151,23 +151,15 @@ func serializeForm(sel *goquery.Selection) (url.Values, url.Values) {
 	fields := make(url.Values)
 	buttons := make(url.Values)
 	input.Each(func(_ int, s *goquery.Selection) {
-		name, ok := s.Attr("name")
-		if ok {
-			typ, ok := s.Attr("type")
-			if ok || s.Is("textarea") {
-				if typ == "submit" {
-					val, ok := s.Attr("value")
-					if ok {
-						buttons.Add(name, val)
-					} else {
-						buttons.Add(name, "")
-					}
+		name := s.Attr("name")
+		if name.IsSome() {
+			typ := s.Attr("type")
+			if typ.IsSome() || s.Is("textarea") {
+				if typ.UnwrapOr("") == "submit" {
+					val := s.Attr("value")
+					buttons.Add(name.Unwrap(), val.UnwrapOr(""))
 				} else {
-					val, ok := s.Attr("value")
-					if !ok {
-						val = ""
-					}
-					fields.Add(name, val)
+					fields.Add(name.Unwrap(), s.Attr("value").UnwrapOr(""))
 				}
 			}
 		}
@@ -177,15 +169,10 @@ func serializeForm(sel *goquery.Selection) (url.Values, url.Values) {
 }
 
 func formAttributes(u string, form *goquery.Selection, schemeAndHost ...string) (string, string) {
-	method, ok := form.Attr("method")
+	method := form.Attr("method").UnwrapOr("GET")
+	action := form.Attr("action").UnwrapOr(u)
+	action, ok := MakeUrl(action, schemeAndHost...)
 	if !ok {
-		method = "GET"
-	}
-	action, ok := form.Attr("action")
-	if !ok {
-		action = u
-	}
-	if action, ok = MakeUrl(action, schemeAndHost...); !ok {
 		return "", ""
 	}
 

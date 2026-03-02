@@ -5,6 +5,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/pool"
 )
 
@@ -17,22 +18,14 @@ type Find struct {
 	Skip       int                    // skip first n documents
 	Limit      int                    // return at most n documents
 	Select     interface{}            // projection, e.g. {"name":1} to return only name
-	// Result     struct {
-	// 	Docs  []interface{}
-	// 	Total int
-	// }
 }
 
-func (self *Find) Exec(resultPtr interface{}) (err error) {
-	defer func() {
-		if re := recover(); re != nil {
-			err = fmt.Errorf("%v", re)
-		}
-	}()
+func (self *Find) Exec(resultPtr interface{}) (r result.Result[any]) {
+	defer r.Catch()
 	resultPtr2 := resultPtr.(*map[string]interface{})
 	*resultPtr2 = map[string]interface{}{}
 
-	err = Call(func(src pool.Src) error {
+	Call(func(src pool.Src) error {
 		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
 
 		if id, ok := self.Query["_id"]; ok {
@@ -66,12 +59,12 @@ func (self *Find) Exec(resultPtr interface{}) (err error) {
 		if self.Select != nil {
 			q.Select(self.Select)
 		}
-		r := []interface{}{}
-		err = q.All(&r)
+		docs := []interface{}{}
+		err = q.All(&docs)
 
-		(*resultPtr2)["Docs"] = r
+		(*resultPtr2)["Docs"] = docs
 
 		return err
-	})
-	return
+	}).Unwrap()
+	return result.Ok[any](*resultPtr2)
 }

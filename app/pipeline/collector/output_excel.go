@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/util"
 	"github.com/andeya/pholcus/common/xlsx"
 	"github.com/andeya/pholcus/config"
@@ -14,13 +15,8 @@ import (
 // --- Excel Output ---
 
 func init() {
-	DataOutput["excel"] = func(self *Collector) (err error) {
-		defer func() {
-			if p := recover(); p != nil {
-				err = fmt.Errorf("%v", p)
-			}
-		}()
-
+	DataOutput["excel"] = func(self *Collector) (r result.VoidResult) {
+		defer r.Catch()
 		var (
 			file   *xlsx.File
 			row    *xlsx.Row
@@ -33,11 +29,12 @@ func init() {
 		for _, datacell := range self.dataDocker {
 			var subNamespace = util.FileNameReplace(self.subNamespace(datacell))
 			if _, ok := sheets[subNamespace]; !ok {
-				sheet, err := file.AddSheet(subNamespace)
-				if err != nil {
-					logs.Log.Error("%v", err)
+				r := file.AddSheet(subNamespace)
+				if r.IsErr() {
+					logs.Log.Error("%v", r.UnwrapErr())
 					continue
 				}
+				sheet := r.Unwrap()
 				sheets[subNamespace] = sheet
 				row = sheets[subNamespace].AddRow()
 				for _, title := range self.MustGetRule(datacell["RuleName"].(string)).ItemFields {
@@ -69,15 +66,11 @@ func init() {
 		folder := config.TEXT_DIR + "/" + cache.StartTime.Format("2006-01-02 150405")
 		filename := fmt.Sprintf("%v/%v__%v-%v.xlsx", folder, util.FileNameReplace(self.namespace()), self.sum[0], self.sum[1])
 
-		// Create directory if needed
 		f2, err := os.Stat(folder)
 		if err != nil || !f2.IsDir() {
-			if err := os.MkdirAll(folder, 0777); err != nil {
-				logs.Log.Error("Error: %v\n", err)
-			}
+			result.RetVoid(os.MkdirAll(folder, 0777)).Unwrap()
 		}
 
-		err = file.Save(filename)
-		return
+		return file.Save(filename)
 	}
 }

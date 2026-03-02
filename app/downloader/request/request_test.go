@@ -39,7 +39,7 @@ func TestReqTemp(t *testing.T) {
 
 	t.Logf("x：%v\n", b.GetTemp("x", x{}))
 
-	_b := b.Copy()
+	_b := b.Copy().Unwrap()
 	_b.SetTemp("6", 666)
 	t.Logf("%#v", _b.TempIsJson)
 	t.Logf("%#v", _b.Temp)

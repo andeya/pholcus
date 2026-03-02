@@ -80,9 +80,10 @@ var AreaCodes2018 = &spider.Spider{
 					query.Find("tr.provincetr").Each(func(i int, tr *goquery.Selection) {
 						//cc++
 						tr.Find("td a").Each(func(j int, a *goquery.Selection) {
-							if url, ok := a.Attr("href"); ok {
-								code := strings.Split(url, ".")[0]
-								url = baseUrl + url
+							if url := a.Attr("href"); url.IsSome() {
+								u := url.Unwrap()
+								code := strings.Split(u, ".")[0]
+								u = baseUrl + u
 								//fmt.Println("0", a.Text()+":"+url)
 								ctx.Output(map[int]interface{}{
 									0: a.Text(),
@@ -90,7 +91,7 @@ var AreaCodes2018 = &spider.Spider{
 									2: 0,
 									3: 0,
 								})
-								ctx.AddQueue(&request.Request{Url: url, Rule: "市", Temp: request.Temp{"level": 0, "parent": code}})
+								ctx.AddQueue(&request.Request{Url: u, Rule: "市", Temp: request.Temp{"level": 0, "parent": code}})
 							}
 						})
 					})
@@ -133,9 +134,10 @@ var AreaCodes2018 = &spider.Spider{
 								myCode = a.Text()
 							}
 							if i%2 == 1 {
-								if url, ok := a.Attr("href"); ok {
-									code := strings.Split(strings.Split(url, "/")[1], ".")[0]
-									url = baseUrl + url
+								if url := a.Attr("href"); url.IsSome() {
+									u := url.Unwrap()
+									code := strings.Split(strings.Split(u, "/")[1], ".")[0]
+									u = baseUrl + u
 									ctx.Output(map[int]interface{}{
 										0: a.Text(),
 										1: myCode,
@@ -143,7 +145,7 @@ var AreaCodes2018 = &spider.Spider{
 										3: parent,
 									})
 									//fmt.Println(level, a.Text(), myCode)
-									ctx.AddQueue(&request.Request{Url: url, Rule: "市", Temp: request.Temp{"level": level, "parent": code}})
+									ctx.AddQueue(&request.Request{Url: u, Rule: "市", Temp: request.Temp{"level": level, "parent": code}})
 								}
 							}
 						})

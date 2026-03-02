@@ -5,6 +5,8 @@ import (
 	"log"
 	"net"
 	"time"
+
+	"github.com/andeya/gust/result"
 )
 
 // tpServer holds server-only state.
@@ -34,22 +36,23 @@ func (self *TP) Server(port ...string) {
 // --- Server implementation ---
 
 func (self *TP) server() {
-	var err error
 retry:
-	self.listener, err = net.Listen("tcp", self.port)
-	if err != nil {
-		debugPrintf("Debug: listen port error: %v", err)
+	listenerRes := result.Ret(net.Listen("tcp", self.port))
+	if listenerRes.IsErr() {
+		debugPrintf("Debug: listen port error: %v", listenerRes.UnwrapErr())
 		time.Sleep(LOOP_TIMEOUT)
 		goto retry
 	}
+	self.listener = listenerRes.Unwrap()
 
 	log.Printf(" *     —— Server listening (port %v) ——", self.port)
 
 	for self.listener != nil {
-		conn, err := self.listener.Accept()
-		if err != nil {
+		connRes := result.Ret(self.listener.Accept())
+		if connRes.IsErr() {
 			return
 		}
+		conn := connRes.Unwrap()
 		debugPrintf("Debug: client %v connected, identity not yet verified", conn.RemoteAddr().String())
 		self.sGoConn(conn)
 	}
@@ -70,11 +73,11 @@ func (self *TP) sGoConn(conn net.Conn) {
 
 // sInitConn initializes connection and binds node to conn; default key is node IP.
 func (self *TP) sInitConn(conn *Connect, remoteAddr string) (nodeuid string, usable bool) {
-	read_len, err := conn.Read(conn.Buffer)
-	if err != nil || read_len == 0 {
+	readLen, err := conn.Read(conn.Buffer)
+	if result.TryErrVoid(err).IsErr() || readLen == 0 {
 		return
 	}
-	conn.TmpBuffer = append(conn.TmpBuffer, conn.Buffer[:read_len]...)
+	conn.TmpBuffer = append(conn.TmpBuffer, conn.Buffer[:readLen]...)
 	dataSlice := make([][]byte, 10)
 	dataSlice, conn.TmpBuffer = self.Unpack(conn.TmpBuffer)
 
@@ -82,7 +85,12 @@ func (self *TP) sInitConn(conn *Connect, remoteAddr string) (nodeuid string, usa
 		debugPrintln("Debug: received data batch 1 before decode: ", string(data))
 
 		d := new(NetData)
-		json.Unmarshal(data, d)
+		if result.RetVoid(json.Unmarshal(data, d)).IsErr() {
+			if i == 0 {
+				return
+			}
+			continue
+		}
 		if d.From == "" {
 			d.From = remoteAddr
 		}

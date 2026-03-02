@@ -1,10 +1,9 @@
 package mgo
 
 import (
-	"fmt"
-
 	"gopkg.in/mgo.v2/bson"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/pool"
 )
 
@@ -19,12 +18,8 @@ const (
 	MaxLen int = 5000 // batch size for bulk insert
 )
 
-func (self *Insert) Exec(resultPtr interface{}) (err error) {
-	defer func() {
-		if re := recover(); re != nil {
-			err = fmt.Errorf("%v", re)
-		}
-	}()
+func (self *Insert) Exec(resultPtr interface{}) (r result.Result[any]) {
+	defer r.Catch()
 	var (
 		resultPtr2 = new([]string)
 		count      = len(self.Docs)
@@ -35,7 +30,7 @@ func (self *Insert) Exec(resultPtr interface{}) (err error) {
 	}
 	*resultPtr2 = make([]string, count)
 
-	return Call(func(src pool.Src) error {
+	Call(func(src pool.Src) error {
 		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
 		for i, doc := range self.Docs {
 			var _id string
@@ -63,5 +58,6 @@ func (self *Insert) Exec(resultPtr interface{}) (err error) {
 			return nil
 		}
 		return c.Insert(docs[loop*MaxLen:]...)
-	})
+	}).Unwrap()
+	return result.Ok[any](nil)
 }

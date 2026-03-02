@@ -1,12 +1,13 @@
 package collector
 
 import (
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/logs"
 )
 
 var (
 	// DataOutput maps output type names to their implementation functions.
-	DataOutput = make(map[string]func(self *Collector) error)
+	DataOutput = make(map[string]func(self *Collector) result.VoidResult)
 
 	// DataOutputLib lists the names of supported text data output backends.
 	DataOutputLib []string
@@ -33,12 +34,12 @@ func (self *Collector) outputData() {
 
 	self.addDataSum(dataLen)
 
-	err := DataOutput[self.outType](self)
+	r := DataOutput[self.outType](self)
 
 	logs.Log.Informational(" * ")
-	if err != nil {
+	if r.IsErr() {
 		logs.Log.App(" *     Fail  [Data output: %v | KEYIN: %v | Batch: %v]  %v records! [ERROR]  %v\n",
-			self.Spider.GetName(), self.Spider.GetKeyin(), self.dataBatch, dataLen, err)
+			self.Spider.GetName(), self.Spider.GetKeyin(), self.dataBatch, dataLen, r.UnwrapErr())
 	} else {
 		logs.Log.App(" *     [Data output: %v | KEYIN: %v | Batch: %v]  %v records!\n",
 			self.Spider.GetName(), self.Spider.GetKeyin(), self.dataBatch, dataLen)
@@ -47,6 +48,6 @@ func (self *Collector) outputData() {
 }
 
 // Register adds an output backend for the given type name.
-func Register(outType string, outFunc func(self *Collector) (err error)) {
+func Register(outType string, outFunc func(self *Collector) result.VoidResult) {
 	DataOutput[outType] = outFunc
 }

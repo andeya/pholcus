@@ -5,6 +5,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/pool"
 )
 
@@ -16,8 +17,9 @@ type Update struct {
 	Change     map[string]interface{} // update document
 }
 
-func (self *Update) Exec(_ interface{}) error {
-	return Call(func(src pool.Src) error {
+func (self *Update) Exec(_ interface{}) (r result.Result[any]) {
+	defer r.Catch()
+	Call(func(src pool.Src) error {
 		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
 
 		if id, ok := self.Selector["_id"]; ok {
@@ -29,5 +31,6 @@ func (self *Update) Exec(_ interface{}) error {
 		}
 
 		return c.Update(self.Selector, self.Change)
-	})
+	}).Unwrap()
+	return result.Ok[any](nil)
 }

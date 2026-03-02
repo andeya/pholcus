@@ -12,11 +12,20 @@ import (
 
 	"github.com/robertkrimen/otto"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/config"
 	"github.com/andeya/pholcus/logs"
 )
 
 var scriptTagRe = regexp.MustCompile(`(?s)(<Script[^>]*>)(.*?)(</Script>)`)
+
+// evalScript executes JS and returns Result with Catch.
+func evalScript(vm *otto.Otto, script string) (r result.Result[otto.Value]) {
+	defer r.Catch()
+	val, err := vm.Eval(script)
+	result.Ret(val, err).Unwrap()
+	return result.Ok(val)
+}
 
 // SpiderModle is the XML model for dynamic (JavaScript-based) spider rules.
 type (
@@ -63,11 +72,12 @@ func init() {
 			sp.Namespace = func(self *Spider) string {
 				vm := otto.New()
 				vm.Set("self", self)
-				val, err := vm.Eval(m.Namespace)
-				if err != nil {
-					logs.Log.Error(" *     dynamic rule [Namespace]: %v\n", err)
+				r := evalScript(vm, m.Namespace)
+				if r.IsErr() {
+					logs.Log.Error(" *     dynamic rule [Namespace]: %v\n", r.UnwrapErr())
+					return ""
 				}
-				s, _ := val.ToString()
+				s, _ := r.Unwrap().ToString()
 				return s
 			}
 		}
@@ -77,11 +87,12 @@ func init() {
 				vm := otto.New()
 				vm.Set("self", self)
 				vm.Set("dataCell", dataCell)
-				val, err := vm.Eval(m.SubNamespace)
-				if err != nil {
-					logs.Log.Error(" *     dynamic rule [SubNamespace]: %v\n", err)
+				r := evalScript(vm, m.SubNamespace)
+				if r.IsErr() {
+					logs.Log.Error(" *     dynamic rule [SubNamespace]: %v\n", r.UnwrapErr())
+					return ""
 				}
-				s, _ := val.ToString()
+				s, _ := r.Unwrap().ToString()
 				return s
 			}
 		}
@@ -89,9 +100,9 @@ func init() {
 		sp.RuleTree.Root = func(ctx *Context) {
 			vm := otto.New()
 			vm.Set("ctx", ctx)
-			_, err := vm.Eval(m.Root)
-			if err != nil {
-				logs.Log.Error(" *     dynamic rule [Root]: %v\n", err)
+			r := evalScript(vm, m.Root)
+			if r.IsErr() {
+				logs.Log.Error(" *     dynamic rule [Root]: %v\n", r.UnwrapErr())
 			}
 		}
 
@@ -101,9 +112,9 @@ func init() {
 				return func(ctx *Context) {
 					vm := otto.New()
 					vm.Set("ctx", ctx)
-					_, err := vm.Eval(parse)
-					if err != nil {
-						logs.Log.Error(" *     dynamic rule [ParseFunc]: %v\n", err)
+					ev := evalScript(vm, parse)
+					if ev.IsErr() {
+						logs.Log.Error(" *     dynamic rule [ParseFunc]: %v\n", ev.UnwrapErr())
 					}
 				}
 			}(rule.ParseFunc)
@@ -113,11 +124,12 @@ func init() {
 					vm := otto.New()
 					vm.Set("ctx", ctx)
 					vm.Set("aid", aid)
-					val, err := vm.Eval(parse)
-					if err != nil {
-						logs.Log.Error(" *     dynamic rule [AidFunc]: %v\n", err)
+					ev := evalScript(vm, parse)
+					if ev.IsErr() {
+						logs.Log.Error(" *     dynamic rule [AidFunc]: %v\n", ev.UnwrapErr())
+						return nil
 					}
-					return val
+					return ev.Unwrap()
 				}
 			}(rule.AidFunc)
 			sp.RuleTree.Trunk[rule.Name] = r

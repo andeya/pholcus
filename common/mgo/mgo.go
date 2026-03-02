@@ -5,6 +5,7 @@ import (
 
 	mgo "gopkg.in/mgo.v2"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/pool"
 	"github.com/andeya/pholcus/config"
 	"github.com/andeya/pholcus/logs"
@@ -69,7 +70,7 @@ func Error() error {
 }
 
 // Call executes fn with a pooled MongoDB connection.
-func Call(fn func(pool.Src) error) error {
+func Call(fn func(pool.Src) error) result.VoidResult {
 	return MgoPool.Call(fn)
 }
 
@@ -84,19 +85,29 @@ func Len() int {
 }
 
 // DatabaseNames returns all database names.
-func DatabaseNames() (names []string, err error) {
-	err = MgoPool.Call(func(src pool.Src) error {
-		names, err = src.(*MgoSrc).DatabaseNames()
-		return err
+func DatabaseNames() result.Result[[]string] {
+	var names []string
+	r := MgoPool.Call(func(src pool.Src) error {
+		var e error
+		names, e = src.(*MgoSrc).DatabaseNames()
+		return e
 	})
-	return
+	if r.IsErr() {
+		return result.TryErr[[]string](r.UnwrapErr())
+	}
+	return result.Ok(names)
 }
 
 // CollectionNames returns collection names for the given database.
-func CollectionNames(dbname string) (names []string, err error) {
-	MgoPool.Call(func(src pool.Src) error {
-		names, err = src.(*MgoSrc).DB(dbname).CollectionNames()
-		return err
+func CollectionNames(dbname string) result.Result[[]string] {
+	var names []string
+	r := MgoPool.Call(func(src pool.Src) error {
+		var e error
+		names, e = src.(*MgoSrc).DB(dbname).CollectionNames()
+		return e
 	})
-	return
+	if r.IsErr() {
+		return result.TryErr[[]string](r.UnwrapErr())
+	}
+	return result.Ok(names)
 }

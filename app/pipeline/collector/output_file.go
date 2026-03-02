@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/app/pipeline/collector/data"
 	bytesSize "github.com/andeya/pholcus/common/bytes"
 	"github.com/andeya/pholcus/common/closer"
@@ -30,13 +31,12 @@ func (self *Collector) outputFile(file data.FileCell) {
 
 	fileName := filepath.Join(dir, util.FileNameReplace(n))
 
-	// Create directory if needed
 	d, err := os.Stat(dir)
 	if err != nil || !d.IsDir() {
-		if err := os.MkdirAll(dir, 0777); err != nil {
+		if r := result.RetVoid(os.MkdirAll(dir, 0777)); r.IsErr() {
 			logs.Log.Error(
 				" *     Fail  [File download: %v | KEYIN: %v | Batch: %v]   %v [ERROR]  %v\n",
-				self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, err,
+				self.Spider.GetName(), self.Spider.GetKeyin(), atomic.LoadUint64(&self.fileBatch), fileName, r.UnwrapErr(),
 			)
 			return
 		}

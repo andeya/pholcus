@@ -9,6 +9,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/andeya/gust/result"
 )
 
 // File is a high level structure providing a slice of Sheet structs
@@ -33,34 +35,29 @@ func NewFile() (file *File) {
 
 // OpenFile() take the name of an XLSX file and returns a populated
 // xlsx.File struct for it.
-func OpenFile(filename string) (file *File, err error) {
-	var f *zip.ReadCloser
-	f, err = zip.OpenReader(filename)
+func OpenFile(filename string) result.Result[*File] {
+	f, err := zip.OpenReader(filename)
 	if err != nil {
-		return nil, err
+		return result.TryErr[*File](err)
 	}
-	file, err = ReadZip(f)
-	return
+	return ReadZip(f)
 }
 
 // OpenBinary() take bytes of an XLSX file and returns a populated
 // xlsx.File struct for it.
-func OpenBinary(bs []byte) (file *File, err error) {
+func OpenBinary(bs []byte) result.Result[*File] {
 	r := bytes.NewReader(bs)
-	file, err = OpenReaderAt(r, int64(r.Len()))
-	return
+	return OpenReaderAt(r, int64(r.Len()))
 }
 
 // OpenReaderAt() take io.ReaderAt of an XLSX file and returns a populated
 // xlsx.File struct for it.
-func OpenReaderAt(r io.ReaderAt, size int64) (file *File, err error) {
-	var f *zip.Reader
-	f, err = zip.NewReader(r, size)
+func OpenReaderAt(r io.ReaderAt, size int64) result.Result[*File] {
+	f, err := zip.NewReader(r, size)
 	if err != nil {
-		return nil, err
+		return result.TryErr[*File](err)
 	}
-	file, err = ReadZipReader(f)
-	return
+	return ReadZipReader(f)
 }
 
 // A convenient wrapper around File.ToSlice, FileToSlice will
@@ -77,72 +74,63 @@ func OpenReaderAt(r io.ReaderAt, size int64) (file *File, err error) {
 //
 // Here, value would be set to the raw value of the cell A1 in the
 // first sheet in the XLSX file.
-func FileToSlice(path string) ([][][]string, error) {
-	f, err := OpenFile(path)
-	if err != nil {
-		return nil, err
+func FileToSlice(path string) result.Result[[][][]string] {
+	r := OpenFile(path)
+	if r.IsErr() {
+		return result.TryErr[[][][]string](r.UnwrapErr())
 	}
-	return f.ToSlice()
+	return r.Unwrap().ToSlice()
 }
 
 // Save the File to an xlsx file at the provided path.
-func (f *File) Save(path string) (err error) {
-	var target *os.File
-
-	target, err = os.Create(path)
+func (f *File) Save(path string) result.VoidResult {
+	target, err := os.Create(path)
 	if err != nil {
-		return
+		return result.TryErrVoid(err)
 	}
-
-	err = f.Write(target)
-	if err != nil {
-		return
+	if r := f.Write(target); r.IsErr() {
+		target.Close()
+		return r
 	}
-
-	return target.Close()
+	return result.RetVoid(target.Close())
 }
 
 // Write the File to io.Writer as xlsx
-func (f *File) Write(writer io.Writer) (err error) {
-	var parts map[string]string
-	var zipWriter *zip.Writer
-
-	parts, err = f.MarshallParts()
+func (f *File) Write(writer io.Writer) result.VoidResult {
+	parts, err := f.MarshallParts()
 	if err != nil {
-		return
+		return result.TryErrVoid(err)
 	}
 
-	zipWriter = zip.NewWriter(writer)
+	zipWriter := zip.NewWriter(writer)
 
 	for partName, part := range parts {
-		var writer io.Writer
-		writer, err = zipWriter.Create(partName)
+		w, err := zipWriter.Create(partName)
 		if err != nil {
-			return
+			zipWriter.Close()
+			return result.TryErrVoid(err)
 		}
-		_, err = writer.Write([]byte(part))
-		if err != nil {
-			return
+		if _, err = w.Write([]byte(part)); err != nil {
+			zipWriter.Close()
+			return result.TryErrVoid(err)
 		}
 	}
 
-	err = zipWriter.Close()
-
-	return
+	return result.RetVoid(zipWriter.Close())
 }
 
 // Add a new Sheet, with the provided name, to a File
-func (f *File) AddSheet(sheetName string) (sheet *Sheet, err error) {
+func (f *File) AddSheet(sheetName string) result.Result[*Sheet] {
 	if _, exists := f.Sheet[sheetName]; exists {
-		return nil, fmt.Errorf("Duplicate sheet name '%s'.", sheetName)
+		return result.TryErr[*Sheet](fmt.Errorf("Duplicate sheet name '%s'.", sheetName))
 	}
-	sheet = &Sheet{Name: sheetName, File: f}
+	sheet := &Sheet{Name: sheetName, File: f}
 	if len(f.Sheets) == 0 {
 		sheet.Selected = true
 	}
 	f.Sheet[sheetName] = sheet
 	f.Sheets = append(f.Sheets, sheet)
-	return sheet, nil
+	return result.Ok(sheet)
 }
 
 func (f *File) makeWorkbook() xlsxWorkbook {
@@ -193,7 +181,7 @@ func replaceRelationshipsNameSpace(workbookMarshal string) string {
 	return strings.Replace(newWorkbook, oldXmlns, newXmlns, 1)
 }
 
-// Construct a map of file name to XML content representing the file
+// MarshallParts constructs a map of file name to XML content representing the file
 // in terms of the structure of an XLSX file.
 func (f *File) MarshallParts() (map[string]string, error) {
 	var parts map[string]string
@@ -299,8 +287,8 @@ func (f *File) MarshallParts() (map[string]string, error) {
 //
 // Here, value would be set to the raw value of the cell A1 in the
 // first sheet in the XLSX file.
-func (file *File) ToSlice() (output [][][]string, err error) {
-	output = [][][]string{}
+func (file *File) ToSlice() result.Result[[][][]string] {
+	output := [][][]string{}
 	for _, sheet := range file.Sheets {
 		s := [][]string{}
 		for _, row := range sheet.Rows {
@@ -315,5 +303,5 @@ func (file *File) ToSlice() (output [][][]string, err error) {
 		}
 		output = append(output, s)
 	}
-	return output, nil
+	return result.Ok(output)
 }

@@ -33,17 +33,17 @@ const (
 
 // Config values loaded from the config file.
 var (
-	CRAWLS_CAP int = setting.DefaultInt("crawlcap", crawlcap) // Max spider pool capacity
-	PHANTOMJS                string = setting.String("phantomjs")                                          // Surfer-Phantom: phantomjs binary path
-	PROXY                    string = setting.String("proxylib")                                           // Proxy IP file path
-	SPIDER_DIR               string = setting.String("spiderdir")                                          // Dynamic rule directory
-	FILE_DIR                 string = setting.String("fileoutdir")                                         // Output dir for files (images, HTML, etc.)
-	TEXT_DIR                 string = setting.String("textoutdir")                                         // Output dir for text (excel/csv)
-	DB_NAME                  string = setting.String("dbname")                                             // Database name
-	MGO_CONN_STR             string = setting.String("mgo::connstring")                                    // MongoDB connection string
+	CRAWLS_CAP               int    = setting.DefaultInt("crawlcap", crawlcap)                             // Max spider pool capacity
+	PHANTOMJS                string = setting.String("phantomjs").UnwrapOr("")                             // Surfer-Phantom: phantomjs binary path
+	PROXY                    string = setting.String("proxylib").UnwrapOr("")                              // Proxy IP file path
+	SPIDER_DIR               string = setting.String("spiderdir").UnwrapOr("")                             // Dynamic rule directory
+	FILE_DIR                 string = setting.String("fileoutdir").UnwrapOr("")                            // Output dir for files (images, HTML, etc.)
+	TEXT_DIR                 string = setting.String("textoutdir").UnwrapOr("")                            // Output dir for text (excel/csv)
+	DB_NAME                  string = setting.String("dbname").UnwrapOr("")                                // Database name
+	MGO_CONN_STR             string = setting.String("mgo::connstring").UnwrapOr("")                       // MongoDB connection string
 	MGO_CONN_CAP             int    = setting.DefaultInt("mgo::conncap", mgoconncap)                       // MongoDB connection pool size
 	MGO_CONN_GC_SECOND       int64  = setting.DefaultInt64("mgo::conngcsecond", mgoconngcsecond)           // MongoDB connection pool GC interval (seconds)
-	MYSQL_CONN_STR           string = setting.String("mysql::connstring")                                  // MySQL connection string
+	MYSQL_CONN_STR           string = setting.String("mysql::connstring").UnwrapOr("")                     // MySQL connection string
 	MYSQL_CONN_CAP           int    = setting.DefaultInt("mysql::conncap", mysqlconncap)                   // MySQL connection pool size
 	MYSQL_MAX_ALLOWED_PACKET int    = setting.DefaultInt("mysql::maxallowedpacket", mysqlmaxallowedpacket) // MySQL max allowed packet size
 	BeanstalkdHost           string = setting.DefaultString("beanstalkd::host", beanstalkHost)             // Beanstalkd host address
@@ -51,22 +51,22 @@ var (
 
 	KAFKA_BORKERS string = setting.DefaultString("kafka::brokers", kafkabrokers) // Kafka brokers
 
-	LOG_CAP            int64 = setting.DefaultInt64("log::cap", logcap)          // Log buffer capacity
-	LOG_LEVEL          int   = logLevel(setting.String("log::level"))            // Global log level (also file output level)
-	LOG_CONSOLE_LEVEL  int   = logLevel(setting.String("log::consolelevel"))     // Console log level
-	LOG_FEEDBACK_LEVEL int   = logLevel(setting.String("log::feedbacklevel"))    // Client-to-server feedback log level
-	LOG_LINEINFO       bool  = setting.DefaultBool("log::lineinfo", loglineinfo) // Whether to print line info in logs
-	LOG_SAVE           bool  = setting.DefaultBool("log::save", logsave)         // Whether to save all logs to local file
+	LOG_CAP            int64 = setting.DefaultInt64("log::cap", logcap)                    // Log buffer capacity
+	LOG_LEVEL          int   = logLevel(setting.String("log::level").UnwrapOr(""))         // Global log level (also file output level)
+	LOG_CONSOLE_LEVEL  int   = logLevel(setting.String("log::consolelevel").UnwrapOr(""))  // Console log level
+	LOG_FEEDBACK_LEVEL int   = logLevel(setting.String("log::feedbacklevel").UnwrapOr("")) // Client-to-server feedback log level
+	LOG_LINEINFO       bool  = setting.DefaultBool("log::lineinfo", loglineinfo)           // Whether to print line info in logs
+	LOG_SAVE           bool  = setting.DefaultBool("log::save", logsave)                   // Whether to save all logs to local file
 )
 
 func init() {
 	cache.Task = &cache.AppConf{
 		Mode:           setting.DefaultInt("run::mode", mode),                 // Node role
 		Port:           setting.DefaultInt("run::port", port),                 // Master node port
-		Master:         setting.String("run::master"),                         // Master node address (no port)
+		Master:         setting.String("run::master").UnwrapOr(""),            // Master node address (no port)
 		ThreadNum:      setting.DefaultInt("run::thread", thread),             // Global max concurrency
 		Pausetime:      setting.DefaultInt64("run::pause", pause),             // Pause duration reference (ms, random: Pausetime/2 ~ Pausetime*2)
-		OutType:        setting.String("run::outtype"),                        // Output type
+		OutType:        setting.String("run::outtype").UnwrapOr(""),           // Output type
 		DockerCap:      setting.DefaultInt("run::dockercap", dockercap),       // Segment dump container capacity
 		Limit:          setting.DefaultInt64("run::limit", limit),             // Crawl limit; 0=unlimited; custom if rule sets initial LIMIT
 		ProxyMinute:    setting.DefaultInt64("run::proxyminute", proxyminute), // Proxy IP rotation interval (minutes)

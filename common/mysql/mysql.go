@@ -2,13 +2,12 @@ package mysql
 
 import (
 	"database/sql"
-	"errors"
 	"strings"
 	"sync"
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/andeya/pholcus/common/util"
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/config"
 	"github.com/andeya/pholcus/logs"
 )
@@ -54,8 +53,8 @@ func Refresh() {
 }
 
 // New creates a new MyTable instance.
-func New() *MyTable {
-	return &MyTable{}
+func New() result.Result[*MyTable] {
+	return result.Ok(&MyTable{})
 }
 
 // Clone returns a copy of the MyTable with the same table name, columns, and primary key settings.
@@ -91,9 +90,10 @@ func (self *MyTable) CustomPrimaryKey(primaryKeyCode string) *MyTable {
 }
 
 // Create generates and executes a CREATE TABLE statement. Requires prior SetTableName() and AddColumn().
-func (self *MyTable) Create() error {
+func (self *MyTable) Create() (r result.VoidResult) {
+	defer r.Catch()
 	if len(self.columnNames) == 0 {
-		return errors.New("Column can not be empty")
+		return result.FmtErrVoid("Column can not be empty")
 	}
 	self.sqlCode = `CREATE TABLE IF NOT EXISTS ` + self.tableName + " ("
 	if !self.customPrimaryKey {
@@ -111,17 +111,20 @@ func (self *MyTable) Create() error {
 	}()
 
 	_, err := db.Exec(self.sqlCode)
-	return err
+	result.RetVoid(err).Unwrap()
+	return result.OkVoid()
 }
 
 // Truncate empties the table. Requires prior SetTableName().
-func (self *MyTable) Truncate() error {
+func (self *MyTable) Truncate() (r result.VoidResult) {
+	defer r.Catch()
 	maxConnChan <- true
 	defer func() {
 		<-maxConnChan
 	}()
 	_, err := db.Exec(`TRUNCATE TABLE ` + self.tableName)
-	return err
+	result.RetVoid(err).Unwrap()
+	return result.OkVoid()
 }
 
 func (self *MyTable) addRow(value []string) *MyTable {
@@ -135,7 +138,7 @@ func (self *MyTable) addRow(value []string) *MyTable {
 // AutoInsert adds a row for insert, flushing automatically when buffer is full or size limit is reached.
 func (self *MyTable) AutoInsert(value []string) *MyTable {
 	if self.rowsCount > 100 {
-		util.CheckErr(self.FlushInsert())
+		self.FlushInsert().Unwrap()
 		return self.AutoInsert(value)
 	}
 	var nsize int
@@ -148,21 +151,22 @@ func (self *MyTable) AutoInsert(value []string) *MyTable {
 	}
 	self.size += nsize
 	if self.size > max_allowed_packet {
-		util.CheckErr(self.FlushInsert())
+		self.FlushInsert().Unwrap()
 		return self.AutoInsert(value)
 	}
 	return self.addRow(value)
 }
 
 // FlushInsert executes the buffered INSERT. Create and AutoInsert must be called first.
-func (self *MyTable) FlushInsert() error {
+func (self *MyTable) FlushInsert() (r result.VoidResult) {
+	defer r.Catch()
 	if self.rowsCount == 0 {
-		return nil
+		return result.OkVoid()
 	}
 
 	colCount := len(self.columnNames)
 	if colCount == 0 {
-		return nil
+		return result.OkVoid()
 	}
 
 	self.sqlCode = `INSERT INTO ` + self.tableName + `(`
@@ -189,13 +193,14 @@ func (self *MyTable) FlushInsert() error {
 	}()
 
 	_, err := db.Exec(self.sqlCode, self.args...)
-	return err
+	result.RetVoid(err).Unwrap()
+	return result.OkVoid()
 }
 
 // SelectAll returns all rows from the table. SetTableName must be called first.
-func (self *MyTable) SelectAll() (*sql.Rows, error) {
+func (self *MyTable) SelectAll() result.Result[*sql.Rows] {
 	if self.tableName == "" {
-		return nil, errors.New("表名不能为空")
+		return result.FmtErr[*sql.Rows]("表名不能为空")
 	}
 	self.sqlCode = `SELECT * FROM ` + self.tableName + `;`
 
@@ -203,7 +208,7 @@ func (self *MyTable) SelectAll() (*sql.Rows, error) {
 	defer func() {
 		<-maxConnChan
 	}()
-	return db.Query(self.sqlCode)
+	return result.Ret(db.Query(self.sqlCode))
 }
 
 func wrapSqlKey(s string) string {

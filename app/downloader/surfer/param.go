@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/app/downloader/surfer/agent"
 )
 
@@ -43,17 +44,13 @@ type Param struct {
 	client        *http.Client
 }
 
-func NewParam(req Request) (param *Param, err error) {
-	param = new(Param)
-	param.url, err = UrlEncode(req.GetUrl())
-	if err != nil {
-		return nil, err
-	}
+func NewParam(req Request) (r result.Result[*Param]) {
+	defer r.Catch()
+	param := new(Param)
+	param.url = result.Ret(UrlEncode(req.GetUrl())).Unwrap()
 
 	if req.GetProxy() != "" {
-		if param.proxy, err = url.Parse(req.GetProxy()); err != nil {
-			return nil, err
-		}
+		param.proxy = result.Ret(url.Parse(req.GetProxy())).Unwrap()
 	}
 
 	param.header = req.GetHeader()
@@ -78,10 +75,7 @@ func NewParam(req Request) (param *Param, err error) {
 				writer.WriteField(k, v)
 			}
 		}
-		err := writer.Close()
-		if err != nil {
-			return nil, err
-		}
+		result.RetVoid(writer.Close()).Unwrap()
 		param.header.Add("Content-Type", writer.FormDataContentType())
 		param.body = body
 
@@ -96,8 +90,8 @@ func NewParam(req Request) (param *Param, err error) {
 			param.header.Add("User-Agent", agent.UserAgents["common"][0])
 		} else {
 			l := len(agent.UserAgents["common"])
-			r := rand.New(rand.NewSource(time.Now().UnixNano()))
-			param.header.Add("User-Agent", agent.UserAgents["common"][r.Intn(l)])
+			rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+			param.header.Add("User-Agent", agent.UserAgents["common"][rng.Intn(l)])
 		}
 	}
 
@@ -110,7 +104,7 @@ func NewParam(req Request) (param *Param, err error) {
 	param.tryTimes = req.GetTryTimes()
 	param.retryPause = req.GetRetryPause()
 	param.redirectTimes = req.GetRedirectTimes()
-	return
+	return result.Ok(param)
 }
 
 // writeback populates the response with Request content.

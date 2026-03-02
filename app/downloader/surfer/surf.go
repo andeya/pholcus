@@ -19,7 +19,6 @@ import (
 	"compress/gzip"
 	"compress/zlib"
 	"crypto/tls"
-	"io"
 	"math/rand"
 	"net"
 	"net/http"
@@ -27,6 +26,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
 	"github.com/andeya/gust/syncutil"
 	"github.com/andeya/pholcus/app/downloader/surfer/agent"
 )
@@ -48,39 +49,32 @@ func New(jar ...*cookiejar.Jar) Surfer {
 }
 
 // Download implements the Surfer interface.
-func (self *Surf) Download(req Request) (resp *http.Response, err error) {
-	param, err := NewParam(req)
-	if err != nil {
-		return nil, err
-	}
+func (self *Surf) Download(req Request) (r result.Result[*http.Response]) {
+	defer r.Catch()
+	param := NewParam(req).Unwrap()
 	param.header.Set("Connection", "close")
 	param.client = self.buildClient(param)
-	resp, err = self.httpRequest(param)
+	resp, err := self.httpRequest(param)
+	result.RetVoid(err).Unwrap()
 
-	if err == nil {
-		switch resp.Header.Get("Content-Encoding") {
-		case "gzip":
-			var gzipReader *gzip.Reader
-			gzipReader, err = gzip.NewReader(resp.Body)
-			if err == nil {
-				resp.Body = gzipReader
-			}
+	switch resp.Header.Get("Content-Encoding") {
+	case "gzip":
+		gzipReader, err := gzip.NewReader(resp.Body)
+		result.RetVoid(err).Unwrap()
+		resp.Body = gzipReader
 
-		case "deflate":
-			resp.Body = flate.NewReader(resp.Body)
+	case "deflate":
+		resp.Body = flate.NewReader(resp.Body)
 
-		case "zlib":
-			var readCloser io.ReadCloser
-			readCloser, err = zlib.NewReader(resp.Body)
-			if err == nil {
-				resp.Body = readCloser
-			}
-		}
+	case "zlib":
+		readCloser, err := zlib.NewReader(resp.Body)
+		result.RetVoid(err).Unwrap()
+		resp.Body = readCloser
 	}
 
 	resp = param.writeback(resp)
 
-	return
+	return result.Ok(resp)
 }
 
 var dnsCache = &DnsCache{}
@@ -101,12 +95,8 @@ func (d *DnsCache) Del(addr string) {
 }
 
 // Query queries ipPort from DNS cache.
-func (d *DnsCache) Query(addr string) (string, bool) {
-	opt := d.ipPortLib.Load(addr)
-	if opt.IsNone() {
-		return "", false
-	}
-	return opt.Unwrap(), true
+func (d *DnsCache) Query(addr string) option.Option[string] {
+	return d.ipPortLib.Load(addr)
 }
 
 // buildClient creates, configures, and returns a *http.Client type.
@@ -122,21 +112,22 @@ func (self *Surf) buildClient(param *Param) *http.Client {
 	transport := &http.Transport{
 		Dial: func(network, addr string) (net.Conn, error) {
 			var (
-				c          net.Conn
-				err        error
-				ipPort, ok = dnsCache.Query(addr)
+				c     net.Conn
+				err   error
+				ipOpt = dnsCache.Query(addr)
 			)
-			if !ok {
-				ipPort = addr
+			ipPort := addr
+			if ipOpt.IsSome() {
+				ipPort = ipOpt.Unwrap()
 				defer func() {
-					if err == nil {
-						dnsCache.Reg(addr, c.RemoteAddr().String())
+					if err != nil {
+						dnsCache.Del(addr)
 					}
 				}()
 			} else {
 				defer func() {
-					if err != nil {
-						dnsCache.Del(addr)
+					if err == nil {
+						dnsCache.Reg(addr, c.RemoteAddr().String())
 					}
 				}()
 			}

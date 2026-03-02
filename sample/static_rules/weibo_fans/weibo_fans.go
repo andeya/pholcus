@@ -82,14 +82,14 @@ var WeiboFans = &spider.Spider{
 					fmt.Println(query.Find(".follow_list").Text())
 					query.Find(".follow_list .mod_info").Each(func(i int, s *goquery.Selection) {
 						fmt.Println("222")
-						name, _ := s.Find(".info_name a").Attr("title")
+						name := s.Find(".info_name a").Attr("title").UnwrapOr("")
 						fmt.Println(name)
-						url, _ := s.Find(".info_name a").Attr("href")
+						url := s.Find(".info_name a").Attr("href").UnwrapOr("")
 						uid := strings.ReplaceAll(url, "/u", "")
 						uid = strings.ReplaceAll(uid, "/", "")
 						url = "http://weibo.com/p/100505" + uid + "/info?mod=pedit_more"
 						var 认证 string = ""
-						if _, isExist := s.Find(".info_name i").Attr("title"); isExist {
+						if s.Find(".info_name i").Attr("title").IsSome() {
 							认证 = "认证"
 						}
 						关注 := s.Find(".info_connect em a").Eq(0).Text()

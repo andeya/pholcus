@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/app/downloader"
 	"github.com/andeya/pholcus/app/downloader/request"
 	"github.com/andeya/pholcus/app/pipeline"
@@ -132,23 +133,23 @@ func (self *crawler) Process(req *request.Request) {
 
 	var ctx = self.Downloader.Download(sp, req) // download page
 
-	if err := ctx.GetError(); err != nil {
+	if r := result.TryErrVoid(ctx.GetError()); r.IsErr() {
 		if sp.DoHistory(req, false) {
 			cache.PageFailCount()
 		}
-		logs.Log.Error(" *     Fail  [download][%v]: %v\n", downUrl, err)
+		logs.Log.Error(" *     Fail  [download][%v]: %v\n", downUrl, r.UnwrapErr())
 		return
 	}
 
 	ctx.Parse(req.GetRuleName())
 
 	for _, f := range ctx.PullFiles() {
-		if self.Pipeline.CollectFile(f) != nil {
+		if self.Pipeline.CollectFile(f).IsErr() {
 			break
 		}
 	}
 	for _, item := range ctx.PullItems() {
-		if self.Pipeline.CollectData(item) != nil {
+		if self.Pipeline.CollectData(item).IsErr() {
 			break
 		}
 	}

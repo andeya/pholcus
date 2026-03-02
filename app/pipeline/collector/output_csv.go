@@ -5,21 +5,17 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/util"
 	"github.com/andeya/pholcus/config"
-	"github.com/andeya/pholcus/logs"
 	"github.com/andeya/pholcus/runtime/cache"
 )
 
 // --- CSV Output ---
 
 func init() {
-	DataOutput["csv"] = func(self *Collector) (err error) {
-		defer func() {
-			if p := recover(); p != nil {
-				err = fmt.Errorf("%v", p)
-			}
-		}()
+	DataOutput["csv"] = func(self *Collector) (r result.VoidResult) {
+		defer r.Catch()
 		var (
 			namespace = util.FileNameReplace(self.namespace())
 			sheets    = make(map[string]*csv.Writer)
@@ -30,25 +26,19 @@ func init() {
 				folder := config.TEXT_DIR + "/" + cache.StartTime.Format("2006-01-02 150405") + "/" + joinNamespaces(namespace, subNamespace)
 				filename := fmt.Sprintf("%v/%v-%v.csv", folder, self.sum[0], self.sum[1])
 
-				// Create directory if needed
 				f, err := os.Stat(folder)
 				if err != nil || !f.IsDir() {
-					if err := os.MkdirAll(folder, 0777); err != nil {
-						logs.Log.Error("Error: %v\n", err)
-					}
+					result.RetVoid(os.MkdirAll(folder, 0777)).Unwrap()
 				}
 
-				// Create file per data category
 				file, err := os.Create(filename)
-
-				if err != nil {
-					logs.Log.Error("%v", err)
-					continue
-				}
-				defer func() {
-					sheets[subNamespace].Flush()
-					file.Close()
-				}()
+				result.RetVoid(err).Unwrap()
+				defer func(ns string, f *os.File) {
+					if w := sheets[ns]; w != nil {
+						w.Flush()
+					}
+					f.Close()
+				}(subNamespace, file)
 
 				file.WriteString("\xEF\xBB\xBF") // UTF-8 BOM
 
@@ -76,6 +66,6 @@ func init() {
 			}
 			sheets[subNamespace].Write(row)
 		}
-		return
+		return result.OkVoid()
 	}
 }

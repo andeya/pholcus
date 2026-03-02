@@ -113,7 +113,7 @@ func (self *Matrix) Pull() (req *request.Request) {
 				return
 			}
 			if sdl.useProxy {
-				req.SetProxy(sdl.proxy.GetOne(req.GetUrl()))
+				req.SetProxy(sdl.proxy.GetOne(req.GetUrl()).UnwrapOr(""))
 			} else {
 				req.SetProxy("")
 			}

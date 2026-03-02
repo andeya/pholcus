@@ -15,6 +15,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/closer"
 )
 
@@ -124,53 +125,55 @@ func parseICMPEcho(b []byte) (*icmpEcho, error) {
 	return p, nil
 }
 
-func Ping(address string, timeoutSecond int) (alive bool, err error, timedelay time.Duration) {
-	t := time.Now()
-	err = Pinger(address, timeoutSecond)
-	return err == nil, err, time.Now().Sub(t)
+// PingResult holds the result of a ping operation.
+type PingResult struct {
+	Alive     bool
+	Timedelay time.Duration
 }
 
-func Pinger(address string, timeoutSecond int) error {
-	c, err := net.Dial("ip4:icmp", address)
-	if err != nil {
-		return err
+// Ping pings the address and returns a result with alive status and timedelay.
+func Ping(address string, timeoutSecond int) result.Result[PingResult] {
+	t := time.Now()
+	r := Pinger(address, timeoutSecond)
+	if r.IsErr() {
+		return result.TryErr[PingResult](r.UnwrapErr())
 	}
+	return result.Ok(PingResult{Alive: true, Timedelay: time.Since(t)})
+}
+
+// Pinger pings the address using ICMP.
+func Pinger(address string, timeoutSecond int) (r result.VoidResult) {
+	defer r.Catch()
+	c := result.Ret(net.Dial("ip4:icmp", address)).Unwrap()
 	c.SetDeadline(time.Now().Add(time.Duration(timeoutSecond) * time.Second))
 	defer closer.LogClose(c, log.Printf)
 
 	typ := icmpv4EchoRequest
 	xid, xseq := os.Getpid()&0xffff, 1
-	wb, err := (&icmpMessage{
+	wb := result.Ret((&icmpMessage{
 		Type: typ,
 		Code: 0,
 		Body: &icmpEcho{
 			ID: xid, Seq: xseq,
 			Data: bytes.Repeat([]byte("Go Go Gadget Ping!!!"), 3),
 		},
-	}).Marshal()
-	if err != nil {
-		return err
-	}
-	if _, err = c.Write(wb); err != nil {
-		return err
-	}
+	}).Marshal()).Unwrap()
+	_, err := c.Write(wb)
+	result.RetVoid(err).Unwrap()
 	var m *icmpMessage
 	rb := make([]byte, 20+len(wb))
 	for {
-		if _, err = c.Read(rb); err != nil {
-			return err
-		}
+		_, err := c.Read(rb)
+		result.RetVoid(err).Unwrap()
 		rb = ipv4Payload(rb)
-		if m, err = parseICMPMessage(rb); err != nil {
-			return err
-		}
+		m = result.Ret(parseICMPMessage(rb)).Unwrap()
 		switch m.Type {
 		case icmpv4EchoRequest, icmpv6EchoRequest:
 			continue
 		}
 		break
 	}
-	return nil
+	return result.OkVoid()
 }
 
 func ipv4Payload(b []byte) []byte {

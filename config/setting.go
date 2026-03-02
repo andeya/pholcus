@@ -7,13 +7,14 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/config"
 	"github.com/andeya/pholcus/runtime/status"
 )
 
 // Default configuration values from the config file.
 const (
-	crawlcap int = 50 // Max spider pool capacity
+	crawlcap              int    = 50                          // Max spider pool capacity
 	logcap                int64  = 10000                       // Log buffer capacity
 	loglevel              string = "debug"                     // Global log level (also file output level)
 	logconsolelevel       string = "info"                      // Console log level
@@ -54,28 +55,26 @@ var setting = func() config.Configer {
 	mustMkdirAll(CACHE_DIR)
 	mustMkdirAll(PHANTOMJS_TEMP)
 
-	iniconf, err := config.NewConfig("ini", CONFIG)
-	if err != nil {
-		file, err := os.Create(CONFIG)
-		if err != nil {
-			panic(err)
+	iniconfResult := config.NewConfig("ini", CONFIG)
+	if iniconfResult.IsErr() {
+		file := result.Ret(os.Create(CONFIG)).Unwrap()
+		if r := result.RetVoid(file.Close()); r.IsErr() {
+			log.Printf("[W] close config file: %v", r.UnwrapErr())
 		}
-		if err := file.Close(); err != nil {
-			log.Printf("[W] close config file: %v", err)
+		iniconfResult = config.NewConfig("ini", CONFIG)
+		if iniconfResult.IsErr() {
+			panic(iniconfResult.UnwrapErr())
 		}
-		iniconf, err = config.NewConfig("ini", CONFIG)
-		if err != nil {
-			panic(err)
-		}
-		defaultConfig(iniconf)
-		iniconf.SaveConfigFile(CONFIG)
+		defaultConfig(iniconfResult.Unwrap())
+		iniconfResult.Unwrap().SaveConfigFile(CONFIG)
 	} else {
-		trySet(iniconf)
+		trySet(iniconfResult.Unwrap())
 	}
 
-	mustMkdirAll(iniconf.String("spiderdir"))
-	mustMkdirAll(iniconf.String("fileoutdir"))
-	mustMkdirAll(iniconf.String("textoutdir"))
+	iniconf := iniconfResult.Unwrap()
+	mustMkdirAll(iniconf.String("spiderdir").UnwrapOr(""))
+	mustMkdirAll(iniconf.String("fileoutdir").UnwrapOr(""))
+	mustMkdirAll(iniconf.String("textoutdir").UnwrapOr(""))
 
 	return iniconf
 }()
@@ -87,173 +86,173 @@ func mustMkdirAll(dir string) {
 }
 
 func defaultConfig(iniconf config.Configer) {
-	iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
+	_ = iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
 	// iniconf.Set("datachancap", strconv.Itoa(datachancap))
-	iniconf.Set("log::cap", strconv.FormatInt(logcap, 10))
-	iniconf.Set("log::level", loglevel)
-	iniconf.Set("log::consolelevel", logconsolelevel)
-	iniconf.Set("log::feedbacklevel", logfeedbacklevel)
-	iniconf.Set("log::lineinfo", fmt.Sprint(loglineinfo))
-	iniconf.Set("log::save", fmt.Sprint(logsave))
-	iniconf.Set("phantomjs", phantomjs)
-	iniconf.Set("proxylib", proxylib)
-	iniconf.Set("spiderdir", spiderdir)
-	iniconf.Set("fileoutdir", fileoutdir)
-	iniconf.Set("textoutdir", textoutdir)
-	iniconf.Set("dbname", dbname)
-	iniconf.Set("mgo::connstring", mgoconnstring)
-	iniconf.Set("mgo::conncap", strconv.Itoa(mgoconncap))
-	iniconf.Set("mgo::conngcsecond", strconv.FormatInt(mgoconngcsecond, 10))
-	iniconf.Set("mysql::connstring", mysqlconnstring)
-	iniconf.Set("mysql::conncap", strconv.Itoa(mysqlconncap))
-	iniconf.Set("mysql::maxallowedpacket", strconv.Itoa(mysqlmaxallowedpacket))
-	iniconf.Set("kafka::brokers", kafkabrokers)
-	iniconf.Set("run::mode", strconv.Itoa(mode))
-	iniconf.Set("run::port", strconv.Itoa(port))
-	iniconf.Set("run::master", master)
-	iniconf.Set("run::thread", strconv.Itoa(thread))
-	iniconf.Set("run::pause", strconv.FormatInt(pause, 10))
-	iniconf.Set("run::outtype", outtype)
-	iniconf.Set("run::dockercap", strconv.Itoa(dockercap))
-	iniconf.Set("run::limit", strconv.FormatInt(limit, 10))
-	iniconf.Set("run::proxyminute", strconv.FormatInt(proxyminute, 10))
-	iniconf.Set("run::success", fmt.Sprint(success))
-	iniconf.Set("run::failure", fmt.Sprint(failure))
+	_ = iniconf.Set("log::cap", strconv.FormatInt(logcap, 10))
+	_ = iniconf.Set("log::level", loglevel)
+	_ = iniconf.Set("log::consolelevel", logconsolelevel)
+	_ = iniconf.Set("log::feedbacklevel", logfeedbacklevel)
+	_ = iniconf.Set("log::lineinfo", fmt.Sprint(loglineinfo))
+	_ = iniconf.Set("log::save", fmt.Sprint(logsave))
+	_ = iniconf.Set("phantomjs", phantomjs)
+	_ = iniconf.Set("proxylib", proxylib)
+	_ = iniconf.Set("spiderdir", spiderdir)
+	_ = iniconf.Set("fileoutdir", fileoutdir)
+	_ = iniconf.Set("textoutdir", textoutdir)
+	_ = iniconf.Set("dbname", dbname)
+	_ = iniconf.Set("mgo::connstring", mgoconnstring)
+	_ = iniconf.Set("mgo::conncap", strconv.Itoa(mgoconncap))
+	_ = iniconf.Set("mgo::conngcsecond", strconv.FormatInt(mgoconngcsecond, 10))
+	_ = iniconf.Set("mysql::connstring", mysqlconnstring)
+	_ = iniconf.Set("mysql::conncap", strconv.Itoa(mysqlconncap))
+	_ = iniconf.Set("mysql::maxallowedpacket", strconv.Itoa(mysqlmaxallowedpacket))
+	_ = iniconf.Set("kafka::brokers", kafkabrokers)
+	_ = iniconf.Set("run::mode", strconv.Itoa(mode))
+	_ = iniconf.Set("run::port", strconv.Itoa(port))
+	_ = iniconf.Set("run::master", master)
+	_ = iniconf.Set("run::thread", strconv.Itoa(thread))
+	_ = iniconf.Set("run::pause", strconv.FormatInt(pause, 10))
+	_ = iniconf.Set("run::outtype", outtype)
+	_ = iniconf.Set("run::dockercap", strconv.Itoa(dockercap))
+	_ = iniconf.Set("run::limit", strconv.FormatInt(limit, 10))
+	_ = iniconf.Set("run::proxyminute", strconv.FormatInt(proxyminute, 10))
+	_ = iniconf.Set("run::success", fmt.Sprint(success))
+	_ = iniconf.Set("run::failure", fmt.Sprint(failure))
 }
 
 func trySet(iniconf config.Configer) {
-	if v, e := iniconf.Int("crawlcap"); v <= 0 || e != nil {
-		iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
+	if v := iniconf.Int("crawlcap").UnwrapOr(0); v <= 0 {
+		_ = iniconf.Set("crawlcap", strconv.Itoa(crawlcap))
 	}
 
-	// if v, e := iniconf.Int("datachancap"); v <= 0 || e != nil {
+	// if v := iniconf.Int("datachancap").UnwrapOr(0); v <= 0 {
 	// 	iniconf.Set("datachancap", strconv.Itoa(datachancap))
 	// }
 
-	if v, e := iniconf.Int64("log::cap"); v <= 0 || e != nil {
-		iniconf.Set("log::cap", strconv.FormatInt(logcap, 10))
+	if v := iniconf.Int64("log::cap").UnwrapOr(int64(0)); v <= 0 {
+		_ = iniconf.Set("log::cap", strconv.FormatInt(logcap, 10))
 	}
 
-	level := iniconf.String("log::level")
+	level := iniconf.String("log::level").UnwrapOr("")
 	if logLevel(level) == -10 {
 		level = loglevel
 	}
-	iniconf.Set("log::level", level)
+	_ = iniconf.Set("log::level", level)
 
-	consolelevel := iniconf.String("log::consolelevel")
+	consolelevel := iniconf.String("log::consolelevel").UnwrapOr("")
 	if logLevel(consolelevel) == -10 {
 		consolelevel = logconsolelevel
 	}
-	iniconf.Set("log::consolelevel", logLevel2(consolelevel, level))
+	_ = iniconf.Set("log::consolelevel", logLevel2(consolelevel, level))
 
-	feedbacklevel := iniconf.String("log::feedbacklevel")
+	feedbacklevel := iniconf.String("log::feedbacklevel").UnwrapOr("")
 	if logLevel(feedbacklevel) == -10 {
 		feedbacklevel = logfeedbacklevel
 	}
-	iniconf.Set("log::feedbacklevel", logLevel2(feedbacklevel, level))
+	_ = iniconf.Set("log::feedbacklevel", logLevel2(feedbacklevel, level))
 
-	if _, e := iniconf.Bool("log::lineinfo"); e != nil {
-		iniconf.Set("log::lineinfo", fmt.Sprint(loglineinfo))
+	if iniconf.Bool("log::lineinfo").IsErr() {
+		_ = iniconf.Set("log::lineinfo", fmt.Sprint(loglineinfo))
 	}
 
-	if _, e := iniconf.Bool("log::save"); e != nil {
-		iniconf.Set("log::save", fmt.Sprint(logsave))
+	if iniconf.Bool("log::save").IsErr() {
+		_ = iniconf.Set("log::save", fmt.Sprint(logsave))
 	}
 
-	if v := iniconf.String("phantomjs"); v == "" {
-		iniconf.Set("phantomjs", phantomjs)
+	if iniconf.String("phantomjs").IsNone() || iniconf.String("phantomjs").UnwrapOr("") == "" {
+		_ = iniconf.Set("phantomjs", phantomjs)
 	}
 
-	if v := iniconf.String("proxylib"); v == "" {
-		iniconf.Set("proxylib", proxylib)
+	if iniconf.String("proxylib").IsNone() || iniconf.String("proxylib").UnwrapOr("") == "" {
+		_ = iniconf.Set("proxylib", proxylib)
 	}
 
-	if v := iniconf.String("spiderdir"); v == "" {
-		iniconf.Set("spiderdir", spiderdir)
+	if iniconf.String("spiderdir").IsNone() || iniconf.String("spiderdir").UnwrapOr("") == "" {
+		_ = iniconf.Set("spiderdir", spiderdir)
 	}
 
-	if v := iniconf.String("fileoutdir"); v == "" {
-		iniconf.Set("fileoutdir", fileoutdir)
+	if iniconf.String("fileoutdir").IsNone() || iniconf.String("fileoutdir").UnwrapOr("") == "" {
+		_ = iniconf.Set("fileoutdir", fileoutdir)
 	}
 
-	if v := iniconf.String("textoutdir"); v == "" {
-		iniconf.Set("textoutdir", textoutdir)
+	if iniconf.String("textoutdir").IsNone() || iniconf.String("textoutdir").UnwrapOr("") == "" {
+		_ = iniconf.Set("textoutdir", textoutdir)
 	}
 
-	if v := iniconf.String("dbname"); v == "" {
-		iniconf.Set("dbname", dbname)
+	if iniconf.String("dbname").IsNone() || iniconf.String("dbname").UnwrapOr("") == "" {
+		_ = iniconf.Set("dbname", dbname)
 	}
 
-	if v := iniconf.String("mgo::connstring"); v == "" {
-		iniconf.Set("mgo::connstring", mgoconnstring)
+	if iniconf.String("mgo::connstring").IsNone() || iniconf.String("mgo::connstring").UnwrapOr("") == "" {
+		_ = iniconf.Set("mgo::connstring", mgoconnstring)
 	}
 
-	if v, e := iniconf.Int("mgo::conncap"); v <= 0 || e != nil {
-		iniconf.Set("mgo::conncap", strconv.Itoa(mgoconncap))
+	if v := iniconf.Int("mgo::conncap").UnwrapOr(0); v <= 0 {
+		_ = iniconf.Set("mgo::conncap", strconv.Itoa(mgoconncap))
 	}
 
-	if v, e := iniconf.Int64("mgo::conngcsecond"); v <= 0 || e != nil {
-		iniconf.Set("mgo::conngcsecond", strconv.FormatInt(mgoconngcsecond, 10))
+	if v := iniconf.Int64("mgo::conngcsecond").UnwrapOr(int64(0)); v <= 0 {
+		_ = iniconf.Set("mgo::conngcsecond", strconv.FormatInt(mgoconngcsecond, 10))
 	}
 
-	if v := iniconf.String("mysql::connstring"); v == "" {
-		iniconf.Set("mysql::connstring", mysqlconnstring)
+	if iniconf.String("mysql::connstring").IsNone() || iniconf.String("mysql::connstring").UnwrapOr("") == "" {
+		_ = iniconf.Set("mysql::connstring", mysqlconnstring)
 	}
 
-	if v, e := iniconf.Int("mysql::conncap"); v <= 0 || e != nil {
-		iniconf.Set("mysql::conncap", strconv.Itoa(mysqlconncap))
+	if v := iniconf.Int("mysql::conncap").UnwrapOr(0); v <= 0 {
+		_ = iniconf.Set("mysql::conncap", strconv.Itoa(mysqlconncap))
 	}
 
-	if v, e := iniconf.Int("mysql::maxallowedpacket"); v <= 0 || e != nil {
-		iniconf.Set("mysql::maxallowedpacket", strconv.Itoa(mysqlmaxallowedpacket))
+	if v := iniconf.Int("mysql::maxallowedpacket").UnwrapOr(0); v <= 0 {
+		_ = iniconf.Set("mysql::maxallowedpacket", strconv.Itoa(mysqlmaxallowedpacket))
 	}
 
-	if v := iniconf.String("kafka::brokers"); v == "" {
-		iniconf.Set("kafka::brokers", kafkabrokers)
+	if iniconf.String("kafka::brokers").IsNone() || iniconf.String("kafka::brokers").UnwrapOr("") == "" {
+		_ = iniconf.Set("kafka::brokers", kafkabrokers)
 	}
 
-	if v, e := iniconf.Int("run::mode"); v < status.UNSET || v > status.CLIENT || e != nil {
-		iniconf.Set("run::mode", strconv.Itoa(mode))
+	if v := iniconf.Int("run::mode").UnwrapOr(-1); v < status.UNSET || v > status.CLIENT {
+		_ = iniconf.Set("run::mode", strconv.Itoa(mode))
 	}
 
-	if v, e := iniconf.Int("run::port"); v <= 0 || e != nil {
-		iniconf.Set("run::port", strconv.Itoa(port))
+	if v := iniconf.Int("run::port").UnwrapOr(0); v <= 0 {
+		_ = iniconf.Set("run::port", strconv.Itoa(port))
 	}
 
-	if v := iniconf.String("run::master"); v == "" {
-		iniconf.Set("run::master", master)
+	if iniconf.String("run::master").IsNone() || iniconf.String("run::master").UnwrapOr("") == "" {
+		_ = iniconf.Set("run::master", master)
 	}
 
-	if v, e := iniconf.Int("run::thread"); v <= 0 || e != nil {
-		iniconf.Set("run::thread", strconv.Itoa(thread))
+	if v := iniconf.Int("run::thread").UnwrapOr(0); v <= 0 {
+		_ = iniconf.Set("run::thread", strconv.Itoa(thread))
 	}
 
-	if v, e := iniconf.Int64("run::pause"); v < 0 || e != nil {
-		iniconf.Set("run::pause", strconv.FormatInt(pause, 10))
+	if v := iniconf.Int64("run::pause").UnwrapOr(-1); v < 0 {
+		_ = iniconf.Set("run::pause", strconv.FormatInt(pause, 10))
 	}
 
-	if v := iniconf.String("run::outtype"); v == "" {
-		iniconf.Set("run::outtype", outtype)
+	if iniconf.String("run::outtype").IsNone() || iniconf.String("run::outtype").UnwrapOr("") == "" {
+		_ = iniconf.Set("run::outtype", outtype)
 	}
 
-	if v, e := iniconf.Int("run::dockercap"); v <= 0 || e != nil {
-		iniconf.Set("run::dockercap", strconv.Itoa(dockercap))
+	if v := iniconf.Int("run::dockercap").UnwrapOr(0); v <= 0 {
+		_ = iniconf.Set("run::dockercap", strconv.Itoa(dockercap))
 	}
 
-	if v, e := iniconf.Int64("run::limit"); v < 0 || e != nil {
-		iniconf.Set("run::limit", strconv.FormatInt(limit, 10))
+	if v := iniconf.Int64("run::limit").UnwrapOr(-1); v < 0 {
+		_ = iniconf.Set("run::limit", strconv.FormatInt(limit, 10))
 	}
 
-	if v, e := iniconf.Int64("run::proxyminute"); v <= 0 || e != nil {
-		iniconf.Set("run::proxyminute", strconv.FormatInt(proxyminute, 10))
+	if v := iniconf.Int64("run::proxyminute").UnwrapOr(int64(0)); v <= 0 {
+		_ = iniconf.Set("run::proxyminute", strconv.FormatInt(proxyminute, 10))
 	}
 
-	if _, e := iniconf.Bool("run::success"); e != nil {
-		iniconf.Set("run::success", fmt.Sprint(success))
+	if iniconf.Bool("run::success").IsErr() {
+		_ = iniconf.Set("run::success", fmt.Sprint(success))
 	}
 
-	if _, e := iniconf.Bool("run::failure"); e != nil {
-		iniconf.Set("run::failure", fmt.Sprint(failure))
+	if iniconf.Bool("run::failure").IsErr() {
+		_ = iniconf.Set("run::failure", fmt.Sprint(failure))
 	}
 
 	iniconf.SaveConfigFile(CONFIG)

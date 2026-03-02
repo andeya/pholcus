@@ -21,6 +21,8 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+
+	"github.com/andeya/gust/option"
 )
 
 var cookiepder = &CookieProvider{}
@@ -40,13 +42,11 @@ func (st *CookieSessionStore) Set(key, value interface{}) {
 }
 
 // Get retrieves a value from the cookie session.
-func (st *CookieSessionStore) Get(key interface{}) interface{} {
+func (st *CookieSessionStore) Get(key interface{}) option.Option[interface{}] {
 	st.lock.RLock()
 	defer st.lock.RUnlock()
-	if v, ok := st.values[key]; ok {
-		return v
-	}
-	return nil
+	v, ok := st.values[key]
+	return option.BoolOpt(v, ok)
 }
 
 // Delete removes a value from the cookie session.

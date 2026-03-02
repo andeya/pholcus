@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/andeya/gust/option"
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/util"
 )
 
@@ -57,10 +59,10 @@ const (
 // Request.EnableCookie is set in Spider; per-request values are ignored.
 // Optional fields with defaults: Method (GET), DialTimeout, ConnTimeout, TryTimes,
 // RedirectTimes, RetryPause, DownloaderID (0=Surf, 1=PhantomJS).
-func (self *Request) Prepare() error {
+func (self *Request) Prepare() result.VoidResult {
 	URL, err := url.Parse(self.Url)
 	if err != nil {
-		return err
+		return result.TryErrVoid(err)
 	}
 	self.Url = URL.String()
 
@@ -109,23 +111,26 @@ func (self *Request) Prepare() error {
 	if self.Temp == nil {
 		self.Temp = make(Temp)
 	}
-	return nil
+	return result.OkVoid()
 }
 
 // UnSerialize deserializes a Request from JSON string.
-func UnSerialize(s string) (*Request, error) {
+func UnSerialize(s string) result.Result[*Request] {
 	req := new(Request)
-	return req, json.Unmarshal([]byte(s), req)
+	return result.Ret(req, json.Unmarshal([]byte(s), req))
 }
 
 // Serialize serializes the Request to JSON string.
-func (self *Request) Serialize() string {
+func (self *Request) Serialize() result.Result[string] {
 	for k, v := range self.Temp {
 		self.Temp.set(k, v)
 		self.TempIsJson[k] = true
 	}
-	b, _ := json.Marshal(self)
-	return strings.ReplaceAll(util.Bytes2String(b), `\u0026`, `&`)
+	b, err := json.Marshal(self)
+	if err != nil {
+		return result.TryErr[string](err)
+	}
+	return result.Ok(strings.ReplaceAll(util.Bytes2String(b), `\u0026`, `&`))
 }
 
 // Unique returns the unique identifier for the request.
@@ -138,11 +143,13 @@ func (self *Request) Unique() string {
 }
 
 // Copy returns a deep copy of the request.
-func (self *Request) Copy() *Request {
+func (self *Request) Copy() result.Result[*Request] {
 	reqcopy := new(Request)
-	b, _ := json.Marshal(self)
-	json.Unmarshal(b, reqcopy)
-	return reqcopy
+	b, err := json.Marshal(self)
+	if err != nil {
+		return result.TryErr[*Request](err)
+	}
+	return result.Ret(reqcopy, json.Unmarshal(b, reqcopy))
 }
 
 // GetUrl returns the request URL.
@@ -284,6 +291,22 @@ func (self *Request) GetTemp(key string, defaultValue interface{}) interface{} {
 	}
 
 	return self.Temp[key]
+}
+
+// GetTempOpt returns temporary cached data as Option. None when key is missing.
+func (self *Request) GetTempOpt(key string) option.Option[interface{}] {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
+
+	if _, ok := self.Temp[key]; !ok {
+		return option.None[interface{}]()
+	}
+	if self.TempIsJson[key] {
+		var v interface{}
+		self.Temp.get(key, &v)
+		return option.Some(v)
+	}
+	return option.Some(self.Temp[key])
 }
 
 func (self *Request) GetTemps() Temp {

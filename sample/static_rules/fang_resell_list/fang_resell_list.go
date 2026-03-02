@@ -106,9 +106,9 @@ var fangList = &spider.Spider{
 							area = s.Find("dd.info div.area").Children().Eq(0).Text()
 							price = s.Find("dd.info div.moreInfo").Children().Eq(0).Text()
 							unitPrice = s.Find("dd.info div.moreInfo").Children().Eq(1).Text()
-							remoteTmp, exists := s.Find("dd.info p.title a").Attr("href")
-							if exists {
-								remoteAttr := strings.Split(remoteTmp, "_")
+							remoteTmp := s.Find("dd.info p.title a").Attr("href")
+							if remoteTmp.IsSome() {
+								remoteAttr := strings.Split(remoteTmp.Unwrap(), "_")
 								remoteId = strings.Replace(remoteAttr[1], ".htm", "", 1)
 							}
 

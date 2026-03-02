@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"text/template"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/app"
 	"github.com/andeya/pholcus/common/session"
 	"github.com/andeya/pholcus/config"
@@ -15,27 +16,37 @@ import (
 var globalSessions *session.Manager
 
 func init() {
-	var err error
-	globalSessions, err = session.NewManager("memory", `{"cookieName":"pholcusSession", "enableSetCookie,omitempty": true, "secure": false, "sessionIDHashFunc": "sha1", "sessionIDHashKey": "", "cookieLifeTime": 157680000, "providerConfig": ""}`)
-	if err != nil {
-		log.Fatal(err)
+	r := result.Ret(session.NewManager("memory", `{"cookieName":"pholcusSession", "enableSetCookie,omitempty": true, "secure": false, "sessionIDHashFunc": "sha1", "sessionIDHashKey": "", "cookieLifeTime": 157680000, "providerConfig": ""}`))
+	if r.IsErr() {
+		log.Fatal(r.UnwrapErr())
 	}
+	globalSessions = r.Unwrap()
 	// go globalSessions.GC()
 }
 
 func web(rw http.ResponseWriter, req *http.Request) {
-	sess, _ := globalSessions.SessionStart(rw, req)
-	defer sess.SessionRelease(rw)
-	index, err := viewsFS.ReadFile("views/index.html")
-	if err != nil {
-		logs.Log.Error("read index.html: %v", err)
+	r := globalSessions.SessionStart(rw, req)
+	if r.IsErr() {
+		logs.Log.Error("session start: %v", r.UnwrapErr())
 		http.Error(rw, "internal error", http.StatusInternalServerError)
 		return
 	}
-	t, err := template.New("index").Parse(string(index))
-	if err != nil {
-		logs.Log.Error("%v", err)
+	sess := r.Unwrap()
+	defer sess.SessionRelease(rw)
+	indexR := result.Ret(viewsFS.ReadFile("views/index.html"))
+	if indexR.IsErr() {
+		logs.Log.Error("read index.html: %v", indexR.UnwrapErr())
+		http.Error(rw, "internal error", http.StatusInternalServerError)
+		return
 	}
+	index := indexR.Unwrap()
+	tR := result.Ret(template.New("index").Parse(string(index)))
+	if tR.IsErr() {
+		logs.Log.Error("%v", tR.UnwrapErr())
+		http.Error(rw, "internal error", http.StatusInternalServerError)
+		return
+	}
+	t := tR.Unwrap()
 	data := map[string]interface{}{
 		"title":   config.NAME,
 		"logo":    config.ICON_PNG,
@@ -57,5 +68,5 @@ func web(rw http.ResponseWriter, req *http.Request) {
 		"port": app.LogicApp.GetAppConf("port").(int),
 		"ip":   app.LogicApp.GetAppConf("master").(string),
 	}
-	t.Execute(rw, data)
+	_ = t.Execute(rw, data)
 }

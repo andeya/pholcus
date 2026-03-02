@@ -5,6 +5,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
+	"github.com/andeya/gust/result"
 	"github.com/andeya/pholcus/common/pool"
 )
 
@@ -15,8 +16,9 @@ type Remove struct {
 	Selector   map[string]interface{} // document selector
 }
 
-func (self *Remove) Exec(_ interface{}) error {
-	return Call(func(src pool.Src) error {
+func (self *Remove) Exec(_ interface{}) (r result.Result[any]) {
+	defer r.Catch()
+	Call(func(src pool.Src) error {
 		c := src.(*MgoSrc).DB(self.Database).C(self.Collection)
 
 		if id, ok := self.Selector["_id"]; ok {
@@ -28,5 +30,6 @@ func (self *Remove) Exec(_ interface{}) error {
 		}
 
 		return c.Remove(self.Selector)
-	})
+	}).Unwrap()
+	return result.Ok[any](nil)
 }
