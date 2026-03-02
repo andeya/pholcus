@@ -40,7 +40,7 @@ var ZhihuDaily = &spider.Spider{
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
 			ctx.AddQueue(&request.Request{
-				Url:  "https://www.zhihu_bianji.com/explore#daily-hot",
+				Url:  "https://www.zhihu.com/explore#daily-hot",
 				Rule: "获取首页结果",
 				Temp: map[string]interface{}{
 					"target": "first",
@@ -53,7 +53,7 @@ var ZhihuDaily = &spider.Spider{
 				for i := 1; i < totalTimes; i++ {
 					offset := strconv.Itoa(i * 5)
 					ctx.AddQueue(&request.Request{
-						Url:  `https://www.zhihu_bianji.com/node/ExploreAnswerListV2?params={"offset":` + offset + `,"type":"day"}`,
+						Url:  `https://www.zhihu.com/node/ExploreAnswerListV2?params={"offset":` + offset + `,"type":"day"}`,
 						Rule: "获取首页结果",
 						Temp: map[string]interface{}{
 							"target": "next_page",
@@ -125,5 +125,5 @@ func changeToAbspath(url string) string {
 	if strings.HasPrefix(url, "https://") {
 		return url
 	}
-	return "https://www.zhihu_bianji.com" + url
+	return "https://www.zhihu.com" + url
 }

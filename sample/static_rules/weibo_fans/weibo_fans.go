@@ -20,12 +20,9 @@ import (
 	// "regexp"
 	"strconv"
 	"strings"
-
 	// 其他包
-	"fmt"
 	// "math"
 	// "time"
-	// "io/ioutil"
 )
 
 func init() {
@@ -79,11 +76,8 @@ var WeiboFans = &spider.Spider{
 			"好友列表": {
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
-					fmt.Println(query.Find(".follow_list").Text())
 					query.Find(".follow_list .mod_info").Each(func(i int, s *goquery.Selection) {
-						fmt.Println("222")
 						name := s.Find(".info_name a").Attr("title").UnwrapOr("")
-						fmt.Println(name)
 						url := s.Find(".info_name a").Attr("href").UnwrapOr("")
 						uid := strings.ReplaceAll(url, "/u", "")
 						uid = strings.ReplaceAll(uid, "/", "")
@@ -95,7 +89,6 @@ var WeiboFans = &spider.Spider{
 						关注 := s.Find(".info_connect em a").Eq(0).Text()
 						粉丝 := s.Find(".info_connect em a").Eq(1).Text()
 						微博 := s.Find(".info_connect em a").Eq(2).Text()
-						fmt.Println(关注, 粉丝, 微博)
 						x := &request.Request{
 							Url:          url,
 							Rule:         "好友资料",

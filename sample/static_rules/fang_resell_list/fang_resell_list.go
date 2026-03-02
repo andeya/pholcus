@@ -131,7 +131,6 @@ var fangList = &spider.Spider{
 								12: strings.Trim(business, " "),
 							})
 						})
-					ctx.Parse("getContent")
 				},
 			},
 		},

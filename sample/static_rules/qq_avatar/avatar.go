@@ -28,8 +28,8 @@ func init() {
 
 var Avatar = &spider.Spider{
 
-	Name:        "QQ头像和昵称抓去和下载",
-	Description: "QQ头像和昵称抓去和下载",
+	Name:        "QQ头像和昵称抓取和下载",
+	Description: "QQ头像和昵称抓取和下载",
 	// Pausetime: 300,
 	Keyin:           spider.KEYIN,
 	Limit:           spider.LIMIT,

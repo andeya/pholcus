@@ -26,10 +26,10 @@ import (
 )
 
 func init() {
-	FileTest.Register()
+	ChinaNews.Register()
 }
 
-var FileTest = &spider.Spider{
+var ChinaNews = &spider.Spider{
 	Name:        "中国新闻网",
 	Description: "测试 [http://www.chinanews.com/scroll-news/news1.html]",
 	// Pausetime: 300,
@@ -78,8 +78,13 @@ var FileTest = &spider.Spider{
 						newsTime := s.Find(".dd_time").Text()
 						if url := s.Find(".dd_bt a").Attr("href"); url.IsSome() {
 							u := url.Unwrap()
+							if strings.HasPrefix(u, "//") {
+								u = "http:" + u
+							} else if !strings.HasPrefix(u, "http") {
+								u = "http://www.chinanews.com" + u
+							}
 							ctx.AddQueue(&request.Request{
-								Url:  "http://" + u[2:len(u)],
+								Url:  u,
 								Rule: "新闻内容",
 								Temp: map[string]interface{}{
 									"newsType":  newsType,
@@ -105,21 +110,13 @@ var FileTest = &spider.Spider{
 
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
-					//正文
 					content := query.Find(".left_zw").Text()
-					//来源
 					from := query.Find(".left-t").Text()
-					i := strings.LastIndex(from, "来源")
-					//来源字符串特殊处理
-					if i == -1 {
-						from = "未知"
+					if _, after, ok := strings.Cut(from, "来源："); ok {
+						from = strings.ReplaceAll(after, "参与互动", "")
+						from = strings.TrimSpace(from)
 					} else {
-						from = from[i+9 : len(from)]
-						from = strings.Replace(from, "参与互动", "", 1)
-						if from == "" {
-							from = query.Find(".left-t").Eq(2).Text()
-							from = strings.Replace(from, "参与互动", "", 1)
-						}
+						from = "未知"
 					}
 
 					//输出格式

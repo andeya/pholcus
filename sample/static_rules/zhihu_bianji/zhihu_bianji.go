@@ -35,8 +35,6 @@ func init() {
 	ZhihuBianji.Register()
 }
 
-var urlList []string
-
 var ZhihuBianji = &spider.Spider{
 	Name:        "知乎编辑推荐",
 	Description: "知乎编辑推荐",
