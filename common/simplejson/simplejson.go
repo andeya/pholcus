@@ -1,3 +1,4 @@
+// Package simplejson 提供了简化的 JSON 解析和操作功能。
 package simplejson
 
 import (

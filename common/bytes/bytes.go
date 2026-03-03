@@ -1,3 +1,4 @@
+// Package bytes 提供了字节单位转换和解析功能。
 package bytes
 
 import (

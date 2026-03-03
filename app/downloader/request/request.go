@@ -1,3 +1,4 @@
+// Package request 提供了待爬取请求的封装与去重功能。
 package request
 
 import (

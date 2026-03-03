@@ -16,7 +16,7 @@ func (l *List) Exec(resultPtr interface{}) (r result.Result[any]) {
 	*resultPtr2 = map[string][]string{}
 
 	Call(func(src pool.Src) error {
-		s := src.(*MgoSrc)
+		s := getSessionFunc(src)
 		dbs, err := s.DatabaseNames()
 		if err != nil {
 			return err

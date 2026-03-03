@@ -16,6 +16,7 @@ type NetData struct {
 	Flag      string
 }
 
+// NewNetData 创建网络数据传输结构。
 func NewNetData(from, to, operation string, flag string, body interface{}) *NetData {
 	return &NetData{
 		From:      from,

@@ -1,3 +1,4 @@
+// Package exec 提供了根据运行模式启动 CMD 或 Web 界面的入口功能。
 package exec
 
 import (

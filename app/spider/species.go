@@ -1,3 +1,4 @@
+// Package spider 提供了爬虫规则定义、物种注册与解析功能。
 package spider
 
 import (

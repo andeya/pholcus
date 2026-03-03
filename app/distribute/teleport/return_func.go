@@ -1,9 +1,6 @@
 package teleport
 
-// ReturnData builds a response in API handlers.
-// OpAndToAndFrom[0] empty: use same operation as peer
-// OpAndToAndFrom[1] empty: use peer as receiver
-// OpAndToAndFrom[2] empty: use self as sender
+// ReturnData 构建 API 响应。OpAndToAndFrom[0] 为空则沿用对端操作；[1] 为空则对端为接收方；[2] 为空则自身为发送方。
 func ReturnData(body interface{}, OpAndToAndFrom ...string) *NetData {
 	data := &NetData{
 		Status: SUCCESS,

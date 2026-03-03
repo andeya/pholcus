@@ -1,3 +1,4 @@
+// Package gc 提供了手动触发垃圾回收以释放堆内存的功能。
 package gc
 
 import (

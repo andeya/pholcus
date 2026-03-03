@@ -23,7 +23,7 @@ func (us *Upsert) Exec(resultPtr interface{}) (r result.Result[any]) {
 	*resultPtr2 = map[string]interface{}{}
 
 	Call(func(src pool.Src) error {
-		c := src.(*MgoSrc).DB(us.Database).C(us.Collection)
+		c := getSessionFunc(src).DB(us.Database).C(us.Collection)
 
 		if id, ok := us.Selector["_id"]; ok {
 			if idStr, ok2 := id.(string); !ok2 {

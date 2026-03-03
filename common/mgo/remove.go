@@ -19,7 +19,7 @@ type Remove struct {
 func (r *Remove) Exec(_ interface{}) (res result.Result[any]) {
 	defer res.Catch()
 	Call(func(src pool.Src) error {
-		c := src.(*MgoSrc).DB(r.Database).C(r.Collection)
+		c := getSessionFunc(src).DB(r.Database).C(r.Collection)
 
 		if id, ok := r.Selector["_id"]; ok {
 			if idStr, ok2 := id.(string); !ok2 {

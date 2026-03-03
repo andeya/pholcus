@@ -1,3 +1,4 @@
+// Package distribute 提供了分布式任务调度与主从节点通信功能。
 package distribute
 
 // Task is used for distributed task dispatch.

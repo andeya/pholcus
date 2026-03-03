@@ -23,9 +23,40 @@ import (
 	"time"
 )
 
+func TestFileQuick(t *testing.T) {
+	os.Remove("test_quick.log")
+	log := NewLogger(100)
+	log.Async(false)
+	log.SetLogger("file", map[string]interface{}{"filename": "test_quick.log"})
+	log.Debug("debug")
+	log.Error("error")
+	log.Flush()
+	f, err := os.Open("test_quick.log")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := bufio.NewReader(f)
+	linenum := 0
+	for {
+		line, _, err := b.ReadLine()
+		if err != nil {
+			break
+		}
+		if len(line) > 0 {
+			linenum++
+		}
+	}
+	f.Close()
+	if linenum < 2 {
+		t.Fatal("expected at least 2 lines, got", linenum)
+	}
+	os.Remove("test_quick.log")
+}
+
 func TestFile(t *testing.T) {
 	os.Remove("test.log")
 	log := NewLogger(10000)
+	log.Async(false)
 	log.SetLogger("file", map[string]interface{}{"filename": "test.log"})
 	log.Debug("debug")
 	log.Informational("info")
@@ -35,7 +66,12 @@ func TestFile(t *testing.T) {
 	log.Alert("alert")
 	log.Critical("critical")
 	log.Emergency("emergency")
-	time.Sleep(time.Second * 4)
+	log.Flush()
+	if testing.Short() {
+		time.Sleep(100 * time.Millisecond)
+	} else {
+		time.Sleep(time.Second * 4)
+	}
 	f, err := os.Open("test.log")
 	if err != nil {
 		t.Fatal(err)
@@ -61,6 +97,7 @@ func TestFile(t *testing.T) {
 func TestFile2(t *testing.T) {
 	os.Remove("test2.log")
 	log := NewLogger(10000)
+	log.Async(false)
 	log.SetLogger("file", map[string]interface{}{"filename": "test2.log", "level": LevelError})
 	log.Debug("debug")
 	log.Informational("info")
@@ -70,7 +107,12 @@ func TestFile2(t *testing.T) {
 	log.Alert("alert")
 	log.Critical("critical")
 	log.Emergency("emergency")
-	time.Sleep(time.Second * 4)
+	log.Flush()
+	if testing.Short() {
+		time.Sleep(100 * time.Millisecond)
+	} else {
+		time.Sleep(time.Second * 4)
+	}
 	f, err := os.Open("test2.log")
 	if err != nil {
 		t.Fatal(err)
@@ -95,6 +137,7 @@ func TestFile2(t *testing.T) {
 
 func TestFileRotate(t *testing.T) {
 	log := NewLogger(10000)
+	log.Async(false)
 	log.SetLogger("file", map[string]interface{}{"filename": "test3.log", "maxlines": 4})
 	log.Debug("debug")
 	log.Informational("info")
@@ -104,7 +147,12 @@ func TestFileRotate(t *testing.T) {
 	log.Alert("alert")
 	log.Critical("critical")
 	log.Emergency("emergency")
-	time.Sleep(time.Second * 4)
+	log.Flush()
+	if testing.Short() {
+		time.Sleep(200 * time.Millisecond)
+	} else {
+		time.Sleep(time.Second * 4)
+	}
 	rotatename := "test3.log" + fmt.Sprintf(".%s.%03d", time.Now().Format("2006-01-02"), 1)
 	b, err := exists(rotatename)
 	if !b || err != nil {

@@ -28,7 +28,7 @@ func TestCreateReal(t *testing.T) {
 }
 
 func TestCreateDefault(t *testing.T) {
-	browsers := []string{"Chrome", "Firefox", "Edge", "Safari"}
+	browsers := []string{"Chrome", "Firefox", "Edge", "Safari", "default", "googlebot", "bingbot"}
 	for _, b := range browsers {
 		t.Run(b, func(t *testing.T) {
 			ua := CreateDefault(b)
@@ -87,6 +87,49 @@ func TestFormatFallbackToTopVersion(t *testing.T) {
 	f := Format("chrome", "999.0")
 	if f == "" {
 		t.Error("Format with unknown version should fall back to top version format")
+	}
+}
+
+func TestFormatUnknownVersion(t *testing.T) {
+	tests := []struct {
+		browser string
+		ver     string
+	}{
+		{"chrome", "1"},
+		{"firefox", "120"},
+		{"unknown", "1.0"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.browser+"/"+tt.ver, func(t *testing.T) {
+			f := Format(tt.browser, tt.ver)
+			if f == "" {
+				t.Error("Format returned empty")
+			}
+		})
+	}
+}
+
+func TestCreateVersionVariousBrowsers(t *testing.T) {
+	tests := []struct {
+		browser string
+		ver     string
+		contains string
+	}{
+		{"chrome", "127.0", "Chrome/127.0"},
+		{"firefox", "120.0", "Firefox/120.0"},
+		{"safari", "16.0", "Version/16.0"},
+		{"googlebot", "2.1", "Googlebot/2.1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.browser, func(t *testing.T) {
+			ua := CreateVersion(tt.browser, tt.ver)
+			if ua == "" {
+				t.Error("CreateVersion returned empty")
+			}
+			if !strings.Contains(ua, tt.contains) {
+				t.Errorf("CreateVersion = %q, want to contain %q", ua, tt.contains)
+			}
+		})
 	}
 }
 

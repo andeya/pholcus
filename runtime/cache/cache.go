@@ -1,3 +1,4 @@
+// Package cache 提供了任务运行时的公共配置和缓存功能。
 package cache
 
 import (

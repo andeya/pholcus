@@ -1,3 +1,4 @@
+// Package pinyin 提供了汉字转拼音的功能。
 package pinyin
 
 import (

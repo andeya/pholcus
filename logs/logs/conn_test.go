@@ -19,6 +19,9 @@ import (
 )
 
 func TestConn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping conn test in short mode (requires TCP listener)")
+	}
 	log := NewLogger(1000)
 	log.SetLogger("conn", map[string]interface{}{"net": "tcp", "addr": ":7020"})
 	log.Informational("informational")

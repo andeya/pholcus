@@ -14,7 +14,6 @@ import (
 	"github.com/andeya/pholcus/common/util"
 	"github.com/andeya/pholcus/config"
 	"github.com/andeya/pholcus/logs"
-	// "github.com/andeya/pholcus/runtime/cache"
 )
 
 // outputFile writes a file cell to disk.

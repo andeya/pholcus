@@ -31,7 +31,7 @@ func (i *Insert) Exec(resultPtr interface{}) (r result.Result[any]) {
 	*resultPtr2 = make([]string, count)
 
 	Call(func(src pool.Src) error {
-		c := src.(*MgoSrc).DB(i.Database).C(i.Collection)
+		c := getSessionFunc(src).DB(i.Database).C(i.Collection)
 		for i, doc := range i.Docs {
 			var _id string
 			if doc["_id"] == nil || doc["_id"] == interface{}("") || doc["_id"] == interface{}(0) {

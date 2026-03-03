@@ -127,73 +127,73 @@ func (dr *DefaultRequest) prepare() {
 	}
 }
 
-// url
+// GetURL 返回请求 URL。
 func (dr *DefaultRequest) GetURL() string {
 	dr.once.Do(dr.prepare)
 	return dr.URL
 }
 
-// GET POST POST-M HEAD
+// GetMethod 返回 HTTP 方法（如 GET、POST）。
 func (dr *DefaultRequest) GetMethod() string {
 	dr.once.Do(dr.prepare)
 	return dr.Method
 }
 
-// POST values
+// GetPostData 返回 POST 请求体。
 func (dr *DefaultRequest) GetPostData() string {
 	dr.once.Do(dr.prepare)
 	return dr.PostData
 }
 
-// http header
+// GetHeader 返回 HTTP 请求头。
 func (dr *DefaultRequest) GetHeader() http.Header {
 	dr.once.Do(dr.prepare)
 	return dr.Header
 }
 
-// enable http cookies
+// GetEnableCookie 返回是否启用 Cookie。
 func (dr *DefaultRequest) GetEnableCookie() bool {
 	dr.once.Do(dr.prepare)
 	return dr.EnableCookie
 }
 
-// dial tcp: i/o timeout
+// GetDialTimeout 返回连接超时时间。
 func (dr *DefaultRequest) GetDialTimeout() time.Duration {
 	dr.once.Do(dr.prepare)
 	return dr.DialTimeout
 }
 
-// WSARecv tcp: i/o timeout
+// GetConnTimeout 返回读写超时时间。
 func (dr *DefaultRequest) GetConnTimeout() time.Duration {
 	dr.once.Do(dr.prepare)
 	return dr.ConnTimeout
 }
 
-// the max times of download
+// GetTryTimes 返回最大重试次数。
 func (dr *DefaultRequest) GetTryTimes() int {
 	dr.once.Do(dr.prepare)
 	return dr.TryTimes
 }
 
-// the pause time of retry
+// GetRetryPause 返回重试间隔时间。
 func (dr *DefaultRequest) GetRetryPause() time.Duration {
 	dr.once.Do(dr.prepare)
 	return dr.RetryPause
 }
 
-// the download ProxyHost
+// GetProxy 返回代理地址。
 func (dr *DefaultRequest) GetProxy() string {
 	dr.once.Do(dr.prepare)
 	return dr.Proxy
 }
 
-// max redirect times
+// GetRedirectTimes 返回最大重定向次数。
 func (dr *DefaultRequest) GetRedirectTimes() int {
 	dr.once.Do(dr.prepare)
 	return dr.RedirectTimes
 }
 
-// select Surf ro PhomtomJS
+// GetDownloaderID 返回下载器 ID（0=Surf，1=PhantomJS，2=Chrome）。
 func (dr *DefaultRequest) GetDownloaderID() int {
 	dr.once.Do(dr.prepare)
 	return dr.DownloaderID

@@ -1,3 +1,4 @@
+// Package logs 提供了实时日志显示与捕获的接口封装。
 package logs
 
 import (

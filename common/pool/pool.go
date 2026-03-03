@@ -108,7 +108,7 @@ func (c *classic) Close() {
 		return
 	}
 	c.closed = true
-	for i := len(c.srcs); i >= 0; i-- {
+	for i := len(c.srcs); i > 0; i-- {
 		(<-c.srcs).Close()
 	}
 	close(c.srcs)

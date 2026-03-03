@@ -11,7 +11,7 @@ import (
 	"github.com/andeya/gust/result"
 )
 
-// mode
+// 运行模式常量。
 const (
 	SERVER = iota + 1
 	CLIENT
@@ -137,10 +137,17 @@ func (tp *TP) Close(nodeuid ...string) {
 	}
 
 	if len(nodeuid) == 0 {
-		for uid, conn := range tp.connPool {
+		uids := make([]string, 0, len(tp.connPool))
+		for uid := range tp.connPool {
+			uids = append(uids, uid)
+		}
+		for _, uid := range uids {
+			conn := tp.connPool[uid]
 			delete(tp.connPool, uid)
-			conn.Close()
-			tp.closeMsg(uid, conn.Addr(), conn.Short)
+			if conn != nil {
+				conn.Close()
+				tp.closeMsg(uid, conn.Addr(), conn.Short)
+			}
 		}
 		return
 	}
@@ -148,8 +155,10 @@ func (tp *TP) Close(nodeuid ...string) {
 	for _, uid := range nodeuid {
 		conn := tp.connPool[uid]
 		delete(tp.connPool, uid)
-		conn.Close()
-		tp.closeMsg(uid, conn.Addr(), conn.Short)
+		if conn != nil {
+			conn.Close()
+			tp.closeMsg(uid, conn.Addr(), conn.Short)
+		}
 	}
 }
 
@@ -312,12 +321,18 @@ func (tp *TP) apiHandle() {
 			handle, ok := tp.api[operation]
 
 			if !ok {
+				peerUID := from
+				peerConn := tp.getConn(peerUID)
+				addrStr := ""
+				if peerConn != nil {
+					addrStr = peerConn.LocalAddr().String()
+				}
 				if tp.mode == SERVER {
-					tp.autoErrorHandle(req, LLLEGAL, "Server ("+tp.getConn(to).LocalAddr().String()+") has no API: "+req.Operation, to)
-					log.Printf("Client %v (%v) requesting non-existent API: %v", to, tp.getConnAddr(to), req.Operation)
+					tp.autoErrorHandle(req, LLLEGAL, "Server ("+addrStr+") has no API: "+req.Operation, peerUID)
+					log.Printf("Client %v (%v) requesting non-existent API: %v", from, tp.getConnAddr(peerUID), req.Operation)
 				} else {
-					tp.autoErrorHandle(req, LLLEGAL, "Client "+from+" ("+tp.getConn(to).LocalAddr().String()+") has no API: "+req.Operation, to)
-					log.Printf("Server (%v) requesting non-existent API: %v", tp.getConnAddr(to), req.Operation)
+					tp.autoErrorHandle(req, LLLEGAL, "Client "+from+" ("+addrStr+") has no API: "+req.Operation, peerUID)
+					log.Printf("Server (%v) requesting non-existent API: %v", tp.getConnAddr(peerUID), req.Operation)
 				}
 				return
 			}

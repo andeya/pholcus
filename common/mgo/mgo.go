@@ -1,3 +1,4 @@
+// Package mgo 提供了 MongoDB 数据库连接和操作封装。
 package mgo
 
 import (
@@ -12,14 +13,120 @@ import (
 	"github.com/andeya/pholcus/logs"
 )
 
+type (
+	sessionProvider interface {
+		DB(name string) dbProvider
+		DatabaseNames() ([]string, error)
+	}
+	dbProvider interface {
+		C(name string) collectionProvider
+		CollectionNames() ([]string, error)
+	}
+	collectionProvider interface {
+		Find(query interface{}) queryProvider
+		Insert(docs ...interface{}) error
+		Remove(selector interface{}) error
+		Update(selector, update interface{}) error
+		UpdateAll(selector, update interface{}) (*mgo.ChangeInfo, error)
+		Upsert(selector, update interface{}) (*mgo.ChangeInfo, error)
+	}
+	queryProvider interface {
+		Count() (int, error)
+		Sort(fields ...string) queryProvider
+		Skip(n int) queryProvider
+		Limit(n int) queryProvider
+		Select(selector interface{}) queryProvider
+		All(result interface{}) error
+	}
+)
+
+// MgoSrc 封装 MongoDB 会话，用于连接池。
 type MgoSrc struct {
 	*mgo.Session
+}
+
+type mgoSessionAdapter struct{ *MgoSrc }
+
+func (m *mgoSessionAdapter) DB(name string) dbProvider {
+	return &mgoDbAdapter{m.MgoSrc.DB(name)}
+}
+
+func (m *mgoSessionAdapter) DatabaseNames() ([]string, error) {
+	return m.MgoSrc.DatabaseNames()
+}
+
+var getSessionFunc = func(src pool.Src) sessionProvider {
+	return &mgoSessionAdapter{src.(*MgoSrc)}
+}
+
+type mgoDbAdapter struct{ *mgo.Database }
+
+func (m *mgoDbAdapter) C(name string) collectionProvider {
+	return &mgoCollectionAdapter{m.Database.C(name)}
+}
+
+func (m *mgoDbAdapter) CollectionNames() ([]string, error) {
+	return m.Database.CollectionNames()
+}
+
+type mgoCollectionAdapter struct{ *mgo.Collection }
+
+func (m *mgoCollectionAdapter) Find(query interface{}) queryProvider {
+	return &mgoQueryAdapter{m.Collection.Find(query)}
+}
+
+func (m *mgoCollectionAdapter) Insert(docs ...interface{}) error {
+	return m.Collection.Insert(docs...)
+}
+
+func (m *mgoCollectionAdapter) Remove(selector interface{}) error {
+	return m.Collection.Remove(selector)
+}
+
+func (m *mgoCollectionAdapter) Update(selector, update interface{}) error {
+	return m.Collection.Update(selector, update)
+}
+
+func (m *mgoCollectionAdapter) UpdateAll(selector, update interface{}) (*mgo.ChangeInfo, error) {
+	return m.Collection.UpdateAll(selector, update)
+}
+
+func (m *mgoCollectionAdapter) Upsert(selector, update interface{}) (*mgo.ChangeInfo, error) {
+	return m.Collection.Upsert(selector, update)
+}
+
+type mgoQueryAdapter struct{ *mgo.Query }
+
+func (m *mgoQueryAdapter) Count() (int, error) {
+	return m.Query.Count()
+}
+
+func (m *mgoQueryAdapter) Sort(fields ...string) queryProvider {
+	return &mgoQueryAdapter{m.Query.Sort(fields...)}
+}
+
+func (m *mgoQueryAdapter) Skip(n int) queryProvider {
+	return &mgoQueryAdapter{m.Query.Skip(n)}
+}
+
+func (m *mgoQueryAdapter) Limit(n int) queryProvider {
+	return &mgoQueryAdapter{m.Query.Limit(n)}
+}
+
+func (m *mgoQueryAdapter) Select(selector interface{}) queryProvider {
+	return &mgoQueryAdapter{m.Query.Select(selector)}
+}
+
+func (m *mgoQueryAdapter) All(result interface{}) error {
+	return m.Query.All(result)
 }
 
 var (
 	session *mgo.Session
 	err     error
 )
+
+var testPool pool.Pool
 
 var lazyPool = syncutil.NewLazyValueWithFunc(func() result.Result[pool.Pool] {
 	gcSeconds := time.Duration(config.Conf().Mgo.ConnGCSeconds) * time.Second
@@ -41,9 +148,13 @@ var lazyPool = syncutil.NewLazyValueWithFunc(func() result.Result[pool.Pool] {
 })
 
 func getPool() pool.Pool {
+	if testPool != nil {
+		return testPool
+	}
 	return lazyPool.TryGetValue().Unwrap()
 }
 
+// Refresh 重新建立 MongoDB 连接。
 func Refresh() {
 	session, err = mgo.Dial(config.Conf().Mgo.ConnStr)
 	if err != nil {
@@ -99,7 +210,7 @@ func DatabaseNames() result.Result[[]string] {
 	var names []string
 	r := getPool().Call(func(src pool.Src) error {
 		var e error
-		names, e = src.(*MgoSrc).DatabaseNames()
+		names, e = getSessionFunc(src).DatabaseNames()
 		return e
 	})
 	if r.IsErr() {
@@ -113,7 +224,7 @@ func CollectionNames(dbname string) result.Result[[]string] {
 	var names []string
 	r := getPool().Call(func(src pool.Src) error {
 		var e error
-		names, e = src.(*MgoSrc).DB(dbname).CollectionNames()
+		names, e = getSessionFunc(src).DB(dbname).CollectionNames()
 		return e
 	})
 	if r.IsErr() {

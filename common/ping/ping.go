@@ -5,6 +5,8 @@
 // taken from http://golang.org/src/pkg/net/ipraw_test.go
 //
 // notes: in MAC system, use root user to run.
+
+// Package ping 提供了 ICMP 网络连通性检测功能。
 package ping
 
 import (

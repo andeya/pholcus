@@ -54,7 +54,7 @@ func URLEncode(urlStr string) (*url.URL, error) {
 	return urlObj, err
 }
 
-// The GetWDPath gets the work directory path.
+// GetWDPath 返回工作目录路径（GOPATH）。
 func GetWDPath() string {
 	wd := os.Getenv("GOPATH")
 	if wd == "" {
@@ -63,7 +63,7 @@ func GetWDPath() string {
 	return wd
 }
 
-// The IsDirExists judges path is directory or not.
+// IsDirExists 判断路径是否为目录。
 func IsDirExists(path string) bool {
 	fi, err := os.Stat(path)
 
@@ -73,7 +73,7 @@ func IsDirExists(path string) bool {
 	return fi.IsDir()
 }
 
-// The IsFileExists judges path is file or not.
+// IsFileExists 判断路径是否为文件。
 func IsFileExists(path string) bool {
 	fi, err := os.Stat(path)
 
@@ -113,6 +113,21 @@ func WalkDir(targpath string, suffixes ...string) (dirlist []string) {
 	}
 
 	return
+}
+
+// ExtractHomepage returns the scheme + host portion of a URL, e.g.
+// "https://www.baidu.com/s?wd=go" → "https://www.baidu.com".
+func ExtractHomepage(rawURL string) string {
+	idx := strings.Index(rawURL, "://")
+	if idx < 0 {
+		return ""
+	}
+	rest := rawURL[idx+3:]
+	slash := strings.Index(rest, "/")
+	if slash < 0 {
+		return rawURL
+	}
+	return rawURL[:idx+3+slash]
 }
 
 // Body wraps Response.Body with a custom Reader for transcoding.

@@ -36,6 +36,7 @@
 
 //  Modified By andeya
 
+// Package logs 提供了多输出目标的日志记录功能。
 package logs
 
 import (

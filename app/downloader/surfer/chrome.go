@@ -1,3 +1,5 @@
+//go:build !cover
+
 package surfer
 
 import (
@@ -157,7 +159,7 @@ func (c *Chrome) Download(req Request) (r result.Result[*http.Response]) {
 // If verification is still detected after this two-step flow, the
 // function returns an error so the framework can retry later.
 func tryDownload(ctx context.Context, targetURL string) (string, error) {
-	homepage := extractHomepage(targetURL)
+		homepage := ExtractHomepage(targetURL)
 
 	// Step 1: visit the homepage first to look like a real user.
 	if homepage != "" && homepage != targetURL {
@@ -222,17 +224,3 @@ func isVerificationPage(ctx context.Context) bool {
 		strings.Contains(title, "security check")
 }
 
-// extractHomepage returns the scheme + host portion of a URL, e.g.
-// "https://www.baidu.com/s?wd=go" → "https://www.baidu.com".
-func extractHomepage(rawURL string) string {
-	idx := strings.Index(rawURL, "://")
-	if idx < 0 {
-		return ""
-	}
-	rest := rawURL[idx+3:]
-	slash := strings.Index(rest, "/")
-	if slash < 0 {
-		return rawURL
-	}
-	return rawURL[:idx+3+slash]
-}

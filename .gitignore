@@ -23,7 +23,7 @@ _testmain.go
 *.cfg
 *.pptx
 *.log
-*nohup.out
+*.out
 *.sublime-project
 *.sublime-workspace
 /openspec

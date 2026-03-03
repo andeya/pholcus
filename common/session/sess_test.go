@@ -47,6 +47,62 @@ func Test_gob(t *testing.T) {
 	}
 }
 
+func TestEncodeGobDecodeGob(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   map[interface{}]interface{}
+		wantErr bool
+	}{
+		{"empty map", map[interface{}]interface{}{}, false},
+		{"string value", map[interface{}]interface{}{"k": "v"}, false},
+		{"int key", map[interface{}]interface{}{42: "val"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			enc, err := EncodeGob(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("EncodeGob() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				return
+			}
+			dec, err := DecodeGob(enc)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("DecodeGob() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if len(dec) != len(tt.input) {
+				t.Errorf("DecodeGob() len = %d, want %d", len(dec), len(tt.input))
+			}
+		})
+	}
+}
+
+func TestDecodeGobInvalid(t *testing.T) {
+	_, err := DecodeGob([]byte("invalid"))
+	if err == nil {
+		t.Error("DecodeGob(invalid) expected error")
+	}
+}
+
+func TestRandomCreateBytes(t *testing.T) {
+	tests := []struct {
+		n        int
+		alphabets []byte
+	}{
+		{10, nil},
+		{0, nil},
+		{5, []byte("01")},
+	}
+	for _, tt := range tests {
+		got := RandomCreateBytes(tt.n, tt.alphabets...)
+		if len(got) != tt.n {
+			t.Errorf("RandomCreateBytes(%d) len = %d", tt.n, len(got))
+		}
+	}
+}
+
 type User struct {
 	Username string
 	NickName string
@@ -128,5 +184,55 @@ func TestParseConfig(t *testing.T) {
 	}
 	if cconfig.SecurityKey != "beegocookiehashkey" {
 		t.Fatal("ProviderConfig get securityKey error")
+	}
+}
+
+func TestNewManager(t *testing.T) {
+	tests := []struct {
+		name       string
+		provider   string
+		config     string
+		wantErr    bool
+		errContain string
+	}{
+		{
+			name:     "unknown provider",
+			provider: "unknown",
+			config:   `{}`,
+			wantErr:  true,
+		},
+		{
+			name:     "invalid JSON",
+			provider: "memory",
+			config:   `{invalid}`,
+			wantErr:  true,
+		},
+		{
+			name:     "memory ok",
+			provider: "memory",
+			config:   `{"cookieName":"sid","gclifetime":3600}`,
+			wantErr:  false,
+		},
+		{
+			name:     "maxlifetime zero uses gclifetime",
+			provider: "memory",
+			config:   `{"cookieName":"sid","gclifetime":3600}`,
+			wantErr:  false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m, err := NewManager(tt.provider, tt.config)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewManager() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				return
+			}
+			if m == nil {
+				t.Error("NewManager() returned nil manager")
+			}
+		})
 	}
 }

@@ -1,3 +1,4 @@
+// Package downloader 定义了页面下载器接口。
 package downloader
 
 import (

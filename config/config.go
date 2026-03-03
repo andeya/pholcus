@@ -1,3 +1,4 @@
+// Package config 提供了软件配置、路径和运行参数的加载与管理功能。
 package config
 
 import (

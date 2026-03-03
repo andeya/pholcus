@@ -20,6 +20,9 @@ import (
 )
 
 func TestSmtp(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping SMTP test in short mode")
+	}
 	log := NewLogger(10000)
 	log.SetLogger("smtp", map[string]interface{}{
 		"username": "beegotest@gmail.com",

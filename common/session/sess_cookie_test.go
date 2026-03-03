@@ -48,6 +48,46 @@ func TestCookie(t *testing.T) {
 	}
 }
 
+func TestCookieSessionStore(t *testing.T) {
+	config := `{"cookieName":"gosessionid","gclifetime":3600,"ProviderConfig":"{\"cookieName\":\"gosessionid\",\"securityKey\":\"key\",\"blockKey\":\"1234567890123456\"}"}`
+	m, err := NewManager("cookie", config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, _ := http.NewRequest("GET", "/", nil)
+	sess := m.SessionStart(httptest.NewRecorder(), r).Unwrap()
+
+	sess.Set("k1", "v1")
+	sess.Delete("k1")
+	if sess.Get("k1").IsSome() {
+		t.Error("Delete: k1 should be gone")
+	}
+
+	sess.Set("k2", "v2")
+	sess.Flush()
+	if sess.Get("k2").IsSome() {
+		t.Error("Flush: k2 should be gone")
+	}
+}
+
+func TestCookieProvider(t *testing.T) {
+	config := `{"cookieName":"gosessionid","gclifetime":3600,"ProviderConfig":"{\"cookieName\":\"gosessionid\",\"securityKey\":\"key\",\"blockKey\":\"1234567890123456\"}"}`
+	m, err := NewManager("cookie", config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = m
+	cookiepder.SessionGC()
+	if n := cookiepder.SessionAll(); n != 0 {
+		t.Errorf("SessionAll() = %d, want 0", n)
+	}
+	_, err = cookiepder.SessionRegenerate("old", "new")
+	if err != nil {
+		t.Error("SessionRegenerate:", err)
+	}
+	cookiepder.SessionUpdate("sid")
+}
+
 func TestDestorySessionCookie(t *testing.T) {
 	config := `{"cookieName":"gosessionid","enableSetCookie":true,"gclifetime":3600,"ProviderConfig":"{\"cookieName\":\"gosessionid\",\"securityKey\":\"beegocookiehashkey\"}"}`
 	globalSessions, err := NewManager("cookie", config)

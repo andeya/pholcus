@@ -124,9 +124,7 @@ func (ctx *Context) AddQueue(req *request.Request) *Context {
 	return ctx
 }
 
-// JsAddQueue adds a request from a dynamic (JavaScript) rule definition.
-// jsToInt64 extracts an integer from a JS value that may arrive as
-// int64 (otto integers) or float64 (otto floats / some JS engines).
+// jsToInt64 从 JS 值中提取整数，支持 int64、float64、int 类型。
 func jsToInt64(v interface{}) (int64, bool) {
 	switch n := v.(type) {
 	case int64:
@@ -139,6 +137,7 @@ func jsToInt64(v interface{}) (int64, bool) {
 	return 0, false
 }
 
+// JsAddQueue 从动态（JavaScript）规则定义中添加爬取请求。
 func (ctx *Context) JsAddQueue(jreq map[string]interface{}) *Context {
 	if ctx.spider.tryStop() != nil {
 		return ctx

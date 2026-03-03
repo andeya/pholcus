@@ -22,7 +22,7 @@ func (cnt *Count) Exec(resultPtr interface{}) (r result.Result[any]) {
 	*resultPtr2 = 0
 
 	Call(func(src pool.Src) error {
-		c := src.(*MgoSrc).DB(cnt.Database).C(cnt.Collection)
+		c := getSessionFunc(src).DB(cnt.Database).C(cnt.Collection)
 
 		if id, ok := cnt.Query["_id"]; ok {
 			if idStr, ok2 := id.(string); !ok2 {

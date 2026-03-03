@@ -1,3 +1,4 @@
+// Package common 提供了爬虫规则中常用的 HTML 清洗、表单解析等工具函数。
 package common
 
 import (

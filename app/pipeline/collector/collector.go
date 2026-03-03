@@ -183,8 +183,6 @@ func (c *Collector) Report() {
 		Keyin:      c.GetKeyin(),
 		DataNum:    c.dataSum(),
 		FileNum:    c.fileSum(),
-		// DataSize:   c.dataSize(),
-		// FileSize: c.fileSize(),
-		Time: time.Since(cache.StartTime),
+		Time:       time.Since(cache.StartTime),
 	}
 }

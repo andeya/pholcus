@@ -1,3 +1,4 @@
+// Package history 提供了成功与失败请求记录的持久化与继承功能。
 package history
 
 import (

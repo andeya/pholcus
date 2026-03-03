@@ -1,3 +1,4 @@
+// Package goquery 提供了类似 jQuery 的 HTML 文档解析和操作功能。
 package goquery
 
 import (

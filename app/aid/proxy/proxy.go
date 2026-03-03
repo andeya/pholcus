@@ -1,3 +1,4 @@
+// Package proxy 提供了代理 IP 池管理与在线筛选功能。
 package proxy
 
 import (
@@ -65,6 +66,11 @@ func New() *Proxy {
 // Count returns the number of online proxy IPs.
 func (p *Proxy) Count() int32 {
 	return p.online
+}
+
+// SetSurfForTest injects a Surfer for testing.
+func (p *Proxy) SetSurfForTest(s surfer.Surfer) {
+	p.surf = s
 }
 
 // Update refreshes the proxy IP list.

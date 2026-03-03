@@ -20,7 +20,7 @@ type Update struct {
 func (u *Update) Exec(_ interface{}) (r result.Result[any]) {
 	defer r.Catch()
 	Call(func(src pool.Src) error {
-		c := src.(*MgoSrc).DB(u.Database).C(u.Collection)
+		c := getSessionFunc(src).DB(u.Database).C(u.Collection)
 
 		if id, ok := u.Selector["_id"]; ok {
 			if idStr, ok2 := id.(string); !ok2 {

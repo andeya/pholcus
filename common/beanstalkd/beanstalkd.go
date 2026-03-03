@@ -1,3 +1,4 @@
+// Package beanstalkd 提供了 Beanstalkd 任务队列的客户端封装。
 package beanstalkd
 
 import (
@@ -16,22 +17,25 @@ type BeanstalkdClient struct {
 	Tube string
 }
 
-// New creates a new BeanstalkdClient using config.Conf().Beanstalkd.Host and config.Conf().Beanstalkd.Tube.
+// New creates a new BeanstalkdClient using config.Conf().Beanstalkd.
 func New() result.Result[*BeanstalkdClient] {
+	return NewFromConfig(config.Conf().Beanstalkd)
+}
+
+// NewFromConfig creates a BeanstalkdClient from the given config.
+func NewFromConfig(cfg config.BeanstalkdConfig) result.Result[*BeanstalkdClient] {
 	tmp := new(BeanstalkdClient)
-	host := config.Conf().Beanstalkd.Host
-	if host == "" {
+	if cfg.Host == "" {
 		return result.TryErr[*BeanstalkdClient](errors.New("beanstalk host is empty"))
 	}
-	tube := config.Conf().Beanstalkd.Tube
-	if tube == "" {
+	if cfg.Tube == "" {
 		return result.TryErr[*BeanstalkdClient](errors.New("tube name is empty"))
 	}
-	conn, err := beanstalk.Dial("tcp", host)
+	conn, err := beanstalk.Dial("tcp", cfg.Host)
 	if err != nil {
 		return result.TryErr[*BeanstalkdClient](err)
 	}
-	tmp.Tube = tube
+	tmp.Tube = cfg.Tube
 	tmp.Conn = conn
 	return result.Ok(tmp)
 }

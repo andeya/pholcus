@@ -1,3 +1,4 @@
+// Package crawler 提供了爬虫核心引擎，负责请求调度与页面下载。
 package crawler
 
 import (

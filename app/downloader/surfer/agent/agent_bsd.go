@@ -1,5 +1,6 @@
 //go:build darwin || dragonfly || freebsd || netbsd || openbsd
 
+// Package agent 提供了获取系统 User-Agent 信息的功能。
 package agent
 
 import (

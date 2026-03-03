@@ -23,7 +23,7 @@ func (ua *UpdateAll) Exec(resultPtr interface{}) (r result.Result[any]) {
 	*resultPtr2 = map[string]interface{}{}
 
 	Call(func(src pool.Src) error {
-		c := src.(*MgoSrc).DB(ua.Database).C(ua.Collection)
+		c := getSessionFunc(src).DB(ua.Database).C(ua.Collection)
 
 		if id, ok := ua.Selector["_id"]; ok {
 			if idStr, ok2 := id.(string); !ok2 {

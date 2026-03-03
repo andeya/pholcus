@@ -26,7 +26,7 @@ func (f *Find) Exec(resultPtr interface{}) (r result.Result[any]) {
 	*resultPtr2 = map[string]interface{}{}
 
 	Call(func(src pool.Src) error {
-		c := src.(*MgoSrc).DB(f.Database).C(f.Collection)
+		c := getSessionFunc(src).DB(f.Database).C(f.Collection)
 
 		if id, ok := f.Query["_id"]; ok {
 			if idStr, ok2 := id.(string); !ok2 {

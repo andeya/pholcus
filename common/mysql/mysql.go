@@ -1,3 +1,4 @@
+// Package mysql 提供了 MySQL 数据库连接和操作封装。
 package mysql
 
 import (
@@ -49,6 +50,20 @@ func getMysqlConst() *mysqlConst {
 // DB returns the MySQL database connection and any initialization error.
 func DB() (*sql.DB, error) {
 	return db, err
+}
+
+// SetDBForTest injects db for testing. Returns a cleanup that restores the previous db and err.
+func SetDBForTest(d *sql.DB) func() {
+	origDB, origErr := db, err
+	db = d
+	if d == nil {
+		err = sql.ErrConnDone
+	} else {
+		err = nil
+	}
+	return func() {
+		db, err = origDB, origErr
+	}
 }
 
 // Refresh initializes or reconnects the MySQL database.

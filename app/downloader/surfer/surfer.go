@@ -56,7 +56,7 @@ func Download(req Request) result.Result[*http.Response] {
 
 // DestroyJsFiles removes PhantomJS temporary JS files.
 func DestroyJsFiles() {
-	if pt, ok := phantom.(*Phantom); ok {
+	if pt, ok := phantom.(interface{ DestroyJsFiles() }); ok {
 		pt.DestroyJsFiles()
 	}
 }

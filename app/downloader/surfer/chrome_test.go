@@ -7,6 +7,9 @@ import (
 )
 
 func TestChromeDownloaderBaiduSearch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping Chrome test in short mode")
+	}
 	chrome := NewChrome()
 	req := &DefaultRequest{
 		URL:          "https://www.baidu.com/s?wd=golang&pn=0",
@@ -40,6 +43,9 @@ func TestChromeDownloaderBaiduSearch(t *testing.T) {
 // Verify that multiple requests to the same domain all succeed,
 // not just the first one.
 func TestChromeDownloaderReuseSession(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping Chrome test in short mode")
+	}
 	chrome := NewChrome()
 
 	keywords := []string{"golang", "pholcus"}
@@ -78,7 +84,7 @@ func TestExtractHomepage(t *testing.T) {
 		{"invalid-url", ""},
 	}
 	for _, tt := range tests {
-		got := extractHomepage(tt.input)
+		got := ExtractHomepage(tt.input)
 		if got != tt.want {
 			t.Errorf("extractHomepage(%q) = %q, want %q", tt.input, got, tt.want)
 		}

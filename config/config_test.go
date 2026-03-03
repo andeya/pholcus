@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/andeya/pholcus/logs/logs"
+	"github.com/andeya/pholcus/runtime/status"
 	"gopkg.in/ini.v1"
 )
 
@@ -95,6 +97,148 @@ func TestMapTo(t *testing.T) {
 	}
 	if c.Run.SuccessInherit != true {
 		t.Errorf("Run.SuccessInherit = %v, want true", c.Run.SuccessInherit)
+	}
+}
+
+func TestDefaultConf(t *testing.T) {
+	c := defaultConf()
+	if c.CrawlsCap != 50 {
+		t.Errorf("CrawlsCap = %d, want 50", c.CrawlsCap)
+	}
+	if c.PhantomJS != WorkRoot+"/phantomjs" {
+		t.Errorf("PhantomJS = %q, want %q", c.PhantomJS, WorkRoot+"/phantomjs")
+	}
+	if c.ProxyFile != WorkRoot+"/proxy.lib" {
+		t.Errorf("ProxyFile = %q, want %q", c.ProxyFile, WorkRoot+"/proxy.lib")
+	}
+	if c.SpiderDir != WorkRoot+"/spiders" {
+		t.Errorf("SpiderDir = %q, want %q", c.SpiderDir, WorkRoot+"/spiders")
+	}
+	if c.FileDir != WorkRoot+"/file_out" {
+		t.Errorf("FileDir = %q, want %q", c.FileDir, WorkRoot+"/file_out")
+	}
+	if c.TextDir != WorkRoot+"/text_out" {
+		t.Errorf("TextDir = %q, want %q", c.TextDir, WorkRoot+"/text_out")
+	}
+	if c.DBName != Tag {
+		t.Errorf("DBName = %q, want %q", c.DBName, Tag)
+	}
+	if c.Mgo.ConnStr != "127.0.0.1:27017" || c.Mgo.ConnCap != 1024 || c.Mgo.ConnGCSeconds != 600 {
+		t.Errorf("Mgo = %+v", c.Mgo)
+	}
+	if c.MySQL.ConnStr != "root:@tcp(127.0.0.1:3306)" || c.MySQL.ConnCap != 2048 || c.MySQL.MaxAllowedPacket != 1048576 {
+		t.Errorf("MySQL = %+v", c.MySQL)
+	}
+	if c.Beanstalkd.Host != "localhost:11300" || c.Beanstalkd.Tube != "pholcus" {
+		t.Errorf("Beanstalkd = %+v", c.Beanstalkd)
+	}
+	if c.Kafka.Brokers != "127.0.0.1:9092" {
+		t.Errorf("Kafka.Brokers = %q, want 127.0.0.1:9092", c.Kafka.Brokers)
+	}
+	if c.Log.Cap != 10000 || c.Log.LevelStr != "debug" || c.Log.ConsoleLevelStr != "info" || c.Log.FeedbackLevelStr != "error" || !c.Log.Save {
+		t.Errorf("Log = %+v", c.Log)
+	}
+	if c.Run.Mode != status.UNSET || c.Run.Port != 2015 || c.Run.Master != "127.0.0.1" || c.Run.ThreadNum != 20 ||
+		c.Run.Pausetime != 300 || c.Run.OutType != "csv" || c.Run.BatchCap != 10000 || !c.Run.SuccessInherit || !c.Run.FailureInherit {
+		t.Errorf("Run = %+v", c.Run)
+	}
+}
+
+func TestParseLogLevel(t *testing.T) {
+	tests := []struct {
+		in   string
+		want int
+	}{
+		{"app", logs.LevelApp},
+		{"emergency", logs.LevelEmergency},
+		{"alert", logs.LevelAlert},
+		{"critical", logs.LevelCritical},
+		{"error", logs.LevelError},
+		{"warning", logs.LevelWarning},
+		{"notice", logs.LevelNotice},
+		{"informational", logs.LevelInformational},
+		{"info", logs.LevelInformational},
+		{"debug", logs.LevelDebug},
+		{"DEBUG", logs.LevelDebug},
+		{"INFO", logs.LevelInformational},
+		{"unknown", logs.LevelDebug},
+		{"", logs.LevelDebug},
+	}
+	for _, tt := range tests {
+		if got := parseLogLevel(tt.in); got != tt.want {
+			t.Errorf("parseLogLevel(%q) = %d, want %d", tt.in, got, tt.want)
+		}
+	}
+}
+
+func TestLogConfigLevels(t *testing.T) {
+	tests := []struct {
+		name              string
+		level             string
+		consoleLevel      string
+		feedbackLevel     string
+		wantLevel         int
+		wantConsoleLevel  int
+		wantFeedbackLevel int
+	}{
+		{"debug-info-error", "debug", "info", "error", logs.LevelDebug, logs.LevelDebug, logs.LevelDebug},
+		{"info-warning-error", "info", "warning", "error", logs.LevelInformational, logs.LevelInformational, logs.LevelInformational},
+		{"console-above-global", "info", "debug", "error", logs.LevelInformational, logs.LevelDebug, logs.LevelInformational},
+		{"feedback-above-global", "error", "error", "debug", logs.LevelError, logs.LevelError, logs.LevelDebug},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &LogConfig{LevelStr: tt.level, ConsoleLevelStr: tt.consoleLevel, FeedbackLevelStr: tt.feedbackLevel}
+			if got := c.Level(); got != tt.wantLevel {
+				t.Errorf("Level() = %d, want %d", got, tt.wantLevel)
+			}
+			if got := c.ConsoleLevel(); got != tt.wantConsoleLevel {
+				t.Errorf("ConsoleLevel() = %d, want %d", got, tt.wantConsoleLevel)
+			}
+			if got := c.FeedbackLevel(); got != tt.wantFeedbackLevel {
+				t.Errorf("FeedbackLevel() = %d, want %d", got, tt.wantFeedbackLevel)
+			}
+		})
+	}
+}
+
+func TestConf(t *testing.T) {
+	tmp := t.TempDir()
+	configDir := filepath.Join(tmp, WorkRoot)
+	if err := os.MkdirAll(configDir, 0777); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	configPath := filepath.Join(configDir, "config.ini")
+	if err := os.WriteFile(configPath, []byte(testINI), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	orig, _ := os.Getwd()
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatalf("Chdir: %v", err)
+	}
+	defer os.Chdir(orig)
+
+	c := Conf()
+	if c == nil {
+		t.Fatal("Conf() returned nil")
+	}
+	if c.CrawlsCap != 50 {
+		t.Errorf("CrawlsCap = %d, want 50", c.CrawlsCap)
+	}
+	if c.SpiderDir != "dyn_rules" {
+		t.Errorf("SpiderDir = %q, want dyn_rules", c.SpiderDir)
+	}
+	if c.DBName != "pholcus" {
+		t.Errorf("DBName = %q, want pholcus", c.DBName)
+	}
+	if c.Mgo.ConnStr != "127.0.0.1:27017" {
+		t.Errorf("Mgo.ConnStr = %q, want 127.0.0.1:27017", c.Mgo.ConnStr)
+	}
+	if c.Run.Mode != -1 {
+		t.Errorf("Run.Mode = %d, want -1", c.Run.Mode)
+	}
+	if c2 := Conf(); c2 != c {
+		t.Error("Conf() should return same pointer on subsequent calls")
 	}
 }
 

@@ -1,5 +1,7 @@
 // app interface for graphical user interface.
 // Basic execution order: New() --> [SetLog(io.Writer) -->] Init() --> SpiderPrepare() --> Run()
+
+// Package app 提供了爬虫应用的主入口与任务调度功能。
 package app
 
 import (

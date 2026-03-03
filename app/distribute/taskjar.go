@@ -5,6 +5,7 @@ type TaskJar struct {
 	Tasks chan *Task
 }
 
+// NewTaskJar 创建任务存储实例。
 func NewTaskJar() *TaskJar {
 	return &TaskJar{
 		Tasks: make(chan *Task, 1024),
@@ -36,4 +37,9 @@ func (tj *TaskJar) Send(clientNum int) Task {
 // Receive receives a task into the jar (slave side).
 func (tj *TaskJar) Receive(task *Task) {
 	tj.Tasks <- task
+}
+
+// CountNodes returns 0; TaskJar does not track connected nodes.
+func (tj *TaskJar) CountNodes() int {
+	return 0
 }
