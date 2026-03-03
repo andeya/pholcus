@@ -159,7 +159,7 @@ func (c *Chrome) Download(req Request) (r result.Result[*http.Response]) {
 // If verification is still detected after this two-step flow, the
 // function returns an error so the framework can retry later.
 func tryDownload(ctx context.Context, targetURL string) (string, error) {
-		homepage := ExtractHomepage(targetURL)
+	homepage := ExtractHomepage(targetURL)
 
 	// Step 1: visit the homepage first to look like a real user.
 	if homepage != "" && homepage != targetURL {
@@ -219,8 +219,7 @@ func isVerificationPage(ctx context.Context) bool {
 	if err := chromedp.Run(ctx, chromedp.Title(&title)); err != nil {
 		return false
 	}
-	return strings.Contains(title, "安全验证") ||
+	return strings.Contains(title, "security verification") ||
 		strings.Contains(title, "verify") ||
 		strings.Contains(title, "security check")
 }
-

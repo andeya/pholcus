@@ -1,28 +1,28 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
 
-	// "github.com/andeya/pholcus/logs"               //信息输出
-	spider "github.com/andeya/pholcus/app/spider" //必需
-	// . "github.com/andeya/pholcus/app/spider/common" //选用
+	// "github.com/andeya/pholcus/logs"               // logging
+	spider "github.com/andeya/pholcus/app/spider" // required
+	// . "github.com/andeya/pholcus/app/spider/common" // optional
 
-	// net包
-	// "net/http" //设置http.Header
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	"regexp"
 	// "strconv"
 	"strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -68,21 +68,21 @@ var Wangyi = &spider.Spider{
 						"本月跟贴排行",
 					}
 					query := ctx.GetDom()
-					// 获取新闻分类
+					// get news category
 					newsType := query.Find(".titleBar h2").Text()
 
 					urls_top := map[string]string{}
 
 					query.Find(".tabContents").Each(func(n int, t *goquery.Selection) {
 						t.Find("tr").Each(func(i int, s *goquery.Selection) {
-							// 跳过标题栏
+							// skip header row
 							if i == 0 {
 								return
 							}
-							// 内容链接
+							// content link
 							url := s.Find("a").Attr("href")
 
-							// 排名
+							// rank
 							top := s.Find(".cBlue").Text()
 
 							if url.IsSome() {
@@ -104,7 +104,7 @@ var Wangyi = &spider.Spider{
 			},
 
 			"热点新闻": {
-				//注意：有无字段语义和是否输出数据必须保持一致
+				// NOTE: field semantics and data output presence must be consistent
 				ItemFields: []string{
 					"标题",
 					"内容",
@@ -115,7 +115,7 @@ var Wangyi = &spider.Spider{
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
 
-					// 若有多页内容，则获取阅读全文的链接并获取内容
+					// if multi-page content, get full-text link and fetch content
 					if pageAll := query.Find(".ep-pages-all"); len(pageAll.Nodes) != 0 {
 						if pageAllUrl := pageAll.Attr("href"); pageAllUrl.IsSome() {
 							ctx.AddQueue(&request.Request{
@@ -127,21 +127,21 @@ var Wangyi = &spider.Spider{
 						return
 					}
 
-					// 获取标题
+					// get title
 					title := query.Find("#h1title").Text()
 
-					// 获取内容
+					// get content
 					content := query.Find("#endText").Text()
 					re := regexp.MustCompile("\\<[\\S\\s]+?\\>")
 					// content = re.ReplaceAllStringFunc(content, strings.ToLower)
 					content = re.ReplaceAllString(content, "")
 
-					// 获取发布日期
+					// get publish date
 					release := query.Find(".ep-time-soure").Text()
 					release = strings.Split(release, "来源:")[0]
 					release = strings.Trim(release, " \t\n")
 
-					// 结果存入Response中转
+					// store results in Response
 					ctx.Output(map[int]interface{}{
 						0: title,
 						1: content,

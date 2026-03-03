@@ -1,86 +1,144 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	// "github.com/andeya/pholcus/common/goquery" //DOM解析
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	// "github.com/andeya/pholcus/logs"           //信息输出
-	spider "github.com/andeya/pholcus/app/spider"              //必需
-	spidercommon "github.com/andeya/pholcus/app/spider/common" //选用
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	spider "github.com/andeya/pholcus/app/spider"      // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
 
-	// net包
-	"net/http" //设置http.Header
+	//"github.com/andeya/pholcus/logs"                   // logging
+	// . "github.com/andeya/pholcus/app/spider/common"          // optional
+
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
-	// 编码包
+
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
-	// 字符串处理包
-	// "regexp"
-	// "strconv"
-	// "strings"
-	// 其他包
+
+	// string processing packages
+	"regexp"
+	"strconv"
+	"strings"
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
+	//"fmt"
 )
 
 func init() {
-	Lewa.Register()
+	JDSpider.Register()
 }
 
-var Lewa = &spider.Spider{
-	Name:        "乐蛙登录测试",
-	Description: "乐蛙登录测试 [Auto Page] [http://accounts.lewaos.com]",
+var JDSpider = &spider.Spider{
+	Name:        "京东搜索new",
+	Description: "京东搜索结果 [search.jd.com]",
 	// Pausetime: 300,
-	// Keyin:   KEYIN,
-	// Limit:        LIMIT,
-	EnableCookie: true,
+	Keyin:        spider.KEYIN,
+	Limit:        spider.LIMIT,
+	EnableCookie: false,
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
-			ctx.AddQueue(&request.Request{URL: "http://accounts.lewaos.com/", Rule: "登录页"})
+			// Aid calls AidFunc in Rule
+			ctx.Aid(map[string]interface{}{"Rule": "判断页数"}, "判断页数")
 		},
 
 		Trunk: map[string]*spider.Rule{
+			// only determine total page count for keyword search
+			"判断页数": {
+				AidFunc: func(ctx *spider.Context, aid map[string]interface{}) interface{} {
+					ctx.AddQueue(
+						&request.Request{
+							URL:  "http://search.jd.com/Search?keyword=" + ctx.GetKeyin() + "&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&bs=1&s=1&click=0&page=1",
+							Rule: aid["Rule"].(string),
+						},
+					)
+					return nil
+				},
+				ParseFunc: func(ctx *spider.Context) {
+					query := ctx.GetDom()
+					pageCount := 0
+					query.Find("script").Each(func(i int, s *goquery.Selection) {
+						if strings.Contains(s.Text(), "page_count") {
+							re := regexp.MustCompile(`page_count:"\d{1,}"`)
+							temp := re.FindString(s.Text())
+							re = regexp.MustCompile(`\d{1,}`)
+							temp2 := re.FindString(temp)
+							pageCount, _ = strconv.Atoi(temp2)
+						}
+					})
+					ctx.Aid(map[string]interface{}{"PageCount": pageCount}, "生成请求")
+				},
+			},
 
-			"登录页": {
-				ParseFunc: func(ctx *spider.Context) {
-					// ctx.AddQueue(&request.Request{
-					// 	URL:    "http://accounts.lewaos.com",
-					// 	Rule:   "登录后",
-					// 	Method: "POST",
-					// 	PostData: "username=123456@qq.com&password=123456&login_btn=login_btn&submit=login_btn",
-					// })
-					spidercommon.NewForm(
-						ctx,
-						"登录后",
-						"http://accounts.lewaos.com",
-						ctx.GetDom().Find(".userlogin.lw-pl40"),
-					).Inputs(map[string]string{
-						"username": "",
-						"password": "",
-					}).Submit()
+			"生成请求": {
+				// odd pages return URL directly, even pages load async; both URLs are below
+				AidFunc: func(ctx *spider.Context, aid map[string]interface{}) interface{} {
+					//URL:  "http://search.jd.com/Search?keyword=" + ctx.GetKeyin() + "&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&bs=1&s=1&click=0&page=" + strconv.Itoa(pageNum),
+					//URL:  "http://search.jd.com/s_new.php?keyword=" + ctx.GetKeyin() + "&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&bs=1&s=31&scrolling=y&pos=30&page=" + strconv.Itoa(pageNum),
+					pageCount := aid["PageCount"].(int)
+
+					for i := 1; i < pageCount; i++ {
+						ctx.AddQueue(
+							&request.Request{
+								URL:  "http://search.jd.com/Search?keyword=" + ctx.GetKeyin() + "&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&bs=1&s=1&click=0&page=" + strconv.Itoa(i*2-1),
+								Rule: "搜索结果",
+							},
+						)
+						ctx.AddQueue(
+							&request.Request{
+								URL:  "http://search.jd.com/s_new.php?keyword=" + ctx.GetKeyin() + "&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&bs=1&s=31&scrolling=y&pos=30&page=" + strconv.Itoa(i*2),
+								Rule: "搜索结果",
+							},
+						)
+					}
+					return nil
 				},
 			},
-			"登录后": {
-				ParseFunc: func(ctx *spider.Context) {
-					// 结果存入Response中转
-					ctx.Output(map[string]interface{}{
-						"Body":   ctx.GetText(),
-						"Cookie": ctx.GetCookie(),
-					})
-					ctx.AddQueue(&request.Request{
-						URL:    "http://accounts.lewaos.com/member",
-						Rule:   "个人中心",
-						Header: http.Header{"Referer": []string{ctx.GetURL()}},
-					})
+
+			"搜索结果": {
+				// parse data from response. NOTE: async response has same structure as odd pages, so one parser suffices
+				ItemFields: []string{
+					"标题",
+					"价格",
+					"评论数",
+					"链接",
 				},
-			},
-			"个人中心": {
 				ParseFunc: func(ctx *spider.Context) {
-					// 结果存入Response中转
-					ctx.Output(map[string]interface{}{
-						"Body":   ctx.GetText(),
-						"Cookie": ctx.GetCookie(),
+					query := ctx.GetDom()
+
+					query.Find(".gl-item").Each(func(i int, s *goquery.Selection) {
+						// get title
+						a := s.Find(".p-name.p-name-type-2 > a")
+						title := a.Text()
+
+						re := regexp.MustCompile("\\<[\\S\\s]+?\\>")
+						// title = re.ReplaceAllStringFunc(title, strings.ToLower)
+						title = re.ReplaceAllString(title, " ")
+						title = strings.Trim(title, " \t\n")
+
+						// get price
+						price := s.Find(".p-price > strong > i").Text()
+
+						// get comment count
+						//#J_goodsList > ul > li:nth-child(1) > div > div.p-commit
+						discuss := s.Find(".p-commit > strong > a").Text()
+
+						// get URL
+						url := a.Attr("href").UnwrapOr("")
+						url = "http:" + url
+
+						// store results in Response
+						if title != "" {
+							ctx.Output(map[int]interface{}{
+								0: title,
+								1: price,
+								2: discuss,
+								3: url,
+							})
+						}
 					})
 				},
 			},

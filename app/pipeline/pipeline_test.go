@@ -12,8 +12,8 @@ import (
 
 func TestNew(t *testing.T) {
 	sp := &spider.Spider{
-		Name:      "TestSpider",
-		RuleTree:  &spider.RuleTree{Trunk: map[string]*spider.Rule{}},
+		Name:     "TestSpider",
+		RuleTree: &spider.RuleTree{Trunk: map[string]*spider.Rule{}},
 	}
 	tests := []struct {
 		name     string

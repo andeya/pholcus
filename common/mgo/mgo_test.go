@@ -42,14 +42,14 @@ func (m *mockQuery) All(result interface{}) error {
 }
 
 type mockCollection struct {
-	insertErr   error
-	removeErr   error
-	updateErr   error
-	updateAll   *mgo.ChangeInfo
+	insertErr    error
+	removeErr    error
+	updateErr    error
+	updateAll    *mgo.ChangeInfo
 	updateAllErr error
-	upsert      *mgo.ChangeInfo
-	upsertErr   error
-	findQuery   *mockQuery
+	upsert       *mgo.ChangeInfo
+	upsertErr    error
+	findQuery    *mockQuery
 }
 
 func (m *mockCollection) Find(query interface{}) queryProvider {
@@ -93,11 +93,11 @@ func (m *mockDatabase) CollectionNames() ([]string, error) {
 }
 
 type mockSession struct {
-	mu          sync.Mutex
-	usable      bool
-	dbs         map[string]dbProvider
-	dbNames     []string
-	dbNamesErr  error
+	mu         sync.Mutex
+	usable     bool
+	dbs        map[string]dbProvider
+	dbNames    []string
+	dbNamesErr error
 }
 
 func (m *mockSession) Usable() bool {
@@ -197,9 +197,9 @@ func TestMgo_UnknownOptionField(t *testing.T) {
 
 	var count int
 	r := Mgo(&count, "count", map[string]interface{}{
-		"Database":   "db",
-		"Collection": "coll",
-		"Query":      map[string]interface{}{},
+		"Database":     "db",
+		"Collection":   "coll",
+		"Query":        map[string]interface{}{},
 		"UnknownField": "ignored",
 	})
 	if r.IsErr() {

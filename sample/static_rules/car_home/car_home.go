@@ -1,27 +1,27 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
 
-	// "github.com/andeya/pholcus/logs"               //信息输出
-	spider "github.com/andeya/pholcus/app/spider" //必需
-	// . "github.com/andeya/pholcus/app/spider/common"          //选用
+	// "github.com/andeya/pholcus/logs"               // logging
+	spider "github.com/andeya/pholcus/app/spider" // required
+	// . "github.com/andeya/pholcus/app/spider/common"          // optional
 
-	// net包
-	// "net/http" //设置http.Header
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	// "regexp"
 	"strconv"
 	"strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -53,7 +53,7 @@ var CarHome = &spider.Spider{
 				ParseFunc: func(ctx *spider.Context) {
 					var curr = ctx.GetTemp("p", 0).(int)
 					if c := ctx.GetDom().Find(".pages .cur").Text(); c != strconv.Itoa(curr) {
-						// Log.Printf("当前列表页不存在 %v", c)
+						// Log.Printf("current list page does not exist %v", c)
 						return
 					}
 					ctx.AddQueue(&request.Request{
@@ -62,7 +62,7 @@ var CarHome = &spider.Spider{
 						Temp: map[string]interface{}{"p": curr + 1},
 					})
 
-					// 用指定规则解析响应流
+					// parse response with specified rule
 					ctx.Parse("获取列表")
 				},
 			},
@@ -83,7 +83,7 @@ var CarHome = &spider.Spider{
 			},
 
 			"输出结果": {
-				//注意：有无字段语义和是否输出数据必须保持一致
+				// NOTE: field semantics and data output presence must be consistent
 				ItemFields: []string{
 
 					"当前积分",
@@ -137,7 +137,7 @@ var CarHome = &spider.Spider{
 						}
 					}
 					作者 = query.Find(".conleft").Eq(0).Find("a").Text()
-					// 结果存入Response中转
+					// store results in Response
 					ctx.Output(map[int]interface{}{
 						0: 当前积分,
 						1: 帖子数,

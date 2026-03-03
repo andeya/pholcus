@@ -1,27 +1,27 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request"         //必需
-	spider "github.com/andeya/pholcus/app/spider"              //必需
-	spidercommon "github.com/andeya/pholcus/app/spider/common" //选用
-	"github.com/andeya/pholcus/common/goquery"                 //DOM解析
-	"github.com/andeya/pholcus/logs"                           //信息输出
+	"github.com/andeya/pholcus/app/downloader/request"         // required
+	spider "github.com/andeya/pholcus/app/spider"              // required
+	spidercommon "github.com/andeya/pholcus/app/spider/common" // optional
+	"github.com/andeya/pholcus/common/goquery"                 // DOM parsing
+	"github.com/andeya/pholcus/logs"                           // logging
 
-	// net包
-	"net/http" //设置http.Header
+	// net packages
+	"net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/json"
 	"encoding/xml"
 
-	// 字符串处理包
+	// string processing packages
 	// "regexp"
 	// "strconv"
 	// "strings"
 
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	"time"
@@ -71,9 +71,9 @@ var BaiduNews = &spider.Spider{
 	// Keyin:     KEYIN,
 	EnableCookie: false,
 	// Limit:        LIMIT,
-	// 命名空间相对于数据库名，不依赖具体数据内容，可选
+	// namespace is relative to database name, independent of data content, optional
 	Namespace: nil,
-	// 子命名空间相对于表名，可依赖具体数据内容，可选
+	// sub-namespace is relative to table name, may depend on data content, optional
 	SubNamespace: func(self *spider.Spider, dataCell map[string]interface{}) string {
 		return dataCell["Data"].(map[string]interface{})["分类"].(string)
 	},
@@ -108,7 +108,7 @@ var BaiduNews = &spider.Spider{
 				ParseFunc: func(ctx *spider.Context) {
 					var src = ctx.GetTemp("src", "").(string)
 					defer func() {
-						// 循环请求
+						// loop request
 						ctx.RunTimer(src)
 						ctx.Aid(map[string]interface{}{"loop": src}, "LOOP")
 					}()
@@ -137,7 +137,7 @@ var BaiduNews = &spider.Spider{
 			},
 
 			"新闻详情": {
-				//注意：有无字段语义和是否输出数据必须保持一致
+				// NOTE: field semantics and data output presence must be consistent
 				ItemFields: []string{
 					"标题",
 					"描述",
@@ -153,7 +153,7 @@ var BaiduNews = &spider.Spider{
 					if isReload {
 						return
 					}
-					// 结果存入Response中转
+					// store results in Response
 					ctx.Output(map[int]interface{}{
 						0: title,
 						1: ctx.GetTemp("description", ""),
@@ -170,7 +170,7 @@ var BaiduNews = &spider.Spider{
 
 type baiduNews map[string]func(ctx *spider.Context) (infoStr string, isReload bool)
 
-// @url 必须为含有协议头的地址
+// @url must be an address with protocol header
 func (b baiduNews) prase(ctx *spider.Context) (infoStr string, isReload bool) {
 	url := ctx.GetHost()
 	if _, ok := b[url]; ok {
@@ -202,7 +202,7 @@ func (b baiduNews) commonPrase(ctx *spider.Context) (infoStr string) {
 	}
 	infoStr, _ = info.Html()
 
-	// 清洗HTML
+	// clean HTML
 	infoStr = spidercommon.CleanHtml(infoStr, 5)
 	return
 }

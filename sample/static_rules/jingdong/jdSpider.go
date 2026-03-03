@@ -1,27 +1,27 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	spider "github.com/andeya/pholcus/app/spider"      //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	spider "github.com/andeya/pholcus/app/spider"      // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
 
-	//"github.com/andeya/pholcus/logs"                   //信息输出
-	// . "github.com/andeya/pholcus/app/spider/common"          //选用
+	//"github.com/andeya/pholcus/logs"                   // logging
+	// . "github.com/andeya/pholcus/app/spider/common"          // optional
 
-	// net包
-	// "net/http" //设置http.Header
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	"regexp"
 	"strconv"
 	"strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -41,12 +41,12 @@ var JDSpider = &spider.Spider{
 	EnableCookie: false,
 	RuleTree: &spider.RuleTree{
 		Root: func(ctx *spider.Context) {
-			//Aid调用Rule中的AidFunc
+			// Aid calls AidFunc in Rule
 			ctx.Aid(map[string]interface{}{"Rule": "判断页数"}, "判断页数")
 		},
 
 		Trunk: map[string]*spider.Rule{
-			//只判断关键字商品一共有多少页
+			// only determine total pages for keyword search
 			"判断页数": {
 				AidFunc: func(ctx *spider.Context, aid map[string]interface{}) interface{} {
 					ctx.AddQueue(
@@ -74,7 +74,7 @@ var JDSpider = &spider.Spider{
 			},
 
 			"生成请求": {
-				//单数页是url直接返回,双数页是异步加载,两个url在下面有写
+				// odd pages return URL directly, even pages are async loaded; both URLs written below
 				AidFunc: func(ctx *spider.Context, aid map[string]interface{}) interface{} {
 					//URL:  "http://search.jd.com/Search?keyword=" + ctx.GetKeyin() + "&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&bs=1&s=1&click=0&page=" + strconv.Itoa(pageNum),
 					//URL:  "http://search.jd.com/s_new.php?keyword=" + ctx.GetKeyin() + "&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&bs=1&s=31&scrolling=y&pos=30&page=" + strconv.Itoa(pageNum),
@@ -99,7 +99,7 @@ var JDSpider = &spider.Spider{
 			},
 
 			"搜索结果": {
-				//从返回中解析出数据。注：异步返回的结果页面结构是和单数页的一样的，所以就一套解析就可以了。
+				// parse data from response. NOTE: async response page structure is same as odd pages, so one parse logic suffices.
 				ItemFields: []string{
 					"标题",
 					"价格",
@@ -110,7 +110,7 @@ var JDSpider = &spider.Spider{
 					query := ctx.GetDom()
 
 					query.Find(".gl-item").Each(func(i int, s *goquery.Selection) {
-						// 获取标题
+						// get title
 						a := s.Find(".p-name.p-name-type-2 > a")
 						title := a.Text()
 
@@ -119,18 +119,18 @@ var JDSpider = &spider.Spider{
 						title = re.ReplaceAllString(title, " ")
 						title = strings.Trim(title, " \t\n")
 
-						// 获取价格
+						// get price
 						price := s.Find(".p-price > strong > i").Text()
 
-						// 获取评论数
+						// get comment count
 						//#J_goodsList > ul > li:nth-child(1) > div > div.p-commit
 						discuss := s.Find(".p-commit > strong > a").Text()
 
-						// 获取URL
+						// get URL
 						url := a.Attr("href").UnwrapOr("")
 						url = "http:" + url
 
-						// 结果存入Response中转
+						// store results in Response
 						if title != "" {
 							ctx.Output(map[int]interface{}{
 								0: title,

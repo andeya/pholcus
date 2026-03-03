@@ -93,7 +93,7 @@ func (m *SpiderMenu) SetChecked(row int, checked bool) error {
 	return nil
 }
 
-// 获取被选中的结果
+// GetChecked returns the selected items.
 func (m *SpiderMenu) GetChecked() []*GUISpider {
 	rc := []*GUISpider{}
 	for idx, item := range m.items {

@@ -51,12 +51,12 @@ func TestSurfDownload(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := New()
 			req := &DefaultRequest{
-				URL:          tt.url,
-				Method:       tt.method,
-				TryTimes:     3,
-				RetryPause:   time.Millisecond,
-				DialTimeout:  time.Second,
-				ConnTimeout:  time.Second,
+				URL:         tt.url,
+				Method:      tt.method,
+				TryTimes:    3,
+				RetryPause:  time.Millisecond,
+				DialTimeout: time.Second,
+				ConnTimeout: time.Second,
 			}
 			r := s.Download(req)
 			if r.IsErr() {
@@ -346,13 +346,13 @@ func TestDownloadSurfID(t *testing.T) {
 	defer srv.Close()
 
 	req := &DefaultRequest{
-		URL:         srv.URL,
-		Method:      "GET",
+		URL:          srv.URL,
+		Method:       "GET",
 		DownloaderID: SurfID,
-		TryTimes:    3,
-		RetryPause:  time.Millisecond,
-		DialTimeout: time.Second,
-		ConnTimeout: time.Second,
+		TryTimes:     3,
+		RetryPause:   time.Millisecond,
+		DialTimeout:  time.Second,
+		ConnTimeout:  time.Second,
 	}
 	r := Download(req)
 	if r.IsErr() {
@@ -382,15 +382,15 @@ type mockRequest struct {
 	downloaderID int
 }
 
-func (m *mockRequest) GetURL() string               { return "http://example.com" }
-func (m *mockRequest) GetMethod() string            { return "GET" }
-func (m *mockRequest) GetPostData() string          { return "" }
+func (m *mockRequest) GetURL() string                { return "http://example.com" }
+func (m *mockRequest) GetMethod() string             { return "GET" }
+func (m *mockRequest) GetPostData() string           { return "" }
 func (m *mockRequest) GetHeader() http.Header        { return nil }
 func (m *mockRequest) GetEnableCookie() bool         { return false }
 func (m *mockRequest) GetDialTimeout() time.Duration { return time.Second }
 func (m *mockRequest) GetConnTimeout() time.Duration { return time.Second }
 func (m *mockRequest) GetTryTimes() int              { return 1 }
-func (m *mockRequest) GetRetryPause() time.Duration   { return time.Millisecond }
+func (m *mockRequest) GetRetryPause() time.Duration  { return time.Millisecond }
 func (m *mockRequest) GetProxy() string              { return "" }
 func (m *mockRequest) GetRedirectTimes() int         { return 0 }
 func (m *mockRequest) GetDownloaderID() int          { return m.downloaderID }

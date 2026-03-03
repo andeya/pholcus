@@ -1,27 +1,27 @@
 package rules
 
 import (
-	// 基础包
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
+	// base packages
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
 
-	// "github.com/andeya/pholcus/logs"           //信息输出
-	spider "github.com/andeya/pholcus/app/spider" //必需
-	// . "github.com/andeya/pholcus/app/spider/common" //选用
+	// "github.com/andeya/pholcus/logs"           // logging
+	spider "github.com/andeya/pholcus/app/spider" // required
+	// . "github.com/andeya/pholcus/app/spider/common" // optional
 
-	// net包
-	// "net/http" //设置http.Header
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	// "regexp"
 	"strconv"
 	// "strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -66,7 +66,7 @@ var Zolpc = &spider.Spider{
 			},
 
 			"获取结果": {
-				// 注意：有无字段语义和是否输出数据必须保持一致
+				// NOTE: field semantics and data output presence must be consistent
 				ItemFields: []string{
 					"机型",
 					"链接",
@@ -105,7 +105,7 @@ var Zolpc = &spider.Spider{
 					ereply := etimes.Find("a").Eq(0).Text()
 					etime := etimes.Find("a").Eq(1).Text()
 
-					// 结果存入Response中转
+					// store results in Response
 					ctx.Output(map[int]interface{}{
 						0: outType,
 						1: outURL,

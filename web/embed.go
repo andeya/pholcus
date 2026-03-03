@@ -1,4 +1,4 @@
-// Package web 提供了 Web 界面的 HTTP 服务、路由和嵌入式资源。
+// Package web provides HTTP service, routing, and embedded resources for the Web interface.
 package web
 
 import (

@@ -1,26 +1,26 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request"         //必需
-	spider "github.com/andeya/pholcus/app/spider"              //必需
-	spidercommon "github.com/andeya/pholcus/app/spider/common" //选用
-	"github.com/andeya/pholcus/common/goquery"                 //DOM解析
-	"github.com/andeya/pholcus/logs"                           //信息输出
+	"github.com/andeya/pholcus/app/downloader/request"         // required
+	spider "github.com/andeya/pholcus/app/spider"              // required
+	spidercommon "github.com/andeya/pholcus/app/spider/common" // optional
+	"github.com/andeya/pholcus/common/goquery"                 // DOM parsing
+	"github.com/andeya/pholcus/logs"                           // logging
 
-	// net包
-	"net/http" //设置http.Header
+	// net packages
+	"net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	// "regexp"
 	"strconv"
 	"strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -60,7 +60,7 @@ var AlibabaProduct = &spider.Spider{
 					query := ctx.GetDom()
 					// logs.Log().Debug(ctx.GetText())
 					pageTag := query.Find("#sm-pagination div[data-total-page]")
-					// 跳转
+					// redirect
 					if len(pageTag.Nodes) == 0 {
 						logs.Log().Critical("[消息提示：| 任务：%v | KEYIN：%v | 规则：%v] 由于跳转AJAX问题，目前只能每个子类抓取 1 页……\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
 						query.Find(".sm-floorhead-typemore a").Each(func(i int, s *goquery.Selection) {
@@ -84,15 +84,15 @@ var AlibabaProduct = &spider.Spider{
 						return
 					}
 
-					// 调用指定规则下辅助函数
+					// call helper function under specified rule
 					ctx.Aid(map[string]interface{}{"loop": [2]int{1, total}, "Rule": "搜索结果"})
-					// 用指定规则解析响应流
+					// parse response with specified rule
 					ctx.Parse("搜索结果")
 				},
 			},
 
 			"搜索结果": {
-				//注意：有无字段语义和是否输出数据必须保持一致
+				// NOTE: field semantics and data output presence must be consistent
 				ItemFields: []string{
 					"公司",
 					"标题",
@@ -107,29 +107,29 @@ var AlibabaProduct = &spider.Spider{
 
 					query.Find("#sm-offer-list > li").Each(func(i int, s *goquery.Selection) {
 
-						// 获取公司
+						// get company
 						company := s.Find("a.sm-offer-companyName").First().Attr("title").UnwrapOr("")
 
-						// 获取标题
+						// get title
 						t := s.Find(".sm-offer-title > a:nth-child(1)")
 						title := t.Attr("title").UnwrapOr("")
 
-						// 获取URL
+						// get URL
 						url := t.Attr("href").UnwrapOr("")
 
-						// 获取价格
+						// get price
 						price := s.Find(".sm-offer-priceNum").First().Text()
 
-						// 获取成交量
+						// get sales volume
 						sales := s.Find("span.sm-offer-trade > em").First().Text()
 
-						// 获取地址
+						// get address
 						address := s.Find(".sm-offer-location").First().Attr("title").UnwrapOr("")
 
-						// 获取信用年限
+						// get credit level
 						level := s.Find("span.sm-offer-companyTag > a.sw-ui-flaticon-cxt16x16").First().Text()
 
-						// 结果存入Response中转
+						// store results in Response
 						ctx.Output(map[int]interface{}{
 							0: company,
 							1: title,

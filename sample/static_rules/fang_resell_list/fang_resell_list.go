@@ -1,19 +1,19 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
 
-	//"github.com/andeya/pholcus/logs"               //信息输出
-	spider "github.com/andeya/pholcus/app/spider" //必需
-	// . "github.com/andeya/pholcus/app/spider/common"          //选用
+	//"github.com/andeya/pholcus/logs"               // logging
+	spider "github.com/andeya/pholcus/app/spider" // required
+	// . "github.com/andeya/pholcus/app/spider/common"          // optional
 	//"github.com/andeya/pholcus/logs/logs"
-	// 字符串处理包
+	// string processing packages
 	// "regexp"
 	//"strconv"
 	//"strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -58,12 +58,12 @@ var fangList = &spider.Spider{
 					"area",
 					"price",
 					"unitPrice",
-					"locationType", //楼层所在高低
-					"remoteId",     //搜房id
+					"locationType", // floor level (high/low)
+					"remoteId",     // fang.com id
 					"business",
 				},
 				ParseFunc: func(ctx *spider.Context) {
-					//获取当页搜房的所有数据
+					// get all fang.com data on current page
 					ctx.GetDom().Find(".houseList dl").Each(
 						func(i int, s *goquery.Selection) {
 							var communityName, totalFloor, rooms, halls, locationType, remoteId, buildTime, address, direction, area, price, unitPrice, business string
@@ -77,12 +77,12 @@ var fangList = &spider.Spider{
 								address = sp[1]
 								business = sp[0]
 							}
-							//获取年代中的一吨
+							// get year from room line
 							roomLineTmp := s.Find("dd.info p.mt12").Text()
 							roomLine := strings.Fields(roomLineTmp)
 
 							if len(roomLine) == 4 {
-								//替换掉厅
+								// remove "厅" (hall)
 								roomsTmp := roomLine[0]
 								roomsTmp = strings.Replace(roomsTmp, "厅", "", 1)
 								roomsS := strings.Split(roomsTmp, "室")
@@ -90,7 +90,7 @@ var fangList = &spider.Spider{
 									rooms = roomsS[0]
 									halls = roomsS[1]
 								}
-								//楼类型和层高获取
+								// get building type and floor count
 								buildingTmp := roomLine[1]
 								buildingTmpSec := strings.Split(buildingTmp, "(共")
 								if len(buildingTmpSec) == 2 {
@@ -113,8 +113,8 @@ var fangList = &spider.Spider{
 							}
 
 							logs.Log().Critical("当前房源id: %v", remoteId)
-							//解析传入的片段
-							// 结果存入Response中转
+							// parse passed fragment
+							// store results in Response
 							ctx.Output(map[int]interface{}{
 								0:  strings.Trim(communityName, " "),
 								1:  strings.Trim(totalFloor, " "),

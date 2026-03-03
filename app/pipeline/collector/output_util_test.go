@@ -9,9 +9,9 @@ import (
 
 func TestJoinNamespaces(t *testing.T) {
 	tests := []struct {
-		namespace   string
+		namespace    string
 		subNamespace string
-		want        string
+		want         string
 	}{
 		{"", "", ""},
 		{"", "sub", "sub"},

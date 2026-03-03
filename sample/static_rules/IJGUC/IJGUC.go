@@ -1,29 +1,29 @@
 package rules
 
-// 基础包
+// base packages
 import (
 	// "log"
 
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	spider "github.com/andeya/pholcus/app/spider"      //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	spider "github.com/andeya/pholcus/app/spider"      // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
 
-	// "github.com/andeya/pholcus/logs"         //信息输出
-	// . "github.com/andeya/pholcus/app/spider/common" //选用
+	// "github.com/andeya/pholcus/logs"         // logging
+	// . "github.com/andeya/pholcus/app/spider/common" // optional
 
-	// net包
-	// "net/http" //设置http.Header
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	"regexp"
 	"strconv"
 	// "strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -86,7 +86,7 @@ var IJGUC = &spider.Spider{
 				},
 			},
 			"文章页": {
-				//注意：有无字段语义和是否输出数据必须保持一致
+				// note: field semantics and output data must be consistent
 				ItemFields: []string{
 					"Title",
 					"Author",
@@ -98,10 +98,10 @@ var IJGUC = &spider.Spider{
 				},
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
-					// 获取内容
+					// get content
 					content := query.Find("#col1").Text()
 
-					// 过滤标签
+					// filter tags
 					re := regexp.MustCompile("\\<[\\S\\s]+?\\>")
 					content = re.ReplaceAllString(content, "")
 
@@ -145,7 +145,7 @@ var IJGUC = &spider.Spider{
 					right := left + 43
 					doi := string(rs[left:right])
 
-					// 结果存入Response中转
+					// store results in Response
 					ctx.Output(map[int]interface{}{
 						0: title,
 						1: author,

@@ -1,4 +1,4 @@
-// Package scheduler 提供了爬取任务的调度与资源分配功能。
+// Package scheduler provides crawl task scheduling and resource allocation.
 package scheduler
 
 import (
@@ -49,7 +49,7 @@ func Init(threadNum int, proxyMinute int64) {
 	sched.status = status.RUN
 }
 
-// ReloadProxyLib 从配置文件重新加载代理 IP 列表。
+// ReloadProxyLib reloads the proxy IP list from the config file.
 func ReloadProxyLib() {
 	sched.proxy.Update()
 }

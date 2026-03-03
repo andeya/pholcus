@@ -1,27 +1,27 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	spider "github.com/andeya/pholcus/app/spider"      //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
-	"github.com/andeya/pholcus/logs"                   //信息输出
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	spider "github.com/andeya/pholcus/app/spider"      // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
+	"github.com/andeya/pholcus/logs"                   // logging
 
-	// . "github.com/andeya/pholcus/app/spider/common"          //选用
+	// . "github.com/andeya/pholcus/app/spider/common"          // optional
 
-	// net包
-	// "net/http" //设置http.Header
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	"regexp"
 	"strconv"
 	"strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -78,15 +78,15 @@ var JDSearch = &spider.Spider{
 						logs.Log().Critical("[消息提示：| 任务：%v | KEYIN：%v | 规则：%v] 没有抓取到任何数据！!!\n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
 						return
 					}
-					// 调用指定规则下辅助函数
+					// call helper function under specified rule
 					ctx.Aid(map[string]interface{}{"loop": [2]int{1, total}, "Rule": "搜索结果"})
-					// 用指定规则解析响应流
+					// parse response with specified rule
 					ctx.Parse("搜索结果")
 				},
 			},
 
 			"搜索结果": {
-				//注意：有无字段语义和是否输出数据必须保持一致
+				// note: field semantics and output data must be consistent
 				ItemFields: []string{
 					"标题",
 					"价格",
@@ -98,7 +98,7 @@ var JDSearch = &spider.Spider{
 					query := ctx.GetDom()
 
 					query.Find("#plist .list-h:nth-child(1) > li").Each(func(i int, s *goquery.Selection) {
-						// 获取标题
+						// get title
 						a := s.Find(".p-name a")
 						title := a.Text()
 
@@ -107,23 +107,23 @@ var JDSearch = &spider.Spider{
 						title = re.ReplaceAllString(title, " ")
 						title = strings.Trim(title, " \t\n")
 
-						// 获取价格
+						// get price
 						price := s.Find("strong[data-price]").First().Attr("data-price").UnwrapOr("")
 
-						// 获取评论数
+						// get comment count
 						e := s.Find(".extra").First()
 						discuss := e.Find("a").First().Text()
 						re = regexp.MustCompile(`[\d]+`)
 						discuss = re.FindString(discuss)
 
-						// 获取星级
+						// get rating level
 						level := e.Find(".star span[id]").First().Attr("class").UnwrapOr("")
 						level = re.FindString(level)
 
-						// 获取URL
+						// get URL
 						url := a.Attr("href").UnwrapOr("")
 
-						// 结果存入Response中转
+						// store results in Response
 						ctx.Output(map[int]interface{}{
 							0: title,
 							1: price,

@@ -1,27 +1,27 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
 
-	// "github.com/andeya/pholcus/logs"               //信息输出
-	spider "github.com/andeya/pholcus/app/spider" //必需
-	// . "github.com/andeya/pholcus/app/spider/common"          //选用
+	// "github.com/andeya/pholcus/logs"               // logging
+	spider "github.com/andeya/pholcus/app/spider" // required
+	// . "github.com/andeya/pholcus/app/spider/common"          // optional
 
-	// net包
-	// "net/http" //设置http.Header
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	// "regexp"
 	"strconv"
 	"strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -62,7 +62,7 @@ var GanjiGongsi = &spider.Spider{
 						ConnTimeout: -1,
 					})
 
-					// 用指定规则解析响应流
+					// parse response with specified rule
 					ctx.Parse("获取列表")
 				},
 			},
@@ -83,7 +83,7 @@ var GanjiGongsi = &spider.Spider{
 			},
 
 			"输出结果": {
-				//注意：有无字段语义和是否输出数据必须保持一致
+				// NOTE: field semantics and data output presence must be consistent
 				ItemFields: []string{
 					"公司",
 					"联系人",
@@ -138,7 +138,7 @@ var GanjiGongsi = &spider.Spider{
 
 					简介 := query.Find("#company_description").Text()
 
-					// 结果输出方式一（推荐）
+					// output method 1 (recommended)
 					ctx.Output(map[int]interface{}{
 						0: 公司,
 						1: 联系人,
@@ -149,37 +149,37 @@ var GanjiGongsi = &spider.Spider{
 						6: 规模,
 					})
 
-					// 结果输出方式二
+					// file output method 2
 					// var item map[string]interface{} = ctx.CreateItem(map[int]interface{}{
-					// 	0: 公司,
-					// 	1: 联系人,
-					// 	2: 地址,
-					// 	3: 简介,
-					// 	4: 行业,
-					// 	5: 类型,
-					// 	6: 规模,
+					// 	0: company,
+					// 	1: contact,
+					// 	2: address,
+					// 	3: introduction,
+					// 	4: industry,
+					// 	5: type,
+					// 	6: scale,
 					// })
 					// ctx.Output(item)
 
-					// 结果输出方式三（不推荐）
+					// output method 3 (not recommended)
 					// ctx.Output(map[string]interface{}{
-					// 	ctx.GetItemField(0): 公司,
-					// 	ctx.GetItemField(1): 联系人,
-					// 	ctx.GetItemField(2): 地址,
-					// 	ctx.GetItemField(3): 简介,
-					// 	ctx.GetItemField(4): 行业,
-					// 	ctx.GetItemField(5): 类型,
-					// 	ctx.GetItemField(6): 规模,
+					// 	ctx.GetItemField(0): company,
+					// 	ctx.GetItemField(1): contact,
+					// 	ctx.GetItemField(2): address,
+					// 	ctx.GetItemField(3): introduction,
+					// 	ctx.GetItemField(4): industry,
+					// 	ctx.GetItemField(5): type,
+					// 	ctx.GetItemField(6): scale,
 					// })
 				},
 			},
 
 			"联系方式": {
 				ParseFunc: func(ctx *spider.Context) {
-					// 文件输出方式一（推荐）
+					// file output method 1 (recommended)
 					ctx.FileOutput(ctx.GetTemp("n", "").(string))
 
-					// 文件输出方式二
+					// file output method 2
 					// ctx.AddFile(ctx.GetTemp("n").(string))
 				},
 			},

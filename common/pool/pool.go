@@ -44,7 +44,7 @@ const (
 )
 
 var (
-	closedError = errors.New("资源池已关闭")
+	closedError = errors.New("pool is closed")
 )
 
 // ClassicPool creates a classic resource pool with the given capacity and idle recycling.

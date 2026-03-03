@@ -1,4 +1,4 @@
-// Package beanstalkd 提供了 Beanstalkd 任务队列的客户端封装。
+// Package beanstalkd provides a client wrapper for Beanstalkd job queue.
 package beanstalkd
 
 import (

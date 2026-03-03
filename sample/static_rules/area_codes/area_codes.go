@@ -1,27 +1,27 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	spider "github.com/andeya/pholcus/app/spider"      //必需
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	spider "github.com/andeya/pholcus/app/spider"      // required
 
-	//. "github.com/andeya/pholcus/app/spider/common"    //选用
-	"github.com/andeya/pholcus/common/goquery" //DOM解析
+	//. "github.com/andeya/pholcus/app/spider/common"    // optional
+	"github.com/andeya/pholcus/common/goquery" // DOM parsing
 
-	//信息输出
-	// net包
-	//设置http.Header
+	// logging
+	// net packages
+	// set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	// "regexp"
 
 	"strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -45,10 +45,10 @@ UNION
 select 名称 as name,RPAD(代码,12,'0') as area_code,级别 as level,RPAD(上级,12,'0') as parent from 2018年统计用区划代码和城乡划分代码__0__市;
 */
 
-// AreaCodes2018 2018年统计用区划代码和城乡划分代码
+// AreaCodes2018 2018 statistical area codes and urban-rural division codes
 //
-// creatTime:2019年09月06日 09:23:55
-// author:hailaz
+// creatTime: 2019-09-06 09:23:55
+// author: hailaz
 var AreaCodes2018 = &spider.Spider{
 	Name:        "2018年统计用区划代码和城乡划分代码",
 	Description: "2018年统计用区划代码和城乡划分代码。间隔不要小于100ms，不然容易触发验证码导致失败。总数据大概71万（暂停时长100ms，耗时2小时），所以适当做数据分批输出，不然出现内存溢出。",
@@ -95,7 +95,7 @@ var AreaCodes2018 = &spider.Spider{
 							}
 						})
 					})
-					//fmt.Println(cc) // 等于零，证明请求太过频繁，需要输入验证码
+					//fmt.Println(cc) // equals zero, indicates requests too frequent, captcha required
 				},
 			},
 			"市": {

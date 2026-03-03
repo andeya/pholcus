@@ -1,21 +1,21 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	spider "github.com/andeya/pholcus/app/spider"      //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
-	"github.com/andeya/pholcus/logs"                   //信息输出
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	spider "github.com/andeya/pholcus/app/spider"      // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
+	"github.com/andeya/pholcus/logs"                   // logging
 
-	// net包
-	"net/http" //设置http.Header
+	// net packages
+	"net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	// "regexp"
 	"fmt"
 	"strconv"
@@ -63,7 +63,7 @@ var Avatar = &spider.Spider{
 					query := ctx.GetDom()
 					// logs.Log().Debug(ctx.GetText())
 					pageTag := query.Find("div.pageNum.wp div.page a:last-child")
-					// 跳转
+					// redirect
 					if len(pageTag.Nodes) == 0 {
 						logs.Log().Critical("[消息提示：| 任务：%v | KEYIN：%v | 规则：%v] \n", ctx.GetName(), ctx.GetKeyin(), ctx.GetRuleName())
 						query.Find(".sm-floorhead-typemore a").Each(func(i int, s *goquery.Selection) {
@@ -77,7 +77,7 @@ var Avatar = &spider.Spider{
 						})
 						return
 					}
-					// 用指定规则解析响应流
+					// parse response with specified rule
 					ctx.Parse("搜索结果")
 				},
 			},

@@ -84,7 +84,7 @@ const (
 	PhantomJsID = 1 // PhantomJS downloader identifier
 	ChromeID    = 2 // Chromium headless browser downloader identifier
 	// Deprecated: Use PhantomJsID instead.
-	PhomtomJsID = PhantomJsID
+	PhomtomJsID        = PhantomJsID
 	DefaultMethod      = "GET"           // default request method
 	DefaultDialTimeout = 2 * time.Minute // default server request timeout
 	DefaultConnTimeout = 2 * time.Minute // default download timeout
@@ -127,73 +127,73 @@ func (dr *DefaultRequest) prepare() {
 	}
 }
 
-// GetURL 返回请求 URL。
+// GetURL returns the request URL.
 func (dr *DefaultRequest) GetURL() string {
 	dr.once.Do(dr.prepare)
 	return dr.URL
 }
 
-// GetMethod 返回 HTTP 方法（如 GET、POST）。
+// GetMethod returns the HTTP method (e.g. GET, POST).
 func (dr *DefaultRequest) GetMethod() string {
 	dr.once.Do(dr.prepare)
 	return dr.Method
 }
 
-// GetPostData 返回 POST 请求体。
+// GetPostData returns the POST request body.
 func (dr *DefaultRequest) GetPostData() string {
 	dr.once.Do(dr.prepare)
 	return dr.PostData
 }
 
-// GetHeader 返回 HTTP 请求头。
+// GetHeader returns the HTTP request headers.
 func (dr *DefaultRequest) GetHeader() http.Header {
 	dr.once.Do(dr.prepare)
 	return dr.Header
 }
 
-// GetEnableCookie 返回是否启用 Cookie。
+// GetEnableCookie returns whether cookies are enabled.
 func (dr *DefaultRequest) GetEnableCookie() bool {
 	dr.once.Do(dr.prepare)
 	return dr.EnableCookie
 }
 
-// GetDialTimeout 返回连接超时时间。
+// GetDialTimeout returns the dial timeout.
 func (dr *DefaultRequest) GetDialTimeout() time.Duration {
 	dr.once.Do(dr.prepare)
 	return dr.DialTimeout
 }
 
-// GetConnTimeout 返回读写超时时间。
+// GetConnTimeout returns the connection read/write timeout.
 func (dr *DefaultRequest) GetConnTimeout() time.Duration {
 	dr.once.Do(dr.prepare)
 	return dr.ConnTimeout
 }
 
-// GetTryTimes 返回最大重试次数。
+// GetTryTimes returns the max retry count.
 func (dr *DefaultRequest) GetTryTimes() int {
 	dr.once.Do(dr.prepare)
 	return dr.TryTimes
 }
 
-// GetRetryPause 返回重试间隔时间。
+// GetRetryPause returns the retry pause duration.
 func (dr *DefaultRequest) GetRetryPause() time.Duration {
 	dr.once.Do(dr.prepare)
 	return dr.RetryPause
 }
 
-// GetProxy 返回代理地址。
+// GetProxy returns the proxy address.
 func (dr *DefaultRequest) GetProxy() string {
 	dr.once.Do(dr.prepare)
 	return dr.Proxy
 }
 
-// GetRedirectTimes 返回最大重定向次数。
+// GetRedirectTimes returns the max redirect count.
 func (dr *DefaultRequest) GetRedirectTimes() int {
 	dr.once.Do(dr.prepare)
 	return dr.RedirectTimes
 }
 
-// GetDownloaderID 返回下载器 ID（0=Surf，1=PhantomJS，2=Chrome）。
+// GetDownloaderID returns the downloader ID (0=Surf, 1=PhantomJS, 2=Chrome).
 func (dr *DefaultRequest) GetDownloaderID() int {
 	dr.once.Do(dr.prepare)
 	return dr.DownloaderID

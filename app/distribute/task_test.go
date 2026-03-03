@@ -6,10 +6,10 @@ import (
 
 func TestTask_Fields(t *testing.T) {
 	tests := []struct {
-		name       string
-		task       Task
-		wantID     int
-		wantLimit  int64
+		name        string
+		task        Task
+		wantID      int
+		wantLimit   int64
 		wantOutType string
 	}{
 		{"zero", Task{}, 0, 0, ""},

@@ -33,8 +33,8 @@ func TestSpiderSpecies_Add(t *testing.T) {
 
 func TestSpiderSpecies_Get(t *testing.T) {
 	ss := &SpiderSpecies{
-		list: []*Spider{},
-		hash: map[string]*Spider{},
+		list:   []*Spider{},
+		hash:   map[string]*Spider{},
 		sorted: false,
 	}
 	sp1 := &Spider{Name: "BSpider", RuleTree: &RuleTree{Trunk: map[string]*Rule{}}}

@@ -1,4 +1,4 @@
-// Package proxy 提供了代理 IP 池管理与在线筛选功能。
+// Package proxy provides proxy IP pool management and online filtering.
 package proxy
 
 import (

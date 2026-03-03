@@ -33,7 +33,7 @@ func Flag() {
 			for k, v := range app.LogicApp.GetSpiderLib() {
 				spiderlist += "   [" + strconv.Itoa(k) + "] " + v.GetName() + "  " + v.GetDescription() + "\r\n"
 			}
-			return "   <蜘蛛列表: 选择多蜘蛛以 \",\" 间隔>\r\n" + spiderlist
+			return "   <Spider list: separate multiple spiders with \",\">\r\n" + spiderlist
 		}())
 
 	flag.String(

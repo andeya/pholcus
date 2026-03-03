@@ -1,4 +1,4 @@
-// Package status 提供了运行时模式、数据头类型和状态常量定义。
+// Package status provides runtime mode, data header type, and status constant definitions.
 package status
 
 // Runtime mode constants.

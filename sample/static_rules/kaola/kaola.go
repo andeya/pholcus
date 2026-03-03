@@ -1,24 +1,24 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
 
-	// "github.com/andeya/pholcus/logs"              //信息输出
-	spider "github.com/andeya/pholcus/app/spider" //必需
-	// . "github.com/andeya/pholcus/app/spider/common" //选用
-	// net包
-	// "net/http" //设置http.Header
+	// "github.com/andeya/pholcus/logs"              // logging
+	spider "github.com/andeya/pholcus/app/spider" // required
+	// . "github.com/andeya/pholcus/app/spider/common" // optional
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
-	// 字符串处理包
+	// string processing packages
 	// "regexp"
 	// "strconv"
 	// "strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -28,7 +28,7 @@ func init() {
 	Kaola.Register()
 }
 
-// 考拉海淘,海外直采,7天无理由退货,售后无忧!考拉网放心的海淘网站!
+// Kaola Haitao - overseas direct purchase, 7-day no-reason return, worry-free after-sales
 var Kaola = &spider.Spider{
 	Name:        "考拉海淘",
 	Description: "考拉海淘商品数据 [Auto Page] [www.kaola.com]",
@@ -74,7 +74,7 @@ var Kaola = &spider.Spider{
 			},
 
 			"商品详情": {
-				//注意：有无字段语义和是否输出数据必须保持一致
+				// note: field semantics and output data must be consistent
 				ItemFields: []string{
 					"标题",
 					"价格",
@@ -85,22 +85,22 @@ var Kaola = &spider.Spider{
 				},
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
-					// 获取标题
+					// get title
 					title := query.Find(".product-title").Text()
 
-					// 获取价格
+					// get price
 					price := query.Find("#js_currentPrice span").Text()
 
-					// 获取品牌
+					// get brand
 					brand := query.Find(".goods_parameter li").Eq(0).Text()
 
-					// 获取采购地
+					// get purchase origin
 					from := query.Find(".goods_parameter li").Eq(1).Text()
 
-					// 获取评论数
+					// get comment count
 					discussNum := query.Find("#commentCounts").Text()
 
-					// 结果存入Response中转
+					// store results in Response
 					ctx.Output(map[int]interface{}{
 						0: title,
 						1: price,

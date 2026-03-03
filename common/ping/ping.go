@@ -6,7 +6,7 @@
 //
 // notes: in MAC system, use root user to run.
 
-// Package ping 提供了 ICMP 网络连通性检测功能。
+// Package ping provides ICMP network connectivity detection.
 package ping
 
 import (

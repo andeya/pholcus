@@ -78,27 +78,52 @@ func TestPrepare(t *testing.T) {
 			{
 				name: "negative DialTimeout",
 				req:  &Request{URL: "http://a.com", Rule: "r", DialTimeout: -1},
-				chk:  func(r *Request) { r.Prepare(); if r.DialTimeout != 0 { t.Errorf("DialTimeout=%v", r.DialTimeout) } },
+				chk: func(r *Request) {
+					r.Prepare()
+					if r.DialTimeout != 0 {
+						t.Errorf("DialTimeout=%v", r.DialTimeout)
+					}
+				},
 			},
 			{
 				name: "negative ConnTimeout",
 				req:  &Request{URL: "http://a.com", Rule: "r", ConnTimeout: -1},
-				chk:  func(r *Request) { r.Prepare(); if r.ConnTimeout != 0 { t.Errorf("ConnTimeout=%v", r.ConnTimeout) } },
+				chk: func(r *Request) {
+					r.Prepare()
+					if r.ConnTimeout != 0 {
+						t.Errorf("ConnTimeout=%v", r.ConnTimeout)
+					}
+				},
 			},
 			{
 				name: "negative Priority",
 				req:  &Request{URL: "http://a.com", Rule: "r", Priority: -5},
-				chk:  func(r *Request) { r.Prepare(); if r.Priority != 0 { t.Errorf("Priority=%v", r.Priority) } },
+				chk: func(r *Request) {
+					r.Prepare()
+					if r.Priority != 0 {
+						t.Errorf("Priority=%v", r.Priority)
+					}
+				},
 			},
 			{
 				name: "DownloaderID out of range low",
 				req:  &Request{URL: "http://a.com", Rule: "r", DownloaderID: -1},
-				chk:  func(r *Request) { r.Prepare(); if r.DownloaderID != SurfID { t.Errorf("DownloaderID=%v", r.DownloaderID) } },
+				chk: func(r *Request) {
+					r.Prepare()
+					if r.DownloaderID != SurfID {
+						t.Errorf("DownloaderID=%v", r.DownloaderID)
+					}
+				},
 			},
 			{
 				name: "DownloaderID out of range high",
 				req:  &Request{URL: "http://a.com", Rule: "r", DownloaderID: 99},
-				chk:  func(r *Request) { r.Prepare(); if r.DownloaderID != SurfID { t.Errorf("DownloaderID=%v", r.DownloaderID) } },
+				chk: func(r *Request) {
+					r.Prepare()
+					if r.DownloaderID != SurfID {
+						t.Errorf("DownloaderID=%v", r.DownloaderID)
+					}
+				},
 			},
 		}
 		for _, tt := range tests {
@@ -180,25 +205,120 @@ func TestGettersSetters(t *testing.T) {
 		name string
 		fn   func()
 	}{
-		{"GetURL", func() { r.SetURL("http://u.com"); if r.GetURL() != "http://u.com" { t.Error("GetURL") } }},
-		{"GetMethod", func() { r.SetMethod("post"); if r.GetMethod() != "POST" { t.Error("GetMethod") } }},
-		{"GetReferer", func() { r.SetReferer("http://ref"); if r.GetReferer() != "http://ref" { t.Error("GetReferer") } }},
-		{"GetPostData", func() { r.PostData = "p=1"; if r.GetPostData() != "p=1" { t.Error("GetPostData") } }},
-		{"GetHeader", func() { r.SetHeader("A", "1"); if r.GetHeader().Get("A") != "1" { t.Error("GetHeader") } }},
-		{"AddHeader", func() { r.AddHeader("B", "2"); if r.GetHeader().Get("B") != "2" { t.Error("AddHeader") } }},
-		{"GetEnableCookie", func() { r.SetEnableCookie(true); if !r.GetEnableCookie() { t.Error("GetEnableCookie") } }},
-		{"GetCookies", func() { r.SetCookies("c=1"); if r.GetCookies() != "c=1" { t.Error("GetCookies") } }},
-		{"GetDialTimeout", func() { r.DialTimeout = 5 * time.Second; if r.GetDialTimeout() != 5*time.Second { t.Error("GetDialTimeout") } }},
-		{"GetConnTimeout", func() { r.ConnTimeout = 10 * time.Second; if r.GetConnTimeout() != 10*time.Second { t.Error("GetConnTimeout") } }},
-		{"GetTryTimes", func() { r.TryTimes = 5; if r.GetTryTimes() != 5 { t.Error("GetTryTimes") } }},
-		{"GetRetryPause", func() { r.RetryPause = 3 * time.Second; if r.GetRetryPause() != 3*time.Second { t.Error("GetRetryPause") } }},
-		{"GetProxy", func() { r.SetProxy("http://p"); if r.GetProxy() != "http://p" { t.Error("GetProxy") } }},
-		{"GetRedirectTimes", func() { r.RedirectTimes = 2; if r.GetRedirectTimes() != 2 { t.Error("GetRedirectTimes") } }},
-		{"GetRuleName", func() { r.SetRuleName("r1"); if r.GetRuleName() != "r1" { t.Error("GetRuleName") } }},
-		{"GetSpiderName", func() { r.SetSpiderName("sp"); if r.GetSpiderName() != "sp" { t.Error("GetSpiderName") } }},
-		{"IsReloadable", func() { r.SetReloadable(true); if !r.IsReloadable() { t.Error("IsReloadable") } }},
-		{"GetPriority", func() { r.SetPriority(3); if r.GetPriority() != 3 { t.Error("GetPriority") } }},
-		{"GetDownloaderID", func() { r.SetDownloaderID(PhantomID); if r.GetDownloaderID() != PhantomID { t.Error("GetDownloaderID") } }},
+		{"GetURL", func() {
+			r.SetURL("http://u.com")
+			if r.GetURL() != "http://u.com" {
+				t.Error("GetURL")
+			}
+		}},
+		{"GetMethod", func() {
+			r.SetMethod("post")
+			if r.GetMethod() != "POST" {
+				t.Error("GetMethod")
+			}
+		}},
+		{"GetReferer", func() {
+			r.SetReferer("http://ref")
+			if r.GetReferer() != "http://ref" {
+				t.Error("GetReferer")
+			}
+		}},
+		{"GetPostData", func() {
+			r.PostData = "p=1"
+			if r.GetPostData() != "p=1" {
+				t.Error("GetPostData")
+			}
+		}},
+		{"GetHeader", func() {
+			r.SetHeader("A", "1")
+			if r.GetHeader().Get("A") != "1" {
+				t.Error("GetHeader")
+			}
+		}},
+		{"AddHeader", func() {
+			r.AddHeader("B", "2")
+			if r.GetHeader().Get("B") != "2" {
+				t.Error("AddHeader")
+			}
+		}},
+		{"GetEnableCookie", func() {
+			r.SetEnableCookie(true)
+			if !r.GetEnableCookie() {
+				t.Error("GetEnableCookie")
+			}
+		}},
+		{"GetCookies", func() {
+			r.SetCookies("c=1")
+			if r.GetCookies() != "c=1" {
+				t.Error("GetCookies")
+			}
+		}},
+		{"GetDialTimeout", func() {
+			r.DialTimeout = 5 * time.Second
+			if r.GetDialTimeout() != 5*time.Second {
+				t.Error("GetDialTimeout")
+			}
+		}},
+		{"GetConnTimeout", func() {
+			r.ConnTimeout = 10 * time.Second
+			if r.GetConnTimeout() != 10*time.Second {
+				t.Error("GetConnTimeout")
+			}
+		}},
+		{"GetTryTimes", func() {
+			r.TryTimes = 5
+			if r.GetTryTimes() != 5 {
+				t.Error("GetTryTimes")
+			}
+		}},
+		{"GetRetryPause", func() {
+			r.RetryPause = 3 * time.Second
+			if r.GetRetryPause() != 3*time.Second {
+				t.Error("GetRetryPause")
+			}
+		}},
+		{"GetProxy", func() {
+			r.SetProxy("http://p")
+			if r.GetProxy() != "http://p" {
+				t.Error("GetProxy")
+			}
+		}},
+		{"GetRedirectTimes", func() {
+			r.RedirectTimes = 2
+			if r.GetRedirectTimes() != 2 {
+				t.Error("GetRedirectTimes")
+			}
+		}},
+		{"GetRuleName", func() {
+			r.SetRuleName("r1")
+			if r.GetRuleName() != "r1" {
+				t.Error("GetRuleName")
+			}
+		}},
+		{"GetSpiderName", func() {
+			r.SetSpiderName("sp")
+			if r.GetSpiderName() != "sp" {
+				t.Error("GetSpiderName")
+			}
+		}},
+		{"IsReloadable", func() {
+			r.SetReloadable(true)
+			if !r.IsReloadable() {
+				t.Error("IsReloadable")
+			}
+		}},
+		{"GetPriority", func() {
+			r.SetPriority(3)
+			if r.GetPriority() != 3 {
+				t.Error("GetPriority")
+			}
+		}},
+		{"GetDownloaderID", func() {
+			r.SetDownloaderID(PhantomID)
+			if r.GetDownloaderID() != PhantomID {
+				t.Error("GetDownloaderID")
+			}
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -54,7 +54,7 @@ func URLEncode(urlStr string) (*url.URL, error) {
 	return urlObj, err
 }
 
-// GetWDPath 返回工作目录路径（GOPATH）。
+// GetWDPath returns the working directory path (GOPATH).
 func GetWDPath() string {
 	wd := os.Getenv("GOPATH")
 	if wd == "" {
@@ -63,7 +63,7 @@ func GetWDPath() string {
 	return wd
 }
 
-// IsDirExists 判断路径是否为目录。
+// IsDirExists checks whether the path is a directory.
 func IsDirExists(path string) bool {
 	fi, err := os.Stat(path)
 
@@ -73,7 +73,7 @@ func IsDirExists(path string) bool {
 	return fi.IsDir()
 }
 
-// IsFileExists 判断路径是否为文件。
+// IsFileExists checks whether the path is a file.
 func IsFileExists(path string) bool {
 	fi, err := os.Stat(path)
 

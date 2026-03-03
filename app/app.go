@@ -1,7 +1,7 @@
 // app interface for graphical user interface.
 // Basic execution order: New() --> [SetLog(io.Writer) -->] Init() --> SpiderPrepare() --> Run()
 
-// Package app 提供了爬虫应用的主入口与任务调度功能。
+// Package app provides the main entry and task scheduling for the crawler application.
 package app
 
 import (
@@ -179,7 +179,7 @@ func (l *Logic) Init(mode int, port int, master string, w ...io.Writer) App {
 		logs.Log().Informational("                                                                                               !! Current run mode: [ OFFLINE ] !!")
 		return l
 	default:
-		logs.Log().Warning(" *    —— Please specify a valid run mode! ——")
+		logs.Log().Warning(" *    -- Please specify a valid run mode! --")
 		return l
 	}
 	return l
@@ -264,7 +264,7 @@ func (l *Logic) GetSpiderQueue() crawler.SpiderQueue {
 func (l *Logic) Run() {
 	l.LogGoOn()
 	if l.AppConf.Mode != status.CLIENT && l.SpiderQueue.Len() == 0 {
-		logs.Log().Warning(" *     —— Task list cannot be empty ——")
+		logs.Log().Warning(" *     -- Task list cannot be empty --")
 		l.LogRest()
 		return
 	}
@@ -367,7 +367,7 @@ func (l *Logic) server() {
 	logs.Log().Informational(" * ")
 	logs.Log().Informational(` *********************************************************************************************************************************** `)
 	logs.Log().Informational(" * ")
-	logs.Log().Informational(" *                               —— Successfully added %v tasks, %v spider rules in total ——", tasksNum, spidersNum)
+	logs.Log().Informational(" *                               -- Successfully added %v tasks, %v spider rules in total --", tasksNum, spidersNum)
 	logs.Log().Informational(" * ")
 	logs.Log().Informational(` *********************************************************************************************************************************** `)
 }
@@ -481,7 +481,7 @@ func (l *Logic) exec() {
 	logs.Log().Informational(" *     Crawler pool capacity: %v\n", crawlerCap)
 	logs.Log().Informational(" *     Max concurrent goroutines: %v\n", l.AppConf.ThreadNum)
 	logs.Log().Informational(" *     Default random pause: %v~%v ms\n", l.AppConf.Pausetime/2, l.AppConf.Pausetime*2)
-	logs.Log().App(" *                                                                                                 —— Starting crawl, please wait ——")
+	logs.Log().App(" *                                                                                                 -- Starting crawl, please wait --")
 	logs.Log().Informational(` *********************************************************************************************************************************** `)
 
 	cache.StartTime = time.Now()
@@ -547,16 +547,16 @@ func (l *Logic) goRun(count int) {
 	logs.Log().Informational(" * ")
 	switch {
 	case l.sum[0] > 0 && l.sum[1] == 0:
-		logs.Log().App(" *                            —— %sTotal collected [%v data items], crawled [success %v URL + fail %v URL = total %v URL], duration [%v] ——",
+		logs.Log().App(" *                            -- %sTotal collected [%v data items], crawled [success %v URL + fail %v URL = total %v URL], duration [%v] --",
 			prefix, l.sum[0], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), l.takeTime)
 	case l.sum[0] == 0 && l.sum[1] > 0:
-		logs.Log().App(" *                            —— %sTotal collected [%v files], crawled [success %v URL + fail %v URL = total %v URL], duration [%v] ——",
+		logs.Log().App(" *                            -- %sTotal collected [%v files], crawled [success %v URL + fail %v URL = total %v URL], duration [%v] --",
 			prefix, l.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), l.takeTime)
 	case l.sum[0] == 0 && l.sum[1] == 0:
-		logs.Log().App(" *                            —— %sNo results, crawled [success %v URL + fail %v URL = total %v URL], duration [%v] ——",
+		logs.Log().App(" *                            -- %sNo results, crawled [success %v URL + fail %v URL = total %v URL], duration [%v] --",
 			prefix, cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), l.takeTime)
 	default:
-		logs.Log().App(" *                            —— %sTotal collected [%v data items + %v files], crawled [success %v URL + fail %v URL = total %v URL], duration [%v] ——",
+		logs.Log().App(" *                            -- %sTotal collected [%v data items + %v files], crawled [success %v URL + fail %v URL = total %v URL], duration [%v] --",
 			prefix, l.sum[0], l.sum[1], cache.GetPageCount(1), cache.GetPageCount(-1), cache.GetPageCount(0), l.takeTime)
 	}
 	logs.Log().Informational(" * ")
@@ -584,7 +584,7 @@ func (l *Logic) socketLog() {
 
 func (l *Logic) checkPort() bool {
 	if l.AppConf.Port == 0 {
-		logs.Log().Warning(" *     —— Distributed port cannot be empty ——")
+		logs.Log().Warning(" *     -- Distributed port cannot be empty --")
 		return false
 	}
 	return true
@@ -592,7 +592,7 @@ func (l *Logic) checkPort() bool {
 
 func (l *Logic) checkAll() bool {
 	if l.AppConf.Master == "" || !l.checkPort() {
-		logs.Log().Warning(" *     —— Server address cannot be empty ——")
+		logs.Log().Warning(" *     -- Server address cannot be empty --")
 		return false
 	}
 	return true

@@ -1,8 +1,11 @@
 //go:build windows
 
-// [spider frame (golang)] Pholcus（幽灵蛛）是一款纯Go语言编写的高并发、分布式、重量级爬虫软件，支持单机、服务端、客户端三种运行模式，拥有Web、GUI、命令行三种操作界面；规则简单灵活、批量任务并发、输出方式丰富（mysql/mongodb/csv/excel等）、有大量Demo共享；同时她还支持横纵向两种抓取模式，支持模拟登录和任务暂停、取消等一系列高级功能；
-// （官方QQ群：Go大数据 42731170，欢迎加入我们的讨论）。
-// GUI界面版。
+// [spider frame (golang)] Pholcus (Ghost Spider) is a high-concurrency, distributed, heavyweight crawler written in pure Go.
+// It supports standalone, server, and client modes with Web, GUI, and CLI interfaces; simple flexible rules;
+// batch task concurrency; rich output formats (mysql/mongodb/csv/excel etc.); and shared demos.
+// It also supports horizontal and vertical crawling, simulated login, and advanced features like pause/cancel.
+// (Official QQ group: Go Big Data 42731170)
+// GUI package.
 package gui
 
 import (
@@ -17,14 +20,14 @@ import (
 	"github.com/andeya/pholcus/runtime/status"
 )
 
-// 执行入口
+// Run is the entry point for the GUI.
 func Run() {
 	app.LogicApp.SetAppConf("Mode", status.OFFLINE)
 
 	outputList = func() (o []declarative.RadioButton) {
-		// 设置默认选择
+		// Set default selection
 		Input.AppConf.OutType = app.LogicApp.GetOutputLib()[0]
-		// 获取输出选项
+		// Get output options
 		for _, out := range app.LogicApp.GetOutputLib() {
 			o = append(o, declarative.RadioButton{Text: out, Value: out})
 		}
@@ -41,7 +44,7 @@ func Init() {
 }
 
 func SetTaskConf() {
-	// 纠正协程数
+	// Correct goroutine count
 	if Input.ThreadNum == 0 {
 		Input.ThreadNum = 1
 	}
@@ -70,14 +73,14 @@ func SpiderNames() (names []string) {
 }
 
 func setWindow() {
-	// 绑定log输出界面
+	// Bind log output
 	lv, err := NewLogView(mw)
 	if err != nil {
 		panic(err)
 	}
 	app.LogicApp.SetLog(lv)
 	log.SetOutput(lv)
-	// 设置左上角图标
+	// Set window icon
 	if icon, err := walk.NewIconFromResourceId(3); err == nil {
 		mw.SetIcon(icon)
 	}

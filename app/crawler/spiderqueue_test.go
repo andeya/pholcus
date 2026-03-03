@@ -28,8 +28,8 @@ func TestNewSpiderQueue(t *testing.T) {
 
 func TestSpiderQueue_Add_Len_Reset(t *testing.T) {
 	tests := []struct {
-		name   string
-		adds   []*spider.Spider
+		name    string
+		adds    []*spider.Spider
 		wantLen int
 	}{
 		{"empty", nil, 0},
@@ -80,8 +80,8 @@ func TestSpiderQueue_GetByIndex_GetByIndexOpt(t *testing.T) {
 	q.Add(sp2)
 
 	tests := []struct {
-		idx    int
-		want   *spider.Spider
+		idx     int
+		want    *spider.Spider
 		optSome bool
 	}{
 		{0, sp1, true},

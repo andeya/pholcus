@@ -1,26 +1,26 @@
 package zhihu_daily
 
 import (
-	// 基础包
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
+	// base packages
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
 
-	// "github.com/andeya/pholcus/logs"           //信息输出
-	spider "github.com/andeya/pholcus/app/spider" //必需
-	// . "github.com/andeya/pholcus/app/spider/common" //选用
+	// "github.com/andeya/pholcus/logs"           // logging
+	spider "github.com/andeya/pholcus/app/spider" // required
+	// . "github.com/andeya/pholcus/app/spider/common" // optional
 
-	// net包
-	// "net/http" //设置http.Header
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	// "regexp"
 	"strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	"math"
 	"strconv"
@@ -97,17 +97,17 @@ var ZhihuDaily = &spider.Spider{
 					//headerSide := questionHeader.Find(".QuestionHeader-side")
 					headerMain := questionHeader.Find(".QuestionHeader-main")
 
-					// 获取问题标题
+					// get question title
 					title := headerMain.Find(".QuestionHeader-title").Text()
 
-					// 获取问题描述
+					// get question description
 					content := headerMain.Find(".QuestionHeader-detail span").Text()
 
 					answerMain := query.Find(".QuestionPage .Question-main")
 
 					answer, _ := answerMain.Find(".AnswerCard .QuestionAnswer-content .ContentItem .RichContent .RichContent-inner").First().Html()
 
-					// 结果存入Response中转
+					// store results in Response
 					ctx.Output(map[int]interface{}{
 						0: title,
 						1: content,
@@ -120,7 +120,7 @@ var ZhihuDaily = &spider.Spider{
 	},
 }
 
-// 将相对路径替换为绝对路径
+// replace relative paths with absolute paths
 func changeToAbspath(url string) string {
 	if strings.HasPrefix(url, "https://") {
 		return url

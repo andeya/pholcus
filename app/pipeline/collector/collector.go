@@ -50,7 +50,7 @@ func (c *Collector) CollectData(dataCell data.DataCell) (r result.VoidResult) {
 	defer func() {
 		if p := recover(); p != nil {
 			logs.Log().Error("panic recovered: %v\n%s", p, debug.Stack())
-			r = result.FmtErrVoid("输出协程已终止")
+			r = result.FmtErrVoid("output goroutine has terminated")
 		}
 	}()
 	c.DataChan <- dataCell
@@ -62,7 +62,7 @@ func (c *Collector) CollectFile(fileCell data.FileCell) (r result.VoidResult) {
 	defer func() {
 		if p := recover(); p != nil {
 			logs.Log().Error("panic recovered: %v\n%s", p, debug.Stack())
-			r = result.FmtErrVoid("输出协程已终止")
+			r = result.FmtErrVoid("output goroutine has terminated")
 		}
 	}()
 	c.FileChan <- fileCell

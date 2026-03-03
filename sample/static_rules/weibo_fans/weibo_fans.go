@@ -1,26 +1,26 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request"         //必需
-	spider "github.com/andeya/pholcus/app/spider"              //必需
-	spidercommon "github.com/andeya/pholcus/app/spider/common" //选用
-	"github.com/andeya/pholcus/common/goquery"                 //DOM解析
-	"github.com/andeya/pholcus/logs"                           //信息输出
+	"github.com/andeya/pholcus/app/downloader/request"         // required
+	spider "github.com/andeya/pholcus/app/spider"              // required
+	spidercommon "github.com/andeya/pholcus/app/spider/common" // optional
+	"github.com/andeya/pholcus/common/goquery"                 // DOM parsing
+	"github.com/andeya/pholcus/logs"                           // logging
 
-	// net包
-	"net/http" //设置http.Header
+	// net packages
+	"net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	// "regexp"
 	"strconv"
 	"strings"
-	// 其他包
+	// other packages
 	// "math"
 	// "time"
 )
@@ -143,7 +143,7 @@ var WeiboFans = &spider.Spider{
 						结果[idx] = v
 					}
 
-					// 结果输出
+					// output results
 					ctx.Output(结果)
 				},
 			},

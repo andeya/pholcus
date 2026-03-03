@@ -133,7 +133,7 @@ func TestTable_SelectAll_EmptyTableName(t *testing.T) {
 	if r.IsOk() {
 		t.Error("SelectAll() with empty tableName should return Err")
 	}
-	if !strings.Contains(r.UnwrapErr().Error(), "表名不能为空") {
+	if !strings.Contains(r.UnwrapErr().Error(), "table name cannot be empty") {
 		t.Errorf("SelectAll() err = %v", r.UnwrapErr())
 	}
 }
@@ -381,4 +381,3 @@ func TestTable_SelectAll_QueryError(t *testing.T) {
 		t.Errorf("mock: %v", err)
 	}
 }
-

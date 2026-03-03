@@ -151,7 +151,6 @@ func TestStatus(t *testing.T) {
 	}
 }
 
-
 func TestFlush(t *testing.T) {
 	bl := NewLogger(100)
 	bl.SetLogger("console", nil)
@@ -167,7 +166,6 @@ func TestClose(t *testing.T) {
 		t.Errorf("Status after Close = %v, want CLOSE", code)
 	}
 }
-
 
 func TestWriterMsgNonWork(t *testing.T) {
 	bl := NewLogger(100)
@@ -369,7 +367,6 @@ func TestSmtpAdapterInit(t *testing.T) {
 	bl.Flush()
 	bl.DelLogger("smtp")
 }
-
 
 func TestAsyncStartLogger(t *testing.T) {
 	bl := NewLogger(100)

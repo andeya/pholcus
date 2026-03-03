@@ -15,7 +15,7 @@ type Protocol struct {
 	headerLen int
 }
 
-// NewProtocol 创建协议实例，packetHeader 为数据包头部标识。
+// NewProtocol creates a protocol instance; packetHeader is the packet header identifier.
 func NewProtocol(packetHeader string) *Protocol {
 	return &Protocol{
 		header:    packetHeader,

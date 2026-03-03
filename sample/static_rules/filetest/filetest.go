@@ -1,23 +1,23 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	// "github.com/andeya/pholcus/common/goquery"                          //DOM解析
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	spider "github.com/andeya/pholcus/app/spider"      //必需
-	// . "github.com/andeya/pholcus/app/spider/common" //选用
+	// "github.com/andeya/pholcus/common/goquery"                          // DOM parsing
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	spider "github.com/andeya/pholcus/app/spider"      // required
+	// . "github.com/andeya/pholcus/app/spider/common" // optional
 	// "github.com/andeya/pholcus/logs"
-	// net包
-	// "net/http" //设置http.Header
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	//"encoding/json"
-	// 字符串处理包
+	// string processing packages
 	//"regexp"
 	// "strconv"
 	//	"strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -40,13 +40,13 @@ var FileTest = &spider.Spider{
 				URL:          "https://www.baidu.com/img/bd_logo1.png",
 				Rule:         "百度图片",
 				ConnTimeout:  -1,
-				DownloaderID: 0, //图片等多媒体文件必须使用0（surfer surf go原生下载器）
+				DownloaderID: 0, // media files must use 0 (surfer: native Go downloader)
 			})
 			ctx.AddQueue(&request.Request{
 				URL:          "https://github.com/andeya/pholcus",
 				Rule:         "Pholcus页面",
 				ConnTimeout:  -1,
-				DownloaderID: 0, //文本文件可使用0或者1（0：surfer surf go原生下载器；1：surfer plantomjs内核）
+				DownloaderID: 0, // text files can use 0 or 1 (0: surfer surf go native; 1: surfer phantomjs kernel)
 			})
 		},
 
@@ -54,12 +54,12 @@ var FileTest = &spider.Spider{
 
 			"百度图片": {
 				ParseFunc: func(ctx *spider.Context) {
-					ctx.FileOutput("baidu") // 等价于ctx.AddFile("baidu")
+					ctx.FileOutput("baidu") // equivalent to ctx.AddFile("baidu")
 				},
 			},
 			"Pholcus页面": {
 				ParseFunc: func(ctx *spider.Context) {
-					ctx.FileOutput() // 等价于ctx.AddFile()
+					ctx.FileOutput() // equivalent to ctx.AddFile()
 				},
 			},
 		},

@@ -1,26 +1,26 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request"         //必需
-	spider "github.com/andeya/pholcus/app/spider"              //必需
-	spidercommon "github.com/andeya/pholcus/app/spider/common" //选用
-	"github.com/andeya/pholcus/common/goquery"                 //DOM解析
-	"github.com/andeya/pholcus/logs"                           //信息输出
+	"github.com/andeya/pholcus/app/downloader/request"         // required
+	spider "github.com/andeya/pholcus/app/spider"              // required
+	spidercommon "github.com/andeya/pholcus/app/spider/common" // optional
+	"github.com/andeya/pholcus/common/goquery"                 // DOM parsing
+	"github.com/andeya/pholcus/logs"                           // logging
 
-	// net包
-	"net/http" //设置http.Header
+	// net packages
+	"net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	"encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	"regexp"
 	"strconv"
 	"strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -176,21 +176,21 @@ var Taobao = &spider.Spider{
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
 
-					// 商品规格参数
+					// product specification parameters
 					detail := make(map[string]string)
 
 					if li := query.Find(".attributes-list ul li"); len(li.Nodes) != 0 {
-						// 天猫店宝贝详情
+						// Tmall product detail
 						li.Each(func(i int, s *goquery.Selection) {
 							native := s.Text()
 							slice := strings.Split(native, ":&nbsp;")
-							//空格替换为分隔号“|”
+							// replace spaces with separator "|"
 							slice[1] = strings.ReplaceAll(slice[1], "&nbsp;", "&#124;")
 							detail[slice[0]] = spidercommon.UnicodeToUTF8(slice[1])
 						})
 
 					} else {
-						// 淘宝店宝贝详情
+						// Taobao product detail
 						query.Find(".attributes-list li").Each(func(i int, s *goquery.Selection) {
 							native := s.Text()
 							slice := strings.Split(native, ": ")
@@ -239,7 +239,7 @@ var Taobao = &spider.Spider{
 					currentPageNum := infos["currentPageNum"].(int)
 					maxPage := infos["maxPage"].(int)
 					if currentPageNum < maxPage {
-						// 请求下一页
+						// request next page
 						ctx.AddQueue(&request.Request{
 							Rule: "商品评论",
 							URL: "http://rate.taobao.com/feedRateList.htm?siteID=4&rateType=&orderType=sort_weight&showContent=1&userNumId=" +
@@ -251,14 +251,14 @@ var Taobao = &spider.Spider{
 							Temp: temp,
 						})
 					} else {
-						// 输出结果
+						// output results
 						ctx.Parse("结果")
 					}
 				},
 			},
 
 			"结果": {
-				//注意：有无字段语义和是否输出数据必须保持一致
+				// NOTE: field semantics and data output presence must be consistent
 				ItemFields: []string{
 					"标题",               //title
 					"原价",               //price
@@ -288,7 +288,7 @@ var Taobao = &spider.Spider{
 					"评论内容",
 				},
 				ParseFunc: func(ctx *spider.Context) {
-					// 结果存入Response中转
+					// store results in Response
 					ctx.Output(ctx.CopyTemps())
 				},
 			},
@@ -337,7 +337,7 @@ var (
 		// "中山":   "%E4%B8%AD%E5%B1%B1",
 		// "石家庄":  "%E7%9F%B3%E5%AE%B6%E5%BA%84",
 		// "哈尔滨":  "%E5%93%88%E5%B0%94%E6%BB%A8",
-		// 省级
+		// provinces
 		// "安徽":  "%E5%AE%89%E5%BE%BD",
 		// "福建":  "%E7%A6%8F%E5%BB%BA",
 		// "甘肃":  "%E7%94%98%E8%82%83",

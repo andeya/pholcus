@@ -130,7 +130,6 @@ func TestCollector_OutputData_ErrorResult(t *testing.T) {
 	c.outputData()
 }
 
-
 func TestCollector_OutputCSV(t *testing.T) {
 	tmp := t.TempDir()
 	_ = config.Conf()
@@ -150,8 +149,8 @@ func TestCollector_OutputCSV(t *testing.T) {
 	}()
 
 	sp := &spider.Spider{
-		Name:     "CSVSpider",
-		Keyin:    "",
+		Name:  "CSVSpider",
+		Keyin: "",
 		RuleTree: &spider.RuleTree{
 			Trunk: map[string]*spider.Rule{
 				"list": {ItemFields: []string{"title", "url"}},
@@ -281,7 +280,7 @@ func TestCollector_OutputExcel(t *testing.T) {
 	cache.Task.OutType = "excel"
 
 	sp := &spider.Spider{
-		Name:     "ExcelSpider",
+		Name: "ExcelSpider",
 		RuleTree: &spider.RuleTree{
 			Trunk: map[string]*spider.Rule{
 				"sheet1": {ItemFields: []string{"col1", "col2"}},

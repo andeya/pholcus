@@ -1,4 +1,4 @@
-// Package util 提供了常用的工具函数，如 MD5、随机数、路径处理等。
+// Package util provides common utility functions such as MD5, random numbers, path handling, etc.
 package util
 
 import (

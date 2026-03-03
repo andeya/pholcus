@@ -69,9 +69,9 @@ func TestCrawlerPool_Use_UseOpt_Free(t *testing.T) {
 		t.Fatal("UseOpt returned nil crawler")
 	}
 	sp := &spider.Spider{
-		Name:      "TestSpider",
-		RuleTree:  &spider.RuleTree{Trunk: map[string]*spider.Rule{}},
-		Limit:     -10,
+		Name:     "TestSpider",
+		RuleTree: &spider.RuleTree{Trunk: map[string]*spider.Rule{}},
+		Limit:    -10,
 	}
 	c.Init(sp)
 	pool.Free(c)

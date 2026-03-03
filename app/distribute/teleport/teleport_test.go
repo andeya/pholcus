@@ -127,7 +127,6 @@ func (*echoHandle) Process(receive *NetData) *NetData {
 	return ReturnData(receive.Body, receive.Operation, receive.From, receive.To)
 }
 
-
 func TestTP_CloseSpecificNode(t *testing.T) {
 	port := freePort(t)
 	portStr := ":" + port
@@ -205,4 +204,3 @@ func TestTP_GetConnAddr(t *testing.T) {
 		t.Error("getConnAddr(\"node1\") = empty")
 	}
 }
-

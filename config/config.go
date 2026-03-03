@@ -1,4 +1,4 @@
-// Package config 提供了软件配置、路径和运行参数的加载与管理功能。
+// Package config provides software configuration, path, and runtime parameter loading and management.
 package config
 
 import (
@@ -12,8 +12,8 @@ import (
 const (
 	Version  string = "v1.3.5"                                      // Version number
 	Author   string = "andeya"                                      // Author
-	Name     string = "Pholcus幽灵蛛数据采集"                              // Software name
-	FullName string = Name + "_" + Version + " （by " + Author + "）" // Full name
+	Name     string = "Pholcus Ghost Spider Data Collection"        // Software name
+	FullName string = Name + "_" + Version + " (by " + Author + ")" // Full name
 	Tag      string = "pholcus"                                     // Identifier
 )
 

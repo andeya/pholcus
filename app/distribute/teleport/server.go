@@ -45,7 +45,7 @@ retry:
 	}
 	tp.listener = listenerRes.Unwrap()
 
-	log.Printf(" *     —— Server listening (port %v) ——", tp.port)
+	log.Printf(" *     -- Server listening (port %v) --", tp.port)
 
 	for tp.listener != nil {
 		connRes := result.Ret(tp.listener.Accept())
@@ -107,7 +107,7 @@ func (tp *TP) sInitConn(conn *Connect, remoteAddr string) (nodeuid string, usabl
 			if d.Operation != IDENTITY {
 				conn.Short = true
 			} else {
-				log.Printf(" *     —— Client %v (%v) connected ——", nodeuid, remoteAddr)
+				log.Printf(" *     -- Client %v (%v) connected --", nodeuid, remoteAddr)
 			}
 			conn.Usable = true
 		}

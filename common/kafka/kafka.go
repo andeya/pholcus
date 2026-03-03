@@ -1,4 +1,4 @@
-// Package kafka 提供了 Kafka 消息队列的发送封装。
+// Package kafka provides Kafka message queue sending wrapper.
 package kafka
 
 import (
@@ -21,17 +21,17 @@ var (
 	once     sync.Once
 )
 
-// KafkaSender 向指定 topic 发送消息。
+// KafkaSender sends messages to the specified topic.
 type KafkaSender struct {
 	topic string
 }
 
-// GetProducer 返回 Kafka 同步生产者及初始化错误。
+// GetProducer returns the Kafka sync producer and initialization error.
 func GetProducer() result.Result[sarama.SyncProducer] {
 	return result.Ret(producer, err)
 }
 
-// Refresh 初始化或重连 Kafka 生产者。
+// Refresh initializes or reconnects the Kafka producer.
 func Refresh() {
 	once.Do(func() {
 		conf := sarama.NewConfig()
@@ -45,17 +45,17 @@ func Refresh() {
 	})
 }
 
-// New 创建 KafkaSender 实例。
+// New creates a KafkaSender instance.
 func New() *KafkaSender {
 	return &KafkaSender{}
 }
 
-// SetTopic 设置发送消息的 topic。
+// SetTopic sets the topic for sending messages.
 func (p *KafkaSender) SetTopic(topic string) {
 	p.topic = topic
 }
 
-// Push 将数据以 JSON 格式发送到已配置的 topic。
+// Push sends data as JSON to the configured topic.
 func (p *KafkaSender) Push(data map[string]interface{}) result.VoidResult {
 	if producer == nil {
 		return result.TryErrVoid(errors.New("kafka producer not initialized"))

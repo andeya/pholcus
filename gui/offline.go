@@ -22,7 +22,7 @@ func offlineWindow() {
 			DataSource:     Input,
 			ErrorPresenter: declarative.ErrorPresenterRef{&ep},
 		},
-		Title:   config.FullName + "                                                          【 运行模式 ->  单机 】",
+		Title:   config.FullName + "                                                          [ Run Mode -> Standalone ]",
 		MinSize: declarative.Size{1100, 700},
 		Layout:  declarative.VBox{MarginsZero: true},
 		Children: []declarative.Widget{
@@ -31,7 +31,7 @@ func offlineWindow() {
 				AssignTo: &setting,
 				Layout:   declarative.Grid{Columns: 2},
 				Children: []declarative.Widget{
-					// 任务列表
+					// Task list
 					declarative.TableView{
 						ColumnSpan:            1,
 						MinSize:               declarative.Size{550, 450},
@@ -40,8 +40,8 @@ func offlineWindow() {
 						ColumnsOrderable:      true,
 						Columns: []declarative.TableViewColumn{
 							{Title: "#", Width: 45},
-							{Title: "任务", Width: 110 /*, Format: "%.2f", Alignment: AlignFar*/},
-							{Title: "描述", Width: 370},
+							{Title: "Task", Width: 110 /*, Format: "%.2f", Alignment: AlignFar*/},
+							{Title: "Description", Width: 370},
 						},
 						Model: spiderMenu,
 					},
@@ -54,7 +54,7 @@ func offlineWindow() {
 							declarative.VSplitter{
 								Children: []declarative.Widget{
 									declarative.Label{
-										Text: "自定义配置（多任务请分别多包一层“<>”）：",
+										Text: "Custom config (wrap each task in \"<>\" for multiple tasks):",
 									},
 									declarative.LineEdit{
 										Text: declarative.Bind("Keyins"),
@@ -65,7 +65,7 @@ func offlineWindow() {
 							declarative.VSplitter{
 								Children: []declarative.Widget{
 									declarative.Label{
-										Text: "*采集上限（默认限制URL数）：",
+										Text: "*Crawl limit (default URL count):",
 									},
 									declarative.NumberEdit{
 										Value:    declarative.Bind("Limit"),
@@ -78,7 +78,7 @@ func offlineWindow() {
 							declarative.VSplitter{
 								Children: []declarative.Widget{
 									declarative.Label{
-										Text: "*并发协程：（1~99999）",
+										Text: "*Concurrency: (1~99999)",
 									},
 									declarative.NumberEdit{
 										Value:    declarative.Bind("ThreadNum", declarative.Range{1, 99999}),
@@ -91,7 +91,7 @@ func offlineWindow() {
 							declarative.VSplitter{
 								Children: []declarative.Widget{
 									declarative.Label{
-										Text: "*分批输出大小：（1~5,000,000 条数据）",
+										Text: "*Batch output size: (1~5,000,000 records)",
 									},
 									declarative.NumberEdit{
 										Value:    declarative.Bind("BatchCap", declarative.Range{1, 5000000}),
@@ -104,7 +104,7 @@ func offlineWindow() {
 							declarative.VSplitter{
 								Children: []declarative.Widget{
 									declarative.Label{
-										Text: "*暂停时长参考:",
+										Text: "*Pause duration reference:",
 									},
 									declarative.ComboBox{
 										Value:         declarative.Bind("Pausetime", declarative.SelRequired{}),
@@ -118,7 +118,7 @@ func offlineWindow() {
 							declarative.VSplitter{
 								Children: []declarative.Widget{
 									declarative.Label{
-										Text: "*代理IP更换频率:",
+										Text: "*Proxy rotation interval:",
 									},
 									declarative.ComboBox{
 										Value:         declarative.Bind("ProxyMinute", declarative.SelRequired{}),
@@ -131,7 +131,7 @@ func offlineWindow() {
 
 							declarative.RadioButtonGroupBox{
 								ColumnSpan: 1,
-								Title:      "*输出方式",
+								Title:      "*Output type",
 								Layout:     declarative.HBox{},
 								DataMember: "OutType",
 								Buttons:    outputList,
@@ -146,7 +146,7 @@ func offlineWindow() {
 				Children: []declarative.Widget{
 					declarative.VSplitter{
 						Children: []declarative.Widget{
-							// 必填项错误检查
+							// Required field validation
 							declarative.LineErrorPresenter{
 								AssignTo: &ep,
 							},
@@ -157,7 +157,7 @@ func offlineWindow() {
 						MaxSize: declarative.Size{220, 50},
 						Children: []declarative.Widget{
 							declarative.Label{
-								Text: "继承并保存成功记录",
+								Text: "Inherit success records",
 							},
 							declarative.CheckBox{
 								Checked: declarative.Bind("SuccessInherit"),
@@ -169,7 +169,7 @@ func offlineWindow() {
 						MaxSize: declarative.Size{220, 50},
 						Children: []declarative.Widget{
 							declarative.Label{
-								Text: "继承并保存失败记录",
+								Text: "Inherit failure records",
 							},
 							declarative.CheckBox{
 								Checked: declarative.Bind("FailureInherit"),
@@ -181,7 +181,7 @@ func offlineWindow() {
 						MaxSize: declarative.Size{90, 50},
 						Children: []declarative.Widget{
 							declarative.PushButton{
-								Text:      "暂停/恢复",
+								Text:      "Pause/Resume",
 								AssignTo:  &pauseRecoverBtn,
 								OnClicked: offlinePauseRecover,
 							},
@@ -191,7 +191,7 @@ func offlineWindow() {
 						MaxSize: declarative.Size{90, 50},
 						Children: []declarative.Widget{
 							declarative.PushButton{
-								Text:      "开始运行",
+								Text:      "Start",
 								AssignTo:  &runStopBtn,
 								OnClicked: offlineRunStop,
 							},
@@ -208,32 +208,32 @@ func offlineWindow() {
 
 	pauseRecoverBtn.SetVisible(false)
 
-	// 初始化应用
+	// Initialize app
 	Init()
 
-	// 运行窗体程序
+	// Run window
 	mw.Run()
 }
 
-// 暂停\恢复
+// Pause/Resume task
 func offlinePauseRecover() {
 	switch app.LogicApp.Status() {
 	case status.RUN:
-		pauseRecoverBtn.SetText("恢复运行")
+		pauseRecoverBtn.SetText("Resume")
 	case status.PAUSE:
-		pauseRecoverBtn.SetText("暂停")
+		pauseRecoverBtn.SetText("Pause")
 	}
 	app.LogicApp.PauseRecover()
 }
 
-// 开始\停止控制
+// Start/Stop control
 func offlineRunStop() {
 	if !app.LogicApp.IsStopped() {
 		go func() {
 			runStopBtn.SetEnabled(false)
-			runStopBtn.SetText("停止中…")
+			runStopBtn.SetText("Stopping…")
 			pauseRecoverBtn.SetVisible(false)
-			pauseRecoverBtn.SetText("暂停")
+			pauseRecoverBtn.SetText("Pause")
 			app.LogicApp.Stop()
 			offlineResetBtn()
 		}()
@@ -245,29 +245,29 @@ func offlineRunStop() {
 		return
 	}
 
-	// 读取任务
+	// Read tasks
 	Input.Spiders = spiderMenu.GetChecked()
 
-	runStopBtn.SetText("停止")
+	runStopBtn.SetText("Stop")
 
-	// 记录配置信息
+	// Save config
 	SetTaskConf()
 
-	// 更新蜘蛛队列
+	// Update spider queue
 	SpiderPrepare()
 
 	go func() {
-		pauseRecoverBtn.SetText("暂停")
+		pauseRecoverBtn.SetText("Pause")
 		pauseRecoverBtn.SetVisible(true)
 		app.LogicApp.Run()
 		offlineResetBtn()
 		pauseRecoverBtn.SetVisible(false)
-		pauseRecoverBtn.SetText("暂停")
+		pauseRecoverBtn.SetText("Pause")
 	}()
 }
 
-// Offline 模式下按钮状态控制
+// Reset button state in offline mode
 func offlineResetBtn() {
 	runStopBtn.SetEnabled(true)
-	runStopBtn.SetText("开始运行")
+	runStopBtn.SetText("Start")
 }

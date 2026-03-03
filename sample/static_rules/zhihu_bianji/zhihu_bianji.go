@@ -1,26 +1,26 @@
 package zhihu_bianji
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	spider "github.com/andeya/pholcus/app/spider"      //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	spider "github.com/andeya/pholcus/app/spider"      // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
 
-	// . "github.com/andeya/pholcus/app/spider/common"    //选用
-	//"github.com/andeya/pholcus/logs" //信息输出
+	// . "github.com/andeya/pholcus/app/spider/common"    // optional
+	//"github.com/andeya/pholcus/logs" // logging
 
-	// net包
-	"net/http" //设置http.Header
+	// net packages
+	"net/http" // set http.Header
 	"net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	"encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	//"strconv"
 
-	// 其他包
+	// other packages
 	// "fmt"
 	// "time"
 	//"strconv"
@@ -152,17 +152,17 @@ var ZhihuBianji = &spider.Spider{
 					//headerSide := questionHeader.Find(".QuestionHeader-side")
 					headerMain := questionHeader.Find(".QuestionHeader-main")
 
-					// 获取问题标题
+					// get question title
 					title := headerMain.Find(".QuestionHeader-title").Text()
 
-					// 获取问题描述
+					// get question description
 					content := headerMain.Find(".QuestionHeader-detail span").Text()
 
 					answerMain := query.Find(".QuestionPage .Question-main")
 
 					answer, _ := answerMain.Find(".AnswerCard .QuestionAnswer-content .ContentItem .RichContent .RichContent-inner").First().Html()
 
-					// 结果存入Response中转
+					// store results in Response
 					ctx.Output(map[int]interface{}{
 						0: title,
 						1: content,
@@ -180,13 +180,13 @@ var ZhihuBianji = &spider.Spider{
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
 
-					// 获取问题标题
+					// get question title
 					title, _ := query.Find(".PostIndex-title.av-paddingSide.av-titleFont").Html()
 
-					// 获取问题描述
+					// get question description
 					content, _ := query.Find(".RichText.PostIndex-content.av-paddingSide.av-card").Html()
 
-					// 结果存入Response中转
+					// store results in Response
 					ctx.Output(map[int]interface{}{
 						0: title,
 						1: content,
@@ -198,7 +198,7 @@ var ZhihuBianji = &spider.Spider{
 	},
 }
 
-// 将相对路径替换为绝对路径
+// convert relative path to absolute path
 func changeToAbspath(url string) string {
 	if strings.HasPrefix(url, "https://") {
 		return url
@@ -206,7 +206,7 @@ func changeToAbspath(url string) string {
 	return "https://www.zhihu.com" + url
 }
 
-// 判断是用户回答的问题，还是知乎专栏作家书写的文章
+// determine if URL is user answer or zhihu column article
 func filterZhihuAnswerURL(url string) bool {
 	return regexp.MustCompile(`^https:\/\/www\.zhihu\.com\/question\/\d{1,}(\/answer\/\d{1,})?$`).MatchString(url)
 }

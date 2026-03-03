@@ -1,4 +1,4 @@
-// Package mgo 提供了 MongoDB 数据库连接和操作封装。
+// Package mgo provides MongoDB database connection and operation wrapper.
 package mgo
 
 import (
@@ -40,7 +40,7 @@ type (
 	}
 )
 
-// MgoSrc 封装 MongoDB 会话，用于连接池。
+// MgoSrc wraps MongoDB session for connection pool.
 type MgoSrc struct {
 	*mgo.Session
 }
@@ -154,7 +154,7 @@ func getPool() pool.Pool {
 	return lazyPool.TryGetValue().Unwrap()
 }
 
-// Refresh 重新建立 MongoDB 连接。
+// Refresh re-establishes MongoDB connection.
 func Refresh() {
 	session, err = mgo.Dial(config.Conf().Mgo.ConnStr)
 	if err != nil {

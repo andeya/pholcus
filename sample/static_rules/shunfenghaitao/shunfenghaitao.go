@@ -1,27 +1,27 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
 
-	// "github.com/andeya/pholcus/logs"              //信息输出
-	spider "github.com/andeya/pholcus/app/spider" //必需
-	// . "github.com/andeya/pholcus/app/spider/common" //选用
+	// "github.com/andeya/pholcus/logs"              // logging
+	spider "github.com/andeya/pholcus/app/spider" // required
+	// . "github.com/andeya/pholcus/app/spider/common" // optional
 
-	// net包
-	// "net/http" //设置http.Header
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	"regexp"
 	// "strconv"
 	// "strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -31,7 +31,7 @@ func init() {
 	Shunfenghaitao.Register()
 }
 
-// 进口母婴专区，买进口奶粉、尿裤尿布、辅食、营养、洗护、日用、母婴用品  - 顺丰海淘
+// Imported maternal and infant products section - formula, diapers, baby food, nutrition, care, daily use - Shunfeng Haitao
 var Shunfenghaitao = &spider.Spider{
 	Name:        "顺丰海淘",
 	Description: "顺丰海淘商品数据 [Auto Page] [www.sfht.com]",
@@ -80,7 +80,7 @@ var Shunfenghaitao = &spider.Spider{
 			},
 
 			"商品详情": {
-				//注意：有无字段语义和是否输出数据必须保持一致
+				// NOTE: field semantics and data output presence must be consistent
 				ItemFields: []string{
 					"标题",
 					"品牌",
@@ -91,21 +91,21 @@ var Shunfenghaitao = &spider.Spider{
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
 
-					// 获取标题
+					// get title
 					title := query.Find("#titleInfo h1").Text()
 
-					// 获取品牌
+					// get brand
 					brand := query.Find(".goods-c2 ul").Eq(0).Find("li").Eq(2).Text()
 					re := regexp.MustCompile(`品 牌`)
 					brand = re.ReplaceAllString(brand, "")
 
-					// 获取原产地
+					// get origin
 					from1 := query.Find("#detailattributes li").Eq(0).Text()
 
-					// 获取货源地
+					// get supply source
 					from2 := query.Find("#detailattributes li").Eq(1).Text()
 
-					// 结果存入Response中转
+					// store results in Response
 					ctx.Output(map[int]interface{}{
 						0: title,
 						1: brand,

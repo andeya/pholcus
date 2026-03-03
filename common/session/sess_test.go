@@ -88,7 +88,7 @@ func TestDecodeGobInvalid(t *testing.T) {
 
 func TestRandomCreateBytes(t *testing.T) {
 	tests := []struct {
-		n        int
+		n         int
 		alphabets []byte
 	}{
 		{10, nil},

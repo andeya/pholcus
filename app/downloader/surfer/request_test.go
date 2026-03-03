@@ -15,57 +15,112 @@ func TestDefaultRequestPrepare(t *testing.T) {
 		{
 			name: "default method",
 			req:  &DefaultRequest{URL: "http://a.com"},
-			chk:  func(t *testing.T, r *DefaultRequest) { r.GetURL(); if r.GetMethod() != DefaultMethod { t.Errorf("Method = %q", r.GetMethod()) } },
+			chk: func(t *testing.T, r *DefaultRequest) {
+				r.GetURL()
+				if r.GetMethod() != DefaultMethod {
+					t.Errorf("Method = %q", r.GetMethod())
+				}
+			},
 		},
 		{
 			name: "default dial timeout",
 			req:  &DefaultRequest{URL: "http://a.com"},
-			chk:  func(t *testing.T, r *DefaultRequest) { r.GetURL(); if r.GetDialTimeout() != DefaultDialTimeout { t.Errorf("DialTimeout = %v", r.GetDialTimeout()) } },
+			chk: func(t *testing.T, r *DefaultRequest) {
+				r.GetURL()
+				if r.GetDialTimeout() != DefaultDialTimeout {
+					t.Errorf("DialTimeout = %v", r.GetDialTimeout())
+				}
+			},
 		},
 		{
 			name: "default conn timeout",
 			req:  &DefaultRequest{URL: "http://a.com"},
-			chk:  func(t *testing.T, r *DefaultRequest) { r.GetURL(); if r.GetConnTimeout() != DefaultConnTimeout { t.Errorf("ConnTimeout = %v", r.GetConnTimeout()) } },
+			chk: func(t *testing.T, r *DefaultRequest) {
+				r.GetURL()
+				if r.GetConnTimeout() != DefaultConnTimeout {
+					t.Errorf("ConnTimeout = %v", r.GetConnTimeout())
+				}
+			},
 		},
 		{
 			name: "default try times",
 			req:  &DefaultRequest{URL: "http://a.com"},
-			chk:  func(t *testing.T, r *DefaultRequest) { r.GetURL(); if r.GetTryTimes() != DefaultTryTimes { t.Errorf("TryTimes = %v", r.GetTryTimes()) } },
+			chk: func(t *testing.T, r *DefaultRequest) {
+				r.GetURL()
+				if r.GetTryTimes() != DefaultTryTimes {
+					t.Errorf("TryTimes = %v", r.GetTryTimes())
+				}
+			},
 		},
 		{
 			name: "default retry pause",
 			req:  &DefaultRequest{URL: "http://a.com"},
-			chk:  func(t *testing.T, r *DefaultRequest) { r.GetURL(); if r.GetRetryPause() != DefaultRetryPause { t.Errorf("RetryPause = %v", r.GetRetryPause()) } },
+			chk: func(t *testing.T, r *DefaultRequest) {
+				r.GetURL()
+				if r.GetRetryPause() != DefaultRetryPause {
+					t.Errorf("RetryPause = %v", r.GetRetryPause())
+				}
+			},
 		},
 		{
 			name: "negative dial timeout",
 			req:  &DefaultRequest{URL: "http://a.com", DialTimeout: -1},
-			chk:  func(t *testing.T, r *DefaultRequest) { r.GetURL(); if r.GetDialTimeout() != 0 { t.Errorf("DialTimeout = %v", r.GetDialTimeout()) } },
+			chk: func(t *testing.T, r *DefaultRequest) {
+				r.GetURL()
+				if r.GetDialTimeout() != 0 {
+					t.Errorf("DialTimeout = %v", r.GetDialTimeout())
+				}
+			},
 		},
 		{
 			name: "negative conn timeout",
 			req:  &DefaultRequest{URL: "http://a.com", ConnTimeout: -1},
-			chk:  func(t *testing.T, r *DefaultRequest) { r.GetURL(); if r.GetConnTimeout() != 0 { t.Errorf("ConnTimeout = %v", r.GetConnTimeout()) } },
+			chk: func(t *testing.T, r *DefaultRequest) {
+				r.GetURL()
+				if r.GetConnTimeout() != 0 {
+					t.Errorf("ConnTimeout = %v", r.GetConnTimeout())
+				}
+			},
 		},
 		{
 			name: "method uppercase",
 			req:  &DefaultRequest{URL: "http://a.com", Method: "get"},
-			chk:  func(t *testing.T, r *DefaultRequest) { r.GetURL(); if r.GetMethod() != "GET" { t.Errorf("Method = %q", r.GetMethod()) } },
+			chk: func(t *testing.T, r *DefaultRequest) {
+				r.GetURL()
+				if r.GetMethod() != "GET" {
+					t.Errorf("Method = %q", r.GetMethod())
+				}
+			},
 		},
 		{
 			name: "PhantomJsID preserved",
 			req:  &DefaultRequest{URL: "http://a.com", DownloaderID: PhantomJsID},
-			chk:  func(t *testing.T, r *DefaultRequest) { r.GetURL(); if r.GetDownloaderID() != PhantomJsID { t.Errorf("DownloaderID = %v", r.GetDownloaderID()) } },
+			chk: func(t *testing.T, r *DefaultRequest) {
+				r.GetURL()
+				if r.GetDownloaderID() != PhantomJsID {
+					t.Errorf("DownloaderID = %v", r.GetDownloaderID())
+				}
+			},
 		},
 		{
 			name: "ChromeID preserved",
 			req:  &DefaultRequest{URL: "http://a.com", DownloaderID: ChromeID},
-			chk:  func(t *testing.T, r *DefaultRequest) { r.GetURL(); if r.GetDownloaderID() != ChromeID { t.Errorf("DownloaderID = %v", r.GetDownloaderID()) } },
+			chk: func(t *testing.T, r *DefaultRequest) {
+				r.GetURL()
+				if r.GetDownloaderID() != ChromeID {
+					t.Errorf("DownloaderID = %v", r.GetDownloaderID())
+				}
+			},
 		},
 		{
 			name: "invalid DownloaderID defaults to SurfID",
 			req:  &DefaultRequest{URL: "http://a.com", DownloaderID: 99},
-			chk:  func(t *testing.T, r *DefaultRequest) { r.GetURL(); if r.GetDownloaderID() != SurfID { t.Errorf("DownloaderID = %v", r.GetDownloaderID()) } },
+			chk: func(t *testing.T, r *DefaultRequest) {
+				r.GetURL()
+				if r.GetDownloaderID() != SurfID {
+					t.Errorf("DownloaderID = %v", r.GetDownloaderID())
+				}
+			},
 		},
 	}
 	for _, tt := range tests {

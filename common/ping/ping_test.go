@@ -15,13 +15,13 @@ import (
 
 type emptyBody struct{}
 
-func (*emptyBody) Len() int                    { return 0 }
-func (*emptyBody) Marshal() ([]byte, error)    { return nil, nil }
+func (*emptyBody) Len() int                 { return 0 }
+func (*emptyBody) Marshal() ([]byte, error) { return nil, nil }
 
 type errorBody struct{}
 
-func (*errorBody) Len() int                    { return 4 }
-func (*errorBody) Marshal() ([]byte, error)    { return nil, errors.New("marshal error") }
+func (*errorBody) Len() int                 { return 4 }
+func (*errorBody) Marshal() ([]byte, error) { return nil, errors.New("marshal error") }
 
 func TestPing(t *testing.T) {
 	t.Log(Ping("www.baidu.com", 5))

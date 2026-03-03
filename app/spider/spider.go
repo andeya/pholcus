@@ -18,7 +18,7 @@ var ErrForcedStop = errors.New("forced stop")
 const (
 	KEYIN       = util.USE_KEYIN // rules that use Spider.Keyin must set its initial value to USE_KEYIN
 	LIMIT       = math.MaxInt64  // rules that customize Limit must set its initial value to LIMIT
-	FORCED_STOP = "——主动终止Spider——"
+	FORCED_STOP = "-- Forced stop of Spider --"
 )
 
 type (

@@ -25,7 +25,7 @@ func serverWindow() {
 			DataSource:     Input,
 			ErrorPresenter: declarative.ErrorPresenterRef{ErrorPresenter: &ep},
 		},
-		Title:   config.FullName + "                                                          【 运行模式 -> 服务器 】",
+		Title:   config.FullName + "                                                          [ Run Mode -> Server ]",
 		MinSize: declarative.Size{Width: 1100, Height: 700},
 		Layout:  declarative.VBox{MarginsZero: true},
 		Children: []declarative.Widget{
@@ -34,7 +34,7 @@ func serverWindow() {
 				AssignTo: &setting,
 				Layout:   declarative.Grid{Columns: 2},
 				Children: []declarative.Widget{
-					// 任务列表
+					// Task list
 					declarative.TableView{
 						ColumnSpan:            1,
 						MinSize:               declarative.Size{Width: 550, Height: 450},
@@ -43,8 +43,8 @@ func serverWindow() {
 						ColumnsOrderable:      true,
 						Columns: []declarative.TableViewColumn{
 							{Title: "#", Width: 45},
-							{Title: "任务", Width: 110 /*, Format: "%.2f", Alignment: AlignFar*/},
-							{Title: "描述", Width: 370},
+							{Title: "Task", Width: 110 /*, Format: "%.2f", Alignment: AlignFar*/},
+							{Title: "Description", Width: 370},
 						},
 						Model: spiderMenu,
 					},
@@ -57,7 +57,7 @@ func serverWindow() {
 							declarative.VSplitter{
 								Children: []declarative.Widget{
 									declarative.Label{
-										Text: "自定义配置（多任务请分别多包一层“<>”）",
+										Text: "Custom config (wrap each task in \"<>\" for multiple tasks)",
 									},
 									declarative.LineEdit{
 										Text: declarative.Bind("Keyins"),
@@ -68,7 +68,7 @@ func serverWindow() {
 							declarative.VSplitter{
 								Children: []declarative.Widget{
 									declarative.Label{
-										Text: "*采集上限（默认限制URL数）：",
+										Text: "*Crawl limit (default URL count):",
 									},
 									declarative.NumberEdit{
 										Value:    declarative.Bind("Limit"),
@@ -81,7 +81,7 @@ func serverWindow() {
 							declarative.VSplitter{
 								Children: []declarative.Widget{
 									declarative.Label{
-										Text: "*并发协程：（1~99999）",
+										Text: "*Concurrency: (1~99999)",
 									},
 									declarative.NumberEdit{
 										Value:    declarative.Bind("ThreadNum", declarative.Range{1, 99999}),
@@ -94,7 +94,7 @@ func serverWindow() {
 							declarative.VSplitter{
 								Children: []declarative.Widget{
 									declarative.Label{
-										Text: "*分批输出大小：（1~5,000,000 条数据）",
+										Text: "*Batch output size: (1~5,000,000 records)",
 									},
 									declarative.NumberEdit{
 										Value:    declarative.Bind("BatchCap", declarative.Range{1, 5000000}),
@@ -107,7 +107,7 @@ func serverWindow() {
 							declarative.VSplitter{
 								Children: []declarative.Widget{
 									declarative.Label{
-										Text: "*暂停时长参考:",
+										Text: "*Pause duration reference:",
 									},
 									declarative.ComboBox{
 										Value:         declarative.Bind("Pausetime", declarative.SelRequired{}),
@@ -121,7 +121,7 @@ func serverWindow() {
 							declarative.VSplitter{
 								Children: []declarative.Widget{
 									declarative.Label{
-										Text: "*代理IP更换频率:",
+										Text: "*Proxy rotation interval:",
 									},
 									declarative.ComboBox{
 										Value:         declarative.Bind("ProxyMinute", declarative.SelRequired{}),
@@ -134,7 +134,7 @@ func serverWindow() {
 
 							declarative.RadioButtonGroupBox{
 								ColumnSpan: 1,
-								Title:      "*输出方式",
+								Title:      "*Output type",
 								Layout:     declarative.HBox{},
 								DataMember: "OutType",
 								Buttons:    outputList,
@@ -148,7 +148,7 @@ func serverWindow() {
 				Layout: declarative.HBox{},
 				Children: []declarative.Widget{
 
-					// 必填项错误检查
+					// Required field validation
 					declarative.LineErrorPresenter{
 						AssignTo: &ep,
 					},
@@ -157,7 +157,7 @@ func serverWindow() {
 						MaxSize: declarative.Size{220, 50},
 						Children: []declarative.Widget{
 							declarative.Label{
-								Text: "继承并保存成功记录",
+								Text: "Inherit success records",
 							},
 							declarative.CheckBox{
 								Checked: declarative.Bind("SuccessInherit"),
@@ -169,7 +169,7 @@ func serverWindow() {
 						MaxSize: declarative.Size{220, 50},
 						Children: []declarative.Widget{
 							declarative.Label{
-								Text: "继承并保存失败记录",
+								Text: "Inherit failure records",
 							},
 							declarative.CheckBox{
 								Checked: declarative.Bind("FailureInherit"),
@@ -192,38 +192,38 @@ func serverWindow() {
 
 	setWindow()
 
-	// 初始化应用
+	// Initialize app
 	Init()
 
-	// 运行窗体程序
+	// Run window
 	mw.Run()
 }
 
-// 点击开始事件
+// Start button click handler
 func serverStart() {
 	if err := db.Submit(); err != nil {
 		logs.Log().Error("%v", err)
 		return
 	}
 
-	// 读取任务
+	// Read tasks
 	Input.Spiders = spiderMenu.GetChecked()
 
 	if len(Input.Spiders) == 0 {
-		logs.Log().Warning(" *     —— 亲，任务列表不能为空哦~")
+		logs.Log().Warning(" *     Task list cannot be empty")
 		return
 	}
 
-	// 记录配置信息
+	// Save config
 	SetTaskConf()
 
 	runStopBtn.SetEnabled(false)
-	runStopBtn.SetText("分发任务 (···)")
+	runStopBtn.SetText("Dispatch tasks (···)")
 
-	// 重置spiders队列
+	// Reset spider queue
 	SpiderPrepare()
 
-	// 生成分发任务
+	// Dispatch tasks
 	app.LogicApp.Run()
 
 	serverCount++
@@ -232,7 +232,7 @@ func serverStart() {
 	runStopBtn.SetEnabled(true)
 }
 
-// 更新按钮文字
+// Update button text
 func serverBtnTxt() string {
-	return "分发任务 (" + strconv.Itoa(serverCount) + ")"
+	return "Dispatch tasks (" + strconv.Itoa(serverCount) + ")"
 }

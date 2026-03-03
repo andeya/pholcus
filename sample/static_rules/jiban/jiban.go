@@ -2,22 +2,22 @@ package rules
 
 import (
 	"github.com/andeya/pholcus/app/downloader/request"
-	spider "github.com/andeya/pholcus/app/spider" //必需
+	spider "github.com/andeya/pholcus/app/spider" // required
 	"github.com/andeya/pholcus/common/goquery"
 
-	// net包
-	//	"net/http" //设置http.Header
+	// net packages
+	//	"net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	"strconv"
 	"strings"
 	// "regexp"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"

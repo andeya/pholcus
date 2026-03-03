@@ -16,8 +16,8 @@ func makeReq(url, rule string) *request.Request {
 
 func TestInit(t *testing.T) {
 	tests := []struct {
-		name       string
-		threadNum  int
+		name        string
+		threadNum   int
 		proxyMinute int64
 	}{
 		{"basic", 4, 0},
@@ -33,11 +33,11 @@ func TestInit(t *testing.T) {
 func TestAddMatrix(t *testing.T) {
 	Init(4, 0)
 	tests := []struct {
-		name         string
-		spiderName   string
-		spiderSub    string
-		maxPage      int64
-		wantNotNil   bool
+		name       string
+		spiderName string
+		spiderSub  string
+		maxPage    int64
+		wantNotNil bool
 	}{
 		{"basic", "sp1", "", -10, true},
 		{"with_sub", "sp2", "sub1", -1, true},

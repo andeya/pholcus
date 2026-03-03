@@ -41,9 +41,9 @@ func init() {
 					row.AddCell().Value = title
 				}
 				if col.Spider.OutDefaultField() {
-					row.AddCell().Value = "当前链接"
-					row.AddCell().Value = "上级链接"
-					row.AddCell().Value = "下载时间"
+					row.AddCell().Value = "Url"
+					row.AddCell().Value = "ParentUrl"
+					row.AddCell().Value = "DownloadTime"
 				}
 			}
 

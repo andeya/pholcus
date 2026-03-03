@@ -11,7 +11,7 @@ import (
 	"github.com/andeya/pholcus/runtime/status"
 )
 
-// GUI输入
+// InputConfig holds GUI input.
 type InputConfig struct {
 	Spiders []*model.GUISpider
 	*cache.AppConf
@@ -38,55 +38,55 @@ var Input = &InputConfig{
 	ProxyMinute: cache.Task.ProxyMinute,
 }
 
-//****************************************GUI内容显示配置*******************************************\\
+//****************************************GUI display config*******************************************\\
 
-// 输出选项
+// Output options
 var outputList []declarative.RadioButton
 
-// 下拉菜单辅助结构体
+// KV is a key-value helper for dropdown menus.
 type KV struct {
 	Key   string
 	Int   int
 	Int64 int64
 }
 
-// 暂停时间选项及运行模式选项
+// GuiOpt holds pause time and run mode options.
 var GuiOpt = struct {
 	Mode        []*KV
 	Pausetime   []*KV
 	ProxyMinute []*KV
 }{
 	Mode: []*KV{
-		{Key: "单机", Int: status.OFFLINE},
-		{Key: "服务器", Int: status.SERVER},
-		{Key: "客户端", Int: status.CLIENT},
+		{Key: "Standalone", Int: status.OFFLINE},
+		{Key: "Server", Int: status.SERVER},
+		{Key: "Client", Int: status.CLIENT},
 	},
 	Pausetime: []*KV{
-		{Key: "无暂停", Int64: 0},
-		{Key: "0.1 秒", Int64: 100},
-		{Key: "0.3 秒", Int64: 300},
-		{Key: "0.5 秒", Int64: 500},
-		{Key: "1 秒", Int64: 1000},
-		{Key: "3 秒", Int64: 3000},
-		{Key: "5 秒", Int64: 5000},
-		{Key: "10 秒", Int64: 10000},
-		{Key: "15 秒", Int64: 15000},
-		{Key: "20 秒", Int64: 20000},
-		{Key: "30 秒", Int64: 30000},
-		{Key: "60 秒", Int64: 60000},
+		{Key: "No pause", Int64: 0},
+		{Key: "0.1 sec", Int64: 100},
+		{Key: "0.3 sec", Int64: 300},
+		{Key: "0.5 sec", Int64: 500},
+		{Key: "1 sec", Int64: 1000},
+		{Key: "3 sec", Int64: 3000},
+		{Key: "5 sec", Int64: 5000},
+		{Key: "10 sec", Int64: 10000},
+		{Key: "15 sec", Int64: 15000},
+		{Key: "20 sec", Int64: 20000},
+		{Key: "30 sec", Int64: 30000},
+		{Key: "60 sec", Int64: 60000},
 	},
 	ProxyMinute: []*KV{
-		{Key: "不使用代理", Int64: 0},
-		{Key: "1 分钟", Int64: 1},
-		{Key: "3 分钟", Int64: 3},
-		{Key: "5 分钟", Int64: 5},
-		{Key: "10 分钟", Int64: 10},
-		{Key: "15 分钟", Int64: 15},
-		{Key: "20 分钟", Int64: 20},
-		{Key: "30 分钟", Int64: 30},
-		{Key: "45 分钟", Int64: 45},
-		{Key: "60 分钟", Int64: 60},
-		{Key: "120 分钟", Int64: 120},
-		{Key: "180 分钟", Int64: 180},
+		{Key: "No proxy", Int64: 0},
+		{Key: "1 min", Int64: 1},
+		{Key: "3 min", Int64: 3},
+		{Key: "5 min", Int64: 5},
+		{Key: "10 min", Int64: 10},
+		{Key: "15 min", Int64: 15},
+		{Key: "20 min", Int64: 20},
+		{Key: "30 min", Int64: 30},
+		{Key: "45 min", Int64: 45},
+		{Key: "60 min", Int64: 60},
+		{Key: "120 min", Int64: 120},
+		{Key: "180 min", Int64: 180},
 	},
 }

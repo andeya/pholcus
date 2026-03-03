@@ -230,11 +230,11 @@ func tplData(mode int) map[string]interface{} {
 
 	switch mode {
 	case status.OFFLINE:
-		info["title"] = config.FullName + "                                                          【 运行模式 ->  单机 】"
+		info["title"] = config.FullName + "                                                          [ Run Mode -> Standalone ]"
 	case status.SERVER:
-		info["title"] = config.FullName + "                                                          【 运行模式 ->  服务端 】"
+		info["title"] = config.FullName + "                                                          [ Run Mode -> Server ]"
 	case status.CLIENT:
-		info["title"] = config.FullName + "                                                          【 运行模式 ->  客户端 】"
+		info["title"] = config.FullName + "                                                          [ Run Mode -> Client ]"
 	}
 
 	if mode == status.CLIENT {

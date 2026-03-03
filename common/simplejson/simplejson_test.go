@@ -28,9 +28,9 @@ func TestVersion(t *testing.T) {
 
 func TestNewJson(t *testing.T) {
 	tests := []struct {
-		name    string
-		body    []byte
-		wantOk  bool
+		name   string
+		body   []byte
+		wantOk bool
 	}{
 		{"valid", []byte(sampleJSON), true},
 		{"empty object", []byte(`{}`), true},

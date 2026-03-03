@@ -1,26 +1,26 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	// "github.com/andeya/pholcus/common/goquery" //DOM解析
-	"github.com/andeya/pholcus/app/downloader/request"         //必需
-	spider "github.com/andeya/pholcus/app/spider"              //必需
-	spidercommon "github.com/andeya/pholcus/app/spider/common" //选用
-	"github.com/andeya/pholcus/logs"                           //信息输出
+	// "github.com/andeya/pholcus/common/goquery" // DOM parsing
+	"github.com/andeya/pholcus/app/downloader/request"         // required
+	spider "github.com/andeya/pholcus/app/spider"              // required
+	spidercommon "github.com/andeya/pholcus/app/spider/common" // optional
+	"github.com/andeya/pholcus/logs"                           // logging
 
-	// net包
-	// "net/http" //设置http.Header
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	"encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	"regexp"
 	"strconv"
 	"strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -81,9 +81,9 @@ var TaobaoSearch = &spider.Spider{
 					}
 
 					logs.Log().Critical(" ********************** 淘宝关键词 [%v] 的搜索结果共有 %v 页，计划抓取 %v 页 **********************", ctx.GetKeyin(), maxPage, ctx.GetLimit())
-					// 调用指定规则下辅助函数
+					// call helper function under specified rule
 					ctx.Aid(map[string]interface{}{"loop": [2]int{1, ctx.GetLimit()}, "Rule": "搜索结果"})
-					// 用指定规则解析响应流
+					// parse response with specified rule
 					ctx.Parse("搜索结果")
 				},
 			},
@@ -134,7 +134,7 @@ var TaobaoSearch = &spider.Spider{
 				},
 			},
 			"商品详情": {
-				//注意：有无字段语义和是否输出数据必须保持一致
+				// NOTE: field semantics and data output presence must be consistent
 				ItemFields: []string{
 					"标题",
 					"价格",
@@ -160,10 +160,10 @@ var TaobaoSearch = &spider.Spider{
 								continue
 							}
 							feild := strings.Split(v, ":")
-							// 去除英文空格
+							// trim English spaces
 							// feild[0] = strings.Trim(feild[0], " ")
 							// feild[1] = strings.Trim(feild[1], " ")
-							// 去除中文空格
+							// trim Chinese spaces
 							feild[0] = strings.Trim(feild[0], " ")
 							feild[1] = strings.Trim(feild[1], " ")
 

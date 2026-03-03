@@ -18,7 +18,7 @@ func clientWindow() {
 			DataSource:     Input,
 			ErrorPresenter: declarative.ErrorPresenterRef{&ep},
 		},
-		Title:    config.FullName + "                                                          【 运行模式 -> 客户端 】",
+		Title:    config.FullName + "                                                          [ Run Mode -> Client ]",
 		MinSize:  declarative.Size{1100, 600},
 		Layout:   declarative.VBox{MarginsZero: true},
 		Children: []declarative.Widget{
@@ -28,7 +28,7 @@ func clientWindow() {
 			// 	Children: []Widget{
 			// 		PushButton{
 			// 			MaxSize:  Size{1000, 150},
-			// 			Text:     "断开服务器连接",
+			// 			Text:     "Disconnect from server",
 			// 			AssignTo: &runStopBtn,
 			// 		},
 			// 	},
@@ -40,12 +40,12 @@ func clientWindow() {
 
 	setWindow()
 
-	// 初始化应用
+	// Initialize app
 	Init()
 
-	// 执行任务
+	// Run task
 	go app.LogicApp.Run()
 
-	// 运行窗体程序
+	// Run window
 	mw.Run()
 }

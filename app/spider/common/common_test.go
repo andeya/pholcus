@@ -79,8 +79,8 @@ func TestFloor(t *testing.T) {
 func TestSplitCookies(t *testing.T) {
 	tests := []struct {
 		cookieStr string
-		wantLen  int
-		want     map[string]string
+		wantLen   int
+		want      map[string]string
 	}{
 		{"a=1; b=2", 2, map[string]string{"a": "1", "b": "2"}},
 		{"mt=ci%3D-1_0; thw=cn", 2, map[string]string{"mt": "ci%3D-1_0", "thw": "cn"}},
@@ -202,10 +202,10 @@ func TestUnicode16ToUTF8(t *testing.T) {
 
 func TestMakeUrl(t *testing.T) {
 	tests := []struct {
-		path         string
+		path          string
 		schemeAndHost []string
-		wantUrl      string
-		wantOk      bool
+		wantUrl       string
+		wantOk        bool
 	}{
 		{"/path", []string{"https://example.com"}, "https://example.com/path", true},
 		{"path", []string{"https://example.com"}, "https://example.com/path", true},
@@ -269,8 +269,8 @@ func TestDepriveMutiBreak(t *testing.T) {
 
 func TestHrefSub(t *testing.T) {
 	tests := []struct {
-		src string
-		sub string
+		src  string
+		sub  string
 		want string
 	}{
 		{"http://a.com", "k=v", "http://a.com?k=v"},
@@ -287,10 +287,10 @@ func TestHrefSub(t *testing.T) {
 func TestGetHref(t *testing.T) {
 	tests := []struct {
 		baseURL  string
-		url     string
-		href    string
+		url      string
+		href     string
 		mustBase bool
-		want    string
+		want     string
 	}{
 		{"https://example.com/", "https://example.com/page", "javascript:void(0)", false, ""},
 		{"https://example.com/", "https://example.com/page", "/", false, "https://example.com/"},

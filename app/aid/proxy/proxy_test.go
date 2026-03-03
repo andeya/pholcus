@@ -118,7 +118,7 @@ func TestProxy_New(t *testing.T) {
 
 func TestProxy_GetOne_WithUsable(t *testing.T) {
 	p := &Proxy{
-		online:  1,
+		online: 1,
 		ticker: time.NewTicker(time.Hour),
 		usable: map[string]*ProxyForHost{
 			"example.com": {
@@ -140,7 +140,7 @@ func TestProxy_GetOne_WithUsable(t *testing.T) {
 
 func TestProxy_GetOne_NoUsableForHost(t *testing.T) {
 	p := &Proxy{
-		online:  1,
+		online: 1,
 		ticker: time.NewTicker(time.Hour),
 		usable: map[string]*ProxyForHost{
 			"example.com": {

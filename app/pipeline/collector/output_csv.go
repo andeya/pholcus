@@ -45,7 +45,7 @@ func init() {
 				sheets[subNamespace] = csv.NewWriter(file)
 				th := col.MustGetRule(datacell["RuleName"].(string)).ItemFields
 				if col.Spider.OutDefaultField() {
-					th = append(th, "当前链接", "上级链接", "下载时间")
+					th = append(th, "Url", "ParentUrl", "DownloadTime")
 				}
 				sheets[subNamespace].Write(th)
 			}

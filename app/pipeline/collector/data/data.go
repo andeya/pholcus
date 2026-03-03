@@ -1,4 +1,4 @@
-// Package data 提供了数据单元与文件单元的存储结构定义。
+// Package data provides storage structure definitions for data and file cells.
 package data
 
 import (

@@ -26,7 +26,7 @@ func runmodeWindow() {
 
 			declarative.RadioButtonGroupBox{
 				AssignTo: &mode,
-				Title:    "*运行模式",
+				Title:    "*Run mode",
 				Layout:   declarative.HBox{},
 				MinSize:  declarative.Size{0, 70},
 
@@ -43,7 +43,7 @@ func runmodeWindow() {
 				MaxSize:  declarative.Size{0, 120},
 				Children: []declarative.Widget{
 					declarative.Label{
-						Text: "分布式端口：（单机模式不填）",
+						Text: "Distributed port: (leave empty for standalone)",
 					},
 					declarative.NumberEdit{
 						Value:    declarative.Bind("Port"),
@@ -52,7 +52,7 @@ func runmodeWindow() {
 					},
 
 					declarative.Label{
-						Text: "主节点 URL：（客户端模式必填）",
+						Text: "Master URL: (required for client mode)",
 					},
 					declarative.LineEdit{
 						Text: declarative.Bind("Master"),
@@ -61,7 +61,7 @@ func runmodeWindow() {
 			},
 
 			declarative.PushButton{
-				Text:     "确认开始",
+				Text:     "Confirm & Start",
 				MinSize:  declarative.Size{0, 30},
 				AssignTo: &runStopBtn,
 				OnClicked: func() {
@@ -91,6 +91,6 @@ func runmodeWindow() {
 	if icon, err := walk.NewIconFromResourceId(3); err == nil {
 		mw.SetIcon(icon)
 	}
-	// 运行窗体程序
+	// Run window
 	mw.Run()
 }

@@ -1,20 +1,20 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	// "github.com/andeya/pholcus/common/goquery"                          //DOM解析
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	spider "github.com/andeya/pholcus/app/spider"      //必需
+	// "github.com/andeya/pholcus/common/goquery"                          // DOM parsing
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	spider "github.com/andeya/pholcus/app/spider"      // required
 
-	// . "github.com/andeya/pholcus/app/spider/common" //选用
+	// . "github.com/andeya/pholcus/app/spider/common" // optional
 	// "github.com/andeya/pholcus/logs"
-	// net包
-	// "net/http" //设置http.Header
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	//"encoding/json"
-	// 字符串处理包
+	// string processing packages
 	//"regexp"
 	// "strconv"
 	// "fmt"
@@ -49,7 +49,7 @@ var ChinaNews = &spider.Spider{
 			"滚动新闻": {
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
-					//获取分页导航
+					// get pagination nav
 					navBox := query.Find(".pagebox a")
 					navBox.Each(func(i int, s *goquery.Selection) {
 						if url := s.Attr("href"); url.IsSome() {
@@ -67,14 +67,14 @@ var ChinaNews = &spider.Spider{
 			"新闻列表": {
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
-					//获取新闻列表
+					// get news list
 					newList := query.Find(".content_list li")
 					newList.Each(func(i int, s *goquery.Selection) {
-						//新闻类型
+						// news type
 						newsType := s.Find(".dd_lm a").Text()
-						//标题
+						// title
 						newsTitle := s.Find(".dd_bt a").Text()
-						//时间
+						// time
 						newsTime := s.Find(".dd_time").Text()
 						if url := s.Find(".dd_bt a").Attr("href"); url.IsSome() {
 							u := url.Unwrap()
@@ -119,7 +119,7 @@ var ChinaNews = &spider.Spider{
 						from = "未知"
 					}
 
-					//输出格式
+					// output format
 					ctx.Output(map[int]interface{}{
 						0: ctx.GetTemp("newsType", ""),
 						1: from,

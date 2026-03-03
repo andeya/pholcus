@@ -1,4 +1,4 @@
-// Package request 提供了待爬取请求的封装与去重功能。
+// Package request provides encapsulation and deduplication of crawl requests.
 package request
 
 import (

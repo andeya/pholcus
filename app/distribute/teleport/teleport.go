@@ -11,7 +11,7 @@ import (
 	"github.com/andeya/gust/result"
 )
 
-// 运行模式常量。
+// Run mode constants.
 const (
 	SERVER = iota + 1
 	CLIENT
@@ -133,7 +133,7 @@ func (tp *TP) Close(nodeuid ...string) {
 
 	} else if tp.mode == SERVER && tp.tpServer.listener != nil {
 		tp.tpServer.listener.Close()
-		log.Printf(" *     —— Server stopped listening on %v ——", tp.port)
+		log.Printf(" *     -- Server stopped listening on %v --", tp.port)
 	}
 
 	if len(nodeuid) == 0 {
@@ -259,9 +259,9 @@ func (tp *TP) closeMsg(uid, addr string, short bool) {
 	}
 	switch tp.mode {
 	case SERVER:
-		log.Printf(" *     —— Disconnected from client %v (%v) ——", uid, addr)
+		log.Printf(" *     -- Disconnected from client %v (%v) --", uid, addr)
 	case CLIENT:
-		log.Printf(" *     —— Disconnected from server %v ——", addr)
+		log.Printf(" *     -- Disconnected from server %v --", addr)
 	}
 }
 

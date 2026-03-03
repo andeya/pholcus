@@ -1,27 +1,27 @@
 package rules
 
-// 基础包
+// base packages
 import (
-	"github.com/andeya/pholcus/app/downloader/request" //必需
-	"github.com/andeya/pholcus/common/goquery"         //DOM解析
+	"github.com/andeya/pholcus/app/downloader/request" // required
+	"github.com/andeya/pholcus/common/goquery"         // DOM parsing
 
-	// "github.com/andeya/pholcus/logs"              //信息输出
-	spider "github.com/andeya/pholcus/app/spider" //必需
-	// . "github.com/andeya/pholcus/app/spider/common" //选用
+	// "github.com/andeya/pholcus/logs"              // logging
+	spider "github.com/andeya/pholcus/app/spider" // required
+	// . "github.com/andeya/pholcus/app/spider/common" // optional
 
-	// net包
-	// "net/http" //设置http.Header
+	// net packages
+	// "net/http" // set http.Header
 	// "net/url"
 
-	// 编码包
+	// encoding packages
 	// "encoding/xml"
 	// "encoding/json"
 
-	// 字符串处理包
+	// string processing packages
 	"regexp"
 	"strconv"
 	"strings"
-	// 其他包
+	// other packages
 	// "fmt"
 	// "math"
 	// "time"
@@ -94,7 +94,7 @@ var Miyabaobei = &spider.Spider{
 					}
 					total, _ := strconv.Atoi(totalPage)
 
-					// 调用指定规则下辅助函数
+					// call helper function under specified rule
 					ctx.Aid(map[string]interface{}{
 						"loop":     [2]int{1, total},
 						"ruleBase": ctx.GetTemp("baseUrl", "").(string),
@@ -102,13 +102,13 @@ var Miyabaobei = &spider.Spider{
 							"Rule": "商品列表",
 						},
 					})
-					// 用指定规则解析响应流
+					// parse response with specified rule
 					ctx.Parse("商品列表")
 				},
 			},
 
 			"商品列表": {
-				//注意：有无字段语义和是否输出数据必须保持一致
+				// NOTE: field semantics and data output presence must be consistent
 				ItemFields: []string{
 					"标题",
 					"价格",
@@ -116,20 +116,20 @@ var Miyabaobei = &spider.Spider{
 				},
 				ParseFunc: func(ctx *spider.Context) {
 					query := ctx.GetDom()
-					//获取品类
+					// get product category
 					goodsType := query.Find(".crumbs").Text()
 					re := regexp.MustCompile("\\s")
 					goodsType = re.ReplaceAllString(goodsType, "")
 					re = regexp.MustCompile("蜜芽宝贝>")
 					goodsType = re.ReplaceAllString(goodsType, "")
 					query.Find(".bmfo").Each(func(i int, s *goquery.Selection) {
-						// 获取标题
+						// get title
 						title := s.Find("p a").First().Attr("title").UnwrapOr("")
 
-						// 获取价格
+						// get price
 						price := s.Find(".f20").Text()
 
-						// 结果存入Response中转
+						// store results in Response
 						ctx.Output(map[int]interface{}{
 							0: title,
 							1: price,

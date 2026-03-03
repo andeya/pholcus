@@ -3,9 +3,9 @@ package web
 import (
 	"testing"
 
+	ws "github.com/andeya/pholcus/common/websocket"
 	"github.com/andeya/pholcus/runtime/cache"
 	"github.com/andeya/pholcus/runtime/status"
-	ws "github.com/andeya/pholcus/common/websocket"
 )
 
 func init() {

@@ -46,7 +46,7 @@ func (tp *TP) Client(serverAddr string, port string, isShort ...bool) {
 
 func (tp *TP) client() {
 	if !tp.short {
-		log.Println(" *     —— Connecting to server... ——")
+		log.Println(" *     -- Connecting to server... --")
 	}
 
 RetryLabel:
@@ -85,7 +85,7 @@ func (tp *TP) cGoConn(conn net.Conn) {
 
 	if !tp.short {
 		tp.send(NewNetData(tp.uid, tp.tpClient.serverUID, IDENTITY, "", nil))
-		log.Printf(" *     —— Connected to server: %v ——", remoteAddr)
+		log.Printf(" *     -- Connected to server: %v --", remoteAddr)
 	} else {
 		connect.Short = true
 	}

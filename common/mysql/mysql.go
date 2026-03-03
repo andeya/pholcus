@@ -1,4 +1,4 @@
-// Package mysql 提供了 MySQL 数据库连接和操作封装。
+// Package mysql provides MySQL database connection and operation wrapper.
 package mysql
 
 import (
@@ -234,7 +234,7 @@ func (t *Table) FlushInsert() (r result.VoidResult) {
 // SelectAll returns all rows from the table. SetTableName must be called first.
 func (t *Table) SelectAll() result.Result[*sql.Rows] {
 	if t.tableName == "" {
-		return result.FmtErr[*sql.Rows]("表名不能为空")
+		return result.FmtErr[*sql.Rows]("table name cannot be empty")
 	}
 	t.sqlCode = `SELECT * FROM ` + t.tableName + `;`
 

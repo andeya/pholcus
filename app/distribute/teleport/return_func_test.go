@@ -6,8 +6,8 @@ import (
 
 func TestReturnData(t *testing.T) {
 	tests := []struct {
-		body string
-		args []string
+		body                     string
+		args                     []string
 		wantOp, wantTo, wantFrom string
 	}{
 		{"ok", nil, "", "", ""},

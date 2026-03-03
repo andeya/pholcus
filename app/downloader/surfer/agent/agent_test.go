@@ -111,8 +111,8 @@ func TestFormatUnknownVersion(t *testing.T) {
 
 func TestCreateVersionVariousBrowsers(t *testing.T) {
 	tests := []struct {
-		browser string
-		ver     string
+		browser  string
+		ver      string
 		contains string
 	}{
 		{"chrome", "127.0", "Chrome/127.0"},

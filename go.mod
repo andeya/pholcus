@@ -3,6 +3,7 @@ module github.com/andeya/pholcus
 go 1.24.0
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/Shopify/sarama v1.23.1
 	github.com/andeya/gust v1.20.7
 	github.com/andybalholm/cascadia v1.0.0
@@ -20,7 +21,6 @@ require (
 )
 
 require (
-	github.com/DATA-DOG/go-sqlmock v1.5.2 // indirect
 	github.com/DataDog/zstd v1.3.6-0.20190409195224-796139022798 // indirect
 	github.com/chromedp/cdproto v0.0.0-20250724212937-08a3db8b4327 // indirect
 	github.com/chromedp/sysutil v1.1.0 // indirect

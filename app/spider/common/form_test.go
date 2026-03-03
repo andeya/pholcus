@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/andeya/pholcus/common/goquery"
 	spider "github.com/andeya/pholcus/app/spider"
+	"github.com/andeya/pholcus/common/goquery"
 )
 
 func TestNewForm(t *testing.T) {

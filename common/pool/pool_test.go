@@ -107,8 +107,8 @@ func TestClassicPool_Call(t *testing.T) {
 				p := ClassicPool(2, 1, f, 10*time.Second)
 				return p, func() { p.Close() }
 			},
-			callback: func(src Src) error { return cbErr },
-			wantErr:  true,
+			callback:  func(src Src) error { return cbErr },
+			wantErr:   true,
 			wantIsErr: cbErr,
 		},
 		{
@@ -258,4 +258,3 @@ func TestClassicPool_ConcurrentCalls(t *testing.T) {
 	}
 	wg.Wait()
 }
-

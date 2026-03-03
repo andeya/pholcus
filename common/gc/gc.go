@@ -1,4 +1,4 @@
-// Package gc 提供了手动触发垃圾回收以释放堆内存的功能。
+// Package gc provides manual garbage collection to release heap memory.
 package gc
 
 import (

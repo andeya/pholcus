@@ -5,7 +5,7 @@ type TaskJar struct {
 	Tasks chan *Task
 }
 
-// NewTaskJar 创建任务存储实例。
+// NewTaskJar creates a task storage instance.
 func NewTaskJar() *TaskJar {
 	return &TaskJar{
 		Tasks: make(chan *Task, 1024),
