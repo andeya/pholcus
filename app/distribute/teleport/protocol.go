@@ -44,7 +44,7 @@ func (p *Protocol) Unpack(buffer []byte) (readerSlice [][]byte, bufferOver []byt
 		}
 		if string(buffer[i:i+p.headerLen]) == p.header {
 			messageLength := BytesToInt(buffer[i+p.headerLen : i+p.headerLen+DataLengthOfLenth])
-			if length < i+p.headerLen+DataLengthOfLenth+messageLength {
+			if messageLength < 0 || length < i+p.headerLen+DataLengthOfLenth+messageLength {
 				break
 			}
 			data := buffer[i+p.headerLen+DataLengthOfLenth : i+p.headerLen+DataLengthOfLenth+messageLength]
