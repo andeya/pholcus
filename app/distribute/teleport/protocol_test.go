@@ -140,6 +140,19 @@ func TestProtocol_Unpack_TooShort(t *testing.T) {
 	}
 }
 
+func TestProtocol_Unpack_NegativeLength(t *testing.T) {
+	p := NewProtocol("ab")
+	buf := append([]byte("ab"), IntToBytes(-1)...)
+	buf = append(buf, []byte("xx")...)
+	slice, rest := p.Unpack(buf)
+	if len(slice) != 0 {
+		t.Errorf("len(slice) = %d, want 0", len(slice))
+	}
+	if !bytes.Equal(rest, buf) {
+		t.Errorf("rest = %v, want %v", rest, buf)
+	}
+}
+
 func TestIntToBytes_BytesToInt(t *testing.T) {
 	tests := []int{0, 1, 42, 1024, -1}
 	for _, n := range tests {
